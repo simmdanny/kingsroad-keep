@@ -14123,6 +14123,9 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Mastery progress in battle',d:'27 Oct',v:'v397',li:[
+    'A new button on the right, under the top bar, shows your mastery progress during a run: every building on the board and your hero\u2019s scrolls, with their level and bar.',
+    'The part of each bar earned this run glows, with the XP earned this run and the next upgrade. Tap a row to see all five masteries (the run pauses meanwhile).']},
   {t:'Grasping Shadows masteries, reworked',d:'27 Oct',v:'v396',li:[
     'Shackled Souls: chains between grabbed foes. Shadow Snare: three enormous fingers sweep in, 65% to the foes the hands missed.',
     'The Grasping Circle: a ring of hands closes in, 35%. Dragged Below: one foe pulled under the road and hurled back for 130%.',
@@ -23553,6 +23556,76 @@ castGrasp=function(t,c,P,o){const r=GSM_CAST0.apply(this,arguments),C=gsmC(o);if
   if(L>=3)mxLater(2.15,()=>{if(state==='playing')gsmCircle(S,P*GSM.ci*a[2]);});
   if(L>=5)mxLater(2.75,()=>{if(state==='playing')gsmAbyss(S,P*GSM.abClose*a[4],P*GSM.abSlam*a[4]);});
   return r;};
+/* ================= Mastery progress in battle (v397) ================= */
+/* Simon: "add a feature to the game where you can see your mastery progress when you're in a game". During a run a button on the right under
+   the top bar (#mpgHud, under the artifacts) opens #liveMast, a live panel like the damage one (opening one closes the other): every building
+   on the board and every scroll of the battle hero that earns mastery (smOn), each with its level, its bar (the part earned this run glows),
+   the XP earned this run and the next upgrade. A row opens that mastery card and the run pauses while it is open, as the artifacts card does.
+   Both panels open beside the button column (body.mpg-rail), so the buttons stay in reach. The button counts the mastery levels reached this
+   run. XP earned this run is kept in RSTAT.mx ({b:{type:xp},s:{scroll:xp}}), so it is saved and resumed with the run; mastGain and smGain
+   wrappers add what they really gave (after the v388 smOn gate). */
+const MPG={sig:'',html:''};
+const MPG_IC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l7.5 9.5-7.5 9.5-7.5-9.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 7.6l3.6 4.4-3.6 4.4-3.6-4.4z" fill="currentColor"/></svg>';
+const mpgRun=()=>{if(!RSTAT)RSTAT=newStat();const m=RSTAT.mx||(RSTAT.mx={});m.b=m.b||{};m.s=m.s||{};return m;};
+const mpgLv=(x,XP)=>{let l=0;while(l<5&&x>=XP[l])l++;return l;};
+const mpgNum=v=>v<100?String(Math.round(v*10)/10):fmt(v);
+{const g0=mastGain;mastGain=function(k){const x0=mastXp(k),r=g0.apply(this,arguments);try{const d=mastXp(k)-x0;if(d>0){const B=mpgRun().b;B[k]=(B[k]||0)+d;}}catch(err){console.error(err);}return r;};}
+{const g0=smGain;smGain=function(k){const x0=smXp(k),r=g0.apply(this,arguments);try{const d=smXp(k)-x0;if(d>0){const S=mpgRun().s;S[k]=(S[k]||0)+d;}}catch(err){console.error(err);}return r;};}
+/* what the panel lists: the buildings on the board (and any sold after earning XP this run), most XP this run first; the battle hero's scrolls
+   that earn mastery (and any that earned XP this run); the hero's other scrolls are named once, as not earning mastery yet */
+function mpgBuildings(){const B=mpgRun().b,ks=[];for(const t of towers)if(t&&!t.isHero&&TD[t.type]&&!ks.includes(t.type))ks.push(t.type);for(const k in B)if(TD[k]&&!ks.includes(k))ks.push(k);
+  return ks.sort((a,b)=>(B[b]||0)-(B[a]||0)||TD[a].name.localeCompare(TD[b].name));}
+function mpgScrolls(){const S=mpgRun().s,on=[],off=[];for(const q of scrollItems())if(SPELLS_S[q.k]&&!on.includes(q.k)&&!off.includes(q.k))(smOn(q.k)?on:off).push(q.k);
+  for(const k in S)if(SPELLS_S[k]&&smOn(k)&&!on.includes(k))on.push(k);return{on,off};}
+function mpgUps(){const R=mpgRun();let n=0;for(const k in R.b)if(TD[k])n+=Math.max(0,mastLv(k)-mpgLv(mastXp(k)-R.b[k],MAST_XP));
+  for(const k in R.s)if(SPELLS_S[k])n+=Math.max(0,smLv(k)-mpgLv(smXp(k)-R.s[k],SM_XP));return n;}
+function mpgBar(L,x,g,XP){const lo=L?XP[L-1]:0,hi=L<5?XP[L]:XP[4],w=v=>L>=5?100:Math.max(0,Math.min(100,(v-lo)/(hi-lo)*100)),a=w(x-g),b=w(x);
+  const st=[1,2,3,4,5].map(i=>`<i class="${i<=L?'on':''}" style="--mc:#${MAST_COL[i-1].toString(16).padStart(6,'0')}"></i>`).join('');
+  return`<div class="mst"><span class="mst-st">${st}</span><b>Mastery ${L}</b><span class="mst-bar mpg-bar"><i style="width:${a.toFixed(1)}%"></i><i class="mpg-new" style="width:${Math.max(0,b-a).toFixed(1)}%"></i></span><small class="num">${L>=5?'max':fmt(Math.floor(x))+' / '+fmt(hi)+' XP'}</small></div>`;}
+function mpgRow(kind,k){const b=kind==='b',g=mpgRun()[kind][k]||0,x=b?mastXp(k):smXp(k),XP=b?MAST_XP:SM_XP,L=b?mastLv(k):smLv(k),L0=mpgLv(x-g,XP),D=b?MAST_D[k]:SM_D[k];
+  const ic=b?`<img src="${thumbs[k]||''}" alt="">`:`<span class="mpg-sa">${scrollArt(k)}</span>`,nx=L>=5?'Every mastery unlocked':D&&D[L]?`Next: <em>${D[L].n}</em>`:'Upgrades come in a later update';
+  return`<button class="mpg-row" data-mpg="${kind}:${k}"><span class="mpg-ic">${ic}</span><span class="mpg-main"><span class="mpg-top"><b>${b?TD[k].name:SPELLS_S[k].n}</b><span class="mpg-gain${g>0?' on':''}">${g>0?'+'+mpgNum(g)+' XP this run':'No XP yet this run'}</span></span>`+
+    `${mpgBar(L,x,g,XP)}<span class="mst-next">${L>L0?`<span class="mpg-up">Mastery ${L} reached this run!</span> `:''}${nx}</span></span></button>`;}
+function mpgHtml(){const bs=mpgBuildings(),S=mpgScrolls(),cast=!!(heroU&&HB[heroU.hero]&&HB[heroU.hero].scrolls);
+  return'<div class="mpg-sec">Buildings</div>'+(bs.length?bs.map(k=>mpgRow('b',k)).join(''):'<p class="mpg-none">Build towers to start earning building mastery.</p>')+
+    '<div class="mpg-sec">Scrolls</div>'+(S.on.length?S.on.map(k=>mpgRow('s',k)).join(''):`<p class="mpg-none">${cast?'Your hero has no scrolls that earn mastery yet.':'Place a spellcaster hero: its scrolls earn mastery as it casts them.'}</p>`)+
+    (S.off.length?`<p class="mpg-none">${S.off.map(k=>SPELLS_S[k].n).join(', ')}: masteries for scrolls above Common come in a later update.</p>`:'')+
+    '<p class="mpg-foot">Mastery is kept across all your runs. Tap a row to see every upgrade.</p>';}
+function mpgRender(){const el=$('#liveMast');if(!el||el.hidden)return;const h=mpgHtml();if(h!==MPG.html){MPG.html=h;el.querySelector('.mpg-body').innerHTML=h;}el.querySelector('.mpg-wave').textContent=`Wave ${wave}`;}
+function mpgToggle(on){let el=$('#liveMast');if(on==null)on=!el||el.hidden;if(state!=='playing'||OW.on)on=false;
+  if(on&&!el){el=document.createElement('div');el.id='liveMast';el.hidden=true;
+    el.innerHTML='<div class="ld-head"><b>Mastery this run</b><span class="mpg-wave"></span><button class="x" data-mpgx="1" aria-label="Close">\u00d7</button></div><div class="mpg-body"></div>';
+    el.addEventListener('click',ev=>{ev.stopPropagation();if(ev.target.closest('[data-mpgx]')){mpgToggle(false);return;}const r=ev.target.closest('[data-mpg]');if(r)mpgCard(r.dataset.mpg);});document.body.appendChild(el);}
+  if(el){if(on&&liveDmgOpen())liveDmgToggle(false);el.hidden=!on;if(on){MPG.html='';mpgRender();}}
+  const b=$('#mpgHud');if(b)b.classList.toggle('on',on);return on;}
+function mpgCard(id){const i=id.indexOf(':'),b=id.slice(0,i)==='b',k=id.slice(i+1);if(b?!TD[k]:!SPELLS_S[k])return;if(b)mastOpen(k);else smOpen(k);
+  const o=$(b?'#mastModal':'#smModal');if(!o||state!=='playing')return;const wasP=paused;paused=true;
+  o.addEventListener('click',ev=>{if((ev.target===o||ev.target.closest(b?'[data-mx]':'[data-smx]'))&&state==='playing')paused=wasP;});}
+function mpgSync(){const on=state==='playing'&&!OW.on;let el=$('#mpgHud');
+  document.body.classList.toggle('mpg-rail',on);
+  if(!on){MPG.sig='off';if(el)el.remove();const p=$('#liveMast');if(p)p.hidden=true;return;}
+  const ah=$('#artHud'),hud=$('#hud'),top=Math.round(ah?ah.getBoundingClientRect().bottom+6:hud?hud.getBoundingClientRect().bottom+6:64),up=mpgUps(),sig=top+'|'+up;
+  if(el&&sig===MPG.sig)return;MPG.sig=sig;
+  if(!el){el=document.createElement('button');el.id='mpgHud';el.setAttribute('aria-label','Mastery progress');el.title='Mastery progress';el.addEventListener('click',ev=>{ev.stopPropagation();mpgToggle();});document.body.appendChild(el);}
+  el.style.top=top+'px';el.innerHTML=MPG_IC+(up?`<b>${up}</b>`:'');const p=$('#liveMast');el.classList.toggle('on',!!p&&!p.hidden);}
+{const uh=updHud;updHud=function(){const r=uh.apply(this,arguments);try{mpgSync();}catch(e){console.error(e);}return r;};}
+{const so=showOverlay;showOverlay=function(){const r=so.apply(this,arguments);try{mpgSync();}catch(e){}return r;};}
+{const lt=liveDmgToggle;liveDmgToggle=function(){const r=lt.apply(this,arguments);try{if(liveDmgOpen())mpgToggle(false);}catch(e){}return r;};}
+setInterval(()=>{try{mpgSync();const el=$('#liveMast');if(el&&!el.hidden){if(state!=='playing'||OW.on)mpgToggle(false);else mpgRender();}}catch(e){}},500);
+{const st=document.createElement('style');st.textContent=
+  '#mpgHud{position:fixed;right:8px;z-index:6;width:38px;height:38px;display:grid;place-items:center;padding:0;background:#1a120bcc;border:0;border-radius:10px;color:var(--gold);box-shadow:inset 0 0 0 1px #5a4630,0 3px 10px #0008;cursor:pointer}'+
+  '#mpgHud svg{width:22px;height:22px;filter:drop-shadow(0 0 4px #e0b04088)}#mpgHud.on{box-shadow:inset 0 0 0 1.5px var(--gold),0 3px 10px #0008}'+
+  '#mpgHud b{position:absolute;right:-4px;top:-4px;min-width:15px;height:15px;padding:0 3px;box-sizing:border-box;border-radius:8px;background:#3d8a3a;color:#fff;font:800 9.5px/15px sans-serif;text-align:center;box-shadow:0 0 0 1.5px #1a120b,0 0 8px #6fd06a}'+
+  '#liveMast{position:fixed;z-index:12;right:52px;top:calc(env(safe-area-inset-top,0px) + 56px);width:min(calc(100vw - 68px),420px);max-height:58vh;overflow:auto;box-sizing:border-box;padding:10px 12px 12px;border-radius:12px;background:linear-gradient(#2c2119f2,#15100cf2);box-shadow:inset 0 0 0 1px #6b4d31,0 10px 30px #000a;touch-action:pan-y;animation:sheet .16s ease-out}'+
+  /* the damage panel opens beside the button column too, so the artifacts and mastery buttons stay in reach */
+  'body.mpg-rail #liveDmg{right:52px;width:min(calc(100vw - 68px),420px)}'+
+  '.mpg-sec{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:10px 0 2px}.mpg-sec:first-child{margin-top:0}'+
+  '.mpg-row{display:flex;align-items:center;gap:9px;width:100%;margin-top:5px;padding:6px 8px;text-align:left;background:#1a1410;border:0;border-radius:8px;box-shadow:inset 0 0 0 1px #4a3a28;color:inherit;font:inherit;cursor:pointer}'+
+  '.mpg-ic{flex:none;width:34px;height:34px;display:grid;place-items:center}.mpg-ic img{width:34px;height:34px;object-fit:contain}.mpg-sa svg{width:26px;height:34px}'+
+  '.mpg-main{flex:1;min-width:0}.mpg-top{display:flex;align-items:baseline;gap:6px;margin-bottom:3px}.mpg-top b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
+  '.mpg-gain{margin-left:auto;font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap}.mpg-gain.on{color:#8fe08a}'+
+  '.mpg-bar{display:flex}.mpg-bar i{flex:none}.mpg-bar i.mpg-new{background:linear-gradient(90deg,#fff3b8,#ffe27a);box-shadow:0 0 6px #ffe27a;animation:mpgGlow 1.6s ease-in-out infinite}@keyframes mpgGlow{50%{opacity:.55}}'+
+  '.mpg-up{font-weight:800;color:#8fe08a}.mpg-none{font-size:12px;line-height:1.35;color:var(--muted);margin:5px 0 0}.mpg-foot{font-size:11px;color:var(--muted);margin:10px 0 0}';document.head.appendChild(st);}
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
@@ -23560,7 +23633,10 @@ if(GAME.setAside)setTimeout(()=>toast('Your open-world run now belongs to Kingsg
 requestAnimationFrame(frame);
 /* ---- What's new: shown once per notes version (per account), on the first open after an update ---- */
 const NOTES_V='masteries-1';
-const NOTES_HTML=`<h3>\u2726 Grasping Shadows masteries, reworked</h3><ul>
+const NOTES_HTML=`<h3>\u2726 Mastery progress in battle</h3><ul>
+<li>A new <b>mastery button</b> on the right, under the top bar, opens a live panel during a run: every building on the board and every scroll of your hero that earns mastery, with its level and how close it is to the next one.</li>
+<li>The part of each bar earned in this run glows, next to the XP earned this run, and a level reached this run is called out (the button counts them too). Tap a row to see all five masteries; the run pauses while the card is open.</li></ul>
+<h3>\u2726 Grasping Shadows masteries, reworked</h3><ul>
 <li><b>Shackled Souls</b> (Mastery 1): when the hands let go, spectral violet chains bind the ankles of grabbed foes standing near each other for 2s; if another effect pushes one of them back, the chains tug the others ahead of it along. <b>Shadow Snare</b> (Mastery 2): as the hands sink, the cracks race along the road and three enormous shadow fingers sweep in like a closing claw, seizing the foes nearby that the hands missed for 65% and dragging them back toward the rune.</li>
 <li><b>The Grasping Circle</b> (Mastery 3): then a ring of shadow hands rises round the rune and sweeps inward one after another, 35% to each foe they touch, nudging it toward the centre. <b>Dragged Below</b> (Mastery 4): when the hold ends, the hands drag one grabbed foe under the road for 1s and hurl it back onto the path for 130%; a boss resists and takes a heavy slam for 130% instead.</li>
 <li><b>Hand of the Abyss</b> (Mastery 5): the rune splits into a vast glowing fissure and a colossal skeletal hand closes round the whole area for 150%, lifting the foes in its grip (not bosses), then plunges back underground for 100% more.</li>
