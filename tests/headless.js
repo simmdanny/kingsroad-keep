@@ -26,7 +26,7 @@ const PORT = process.env.KK_PORT || 8771, local = path.join(__dirname, '..', 'no
     for (let shown = 0; ;) {
       await page.waitForTimeout(5000);
       const R = await page.evaluate(() => ({ done: __R.done, log: __R.log }));
-      for (const l of R.log.slice(shown)) { console.log(l); if (/FAIL|ERROR/.test(l)) failed = true; }
+      for (const l of R.log.slice(shown)) { console.log(l); if (/ERROR|NOT FIRED/.test(l) || /\bFAIL\b/.test(l.replace(/\b0 FAIL\b/g, ''))) failed = true; }   /* resolve reports "12 PASS, 0 FAIL" */
       shown = R.log.length;
       if (R.done) break;
     }
