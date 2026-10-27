@@ -14125,6 +14125,13 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Grasping Shadows masteries, reworked',d:'27 Oct',v:'v396',li:[
+    'Shackled Souls: chains between grabbed foes. Shadow Snare: three enormous fingers sweep in, 65% to the foes the hands missed.',
+    'The Grasping Circle: a ring of hands closes in, 35%. Dragged Below: one foe pulled under the road and hurled back for 130%.',
+    'Hand of the Abyss: a colossal hand closes over the area for 150%, lifts, and plunges for 100% more.']},
+  {t:'Zenith lines up with the road',d:'27 Oct',v:'v395',li:[
+    'Sunflare: Zenith\u2019s longer beams now strike along the road, where the foes walk (the cross was turned across it).',
+    'Rime Bloom: the erupting crystals scatter across the road instead of along it.']},
   {t:'Soul Lantern masteries, reworked',d:'27 Oct',v:'v394',li:[
     'Brighter Wick: each beam stronger than the last, up to 15% more. Phantom Bolt: a rune over the target fires a bolt into it.',
     'Wandering Souls: two spectral flames orbit the lantern and dart out at foes. Soul Harvest: stored souls make the next beam stronger.',
@@ -22696,7 +22703,7 @@ function snfBeam(x,z,dmg,o,hit){const y0=gy(x,z),top=y0+3.6,H=top-y0,mats=[],geo
       sprayP(1,x,y0+.1,z,18,{c:SNC.W,c2:SNC.G,sp:1.7,up:.9,s:.04,s2:0,life:.42,g:2});}
     const fade=landed?Math.max(0,1-(t-.1)/.56):1,w=landed?.55+.45*fade:1;m1.uniforms.uA.value=fade;m2.uniforms.uA.value=fade;m2.uniforms.uT.value+=dt;glow.scale.x=glow.scale.z=.16*w;core.scale.x=core.scale.z=.045*w;
     if(landed&&rnd()<dt*34)emit(1,{x:x+(rnd()-.5)*.12,y:y0+rnd()*1.8,z:z+(rnd()-.5)*.12,vy:.45,s:.04,s2:0,c:SNC.W,c2:SNC.G,a:.9,life:.4});},null,{mats,geos});}
-function snfZenith(cx,cz,g0,dmg,o){const q=nsRouteNear(cx,cz),p=posAt(q.d,q.rt),ang=p[2],ux=Math.cos(ang),uz=-Math.sin(ang),vx=-uz,vz=ux,A=SNF.crossA,B=SNF.crossB,hit=new Set();
+function snfZenith(cx,cz,g0,dmg,o){const q=nsRouteNear(cx,cz),p=posAt(q.d,q.rt),ang=p[2],ux=Math.sin(ang),uz=Math.cos(ang),vx=uz,vz=-ux,/* u along the road, v across it */A=SNF.crossA,B=SNF.crossB,hit=new Set();
   const pts=[[ux*A,uz*A],[-ux*A,-uz*A],[vx*B,vz*B],[-vx*B,-vz*B]];snfLog({ev:'zenith0',pts:pts.map(d=>[cx+d[0],cz+d[1]])});
   pts.forEach((d,i)=>mxLater(.18+i*.05,()=>{if(state!=='playing')return;snfBeam(cx+d[0],cz+d[1],dmg,o,hit);snfCrossLine(cx,cz,cx+d[0],cz+d[1],g0);}));
   mxLater(.3,()=>{if(state!=='playing')return;flash(cx,g0+.35,cz,SNC.W,.32,.12);snfGlowDisc(cx,cz,g0,.42,SNC.C,.4,.45,.02);});}
@@ -22862,7 +22869,7 @@ function rbmCrystal(x,z,dmg,o,big){const y=gy(x,z),G=nsIceGeos(),mats=[],g=new T
     if(hit&&!cr&&rnd()<dt*14)emit(1,{x:x+(rnd()-.5)*.25,y:y+rnd()*H,z:z+(rnd()-.5)*.25,s:.04,s2:0,c:RBC.W,c2:RBC.I,life:.3});
     if(t>=HOLD&&!cr){cr=true;nsSplinters(x,y+H*.4,z,6,.9);sprayP(1,x,y+H*.4,z,10,{c:RBC.W,c2:RBC.I,sp:1.1,up:.4,s:.04,s2:0,life:.4,g:3});}
     if(cr){const q=Math.max(0,1-(t-HOLD)/.4);g.scale.set(q,Math.max(.001,q),q);g.position.y=y-(1-q)*.15;gm.opacity=.3*q;cm.opacity=.4*q;}},null,{mats});}
-function rbmErupt(cx,cz,P,o){const R=RBM.R*.85,pts=[],q=nsRouteNear(cx,cz);for(let i=0;i<60&&pts.length<3;i++){const w=posAt(clamp(q.d+(rnd()*2-1)*R,0,q.rt.len),q.rt),j=(rnd()-.5)*.5,p=[w[0]+Math.sin(w[2])*j,w[1]+Math.cos(w[2])*j];if((p[0]-cx)**2+(p[1]-cz)**2>R*R)continue;if(pts.every(q=>(q[0]-p[0])**2+(q[1]-p[1])**2>.75*.75))pts.push(p);}
+function rbmErupt(cx,cz,P,o){const R=RBM.R*.85,pts=[],q=nsRouteNear(cx,cz);for(let i=0;i<60&&pts.length<3;i++){const w=posAt(clamp(q.d+(rnd()*2-1)*R,0,q.rt.len),q.rt),j=(rnd()-.5)*.5,p=[w[0]+Math.cos(w[2])*j,w[1]-Math.sin(w[2])*j];if((p[0]-cx)**2+(p[1]-cz)**2>R*R)continue;if(pts.every(q=>(q[0]-p[0])**2+(q[1]-p[1])**2>.75*.75))pts.push(p);}
   /* if the random spots came out too close together: the rest on the road ahead of and behind the centre */
   while(pts.length<3){const w=posAt(clamp(q.d+[.8,-.8,0][pts.length],0,q.rt.len),q.rt);pts.push([w[0],w[1]]);}
   pts.forEach((p,i)=>mxLater(.58+i*.17,()=>{if(state!=='playing')return;rbmCrystal(p[0],p[1],P*RBM.erupt,o,i===1);}));}
@@ -23359,6 +23366,195 @@ function slmStart(o,K){const c=slmC(o);if(!c)return null;const L=c.L,a=c.a,g0=gy
     if(L>=4)slmOrbsTick(S,tt,dt,1-fade);
     if(L>=5&&tt>=K.DUR){if(!S.rf)S.rf=slmRift(S);slmRiftStep(S,S.rf,tt-K.DUR,dt,lp);}};
   slmLog({ev:'start',L});return S;}
+/* ================= Grasping Shadows' masteries, as Simon designed them ================= */
+/* Simon (abridged; the "why it works" notes left out): "Mastery 1 - Shackled Souls: When the hands release their targets, spectral chains burst
+   out of the cracks and briefly bind their ankles together, linking nearby grabbed enemies for 2 seconds. If one linked enemy is moved by
+   another effect, the chains tug the other linked enemies slightly toward it. Visual: Thin violet chains shoot between the enemies, pull taut,
+   and rattle with ghostly energy before shattering. / Mastery 2 - Shadow Snare: When the initial hands release their targets, enormous shadow
+   fingers burst from the cracks and sweep across the road, attempting to seize nearby ground enemies that weren't caught by the original spell.
+   Each enemy caught is dragged a short distance toward the rune and takes 65% damage. Visual: the original hands sink underground; the cracks
+   suddenly spread outward, racing along the road; three massive spectral fingers erupt and sweep inward like a closing claw; caught enemies are
+   dragged toward the rune as violet energy bursts around them; the fingers plunge back into the earth, leaving fading cracks. / Mastery 3 - The
+   Grasping Circle: After the first hands disappear, a ring of shadow hands erupts around the original rune. The hands sweep inward in sequence,
+   dealing 35% damage to enemies they touch and nudging them toward the center. Visual: A circle of claws emerges around the rune and moves
+   inward like a closing trap, leaving trails of violet smoke. / Mastery 4 - Dragged Below: When the initial hold ends, one targeted non-boss
+   enemy is dragged halfway underground by the hands. It disappears beneath the road for 1 second, then gets thrown back onto the path, taking
+   130% damage on impact. If the target dies before resurfacing, a dark burst erupts from the spot instead. Visual: The road splits beneath the
+   target, skeletal fingers pull it down into a violet abyss, and the ground spits it back out in a burst of debris. Bosses resist being dragged
+   below and instead suffer a heavy grasping slam. / Mastery 5 - Hand of the Abyss: The rune expands dramatically as a colossal skeletal hand
+   erupts from beneath the road and closes its fingers around the entire affected area. It lifts briefly, crushing the enemies caught within its
+   grasp, then plunges underground in a devastating slam. The hand deals 150% damage when it closes. The final slam deals another 100% damage.
+   Bosses cannot be lifted but take both hits. Visual: The road fractures into a vast, glowing purple fissure. A hand many times larger than the
+   regular ones emerges, curls around the battlefield, and drags everything back into the abyss as the cracks seal shut."
+   Percentages are of the scroll's power (the grab itself is 80%). Mastery 0 is the old cast. From Mastery 1 castGrasp is wrapped; the base
+   grab's own hits (SMF.grasp.hit) note who was grabbed (c.gr), and the masteries play from the rune, timed after the hold (GSM.rel):
+   - M1 Shackled Souls: gsmChains links grabbed ground foes next to each other on the road (within GSM.linkR) with violet chains for 2s
+     (gbLinks, Gravebind's links). A pushE wrapper: when another effect pushes a chained foe back, the chained foes still ahead of it are pulled
+     back toward it by half as much (pushE again, so Resolve applies).
+   - M2 Shadow Snare: gsmSnare, cracks racing along the road and three great bony fingers (gsmFinger) sweeping in: the ground foes within
+     GSM.snR that the hands did not grab take 65%; those already past the rune are dragged back toward it (gsmPull, at most GSM.snDrag; pulling
+     the ones behind it forward would help them), the others are seized for a moment (stunE 0.3s).
+   - M3 The Grasping Circle: gsmCircle, a ring of 8 hands at GSM.ciR sweeping in one after another: 35% to each ground foe a hand touches, once,
+     and a nudge toward the centre (gsmPull, at most GSM.ciNudge).
+   - M4 Dragged Below: gsmBelow takes the cast's target if it was grabbed and is not a boss, else the toughest grabbed foe that is not. It is
+     held (stunE 1.35s; if Resolve will not allow 1.2s it is slammed instead) and dragged under the road (e.burrow, so towers skip it) for 1s,
+     then thrown back for 130%. If it died meanwhile, a dark burst deals the 130% round the spot. A boss (or a foe its Resolve shields) takes a
+     great hand's slam for 130% (gsmSlam).
+   - M5 Hand of the Abyss: gsmAbyss, the rune grows to GSM.abR over a vast fissure and five colossal bony fingers rise round it and close over
+     it: 150% to every foe inside (flyers too); the ground foes that are not bosses are lifted (stunE 1s, Resolve applies); then the hand
+     plunges back underground for 100% more.
+   GSM.dbg (an array) logs the events for the tests. */
+const GSM={dbg:null,rel:1.45,chainT:2,linkR:1.8,tug:.5,snR:2.4,sn:.65,snDrag:.6,ciR:1.6,ci:.35,ciNudge:.25,db:1.3,abR:2,abClose:1.5,abSlam:1};
+const GSC={V:0x7a3aff,L:0xb07aff,P:0xe2ccff,D:0x0a0410};
+const gsmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='grasp'?c:null;};
+const gsmLog=d=>{if(GSM.dbg)GSM.dbg.push(d);};
+SM_D.grasp=[
+  {n:'Shackled Souls',d:'When the hands let go, spectral chains bind the ankles of grabbed foes standing near each other for 2s. If another effect pushes one of them back, the chains tug the others ahead of it toward it.'},
+  {n:'Shadow Snare',d:'As the hands sink, the cracks race along the road and three enormous shadow fingers sweep in like a closing claw, seizing the ground foes nearby that the hands missed: {65}% each, and they are dragged back toward the rune.'},
+  {n:'The Grasping Circle',d:'Then a ring of shadow hands rises round the rune and sweeps inward one after another: {35}% to each foe they touch, nudging it toward the centre.'},
+  {n:'Dragged Below',d:'When the hold ends, the hands drag one grabbed foe (not a boss) under the road for 1s, then hurl it back onto the path for {130}%. A boss resists and takes a heavy slam for {130}% instead.'},
+  {n:'Hand of the Abyss',d:'The rune splits into a vast fissure and a colossal skeletal hand closes round the whole area: {150}% as it closes, lifting the foes in its grip (not bosses), then it plunges back underground for {100}% more.'}];
+SMF.grasp={m:1,
+  hit(c,e){c.gr=c.gr||[];if(!c.gr.includes(e))c.gr.push(e);}};
+SMA.grasp=[1,1,1,1,1];
+/* power with Simon's numbers (tests/sm-ladder.js, 3 runs): 1.09 / 1.56 / 2.10 / 2.73 / 7.6 against the Uncommon ladder 1.09 / 1.23 / 1.35 / 1.52 / 1.74.
+   Shackled Souls deals no damage, so its level gets a hidden factor (Simon's rule); from Mastery 2 his numbers carry it far above the ladder, the
+   Hand of the Abyss most of all (250% to everything within 2 tiles every 5s). SM.free: they are his numbers. */
+SMG.grasp=[1.094,1,1,1,1];
+SM.free=SM.free||{};SM.free.grasp='Simon'+String.fromCharCode(8217)+'s own numbers for Grasping Shadows';
+
+/* ---- shared pieces ---- */
+const gsmAM=(col,op)=>new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false});
+const gsmBone=()=>new THREE.MeshPhongMaterial({color:0xe6dcef,emissive:0x2a0c50,emissiveIntensity:.35,specular:0xffffff,shininess:30,flatShading:true});
+/* toward the rune along the road: only a foe already past it (closer to the keep) is pulled back, at most max */
+function gsmPull(e,S,max){if(!e||e.dead||e.fly||e.dist==null||(e.route&&e.route!==S.rt))return 0;const gap=e.dist-S.rd;if(gap<=.02)return 0;return pushE(e,Math.min(max,gap));}
+/* a foe's model moved up or down (absolute: moveEnemy puts it back on the ground each update, a held one keeps the last value) */
+const gsmY=(e,y)=>{if(e&&e.g)e.g.position.y=y;};
+function gsmBurst(x,y,z,s){s=s||1;flash(x,y,z,GSC.L,.32*s,.12);sprayP(1,x,y,z,Math.round(16*s),{c:GSC.P,c2:GSC.V,sp:1.5*s,up:.6,s:.045,s2:0,life:.45,g:1.5,drag:.8});for(let i=0;i<Math.round(4*s);i++)darkMote(x+(rnd()-.5)*.3,y,z+(rnd()-.5)*.3);}
+/* a bony finger: three bones with knuckles and a claw, pointing up (+y); curl bends each joint about x; a violet glow shell round each bone */
+function gsmFinger(sc,mb,mg,lens){lens=lens||[.6,.5,.4];const root=new THREE.Group(),segs=[],geos=[];let par=root;
+  lens.forEach((L,i)=>{const s=new THREE.Group();s.position.y=i?lens[i-1]*sc:0;par.add(s);const r0=(.11-.022*i)*sc,r1=r0*.8;
+    const g=new THREE.CylinderGeometry(r1,r0,L*sc,7);g.translate(0,L*sc/2,0);const kg=new THREE.IcosahedronGeometry(r0*1.2,0);geos.push(g,kg);
+    s.add(new THREE.Mesh(g,mb),new THREE.Mesh(kg,mg===mb?mb:GSM_KNUCKLE(mb)));const gl=new THREE.Mesh(g,mg);gl.scale.set(1.32,1.02,1.32);s.add(gl);segs.push(s);par=s;});
+  const cg=new THREE.ConeGeometry(.055*sc,.26*sc,5);cg.translate(0,.13*sc,0);geos.push(cg);const claw=new THREE.Mesh(cg,GSM_KNUCKLE(mb));claw.position.y=lens[lens.length-1]*sc;par.add(claw);
+  return{root,segs,geos,claw,len:lens.reduce((a,b)=>a+b,0)*sc};}
+/* darker knuckles so the bones read as jointed */
+const GSM_KNUCKLE=mb=>mb.userData.kn||(mb.userData.kn=new THREE.MeshPhongMaterial({color:0x3a2a4a,emissive:0x6a1ab0,emissiveIntensity:.7,flatShading:true}));
+const gsmCurl=(F,k)=>{F.segs.forEach((s,i)=>{if(i)s.rotation.x=k*(.55+.15*i);});};
+/* glowing cracks racing along the road both ways from the rune */
+function gsmRoadCracks(S,R,life){const mats=[gsmAM(GSC.V,0),new THREE.MeshBasicMaterial({color:GSC.D,transparent:true,opacity:0,depthWrite:false})],geos=[],g=new THREE.Group();scene.add(smTag(g));const segs=[];
+  const seg=(p,q,d,w)=>{const dx=q[0]-p[0],dz=q[1]-p[1],L=Math.hypot(dx,dz);for(const[mi,wd,yy]of[[0,w*2.6,.02],[1,w,.024]]){const bg=new THREE.PlaneGeometry(1,wd);bg.rotateX(-Math.PI/2);bg.translate(.5,0,0);geos.push(bg);const m=new THREE.Mesh(bg,mats[mi]);m.position.set(p[0],gy(p[0],p[1])+yy,p[1]);m.rotation.y=Math.atan2(-dz,dx);m.scale.set(.001,1,1);m.renderOrder=4+mi;g.add(m);segs.push({m,L,d});}};
+  /* two zigzag cracks each way, with short spurs branching off */
+  for(const sg of [-1,1])for(let k=0;k<2;k++){let prev=null,off=k?.13:-.13,d=0;while(d<=R){const w=posAt(clamp(S.rd+sg*d,0,S.rt.len),S.rt),nx=Math.cos(w[2]),nz=-Math.sin(w[2]);/* across the road (a segment's angle is atan2(dx,dz)) */
+      off=clamp(off+(rnd()-.5)*.2,-.34,.34);const p=[w[0]+nx*off,w[1]+nz*off];
+      if(prev){const wd=.05*(1-.5*d/R);seg(prev,p,d,wd);if(rnd()<.3){const sp=(rnd()<.5?-1:1)*(.12+rnd()*.16),q=[p[0]+nx*sp+(rnd()-.5)*.12,p[1]+nz*sp+(rnd()-.5)*.12];seg(p,q,d+.06,wd*.55);}}prev=p;d+=.12+rnd()*.14;}}
+  let t=0;addFx(g,life,(f,dt)=>{t+=dt;const reach=Math.min(1,t/.28)*R,fade=Math.min(1,f.life/.45);for(const s of segs){const u=clamp((reach-s.d)/.16,0,1);s.m.scale.x=Math.max(.001,s.L*u);}mats[0].opacity=.42*fade*(.8+.2*Math.sin(t*22));mats[1].opacity=.9*fade;},null,{mats,geos});}
+
+/* ---- M1 Shackled Souls: chains between the grabbed foes, the tug ---- */
+function gsmShatterChain(A,B){for(let i=0;i<8;i++){const u=rnd(),x=A.x+(B.x-A.x)*u,z=A.z+(B.z-A.z)*u;sprayP(1,x,A.y,z,3,{c:GSC.P,c2:GSC.V,sp:1.1,up:.5,s:.035,s2:0,life:.35,g:2});}}
+function gsmChains(S){const G=(S.C.gr||[]).filter(e=>!e.dead&&!e.fly);if(G.length<2)return;G.sort((a,b)=>(a.dist||0)-(b.dist||0));
+  const pairs=[],groups=[];let grp=[G[0]];for(let i=1;i<G.length;i++){const p=G[i-1],q=G[i];if((p.x-q.x)**2+(p.z-q.z)**2<GSM.linkR*GSM.linkR){pairs.push([p,q]);grp.push(q);}else{if(grp.length>1)groups.push(grp);grp=[q];}}if(grp.length>1)groups.push(grp);
+  if(!pairs.length)return;const until=time+GSM.chainT;for(const g of groups)for(const e of g)e.gsL={until,mates:g.filter(x=>x!==e)};gsmLog({ev:'chains',n:pairs.length,groups:groups.map(g=>g.slice())});
+  const NL=30,root=new THREE.Group(),chains=pairs.map(([a,b])=>{const LK=gbLinks(NL,false);root.add(LK.core,LK.glow);return{a,b,LK};});scene.add(smTag(root));
+  for(const e of G)if(e.gsL){sprayP(1,e.x,gy(e.x,e.z)+.08,e.z,6,{c:GSC.P,c2:GSC.V,sp:.9,up:.5,s:.04,s2:0,life:.35,g:2});darkMote(e.x,.06,e.z);}
+  const tan=new THREE.Vector3(),p=new THREE.Vector3(),A=new THREE.Vector3(),B=new THREE.Vector3(),T=GSM.chainT;let t=0;
+  addFx(root,T+.35,(f,dt)=>{t+=dt;const shoot=Math.min(1,t/.16),end=t>T,k=end?Math.max(0,1-(t-T)/.35):1;
+    for(const c of chains){const{a,b,LK}=c;A.set(a.x,gy(a.x,a.z)+.1,a.z);B.set(b.x,gy(b.x,b.z)+.1,b.z);const len=A.distanceTo(B),n=Math.min(NL,Math.max(4,Math.round(len/.11)));tan.subVectors(B,A);const broke=end||a.dead||b.dead;
+      for(let i=0;i<NL;i++){if(i>=n||broke){LK.hide(i);continue;}const u=(i+.5)/n;if(u>shoot){LK.hide(i);continue;}
+        const sag=Math.sin(u*Math.PI)*(.06*(1-Math.min(1,t/.3)*.85))+Math.sin(t*34+i*1.7)*.007;p.lerpVectors(A,B,u);p.y-=sag;LK.set(i,p,tan,i%2,1.55);}
+      LK.flush();if(broke&&!c.sh){c.sh=1;gsmShatterChain(A,B);}
+      LK.mats[0].opacity=k;LK.mats[1].opacity=.5*k;}
+    if(!end&&rnd()<dt*10){const c=chains[Math.floor(rnd()*chains.length)],u=rnd();emit(1,{x:c.a.x+(c.b.x-c.a.x)*u,y:gy(c.a.x,c.a.z)+.1,z:c.a.z+(c.b.z-c.a.z)*u,vy:.25,s:.04,s2:0,c:GSC.P,c2:GSC.V,a:.9,life:.35});}
+    if(f.life<=0)chains.forEach(c=>c.LK.dispose());},null,{mats:chains.flatMap(c=>c.LK.mats)});}
+{const p0=pushE;pushE=function(e,units){const r=p0.apply(this,arguments);
+  if(r>0&&!GSM.tug0&&e&&e.gsL&&e.gsL.until>time){GSM.tug0=true;try{for(const q of e.gsL.mates){if(q.dead||!q.gsL||q.gsL.until<=time||q.route!==e.route)continue;const gap=q.dist-e.dist;if(gap>.02){const u=pushE(q,Math.min(r*GSM.tug,gap));if(u>0)gsmLog({ev:'tug',e,q,u});}}}finally{GSM.tug0=false;}}
+  return r;};}
+
+/* ---- M2 Shadow Snare: three enormous fingers sweeping in like a closing claw ---- */
+function gsmSnare(S,dmg){gsmRoadCracks(S,GSM.snR,1.4);const mb=gsmBone(),mg=gsmAM(GSC.V,.11),geos=[],root=new THREE.Group();root.position.set(S.cx,gy(S.cx,S.cz),S.cz);scene.add(smTag(root));
+  const ahead=posAt(clamp(S.rd+1,0,S.rt.len),S.rt),a0=Math.atan2(ahead[0]-S.cx,ahead[1]-S.cz),F=[];
+  for(let i=0;i<3;i++){const a=a0+i*2.094+(rnd()-.5)*.25,R=GSM.snR*.96,base=new THREE.Group();base.position.set(Math.sin(a)*R,-1.6,Math.cos(a)*R);base.rotation.y=a+Math.PI;root.add(base);
+    const fg=gsmFinger(1.05,mb,mg,[.62,.52,.42]);geos.push(...fg.geos);base.add(fg.root);F.push({base,fg,d:i*.06});}
+  const caught=new Set(),gr=new Set(S.C.gr||[]);let t=0,hit=false;
+  addFx(root,1.25,(f,dt)=>{t+=dt;for(const q of F){const u=t-.12-q.d;if(u<0)continue;const rise=Math.min(1,u/.16),sw=clamp((u-.16)/.34,0,1),sink=clamp((u-.72)/.3,0,1),e=1-Math.pow(1-sw,2.4);
+      q.base.position.y=-1.6+1.6*(1-Math.pow(1-rise,3))-1.9*sink*sink;q.base.rotation.x=0;q.fg.root.rotation.x=-.35+1.85*e;gsmCurl(q.fg,.25+.9*e);
+      if(sw>0&&sw<1&&rnd()<.8){const tip=new THREE.Vector3();q.fg.claw.getWorldPosition(tip);emitS(0,{x:tip.x,y:tip.y,z:tip.z,vy:.1,s:.12,s2:.4,c:0x2a1440,c2:0x12081e,a:.45,life:.7,turb:.4});emit(1,{x:tip.x,y:tip.y,z:tip.z,s:.06,s2:0,c:GSC.L,c2:GSC.V,life:.3});}
+      if(rise<1&&u<.16&&rnd()<.7)darkMote(S.cx+q.base.position.x,.1,S.cz+q.base.position.z);}
+    if(!hit&&t>=.12+.16+.22){hit=true;let n=0;for(const e of enemies){if(e.dead||e.fake||e.fly||gr.has(e)||caught.has(e))continue;if((e.x-S.cx)**2+(e.z-S.cz)**2<GSM.snR*GSM.snR){caught.add(e);n++;if(state!=='playing')continue;
+        hurt(e,dmg,'magic',S.o);const pulled=e.dead?0:gsmPull(e,S,GSM.snDrag);if(!e.dead&&!pulled)stunE(e,.3);gsmLog({ev:'snare',e,pulled});const p=tpos2(e);gsmBurst(p.x,p.y,p.z,.9);}}
+      gsmLog({ev:'snare0',n});camShake=Math.max(camShake,.06);}},null,{mats:[mb,mg,GSM_KNUCKLE(mb)],geos});}
+
+/* ---- M3 The Grasping Circle: a ring of hands closing in like a trap ---- */
+function gsmCircle(S,dmg){const N=8,R=GSM.ciR,root=new THREE.Group();root.position.set(S.cx,gy(S.cx,S.cz),S.cz);scene.add(smTag(root));const a0=rnd()*6.28,H=[],touched=new Set();
+  for(let i=0;i<N;i++){const a=a0+i/N*6.283,h=darkHand(M(0x17101f,{emissive:0x26093e,emissiveIntensity:.8}),M(0x5a2a8a,{emissive:0x7a3aff,emissiveIntensity:.7})),pv=new THREE.Group();pv.rotation.y=a+Math.PI;pv.add(h.g);h.g.scale.setScalar(.01);root.add(pv);H.push(Object.assign(h,{a,pv,d:i*.055}));}
+  const rg=new THREE.RingGeometry(R-.1,R+.08,64);rg.rotateX(-Math.PI/2);const rm=gsmAM(GSC.V,0),ring=new THREE.Mesh(rg,rm);ring.position.y=.03;root.add(ring);let t=0;gsmLog({ev:'circle0'});
+  addFx(root,1.2,(f,dt)=>{t+=dt;rm.opacity=.4*Math.min(1,t/.15)*Math.max(0,1-t/.9);ring.scale.setScalar(Math.max(.3,1-t*.6));
+    for(const h of H){const u=t-h.d;if(u<0)continue;const rise=Math.min(1,u/.14),sw=clamp((u-.12)/.42,0,1),sink=clamp((u-.6)/.22,0,1),r=R-(R-.42)*(1-Math.pow(1-sw,2)),x=Math.sin(h.a)*r,z=Math.cos(h.a)*r;
+      h.pv.position.set(x,-.5+.52*rise-.6*sink,z);h.g.rotation.x=.25+.6*sw;h.g.scale.setScalar(Math.max(.01,2.1*(1-sink*.8)*(.4+.6*rise)));handCurl(h,.2+.8*sw);
+      if(sw>0&&sw<1){if(rnd()<.6)emitS(0,{x:S.cx+x,y:.12,z:S.cz+z,vx:Math.sin(h.a)*.2,vy:.12,vz:Math.cos(h.a)*.2,s:.14,s2:.45,c:0x3a1a5a,c2:0x160a24,a:.4,life:.8,turb:.4});
+        for(const e of enemies){if(e.dead||e.fake||e.fly||touched.has(e))continue;if((e.x-S.cx-x)**2+(e.z-S.cz-z)**2<.42*.42){touched.add(e);if(state!=='playing')continue;hurt(e,dmg,'magic',S.o);const pulled=e.dead?0:gsmPull(e,S,GSM.ciNudge);gsmLog({ev:'circle',e,pulled});const p=tpos2(e);gsmBurst(p.x,p.y,p.z,.7);}}}
+      if(u<.14&&rnd()<.5)darkMote(S.cx+x,.08,S.cz+z);}},null,{mats:[rm],geos:[rg]});}
+
+/* ---- M4 Dragged Below: one foe pulled under the road and hurled back ---- */
+function gsmSlam(e,dmg,S){const x=e.x,z=e.z,y0=gy(x,z),h=darkHand(M(0x17101f,{emissive:0x26093e,emissiveIntensity:.8}),M(0x5a2a8a,{emissive:0x7a3aff,emissiveIntensity:.7}));
+  const g=new THREE.Group();g.position.set(x,y0,z);const pv=new THREE.Group();g.add(pv);pv.add(h.g);scene.add(smTag(g));const ang=Math.atan2(x-S.cx,z-S.cz)+Math.PI;pv.rotation.y=ang;let t=0,hit=false;gsmLog({ev:'slam',e});
+  addFx(g,1,(f,dt)=>{t+=dt;const rise=Math.min(1,t/.3),down=clamp((t-.36)/.1,0,1),sink=clamp((t-.6)/.3,0,1);
+    h.g.position.set(0,.2+1.4*rise-1.2*down-.8*sink,-.45);h.g.rotation.x=-.5+1.5*down;h.g.scale.setScalar(Math.max(.01,3.3*(1-sink*.7)));handCurl(h,down);
+    if(down>=1&&!hit){hit=true;if(!e.dead&&state==='playing')hurt(e,dmg,'magic',S.o);shockwave(x,z,1.1,GSC.V,.45);camShake=Math.max(camShake,.14);debris(x,z,8);gsmBurst(x,y0+.3,z,1.4);if(typeof sfxBoom==='function')sfxBoom(.06,true);}});}
+function gsmBelow(S,dmg){const G=(S.C.gr||[]).filter(e=>!e.dead&&!e.fly);if(!G.length)return;const tg=S.tgt;let e=tg&&!tg.boss&&!tg.dead&&G.includes(tg)?tg:G.filter(q=>!q.boss).sort((a,b)=>b.hp-a.hp)[0];
+  if(!e){gsmSlam(G.find(q=>q.boss)||G[0],dmg,S);return;}
+  const got=stunE(e,1.35);if(!(got>=1.2)){gsmSlam(e,dmg,S);return;}
+  const x0=e.x,z0=e.z,y0=gy(x0,z0),Hh=Math.max(.5,(e.hitY||.45)*2),mats=[],geos=[],g=new THREE.Group();g.position.set(x0,y0,z0);scene.add(smTag(g));gsmLog({ev:'below',e});
+  /* the road splits: a dark fissure with a violet glow inside */
+  const fg=new THREE.CircleGeometry(.42,20);fg.rotateX(-Math.PI/2);geos.push(fg);const fm=new THREE.MeshBasicMaterial({color:GSC.D,transparent:true,opacity:0,depthWrite:false}),gm=gsmAM(GSC.V,0);mats.push(fm,gm);
+  const fis=new THREE.Mesh(fg,fm);fis.position.y=.025;fis.scale.set(.01,1,.01);fis.renderOrder=4;g.add(fis);const glow=new THREE.Mesh(fg,gm);glow.position.y=.03;glow.scale.set(.01,1,.01);glow.renderOrder=5;g.add(glow);
+  const cr=crackSet(g,6,.7,0x030106,0x7a2aff);mats.push(cr.gm);
+  const hands=[0,1,2].map(i=>{const h=darkHand(M(0x17101f,{emissive:0x26093e,emissiveIntensity:.8}),M(0x5a2a8a,{emissive:0x7a3aff,emissiveIntensity:.7})),a=i/3*6.283+rnd();h.g.position.set(Math.cos(a)*.2,-.4,Math.sin(a)*.2);h.g.rotation.y=-a+Math.PI/2;g.add(h.g);return Object.assign(h,{a});});
+  const SINK=.3,UNDER=1,THROW=.45;let t=0,phase=0;
+  addFx(g,SINK+UNDER+THROW+.6,(f,dt)=>{t+=dt;const op=Math.min(1,t/.12);fis.scale.set(op,1,op);glow.scale.set(op*.85,1,op*.85);cr.grow(Math.min(1,t/.25));const shut=t>SINK+UNDER+THROW?Math.max(0,1-(t-SINK-UNDER-THROW)/.5):1;
+    fm.opacity=.9*op*shut;gm.opacity=.6*op*shut*(.8+.2*Math.sin(t*16));cr.gm.opacity=.6*op*shut;
+    for(const h of hands){const k=t<SINK+.1?Math.min(1,t/.12):Math.max(0,1-(t-SINK-.1)/.2);h.g.position.y=-.4+.55*k;h.g.scale.setScalar(Math.max(.01,1.5*k));handCurl(h,Math.min(1,t/.2));}
+    if(phase===0){const k=Math.min(1,t/SINK);if(!e.dead)gsmY(e,-Hh*k*k);if(rnd()<.8)darkMote(x0+(rnd()-.5)*.3,.08,z0+(rnd()-.5)*.3);
+      if(k>=1){phase=1;if(!e.dead){e.burrow=1;if(e.g)e.g.visible=false;}gsmBurst(x0,y0+.1,z0,.8);}}
+    else if(phase===1){if(rnd()<dt*14)emit(1,{x:x0+(rnd()-.5)*.3,y:y0+.05,z:z0+(rnd()-.5)*.3,vy:.5+rnd()*.5,s:.05,s2:0,c:GSC.L,c2:GSC.V,a:.9,life:.5});if(!e.dead)gsmY(e,-Hh);
+      if(t>=SINK+UNDER){phase=2;if(e.dead){gsmLog({ev:'burst'});for(const q of enemies){if(q.dead||q.fake||q.fly)continue;if((q.x-x0)**2+(q.z-z0)**2<.8*.8&&state==='playing')hurt(q,dmg,'magic',S.o);}
+          shockwave(x0,z0,1,GSC.V,.4);gsmBurst(x0,y0+.3,z0,1.6);debris(x0,z0,8);phase=3;}
+        else{e.burrow=0;if(e.g)e.g.visible=true;debris(x0,z0,10);gsmBurst(x0,y0+.2,z0,1.2);camShake=Math.max(camShake,.07);}}}
+    else if(phase===2){const k=Math.min(1,(t-SINK-UNDER)/THROW);/* thrown up out of the road and landing on it */if(!e.dead)gsmY(e,-Hh*Math.max(0,1-k/.25)+Math.sin(k*Math.PI)*.95);
+      if(k>=1){phase=3;if(!e.dead){gsmY(e,0);if(state==='playing')hurt(e,dmg,'magic',S.o);gsmLog({ev:'surface',e});}shockwave(x0,z0,.8,GSC.V,.35);debris(x0,z0,8);gsmBurst(x0,y0+.25,z0,1.1);if(typeof sfxBoom==='function')sfxBoom(.05,true);}}
+    if(f.life<=0){if(e.burrow&&phase<3)e.burrow=0;if(e.g){e.g.visible=true;gsmY(e,0);}}},null,{mats,geos});}
+
+/* ---- M5 Hand of the Abyss: a colossal hand closing over the whole area, lifting, then plunging ---- */
+function gsmAbyss(S,dClose,dSlam){const R=GSM.abR,y0=gy(S.cx,S.cz),root=new THREE.Group();root.position.set(S.cx,y0,S.cz);scene.add(smTag(root));
+  const rune=makeRune(R,GSC.V,{star:7,step:3,glyphs:30,fill:.6,fillCol:0x040108,fillNormal:true});rune.position.y=.035;rune.scale.setScalar(.4);root.add(rune);const cr=crackSet(root,14,R*1.1,0x030106,0x8a3aff);
+  const dg=new THREE.PlaneGeometry(1,1);dg.rotateX(-Math.PI/2);const dm=new THREE.MeshBasicMaterial({map:softDiscTex(),color:GSC.V,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});const disc=new THREE.Mesh(dg,dm);disc.position.y=.05;disc.scale.setScalar(R*2.6);disc.renderOrder=4;root.add(disc);
+  const mb=gsmBone(),mg=gsmAM(GSC.V,.12),geos=[dg],hand=new THREE.Group();root.add(hand);const a0=rnd()*6.28,F=[];
+  for(let i=0;i<5;i++){const th=i===4,a=a0+i/5*6.283,base=new THREE.Group();base.position.set(Math.sin(a)*R*1.02,-2.8,Math.cos(a)*R*1.02);base.rotation.y=a+Math.PI;hand.add(base);
+    const fg=gsmFinger(th?2.1:1.85,mb,mg,th?[.55,.45,.36]:[.62,.52,.42]);geos.push(...fg.geos);base.add(fg.root);F.push({base,fg,d:i*.05});}
+  const lifted=[],inArea=()=>enemies.filter(e=>!e.dead&&!e.fake&&(e.x-S.cx)**2+(e.z-S.cz)**2<R*R);let t=0,closed=false,slam=false;gsmLog({ev:'abyss0'});
+  const CLOSE=.8,LIFT=1.15,SLAM=1.35;
+  addFx(root,2.4,(f,dt)=>{t+=dt;const grow=Math.min(1,t/.35);rune.scale.setScalar(.4+.6*(1-Math.pow(1-grow,3)));rune.rotation.y+=dt*.4;cr.grow(clamp((t-.05)/.45,0,1));const seal=t>SLAM+.3?Math.max(0,1-(t-SLAM-.3)/.6):1;
+    rune.userData.fade(seal);cr.gm.opacity=.7*Math.min(1,t/.2)*seal*(.8+.2*Math.sin(t*18));dm.opacity=.45*Math.min(1,t/.3)*seal;
+    for(const q of F){const u=t-.2-q.d;if(u<0)continue;const rise=Math.min(1,u/.3),cl=clamp((u-.3)/(CLOSE-.5),0,1),e=1-Math.pow(1-cl,2.2);q.base.position.y=-2.8+2.8*(1-Math.pow(1-rise,3));
+      q.fg.root.rotation.x=-.2+1.05*e;gsmCurl(q.fg,.15+1.05*e);if(rise<1&&rnd()<.7){sprayP(0,S.cx+q.base.position.x*.98,y0+.1,S.cz+q.base.position.z*.98,3,{c:0x2a2030,c2:0x15101a,sp:1.2,up:1.2,s:.06,s2:.02,life:.6,g:3});darkMote(S.cx+q.base.position.x,.1,S.cz+q.base.position.z);}}
+    /* lift the hand a little after it closes, then plunge it */
+    const lift=clamp((t-CLOSE)/(LIFT-CLOSE),0,1),pl=clamp((t-LIFT)/(SLAM-LIFT),0,1);hand.position.y=.35*Math.sin(lift*Math.PI*.5)-3.4*pl*pl;
+    if(!closed&&t>=.2+CLOSE){closed=true;const L=inArea();gsmLog({ev:'close',n:L.length});camShake=Math.max(camShake,.12);flash(S.cx,y0+.6,S.cz,GSC.L,1.2,.2);
+      for(const e of L){if(state!=='playing')continue;hurt(e,dClose,'magic',S.o);if(e.dead)continue;const p=tpos2(e);gsmBurst(p.x,p.y,p.z,.8);if(!e.fly&&!e.boss){const got=stunE(e,1);if(got>.45){lifted.push({e,ph:rnd()*6});gsmLog({ev:'lift',e,got});}}}}
+    for(const l of lifted){if(l.e.dead)continue;const up=t<SLAM?clamp((t-.2-CLOSE)/.3,0,1):Math.max(0,1-(t-SLAM)/.12);gsmY(l.e,.55*up*(1-pl*.6)+Math.sin(t*11+l.ph)*.03*up);}
+    if(!slam&&t>=SLAM){slam=true;const L=inArea();gsmLog({ev:'slam5',n:L.length});for(const e of L){if(state==='playing')hurt(e,dSlam,'magic',S.o);}
+      shockwave(S.cx,S.cz,R*1.25,GSC.V,.6);camShake=Math.max(camShake,.24);flashA=Math.max(flashA,.12);flashCol='#3a1a5a';debris(S.cx,S.cz,16);for(let i=0;i<14;i++){const a=rnd()*6.28,r=rnd()*R;emitS(0,{x:S.cx+Math.cos(a)*r,y:y0+.15,z:S.cz+Math.sin(a)*r,vx:-Math.cos(a)*.4,vy:-.05,vz:-Math.sin(a)*.4,s:.3,s2:.9,c:0x2a1440,c2:0x0e0616,a:.45,life:1.3,turb:.3});}
+      sprayP(1,S.cx,y0+.2,S.cz,40,{c:GSC.P,c2:GSC.V,sp:3,up:.8,s:.05,s2:0,life:.6,g:2,drag:.85,r:R*.6});if(typeof sfxBoom==='function')sfxBoom(.1,true);}
+    if(f.life<=0)for(const l of lifted)gsmY(l.e,0);},null,{mats:rune.userData.mats.concat([cr.gm,dm,mb,mg,GSM_KNUCKLE(mb)]),geos:rune.userData.geos.concat(geos)});}
+
+/* ---- the hooks ---- */
+const GSM_CAST0=castGrasp;
+castGrasp=function(t,c,P,o){const r=GSM_CAST0.apply(this,arguments),C=gsmC(o);if(!C||!c)return r;const L=C.L,a=C.a,q=nsRouteNear(c.x,c.z),S={cx:c.x,cz:c.z,rd:q.d,rt:q.rt,C,P,o:smO(o),tgt:c};gsmLog({ev:'cast',L});
+  mxLater(GSM.rel,()=>{if(state!=='playing')return;if(L>=1)gsmChains(S);if(L>=4)gsmBelow(S,P*GSM.db*a[3]);});
+  if(L>=2)mxLater(GSM.rel+.05,()=>{if(state==='playing')gsmSnare(S,P*GSM.sn*a[1]);});
+  if(L>=3)mxLater(2.15,()=>{if(state==='playing')gsmCircle(S,P*GSM.ci*a[2]);});
+  if(L>=5)mxLater(2.75,()=>{if(state==='playing')gsmAbyss(S,P*GSM.abClose*a[4],P*GSM.abSlam*a[4]);});
+  return r;};
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
@@ -23366,7 +23562,12 @@ if(GAME.setAside)setTimeout(()=>toast('Your open-world run now belongs to Kingsg
 requestAnimationFrame(frame);
 /* ---- What's new: shown once per notes version (per account), on the first open after an update ---- */
 const NOTES_V='masteries-1';
-const NOTES_HTML=`<h3>\u2726 Soul Lantern masteries, reworked</h3><ul>
+const NOTES_HTML=`<h3>\u2726 Grasping Shadows masteries, reworked</h3><ul>
+<li><b>Shackled Souls</b> (Mastery 1): when the hands let go, spectral violet chains bind the ankles of grabbed foes standing near each other for 2s; if another effect pushes one of them back, the chains tug the others ahead of it along. <b>Shadow Snare</b> (Mastery 2): as the hands sink, the cracks race along the road and three enormous shadow fingers sweep in like a closing claw, seizing the foes nearby that the hands missed for 65% and dragging them back toward the rune.</li>
+<li><b>The Grasping Circle</b> (Mastery 3): then a ring of shadow hands rises round the rune and sweeps inward one after another, 35% to each foe they touch, nudging it toward the centre. <b>Dragged Below</b> (Mastery 4): when the hold ends, the hands drag one grabbed foe under the road for 1s and hurl it back onto the path for 130%; a boss resists and takes a heavy slam for 130% instead.</li>
+<li><b>Hand of the Abyss</b> (Mastery 5): the rune splits into a vast glowing fissure and a colossal skeletal hand closes round the whole area for 150%, lifting the foes in its grip (not bosses), then plunges back underground for 100% more.</li>
+<li>Grasping Shadows&rsquo; old masteries (Long Grip, Crushing Grip, Outer Ring, Drag Under, Grave Hand) are replaced. Like every scroll above Common, its masteries are only in developer mode for now.</li></ul>
+<h3>\u2726 Soul Lantern masteries, reworked</h3><ul>
 <li><b>Brighter Wick</b> (Mastery 1): each beam burns brighter than the last, up to 15% more over the lantern&rsquo;s life; its flame grows, the iron frame glows at the joints and the pool beneath it brightens. <b>Phantom Bolt</b> (Mastery 2): every beam leaves a violet rune turning above its target, which a moment later fires a spectral bolt down into the foe for 10% and shatters.</li>
 <li><b>Wandering Souls</b> (Mastery 3): two spectral flames orbit the lantern; every 2s each one darts out to a different foe nearby for 10%, trailing purple smoke, and returns. <b>Soul Harvest</b> (Mastery 4): when a foe the lantern has hit dies, its soul spirals down into the pool, where a ghostly face rises; each stored soul (up to 3) makes the next beam 25% stronger.</li>
 <li><b>Lantern of the Dead</b> (Mastery 5): when the lantern expires it rises, its frame unfolds and a swirling void opens beneath it; a ring of ghost fire surges out over a large area for 10% and slows foes by 40% for 1.5s, then everything implodes into a single purple spark.</li>
@@ -23380,6 +23581,7 @@ const NOTES_HTML=`<h3>\u2726 Soul Lantern masteries, reworked</h3><ul>
 <li><b>Solar Radiance</b> (Mastery 1): the tiny sun shines brighter and brighter as it falls, crowned by a growing corona of golden rays, and its flash lights up the ground and the foes far around. The impact deals 15% more damage.</li>
 <li><b>Halo of Dawn</b> (Mastery 2): on impact a flowing ring of golden light races outward, hitting every foe it passes for 10% of the strike and leaving shimmering motes behind. <b>Solar Afterimage</b> (Mastery 3): a ghostly little sun stays hanging over the scorched ground, then collapses into a second flash at 40% of the strike.</li>
 <li><b>Zenith</b> (Mastery 4): as it lands, four narrow pillars of sunlight strike down around the target in a radiant cross, 35% of the strike each. <b>Heaven&rsquo;s Gate</b> (Mastery 5): the impact opens a colossal celestial halo overhead, and a pillar of white-gold light pours through it for 3s, burning every foe inside for 10% of the strike each second.</li>
+<li><b>Fix:</b> Zenith&rsquo;s cross now lines up with the road: its longer beams strike along it, where the foes walk (they pointed across it, onto the grass).</li>
 <li>Sunflare&rsquo;s old masteries (Corona, Solar Wind, Wider Light, Sunspots, Second Dawn) are replaced. Like every scroll above Common, its masteries are only in developer mode for now.</li></ul>
 <h3>\u2726 Wall of Fire masteries, redesigned</h3><ul>
 <li><b>The first Uncommon scroll with new masteries.</b> A mastered Wall of Fire is a fiercer wall: the ground cracks open and glows before the flames burst up, more and taller flames with every mastery, a molten seam beneath them, tongues of fire licking off the crest, embers and smoke.</li>
