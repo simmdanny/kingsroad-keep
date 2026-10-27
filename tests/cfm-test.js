@@ -28,7 +28,7 @@ try{
   ok('the old masteries are gone (no hooks), every factor at least 1, his numbers',!SMF.catchflame.hit&&!SMF.catchflame.cast&&SMA.catchflame.every(x=>x===1)&&SMG.catchflame.length===5&&SMG.catchflame.every(x=>x>=1)&&SM.free&&!!SM.free.catchflame);
   /* ---- Mastery 0 ---- */
   {play();CFM.dbg=[];log=[];const F=row(5,.45),T=F[2];wrapHurt();try{cast(T,0);run(5);}finally{hurt=H0;setL(0);}
-    ok('Mastery 0: the old cast (the seed 100%, then 60% leaps) and none of the masteries',hits(T,100,false).length===1&&F.filter(e=>e!==T).every(e=>hits(e,60,false).length===1)&&!CFM.dbg.length&&!log.some(h=>h.smx),CFM.dbg.length+' '+log.filter(h=>!h.dot).map(h=>h.amt).join(','));}
+    ok('Mastery 0: the same cast as before (the seed 100%, then 60% leaps), now with real explosions, and none of the masteries',hits(T,100,false).length===1&&F.filter(e=>e!==T).every(e=>hits(e,60,false).length===1)&&CFM.dbg.every(d=>d.ev==='ignite')&&ev('ignite').length===5&&!log.some(h=>h.smx),CFM.dbg.map(d=>d.ev).join()+' '+log.filter(h=>!h.dot).map(h=>h.amt).join(','));}
   /* ---- M1 Kindling ---- */
   {play();CFM.dbg=[];log=[];const F=row(9,.45),T=F[4];wrapHurt();try{cast(T,1);run(1.6);}finally{hurt=H0;}
     const E=F.filter(e=>hits(e,25,true).length);
@@ -63,9 +63,10 @@ try{
   /* ---- M5 Living Inferno ---- */
   {play();CFM.dbg=[];log=[];const F=row(16,.45),T=F[8],Fl=foe(spotD()+.2,.3);Fl.fly=true;const added=track();wrapHurt();
     try{cast(T,5);run(4.5);const st=ev('infernoStart');
-      ok('M5: when the tenth foe catches fire, the Living Inferno starts, once',st.length===1&&st[0].why==='ten'&&st[0].n===10,st.map(d=>d.why+':'+d.n).join());
-      const inf=ev('inferno')[0];run(CFM.infBoom+.2);const ih=ev('infernoHit');
-      ok('M5: it explodes after 2.1s for 180% to every foe within 2.1 of the burning foes\' middle, flyers too',ih.length===1&&ih[0].L.length>0&&ih[0].L.every(e=>hits(e,180,true).length===1&&Math.hypot(e.x-inf.x,e.z-inf.z)<CFM.infR+.01)&&enemies.filter(e=>!e.dead&&Math.hypot(e.x-inf.x,e.z-inf.z)<CFM.infR-.01).every(e=>ih[0].L.includes(e))&&(Math.hypot(Fl.x-inf.x,Fl.z-inf.z)>=CFM.infR||ih[0].L.includes(Fl)),ih.length&&ih[0].n);
+      const lastIg=ev('ignite').pop().e;
+      ok('M5: when the tenth foe catches fire, the fire on that last foe starts to swell, once',st.length===1&&st[0].why==='ten'&&st[0].n===10&&st[0].e===lastIg&&ev('inferno').length===1&&ev('inferno')[0].e===lastIg,st.map(d=>d.why+':'+d.n).join());
+      const t0=st[0].t;run(CFM.infGrow+.2);const ih=ev('infernoHit');
+      ok('M5: after 1.3s it erupts where that foe is: 180% to every foe within 2.1, flyers too',ih.length===1&&near(ih[0].t-t0,CFM.infGrow,.06)&&near(ih[0].x,lastIg.x,1e-6)&&ih[0].L.length>0&&ih[0].L.every(e=>hits(e,180,true).length===1&&Math.hypot(e.x-ih[0].x,e.z-ih[0].z)<CFM.infR+.01)&&enemies.filter(e=>!e.dead&&Math.hypot(e.x-ih[0].x,e.z-ih[0].z)<CFM.infR-.01).every(e=>ih[0].L.includes(e))&&(Math.hypot(Fl.x-ih[0].x,Fl.z-ih[0].z)>=CFM.infR||ih[0].L.includes(Fl)),ih.length&&(ih[0].n+' at '+(ih[0].t-t0).toFixed(2)+'s'));
       run(6);ok('M5: nothing is left behind',smLeft(added)===0,smLeft(added));}finally{hurt=H0;scene.add=S0;setL(0);}}
   {play();CFM.dbg=[];const F=row(6,.45),T=F[3];cast(T,5);run(5.5);const s0=ev('infernoStart').length;run(1.2);const st=ev('infernoStart');setL(0);
     ok('M5: if the chain stops short, the inferno comes when the 6s window ends (here 6 caught fire)',s0===0&&st.length===1&&st[0].why==='window'&&st[0].n===6,st.map(d=>d.why+':'+d.n).join());}
@@ -73,7 +74,7 @@ try{
   {play();CFM.dbg=[];const F=row(16,.45),T=F[8];cast(T,4);run(9);setL(0);ok('M5 needs Mastery 5',!ev('inferno').length);}
   /* ---- the rest ---- */
   {play();CFM.dbg=[];const F=row(5,.45),T=F[2];setL(5);castCatchFlame(heroU,T,100,{src:heroU,el:'fire',spell:'catchflame'});run(6);setL(0);
-    ok('casts that are not a mastered scroll cast stay the old Catch Flame',!CFM.dbg.length);}
+    ok('casts that are not a mastered scroll cast get no masteries (only the new explosions)',CFM.dbg.length&&CFM.dbg.every(d=>d.ev==='ignite'));}
   {const e0=errs,n0=NS_OWN.size;for(let L=1;L<=5;L++){play();const F=row(14,.4,300),T=F[7];F[3].zapT=6;F[10].zapT=6;cast(T,L);run(12);}setL(0);
     ok('the real cast path at every mastery (deaths, Wildfire) runs without errors, and frees its trails and cracks',errs===e0&&NS_OWN.size<=n0,(errs-e0)+' errors, '+(NS_OWN.size-n0)+' left');}
   ok('no console errors',errs===0,errs);

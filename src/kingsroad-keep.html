@@ -14135,7 +14135,8 @@ const CLOG=[
   {t:'Catch Flame masteries, reworked',d:'27 Oct',v:'v401',li:[
     'Kindling: the first foe spits three embers, 25%. Backdraft: a burning foe that dies bursts for 70% and lights the foes around it.',
     'Forking Flames: every third leap splits in two. Firestorm: a fire vortex round each foe that passes the fire on, 45%.',
-    'Living Inferno: at ten foes the flames tear away into a towering inferno that explodes for 180%.']},
+    'Living Inferno: at ten foes the fire on the last one swells and erupts in a violent explosion, 180%.',
+    'Every Catch Flame ignition is now a real billowing fireball that cools into smoke.']},
   {t:'Mastery progress in battle',d:'27 Oct',v:'v397',li:[
     'A new button on the right, under the top bar, shows your mastery progress during a run: every building on the board and your hero\u2019s scrolls, with their level and bar.',
     'The part of each bar earned this run glows, with the XP earned this run and the next upgrade. Tap a row to see all five masteries (the run pauses meanwhile).',
@@ -23652,32 +23653,34 @@ setInterval(()=>{try{mpgSync();const el=$('#liveMast');if(el&&!el.hidden){if(sta
    simultaneously. / Mastery 4 - Firestorm: when a burning enemy successfully spreads the fire, a miniature fire vortex forms around it, dealing
    45% damage to nearby foes, once per burning enemy per cast. Visual: as the fireball launches, flames spiral violently around the source enemy,
    rising into a short-lived twisting column before collapsing into a shower of embers. / Mastery 5 - Living Inferno: when the chain reaches its
-   tenth target, all flames across the burning enemies surge toward the centre of the affected group, forming a towering inferno. The vortex
-   then explodes outward, dealing 180% damage to enemies within its radius. Visual: every burning enemy flares bright gold-orange; streams of
-   fire tear away from their bodies and spiral into a towering vortex; the vortex twists violently, growing taller as sparks and burning debris
-   rise into the air; it collapses into a blinding explosion, sending a ring of fire racing across the road. If the chain ends before reaching
-   ten targets, the inferno can instead trigger when the six-second spreading window expires, provided at least five enemies were ignited."
-   And: "no low effort effects are acceptable and it should visually be better the higher the mastery".
-   Percentages are of the scroll's power (the seed 100%, each leap 60%, the burn 25% a second for 4s). Mastery 0 is the old cast. From Mastery 1
-   castCatchFlame is wrapped: a mastered cast runs cfmCast, the same seed, leaps, burn, reach (1.35), ten-foe limit, 6s window and Wildfire combo
-   as castCatchFlame, with the masteries hooked in:
-   - M1 Kindling: when the seed lands, the first foe erupts (a column of flame) and spits 3 embers (cfmBolt, curving out to the sides) at the
-     nearest unlit foes within 2.2 (CFM.kinR): 25% each, bursting into sparks. They only hurt; the foes stay unlit for the chain.
+   tenth target [...] dealing 180% damage to enemies within its radius. If the chain ends before reaching ten targets, the inferno can instead
+   trigger when the six-second spreading window expires, provided at least five enemies were ignited."
+   And: "no low effort effects are acceptable and it should visually be better the higher the mastery". Then, after trying it: "rework the
+   explosions when the fire catches on, I am really NOT a fan of the low effort just one coloured thing that should resemble an explosion,
+   make the explosion more natural and just much better in visuals", and for Mastery 5: "instead of a infernal tornado, the fire on the last
+   foe grows and than just erupts in a violent explosion (a 3D explosion) that deals same damage as the explosion after the tornado".
+   Percentages are of the scroll's power (the seed 100%, each leap 60%, the burn 25% a second for 4s).
+   Every Catch Flame cast now runs cfmCast (a castCatchFlame wrapper): the same seed, leaps, burn, reach (1.35), ten-foe limit, 6s window and
+   Wildfire combo as castCatchFlame, but every ignition is a real 3D explosion (cfmBoom, below) instead of flat single-colour flashes and rings;
+   a mastered cast (cfmC(o)) also hooks in the masteries, and its explosions grow with the level:
+   - M1 Kindling: when the seed lands, the first foe erupts (a bigger explosion and a column of flame) and spits 3 embers (cfmBolt, curving out
+     to the sides) at the nearest unlit foes within 2.2 (CFM.kinR): 25% each, each bursting in a small explosion of sparks. They only hurt;
+     the foes stay unlit for the chain.
    - M2 Backdraft: every foe the cast lights gets an smOnDie for as long as it burns (set before the ignition's own hit, so a foe the
-     ignition kills bursts too). When it dies, the flames are sucked in round it (0.24s)
-     and burst: a fire shockwave and ring, 70% to the foes within 1.25 (CFM.bdR), and a burning fragment spirals into each unlit foe it hit
-     (while the ten are not all taken), which catches fire and spreads it on. A foe killed by a backdraft can backdraft in turn.
+     ignition kills bursts too). When it dies, its flames are sucked in (0.24s) into a shrinking, ever hotter core, then it bursts in an
+     explosion with a ring of fire: 70% to the foes within 1.25 (CFM.bdR), and a burning fragment spirals into each unlit foe it hit (while the
+     ten are not all taken), which catches fire and spreads it on. A foe killed by a backdraft can backdraft in turn.
    - M3 Forking Flames: every third leap of the chain (CFM.forkEvery; Wildfire's leaps aside) splits: the fireball flies a little way, bursts,
      and two helical streams curve apart onto the leap's foe and the next nearest unlit foe within 1.8 (CFM.forkR), 60% each; both count toward
      the ten. With no second foe in reach, or only one place left, it stays a single leap.
-   - M4 Firestorm: the first time each burning foe passes the fire on (leaps, forks and Wildfire's), a fire funnel twists up round it, hits
-     45% to every foe within 0.95 (CFM.fsR) at its height, then collapses into a shower of embers.
+   - M4 Firestorm: the first time each burning foe passes the fire on (leaps, forks and Wildfire's), a fire funnel twists up round it, blasts
+     45% to every foe within 0.95 (CFM.fsR) at 0.3s, then collapses into a shower of embers.
    - M5 Living Inferno: when the tenth foe has caught fire (or, if the chain stops short, when the 6s window ends and at least 5 caught fire),
-     once per cast: every burning foe flares gold, streams of fire spiral from them into the middle of the burning foes, where a towering
-     three-shelled inferno grows (taller for each stream it drinks) with glowing cracks, rising debris and sparks; at 2.1s it collapses into a
-     blinding explosion and a ring of fire: 180% to every foe within 2.1 (CFM.infR), flyers too.
+     once per cast, the fire on the last foe lit swells (cfmErupt): its flames grow, rage and roar for 1.3s (CFM.infGrow) over glowing cracks,
+     then draw in for an instant and it erupts in a violent 3D explosion (a big cfmBoom with a mushroom column and a skirt of fire along the
+     ground, debris, a ring of fire): 180% to every foe within 2.1 (CFM.infR) of that spot, flyers too.
    CFM.dbg (an array) logs the events for the tests. */
-const CFM={dbg:null,kin:.25,kinR:2.2,kinN:3,bd:.7,bdR:1.25,bdIn:.24,forkEvery:3,forkR:1.8,fs:.45,fsR:.95,fsHit:.3,inf:1.8,infR:2.1,infMin:5,infBoom:2.1,win:6,reach:1.35,fg:null};
+const CFM={dbg:null,kin:.25,kinR:2.2,kinN:3,bd:.7,bdR:1.25,bdIn:.24,forkEvery:3,forkR:1.8,fs:.45,fsR:.95,fsHit:.3,inf:1.8,infR:2.1,infMin:5,infGrow:1.3,win:6,reach:1.35,fg:null};
 const cfmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='catchflame'&&c.L?c:null;};
 const cfmLog=d=>{if(CFM.dbg){d.t=time;CFM.dbg.push(d);}};
 SM_D.catchflame=[
@@ -23685,10 +23688,10 @@ SM_D.catchflame=[
   {n:'Backdraft',d:'A foe that dies while burning erupts in a burst of flame: {70}% to the foes around it. Unlit foes it hits catch fire, and the fire spreads on from them.'},
   {n:'Forking Flames',d:'Every third leap of the fire splits into two fireballs that strike two different unlit foes, both for the normal damage. Both count toward the ten.'},
   {n:'Firestorm',d:'When a burning foe passes the fire on, a fire vortex twists up around it: {45}% to the foes nearby, once per foe each cast.'},
-  {n:'Living Inferno',d:'When the fire reaches its tenth foe (or when it stops spreading, if at least five caught fire), the flames tear away from every burning foe into a towering inferno that explodes: {180}% to the foes around it.'}];
+  {n:'Living Inferno',d:'When the fire reaches its tenth foe (or when it stops spreading, if at least five caught fire), the fire on the last foe swells and erupts in a violent explosion: {180}% to the foes around it.'}];
 SMF.catchflame={m:1};
 SMA.catchflame=[1,1,1,1,1];
-/* power with Simon's numbers (tests/sm-ladder.js, 3 runs): 1.11 / 1.55 / 1.63 / 2.07 / 3.20 against the Uncommon ladder 1.09 / 1.23 / 1.35 / 1.52 / 1.74
+/* power with Simon's numbers (tests/sm-ladder.js, 3 runs): 1.11 / 1.49 / 1.63 / 2.12 / 3.17 against the Uncommon ladder 1.09 / 1.23 / 1.35 / 1.52 / 1.74
    (Mastery 1 is 1.02 without its factor).
    Kindling alone falls short, so Mastery 1 gets a hidden factor up to the ladder (as Grasping Shadows' first level); from Mastery 2 his numbers
    carry it above the ladder, the Living Inferno most of all. SM.free: they are his numbers. */
@@ -23698,12 +23701,61 @@ SM.free=SM.free||{};SM.free.catchflame='Simon'+String.fromCharCode(8217)+'s own 
 /* ---- shared pieces ---- */
 const cfmAM=(col,op)=>new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false});
 const cfmFunnel=()=>CFM.fg||(CFM.fg=s6FunnelGeo());
-/* a soft glowing ball: bright where it faces the camera, fading to nothing at its rim (no hard polygon edge) */
-const CFM_GLOW_VS='varying vec3 vN,vV;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalMatrix*normal;vV=-mv.xyz;gl_Position=projectionMatrix*mv;}';
-const CFM_GLOW_FS='uniform vec3 uC;uniform float uA,uP;varying vec3 vN,vV;void main(){float f=abs(dot(normalize(vN),normalize(vV)));gl_FragColor=vec4(uC*(.75+.5*f),uA*pow(f,uP));}';
-const cfmGlow=(col,pw)=>new THREE.ShaderMaterial({uniforms:{uC:{value:new THREE.Color(col)},uA:{value:0},uP:{value:pw||2}},vertexShader:CFM_GLOW_VS,fragmentShader:CFM_GLOW_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
 /* every foe (flyers too) within R of a point takes dmg as a mastery hit; returns the foes hit */
 function cfmHit(x,z,R,dmg,o){const L=[];for(const e of enemies.slice()){if(e.dead||e.fake||(e.x-x)**2+(e.z-z)**2>R*R)continue;hurt(e,dmg,'magic',smO(o));L.push(e);}return L;}
+
+/* ---- the explosion ----
+   A fireball is a few billowing lobes, each a sphere whose surface is pushed out by animated 3D noise (CFM_BOOM_VS). Its colour comes from
+   its heat (CFM_BOOM_FS): white-hot where the noise and the facing side are hottest, through yellow, orange and deep red, to dark smoke; the
+   heat falls away (hot lobes first, so the fire cools from the inside out), and at the end the smoke frays and tears apart along the noise.
+   The middle lobe also has an additive glow shell that only shows its hottest parts. Around it: sparks, falling embers, a ring of dust and
+   smoke rolling out along the ground, a scorch mark, rising smoke. Every lobe shares one sphere (ico(1,4)); each has its own material. */
+const CFM_N3='float h3(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}'+
+  'float n3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(h3(i),h3(i+vec3(1.,0.,0.)),f.x),mix(h3(i+vec3(0.,1.,0.)),h3(i+vec3(1.,1.,0.)),f.x),f.y),'+
+  'mix(mix(h3(i+vec3(0.,0.,1.)),h3(i+vec3(1.,0.,1.)),f.x),mix(h3(i+vec3(0.,1.,1.)),h3(i+vec3(1.,1.,1.)),f.x),f.y),f.z);}'+
+  'float fb3(vec3 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*n3(p);p=p*2.03+vec3(1.7,9.2,3.1);a*=.5;}return v;}';
+const CFM_BOOM_VS='uniform float uT,uAmp,uSeed;varying vec3 vP,vN,vV;varying float vD;'+CFM_N3+
+  'void main(){vec3 n=normalize(position);float d=fb3(n*2.6+vec3(uSeed,uSeed*.7,-uSeed)+vec3(0.,-uT*.9,uT*.35)),d2=n3(n*1.3+vec3(-uSeed,uSeed,uSeed*.3));vD=d;vP=n;'+
+  'vec3 p=position*(1.+uAmp*((d-.45)*2.6+(d2-.5)*1.1));'+
+  'vec4 mv=modelViewMatrix*vec4(p,1.);vN=normalMatrix*n;vV=-mv.xyz;gl_Position=projectionMatrix*mv;}';
+const CFM_BOOM_FS='uniform float uT,uHeat,uDis,uA,uSeed,uGlow;varying vec3 vP,vN,vV;varying float vD;'+CFM_N3+
+  'void main(){float n=fb3(vP*2.7+vec3(uSeed*1.7,uSeed,0.)+vec3(0.,-uT*1.5,0.));float f=abs(dot(normalize(vN),normalize(vV)));'+
+  'float h=uHeat*(.42+1.*n)*(.5+.5*f)+vD*.14*uHeat;'+
+  'vec3 c=vec3(.15,.135,.125)+vec3(.2,.18,.16)*n*(.55+.45*f);c=mix(c,vec3(.4,.07,.02),smoothstep(.12,.22,h));c=mix(c,vec3(.92,.3,.04),smoothstep(.22,.42,h));'+
+  'c=mix(c,vec3(1.,.6,.15),smoothstep(.45,.67,h));c=mix(c,vec3(1.,.92,.68),smoothstep(.74,.98,h));'+
+  'float a=uA*smoothstep(uDis,uDis+.18,n*.85+f*.32)*smoothstep(.0,.45,f)*mix(.5,1.,clamp(uHeat*2.5,0.,1.));if(a<.01)discard;'+
+  'if(uGlow>0.)gl_FragColor=vec4(c*smoothstep(.42,.95,h),a*uGlow);else gl_FragColor=vec4(c,a);}';
+function cfmBoomMat(glow){return new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*10},uAmp:{value:.3},uSeed:{value:rnd()*40},uHeat:{value:1},uDis:{value:0},uA:{value:1},uGlow:{value:glow?1:0}},
+  vertexShader:CFM_BOOM_VS,fragmentShader:CFM_BOOM_FS,transparent:true,depthWrite:false,blending:glow?THREE.AdditiveBlending:THREE.NormalBlending});}
+/* S is the size (about the fireball's radius in tiles). o.lobes, o.T (life), o.mush (a column and a mushroom cap rising), o.skirt (flat lobes
+   of fire rolling out along the ground), o.ground=false (in the air: no dust ring or scorch), o.shake. */
+function cfmBoom(x,y,z,S,o){o=o||{};const g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);const geo=ico(1,4),mats=[],lobes=[],T=o.T||(.8+.7*S),gy0=gy(x,z);
+  const add=(p)=>{const m=cfmBoomMat(false),me=new THREE.Mesh(geo,m);me.visible=false;me.renderOrder=7;me.rotation.set(rnd()*6,rnd()*6,rnd()*6);g.add(me);mats.push(m);p.m=me;p.mat=m;
+    if(p.glow){const gm=cfmBoomMat(true),ge=new THREE.Mesh(geo,gm);ge.visible=false;ge.renderOrder=8;g.add(ge);mats.push(gm);p.gm=gm;p.ge=ge;}lobes.push(p);};
+  const n=(o.lobes||Math.max(3,Math.round(3+S*2.5)))+2;
+  add({dir:smV(0,1,0),dist:0,r:S*.48,del:0,rise:S*.45,hk:3,flat:1,glow:true});
+  for(let i=1;i<n;i++){const a=rnd()*6.283,el=-.15+rnd()*1.1,dir=smV(Math.cos(a)*Math.cos(el),Math.sin(el),Math.sin(a)*Math.cos(el));
+    add({dir,dist:S*(.32+.38*rnd()),r:S*(.22+.18*rnd()),del:rnd()*.07*(.5+S*.5),rise:S*(.3+.4*rnd()),hk:3+rnd()*1.8,flat:1});}
+  if(o.skirt)for(let i=0;i<o.skirt;i++){const a=i/o.skirt*6.283+rnd()*.4;add({dir:smV(Math.cos(a),.05,Math.sin(a)),dist:S*(.7+.25*rnd()),r:S*(.2+.08*rnd()),del:.05+rnd()*.08,rise:S*.15,hk:3.4+rnd(),flat:.8,low:true});}
+  if(o.mush){add({dir:smV(0,1,0),dist:0,r:S*.42,del:.12,rise:S*1.25,hk:2,flat:.85,cap:true,glow:true});for(let i=0;i<3;i++)add({dir:smV((rnd()-.5)*.2,1,(rnd()-.5)*.2),dist:0,r:S*(.24-.04*i),del:.1+.05*i,rise:S*(.45+.25*i),hk:2.6,flat:1});}
+  /* the blast's sparks, embers and ground */
+  const sp=Math.round(14+46*S);sprayP(1,x,y,z,sp,{c:0xfff6c8,c2:0xff6a10,sp:(2+2.2*S),up:1.1,s:.05+.02*S,s2:0,life:.45+.25*S,g:3,drag:.7,r:S*.2});
+  sprayP(0,x,y,z,Math.round(6+16*S),{c:0xffb040,c2:0x7a1404,sp:1.2+1.4*S,up:1.6,s:.07+.03*S,s2:.02,a:.95,life:.6+.3*S,g:2.4});
+  for(let i=0;i<Math.round(3+8*S);i++){const a=rnd()*6.283,v=1.5+rnd()*2.5*S;emit(1,{x,y:y+.05,z,vx:Math.cos(a)*v,vy:1.2+rnd()*2.4*S,vz:Math.sin(a)*v,s:.04+.02*S,s2:0,c:0xffe8a0,c2:0xff3a00,life:.7+rnd()*.5,g:5,drag:.4});}
+  if(o.ground!==false){const R=S*1.1+.2,m=Math.round(10+18*S);for(let i=0;i<m;i++){const a=i/m*6.283+rnd()*.2;
+      emitS(0,{x:x+Math.cos(a)*S*.3,y:gy0+.06,z:z+Math.sin(a)*S*.3,vx:Math.cos(a)*R*2.2,vy:.15+rnd()*.15,vz:Math.sin(a)*R*2.2,s:.12+.12*S,s2:.35+.5*S,c:0x7a6a56,c2:0x4a3e32,a:.32,life:.55+.3*S,drag:2.4,turb:.3});}
+    nsDecal(x,z,.3+S*.55,0x120804,.55,2.5+2*S,{fout:1});nsDecal(x,z,.18+S*.35,0x8a2a04,.35,.8+.6*S,{add:true,fout:1});}
+  if(o.shake)camShake=Math.max(camShake,o.shake);
+  let tt=0;
+  addFx(g,T+.1,(f,dt)=>{tt+=dt;for(const p of lobes){const lt=tt-p.del;if(lt<0)continue;const k=Math.min(1,lt/T),gr=1-Math.exp(-lt*9/(.45+.45*S)),R=p.r*(.2+.85*gr+.6*k)*(p.cap?1+.6*k:1);
+      const hs=(.55+.45*S),heat=Math.exp(-lt*p.hk/hs),dis=SMS(k,.3,1)*1.12;
+      p.m.visible=true;p.m.position.set(p.dir.x*p.dist*gr,p.dir.y*p.dist*gr+p.rise*lt*(p.cap?1.6-k*.7:1)*(1+k),p.dir.z*p.dist*gr);if(p.low)p.m.position.y=Math.max(p.m.position.y,gy0-y+R*.35);
+      p.m.scale.set(R*(p.cap?1.25:1),R*p.flat,R*(p.cap?1.25:1));p.m.rotation.y+=dt*.6;p.mat.uniforms.uT.value+=dt*(.9+.6*heat);p.mat.uniforms.uHeat.value=heat;p.mat.uniforms.uDis.value=dis;p.mat.uniforms.uA.value=Math.min(1,lt*14);
+      if(p.ge){p.ge.visible=true;p.ge.position.copy(p.m.position);p.ge.scale.copy(p.m.scale).multiplyScalar(.93);p.ge.rotation.copy(p.m.rotation);p.gm.uniforms.uT.value=p.mat.uniforms.uT.value;p.gm.uniforms.uHeat.value=heat*1.15;p.gm.uniforms.uDis.value=dis;p.gm.uniforms.uA.value=1;p.gm.uniforms.uGlow.value=Math.min(1,1.6*heat);}
+      /* the cooling smoke leaves wisps behind as it rises */
+      if(k>.35&&k<.9&&rnd()<.12*S+.04)emitS(0,{x:x+p.m.position.x,y:y+p.m.position.y+R*.4,z:z+p.m.position.z,vx:(rnd()-.5)*.3,vy:.35+rnd()*.3,vz:(rnd()-.5)*.3,s:R*.6,s2:R*1.6,c:0x2e2620,c2:0x1a1612,a:.3,life:1.4+S*.6,lift:.25,turb:.4});}},null,{mats});
+  return g;}
+
 /* a flying flame: a white-hot core in a halo, a ribbon of fire behind it, and optionally two thinner ribbons twisting round its path (helix).
    It follows a foe (or flies to a fixed point), arcing up (arc) and bowing out to one side (side), or along o.path(k,out); o.land(point) when
    it arrives, during play. Its trails are freed in its own last frame. */
@@ -23720,39 +23772,29 @@ function cfmBolt(A,q,o){const g=smTag(new THREE.Group()),mats=[],sz=o.size||1;g.
         if(rnd()<.6)emit(1,{x:H.x,y:H.y,z:H.z,vx:(rnd()-.5)*.2,vy:.2,vz:(rnd()-.5)*.2,s:.05*sz,s2:0,c:0xffe8a8,c2:0xff4a00,life:.2});});}
     for(let i=0;i<(o.parts||3);i++)emit(i%2,{x:P.x+(rnd()-.5)*.05,y:P.y,z:P.z+(rnd()-.5)*.05,vx:(rnd()-.5)*.25,vy:.25+rnd()*.35,vz:(rnd()-.5)*.25,s:(.07+rnd()*.05)*sz,s2:.01,c:rnd()<.4?(o.hot||0xffd860):0xff8a20,c2:0x8a1400,a:.9,life:.22+rnd()*.15,turb:1});
     if(f.life<=0){tail.free();if(hx)hx.forEach(t=>t.free());}},()=>{if(o.land)o.land(B.clone());},{mats});}
-/* sparks bursting where an ember or fragment strikes */
-function cfmSparks(p,sc,gold){sc=sc||1;flash(p.x,p.y,p.z,gold?0xffc040:0xff8a20,.32*sc,.12);flash(p.x,p.y,p.z,0xfff6d0,.14*sc,.06);
-  sprayP(1,p.x,p.y,p.z,Math.round(18*sc),{c:0xfff4c0,c2:gold?0xffa020:0xff6a10,sp:1.7*sc,up:.9,s:.05,s2:0,life:.4,g:3,drag:.6});
-  sprayP(0,p.x,p.y,p.z,Math.round(6*sc),{c:0xffb040,c2:0x8a1a04,sp:.9*sc,up:1,s:.07,s2:.02,a:.9,life:.35,g:1});ringFx(p.x,gy(p.x,p.z)+.05,p.z,.32*sc,0xffb040,.22);
-  emitS(0,{x:p.x,y:p.y+.1,z:p.z,vx:0,vy:.35,vz:0,s:.14*sc,s2:.45*sc,c:0x3a2a20,c2:0x221c18,a:.3,life:1,lift:.2,turb:.4});}
 
 /* ---- M1 Kindling: the first foe erupts, then spits three embers ---- */
-function cfmKindle(e,P,o,taken){const p=tpos2(e),y=gy(p.x,p.z);
-  flash(p.x,p.y+.2,p.z,0xffa040,.75,.2);flash(p.x,p.y,p.z,0xfff0c0,.35,.1);shockwave(p.x,p.z,.75,0xff8a2a,.28);
-  sprayP(1,p.x,p.y+.1,p.z,34,{c:0xfff0a0,c2:0xff3a00,sp:.9,up:2.6,s:.08,s2:0,life:.55,g:2.4,drag:.5});
-  for(let i=0;i<10;i++){const a=rnd()*6.283;emit(1,{x:p.x+Math.cos(a)*.08,y:p.y+.1+rnd()*.25,z:p.z+Math.sin(a)*.08,vx:Math.cos(a)*.35,vy:1.4+rnd()*1.1,vz:Math.sin(a)*.35,s:.14+rnd()*.08,s2:.02,c:rnd()<.4?0xffe080:0xff7a1a,c2:0x8a1400,a:.9,life:.38+rnd()*.2,turb:1.2});}
-  emitS(0,{x:p.x,y:p.y+.5,z:p.z,vx:0,vy:.6,vz:0,s:.25,s2:.8,c:0x3a2a20,c2:0x221c18,a:.35,life:1.3,lift:.3,turb:.4});
+function cfmKindle(e,P,o,taken){const p=tpos2(e);
+  cfmBoom(p.x,p.y+.1,p.z,.52,{lobes:5,shake:.03});
+  for(let i=0;i<12;i++){const a=rnd()*6.283;emit(1,{x:p.x+Math.cos(a)*.08,y:p.y+.1+rnd()*.25,z:p.z+Math.sin(a)*.08,vx:Math.cos(a)*.35,vy:1.6+rnd()*1.2,vz:Math.sin(a)*.35,s:.14+rnd()*.08,s2:.02,c:rnd()<.4?0xffe080:0xff7a1a,c2:0x8a1400,a:.9,life:.4+rnd()*.2,turb:1.2});}
   const tg=smNear(e.x,e.z,CFM.kinR,e,99,true).filter(q=>!taken.has(q)).slice(0,CFM.kinN);cfmLog({ev:'kindle',e,n:tg.length});
-  tg.forEach((q,i)=>mxLater(.1+i*.07,()=>{if(state!=='playing')return;const A=smV(p.x,p.y+.32,p.z),sd=(i-(tg.length-1)/2)*.75+(rnd()-.5)*.2;
-    flash(A.x,A.y,A.z,0xffc040,.22,.08);
+  tg.forEach((q,i)=>mxLater(.12+i*.07,()=>{if(state!=='playing')return;const A=smV(p.x,p.y+.38,p.z),sd=(i-(tg.length-1)/2)*.75+(rnd()-.5)*.2;
+    sprayP(1,A.x,A.y,A.z,8,{c:0xfff0b0,c2:0xff7a10,sp:1,up:.6,s:.04,s2:0,life:.25,g:2});
     cfmBolt(A,q,{dur:.34+rnd()*.06,arc:.55,side:sd||(rnd()<.5?-.4:.4),size:.62,col:0xffa020,hot:0xfff0a0,trail:[[0xff5a00,.4,.075],[0xffc860,.9,.022]],len:12,parts:2,
-      land:B=>{cfmSparks(B,1);if(s6Real(q)){hurt(q,P*CFM.kin,'magic',smO(o));cfmLog({ev:'ember',e:q});}}});}));}
+      land:B=>{cfmBoom(B.x,B.y,B.z,.17,{lobes:3,T:.55,ground:false});if(s6Real(q)){hurt(q,P*CFM.kin,'magic',smO(o));cfmLog({ev:'ember',e:q});}}});}));}
 
-/* ---- M2 Backdraft: the flames are sucked in round the dying foe, then burst ---- */
-function cfmBackdraftFx(x,z,y,k){const R=CFM.bdR;let tt=0,boom=false;const g=smTag(new THREE.Group()),sm=cfmGlow(0xff8a20,1.6),core=new THREE.Mesh(ico(.5,3),sm);g.add(core);g.position.set(x,y+.35,z);scene.add(g);
-  addFx(g,.62,(f,dt)=>{tt+=dt;if(tt<CFM.bdIn){const q=tt/CFM.bdIn;core.scale.setScalar(1.1-.85*q);sm.uniforms.uA.value=.2+.8*q;
-      for(let i=0;i<6;i++){const a=rnd()*6.283,r=.75+rnd()*.3;emit(1,{x:x+Math.cos(a)*r,y:y+.1+rnd()*.6,z:z+Math.sin(a)*r,vx:-Math.cos(a)*r*4,vy:.2,vz:-Math.sin(a)*r*4,s:.07,s2:.02,c:0xffd070,c2:0xff3a00,a:.9,life:.2,drag:.5});}
-      if(rnd()<.5)emitS(0,{x:x+(rnd()-.5)*1.2,y:y+.2,z:z+(rnd()-.5)*1.2,vx:0,vy:.1,vz:0,s:.2,s2:.05,c:0x2a1a12,c2:0x1a1210,a:.3,life:.25});}
-    else{if(!boom){boom=true;k();flash(x,y+.4,z,0xffa040,1.25,.26);flash(x,y+.3,z,0xfff6d8,.6,.12);shockwave(x,z,R*1.1,0xff7a1a,.38);shockwave(x,z,R*.7,0xffd070,.26);myFireRing(x,z,R*.95,.5);
-        sprayP(1,x,y+.3,z,60,{c:0xfff0a0,c2:0xff3a00,sp:2.8,up:1.2,s:.08,s2:0,life:.5,g:2,drag:.8,r:.15});sprayP(0,x,y+.3,z,22,{c:0xffa030,c2:0x8a1a04,sp:1.8,up:1.4,s:.1,s2:.02,a:.9,life:.5,g:1.5});
-        for(let i=0;i<5;i++)emitS(0,{x:x+(rnd()-.5)*.6,y:y+.3+rnd()*.4,z:z+(rnd()-.5)*.6,vx:(rnd()-.5)*1.2,vy:.5+rnd()*.4,vz:(rnd()-.5)*1.2,s:.3,s2:1,c:0x3a2418,c2:0x1a1210,a:.38,life:1.6,lift:.3,turb:.5});
-        nsDecal(x,z,R*.7,0x140a06,.55,3,{fout:1});camShake=Math.max(camShake,.05);}
-      const q=(tt-CFM.bdIn)/(.62-CFM.bdIn);core.scale.setScalar(.25+1.6*q);sm.uniforms.uA.value=.9*(1-q)*(1-q);}},null,{mats:[sm]});}
+/* ---- M2 Backdraft: the flames are sucked in round the dying foe into a shrinking, ever hotter core, then it bursts ---- */
+function cfmBackdraftFx(x,z,y,k){const R=CFM.bdR,g=smTag(new THREE.Group()),m=cfmBoomMat(false),gm=cfmBoomMat(true),core=new THREE.Mesh(ico(1,4),m),cg=new THREE.Mesh(ico(1,4),gm);
+  core.renderOrder=7;cg.renderOrder=8;g.add(core,cg);g.position.set(x,y+.35,z);scene.add(g);let tt=0,boom=false;
+  addFx(g,CFM.bdIn+.02,(f,dt)=>{tt+=dt;const q=Math.min(1,tt/CFM.bdIn),r=.42-.3*q;core.scale.setScalar(r);cg.scale.setScalar(r*.95);
+    m.uniforms.uT.value+=dt*3;gm.uniforms.uT.value=m.uniforms.uT.value;m.uniforms.uHeat.value=.45+.6*q;gm.uniforms.uHeat.value=.5+.7*q;gm.uniforms.uGlow.value=.6+.6*q;m.uniforms.uA.value=Math.min(1,tt*10);
+    for(let i=0;i<7;i++){const a=rnd()*6.283,rr=.75+rnd()*.35;emit(1,{x:x+Math.cos(a)*rr,y:y+.1+rnd()*.6,z:z+Math.sin(a)*rr,vx:-Math.cos(a)*rr*4.2,vy:.25,vz:-Math.sin(a)*rr*4.2,s:.07,s2:.02,c:0xffd070,c2:0xff3a00,a:.9,life:.2,drag:.5});}
+    if(rnd()<.6)emitS(0,{x:x+(rnd()-.5)*1.3,y:y+.2,z:z+(rnd()-.5)*1.3,vx:0,vy:.1,vz:0,s:.22,s2:.06,c:0x2a1a12,c2:0x1a1210,a:.3,life:.25});
+    if(!boom&&f.life<=.02){boom=true;k();cfmBoom(x,y+.25,z,.78,{lobes:6,skirt:5,shake:.06});myFireRing(x,z,R*.95,.5);}},null,{mats:[m,gm]});}
 
 /* ---- M3 Forking Flames: the fireball flies a little way, bursts and splits into two twisting streams ---- */
 function cfmFork(A,q1,q2,land1,land2){const B1=s6V(q1),B2=s6V(q2),S=smV(A.x+((B1.x+B2.x)/2-A.x)*.38,Math.max(A.y,(B1.y+B2.y)/2)+.55,A.z+((B1.z+B2.z)/2-A.z)*.38);
-  cfmBolt(A,S,{dur:.15,arc:.25,size:1.15,len:12,land:()=>{flash(S.x,S.y,S.z,0xffc040,.55,.14);flash(S.x,S.y,S.z,0xfff6d8,.25,.07);ringFx(S.x,S.y,S.z,.28,0xffd070,.2);
-    sprayP(1,S.x,S.y,S.z,26,{c:0xfff4c0,c2:0xff6a10,sp:1.4,up:.5,s:.05,s2:0,life:.35,g:2,drag:.6});
+  cfmBolt(A,S,{dur:.15,arc:.25,size:1.15,len:12,land:()=>{cfmBoom(S.x,S.y,S.z,.2,{lobes:3,T:.5,ground:false});
     [[q1,land1,1],[q2,land2,-1]].forEach(([q,l,s])=>cfmBolt(S,q,{dur:.25,arc:.2,side:.55*s,helix:.12,turns:2.2,size:.9,col:0xff8a20,len:12,land:l}));}});}
 
 /* ---- M4 Firestorm: a fire funnel twists up round a foe that passes the fire on ---- */
@@ -23769,82 +23811,67 @@ function cfmVortex(src,P,o){const x0=src.x,z0=src.z,g=smTag(new THREE.Group()),f
     if(tt<.66){const n=Math.round(6*form);for(let i=0;i<n;i++){const a=rnd()*6.283,yy=rnd()*1.25*h/.66,rr=(.08+yy*.2)*r*1.6;
       emit(i%2,{x:p.x+Math.cos(a)*rr,y:y+yy,z:p.z+Math.sin(a)*rr,vx:-Math.sin(a)*2.6,vy:.9+rnd()*.6,vz:Math.cos(a)*2.6,s:.08+rnd()*.05,s2:.01,c:rnd()<.3?0xffe080:0xff8a20,c2:0x8a1400,a:.9,life:.28+rnd()*.15,drag:1.5,turb:.5});}
       if(rnd()<.5)emitS(0,{x:p.x+(rnd()-.5)*.3,y:y+h*1.8,z:p.z+(rnd()-.5)*.3,vx:(rnd()-.5)*.4,vy:.6,vz:(rnd()-.5)*.4,s:.2,s2:.7,c:0x3a2418,c2:0x1a1210,a:.32,life:1.3,lift:.3,turb:.5});}
-    if(!hit&&tt>=CFM.fsHit){hit=true;flash(p.x,y+.5,p.z,0xffa040,.65,.18);ringFx(p.x,y+.05,p.z,CFM.fsR*.85,0xffb040,.3);shockwave(p.x,p.z,CFM.fsR,0xff7a1a,.3);nsDecal(p.x,p.z,.45,0x140a06,.45,2.4,{fout:1});
-      const L=cfmHit(p.x,p.z,CFM.fsR,P*CFM.fs,o);cfmLog({ev:'vortexHit',e:src,n:L.length,L});}
+    if(!hit&&tt>=CFM.fsHit){hit=true;cfmBoom(p.x,y+.35,p.z,.34,{lobes:4,T:.7});const L=cfmHit(p.x,p.z,CFM.fsR,P*CFM.fs,o);cfmLog({ev:'vortexHit',e:src,n:L.length,L});}
     if(!shower&&tt>=.7){shower=true;const yy=y+.85;sprayP(1,p.x,yy,p.z,40,{c:0xfff0a0,c2:0xff3a00,sp:1.7,up:1.3,s:.06,s2:0,life:.75,g:3.5,drag:.4,r:.2});
       sprayP(0,p.x,yy,p.z,14,{c:0xffa030,c2:0x8a1a04,sp:1.1,up:1,s:.08,s2:.02,a:.9,life:.6,g:2.5});for(let i=0;i<3;i++)emitS(0,{x:p.x,y:yy,z:p.z,vx:(rnd()-.5)*.8,vy:.3,vz:(rnd()-.5)*.8,s:.25,s2:.8,c:0x3a2418,c2:0x1a1210,a:.3,life:1.4,lift:.2,turb:.5});}},null,{mats:[mSm,mIn,mGl]});}
 
-/* ---- M5 Living Inferno: the flames tear away into a towering inferno that explodes ---- */
-function cfmInferno(cx,cz,src,P,o){const R=CFM.infR,cy=gy(cx,cz),g=smTag(new THREE.Group()),fg=cfmFunnel(),mats=[],geos=[];g.position.set(cx,cy,cz);scene.add(g);
-  cfmLog({ev:'inferno',x:cx,z:cz,n:src.length});
-  const mSm=s6FlameMat({vs:S6_TWIST_VS,e:0,sx:4,sy:1.6,sp:2.2,tw:-2.6,h:.3,w:.045,k:1}),mIn=s6FlameMat({vs:S6_TWIST_VS,e:0,sx:5,sy:2.6,sp:3.6,tw:3.2,h:.34,w:.04}),mGl=s6FlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.6,sp:3,tw:2.2,h:.45,w:.035,add:true});mats.push(mSm,mIn,mGl);
-  const smoke=new THREE.Mesh(fg,mSm),inner=new THREE.Mesh(fg,mIn),glow=new THREE.Mesh(fg,mGl);smoke.scale.set(1.1,1.04,1.1);smoke.renderOrder=4;inner.scale.set(.84,1,.84);inner.renderOrder=5;glow.scale.set(.6,.95,.6);glow.renderOrder=6;
-  const tw=new THREE.Group();tw.add(smoke,inner,glow);tw.visible=false;g.add(tw);
-  const rockM=new THREE.MeshPhongMaterial({color:0x2a1a12,emissive:0x7a2a06,emissiveIntensity:.9,flatShading:true});mats.push(rockM);
-  const deb=[];for(let i=0;i<16;i++){const m=new THREE.Mesh(dod(.03+rnd()*.05),rockM);m.visible=false;g.add(m);deb.push({m,a:rnd()*6.28,y:.1+rnd()*.4,w:3+rnd()*3,up:.5+rnd()*.9,rs:rnd()*6,v:null});}
-  const bm=cfmGlow(0xfff2d0,1.4),bm2=cfmGlow(0xff8a20,2.2);mats.push(bm,bm2);const ball=new THREE.Mesh(ico(1,3),bm),ball2=new THREE.Mesh(ico(1,3),bm2);ball.visible=ball2.visible=false;g.add(ball,ball2);
-  const seams=nsSeams(cx,cz,R*.8,11,0xffa040,0x1a0804,mats,geos,.06);seams.op(0,0);
-  /* every burning foe flares gold, then a stream of fire tears away from it and spirals into the middle */
-  let fed=0;const n=src.length;
-  src.forEach(e=>{const p=tpos2(e);flash(p.x,p.y+.15,p.z,0xffc040,.6,.2);flash(p.x,p.y,p.z,0xfff2c0,.28,.1);sprayP(1,p.x,p.y,p.z,18,{c:0xfff6c0,c2:0xffb020,sp:.9,up:1.8,s:.06,s2:0,life:.45,g:1.5});});
-  src.forEach((e,i)=>mxLater(.18+i*.04,()=>{if(state!=='playing')return;const A=s6V(e),a0=Math.atan2(A.z-cz,A.x-cx),r0=Math.hypot(A.x-cx,A.z-cz),dir=i%2?1:-1,top=cy+1.1+rnd()*.5;
-    cfmBolt(A,smV(cx,top,cz),{dur:.6+rnd()*.12,size:1.25,col:0xffb030,core:0xfffbe8,hot:0xfff4b0,trail:[[0xff6a00,.38,.17],[0xffc040,.78,.075],[0xfff6d0,.95,.026]],len:18,parts:4,
-      path:(k,out)=>{const a=a0+dir*k*2.4,r=r0*Math.pow(1-k,1.15);return out.set(cx+Math.cos(a)*r,A.y+(top-A.y)*SMS(k,0,1)+Math.sin(k*Math.PI)*.35,cz+Math.sin(a)*r);},
-      land:()=>{fed++;flash(cx,top,cz,0xffc040,.5,.12);sprayP(1,cx,top,cz,10,{c:0xfff0a0,c2:0xff6a10,sp:1,up:.4,s:.05,s2:0,life:.3,g:1});}});}));
-  let tt=0,boom=false,lt=0,seamT=0;const B=CFM.infBoom,T=B+1.1;
-  addFx(g,T,(f,dt)=>{tt+=dt;const form=SMS(tt,.3,1.2),grow=SMS(tt,.3,B-.15),col=SMS(tt,B-.15,B),S=(.45+.75*form+.035*fed)*(1+.5*col),H=(.25+1.45*grow+.04*fed)*(1-.85*col);
-    if(tt>=.3&&!boom){tw.visible=true;tw.scale.set(S,H,S);smoke.rotation.y+=dt*5;inner.rotation.y+=dt*(9+4*grow);glow.rotation.y+=dt*7;[mSm,mIn,mGl].forEach(m=>{m.uniforms.uT.value+=dt;});
-      mSm.uniforms.uA.value=.45*form;mIn.uniforms.uA.value=.9*form;mGl.uniforms.uA.value=(.3+.25*grow)*form;g.position.x=cx+Math.sin(tt*13)*.03*grow;g.position.z=cz+Math.cos(tt*11)*.03*grow;
-      seams.grow(form);seams.op(.75*form,(.6+.4*Math.sin(tt*9))*form);
-      const np=Math.round(10*form);for(let i=0;i<np;i++){const a=rnd()*6.28,y=rnd()*1.9*H,r=(.09+y/H*.29)*S;emit(i%2,{x:cx+Math.cos(a)*r,y:cy+y,z:cz+Math.sin(a)*r,vx:-Math.sin(a)*2.8*S,vy:1+rnd()*.8,vz:Math.cos(a)*2.8*S,s:.1+rnd()*.08,s2:.01,c:rnd()<.35?0xffe080:0xff8a20,c2:0x8a1400,a:.9,life:.3+rnd()*.25,drag:1.5,turb:.6});}
-      if(rnd()<.9*form)emitS(0,{x:cx+(rnd()-.5)*.6*S,y:cy+1.9*H,z:cz+(rnd()-.5)*.6*S,vx:(rnd()-.5)*.7,vy:.8,vz:(rnd()-.5)*.7,s:.4*S,s2:1.4*S,c:0x3a2418,c2:0x1a1210,a:.42,life:2,lift:.3,turb:.5});
-      if(rnd()<.5*form)emit(1,{x:cx+(rnd()-.5)*.3,y:cy+.4+rnd()*1.6*H,z:cz+(rnd()-.5)*.3,vx:(rnd()-.5)*2.5,vy:1.6+rnd()*1.4,vz:(rnd()-.5)*2.5,s:.05,s2:0,c:0xfff0a0,c2:0xff4a00,life:1,g:.8});
-      for(let i=0;i<2;i++){const a=rnd()*6.28,r=(.9+rnd()*.7)*S;emitS(0,{x:cx+Math.cos(a)*r,y:cy+.06,z:cz+Math.sin(a)*r,vx:-Math.sin(a)*1.6-Math.cos(a)*.9,vy:.12,vz:Math.cos(a)*1.6-Math.sin(a)*.9,s:.14,s2:.4,c:0x8a7a62,c2:0x5a4a3a,a:.3,life:.6,turb:.3});}
-      deb.forEach(b=>{b.m.visible=form>.3;b.a+=dt*b.w*(1+grow);b.y=Math.min(1.85*H,b.y+dt*b.up*grow);const r=(.12+b.y/Math.max(.3,H)*.3)*S*1.05;b.m.position.set(Math.cos(b.a)*r,b.y,Math.sin(b.a)*r);b.m.rotation.x+=dt*b.rs;b.m.rotation.y+=dt*b.rs*.7;});
-      lt-=dt;if(lt<=0){lt=.22;flash(cx,cy+.6*H+.3,cz,0xff8a30,(.5+.7*grow)*S,.18);ringFx(cx,cy+.05,cz,(.5+.4*grow)*S,0xffa040,.25);}
-      seamT-=dt;if(seamT<=0&&form>.5){seamT=.3;nsDecal(cx,cz,.6*S,0x140a06,.35,2.6,{fout:1});}
-      camShake=Math.max(camShake,.012+.03*grow);}
-    if(!boom&&tt>=B){boom=true;tw.visible=false;ball.visible=ball2.visible=true;
-      flash(cx,cy+.6,cz,0xfff6e0,2.6,.34);flash(cx,cy+.4,cz,0xffa040,3.2,.5);camShake=Math.max(camShake,.17);
-      shockwave(cx,cz,R*1.25,0xff7a1a,.5);shockwave(cx,cz,R*.85,0xffe0a0,.34);myFireRing(cx,cz,R*1.2,.8);ringFx(cx,cy+.06,cz,R,0xfff0c0,.35);
-      sprayP(1,cx,cy+.6,cz,140,{c:0xfff6c0,c2:0xff3a00,sp:4.2,up:1.6,s:.09,s2:0,life:.75,g:2,drag:.7,r:.4});sprayP(0,cx,cy+.5,cz,40,{c:0xff8a20,c2:0x6a1404,sp:2.6,up:2,s:.08,s2:.02,a:.9,life:.7,g:1.5});
-      for(let i=0;i<12;i++){const a=i/12*6.283;emitS(0,{x:cx+Math.cos(a)*.5,y:cy+.3+rnd()*1.4,z:cz+Math.sin(a)*.5,vx:Math.cos(a)*1.8,vy:.6+rnd()*.7,vz:Math.sin(a)*1.8,s:.45,s2:1.5,c:0x3a2418,c2:0x1a1210,a:.45,life:2.2,lift:.35,turb:.5});}
-      nsDecal(cx,cz,R*.85,0x120804,.6,4,{fout:1});
-      deb.forEach(b=>{const a=Math.atan2(b.m.position.z,b.m.position.x),sp=2.5+rnd()*2.5;b.v=smV(Math.cos(a)*sp,2+rnd()*2.5,Math.sin(a)*sp);});
-      const L=cfmHit(cx,cz,R,P*CFM.inf,o);cfmLog({ev:'infernoHit',n:L.length,L});}
-    if(boom){const q=(tt-B)/(T-B),q2=Math.min(1,q*2.2);ball.scale.setScalar(.3+R*.7*q2);bm.uniforms.uA.value=Math.max(0,1-q2*1.1);ball2.scale.setScalar(.4+R*1.05*Math.min(1,q*1.6));bm2.uniforms.uA.value=.55*Math.max(0,1-q*1.5);
-      seams.op(.75*(1-q),Math.max(0,1.2-q*1.6));deb.forEach(b=>{if(!b.v)return;b.v.y-=9*dt;b.m.position.addScaledVector(b.v,dt);if(b.m.position.y<0)b.m.visible=false;else if(rnd()<.5)emit(1,{x:cx+b.m.position.x,y:cy+b.m.position.y,z:cz+b.m.position.z,vx:0,vy:.2,vz:0,s:.07,s2:.01,c:0xffa030,c2:0x5a1004,life:.3});});}
+/* ---- M5 Living Inferno: the fire on the last foe swells, rages, draws in, then erupts in a violent 3D explosion ---- */
+function cfmErupt(e,P,o){const R=CFM.infR,G=CFM.infGrow,g=smTag(new THREE.Group()),mats=[],geos=[];scene.add(g);let lx=e.x,lz=e.z;
+  const tuft=s6TuftGeo();geos.push(tuft);const mS=s6FlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.6,sp:3.4,h:.45,w:.12}),mG=s6FlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.5,sp:3,h:.55,w:.1,add:true});mats.push(mS,mG);
+  const tufts=[];for(let i=0;i<7;i++){const a=i/6*6.283,rr=i?.13:0,m1=new THREE.Mesh(tuft,mS),m2=new THREE.Mesh(tuft,mG);m1.renderOrder=5;m2.renderOrder=6;m1.position.set(Math.cos(a)*rr,0,Math.sin(a)*rr);m2.position.copy(m1.position);g.add(m1,m2);tufts.push({m1,m2,ph:rnd()*6,s:i?.7+rnd()*.3:1.15});}
+  const seams=nsSeams(lx,lz,R*.55,9,0xffa040,0x1a0804,mats,geos,.05);seams.op(0,0);
+  cfmLog({ev:'inferno',e,x:lx,z:lz});let tt=0,boom=false;
+  addFx(g,G+.15,(f,dt)=>{tt+=dt;if(s6Real(e)){lx=e.x;lz=e.z;}const y=gy(lx,lz),hY=(e.hitY||.4),grow=SMS(tt,0,G-.15),draw=SMS(tt,G-.15,G);g.position.set(lx,y+.02,lz);
+    mS.uniforms.uT.value+=dt*(1+grow);mG.uniforms.uT.value+=dt*(1+grow);mS.uniforms.uA.value=.95;mG.uniforms.uA.value=.3+.25*grow;
+    /* the flames swell and rage; at the end they draw in for an instant */
+    const sc=(1+2.3*grow)*(1-.45*draw)*Math.max(.8,hY/.4);
+    const sy=(1+1.1*grow)*(1-.4*draw)*Math.max(.8,hY/.4),spread=1+3.2*grow*(1-.6*draw);
+    tufts.forEach((t,i)=>{const fl=1+Math.sin(tt*(13+6*grow)+t.ph)*.12*(1+grow)+(rnd()-.5)*.1*grow;t.m1.scale.set(.32*sc*.8*t.s*fl,.62*sy*t.s*(2-fl),.32*sc*.8*t.s*fl);t.m2.scale.copy(t.m1.scale).multiplyScalar(1.25);
+      if(i){const a=(i-1)/6*6.283+tt*(1+2*grow);t.m1.position.set(Math.cos(a)*.13*spread,0,Math.sin(a)*.13*spread);t.m2.position.copy(t.m1.position);}t.m1.rotation.y+=dt*(2+4*grow);t.m2.rotation.y=t.m1.rotation.y;});
+    seams.grow(grow);seams.op(.7*grow,(.5+.5*Math.sin(tt*14))*grow);
+    const n=Math.round(3+9*grow);for(let i=0;i<n;i++){const a=rnd()*6.283,rr=(.1+rnd()*.25)*sc*.5;emit(i%2,{x:lx+Math.cos(a)*rr,y:y+.1+rnd()*.6*sc,z:lz+Math.sin(a)*rr,vx:-Math.sin(a)*1.6*grow+(rnd()-.5)*.4,vy:1.2+rnd()*1.5*grow,vz:Math.cos(a)*1.6*grow+(rnd()-.5)*.4,s:.08+.06*grow,s2:.01,c:rnd()<.35?0xfff0a0:0xff8a20,c2:0x8a1400,a:.9,life:.3+rnd()*.3,turb:.9});}
+    if(rnd()<.35+.5*grow)emitS(0,{x:lx+(rnd()-.5)*.3,y:y+.6*sc,z:lz+(rnd()-.5)*.3,vx:(rnd()-.5)*.4,vy:.8+grow,vz:(rnd()-.5)*.4,s:.2+.2*grow,s2:.8+.6*grow,c:0x3a2418,c2:0x1a1210,a:.35,life:1.6,lift:.3,turb:.5});
+    if(draw>0)for(let i=0;i<8;i++){const a=rnd()*6.283,rr=.9+rnd()*.5;emit(1,{x:lx+Math.cos(a)*rr,y:y+.15+rnd()*.7,z:lz+Math.sin(a)*rr,vx:-Math.cos(a)*rr*6,vy:.3,vz:-Math.sin(a)*rr*6,s:.07,s2:.02,c:0xffe080,c2:0xff3a00,a:.9,life:.15,drag:.3});}
+    camShake=Math.max(camShake,.01+.035*grow);
+    if(!boom&&tt>=G){boom=true;g.visible=false;cfmBoom(lx,y+.35,lz,1.75,{lobes:9,skirt:9,mush:true,shake:.2});myFireRing(lx,lz,R*1.15,.85);
+      const rockM=new THREE.MeshPhongMaterial({color:0x2a1a12,emissive:0x8a2a06,emissiveIntensity:1,flatShading:true});
+      for(let i=0;i<9;i++)cfmChunk(lx,y+.3,lz,rockM,i===0);
+      const L=cfmHit(lx,lz,R,P*CFM.inf,o);cfmLog({ev:'infernoHit',x:lx,z:lz,n:L.length,L});}
     if(f.life<=0)seams.free();},null,{mats,geos});}
+/* a burning chunk flung out of the eruption: it tumbles with a trail of fire and smoke, and fades where it lands (no damage) */
+function cfmChunk(x,y,z,m,own){const me=smTag(new THREE.Mesh(dod(.04+rnd()*.05),m));me.position.set(x,y,z);scene.add(me);const a=rnd()*6.283,h=1.6+rnd()*2.2,v=smV(Math.cos(a)*h,2.6+rnd()*2.8,Math.sin(a)*h),rs=(rnd()-.5)*12;let down=false;
+  addFx(me,1.6,(f,dt)=>{if(!down){v.y-=9.5*dt;me.position.addScaledVector(v,dt);me.rotation.x+=rs*dt;me.rotation.z+=rs*.6*dt;const g0=gy(me.position.x,me.position.z);
+      emit(1,{x:me.position.x,y:me.position.y,z:me.position.z,vx:0,vy:.2,vz:0,s:.07,s2:.01,c:0xffb040,c2:0x7a1004,life:.3});if(rnd()<.35)emitS(0,{x:me.position.x,y:me.position.y,z:me.position.z,vx:0,vy:.2,vz:0,s:.06,s2:.22,c:0x3a2a20,c2:0x221c18,a:.3,life:.8});
+      if(me.position.y<=g0+.03){down=true;me.position.y=g0+.03;sprayP(1,me.position.x,g0+.05,me.position.z,8,{c:0xfff0a0,c2:0xff5a00,sp:.8,up:.6,s:.04,s2:0,life:.3,g:3});}}
+    else me.scale.multiplyScalar(Math.max(0,1-dt*1.5));},null,own?{mat:m}:{});}
 
-/* ---- the mastered cast: castCatchFlame's seed, leaps, burn, reach and limit, with the masteries hooked in ---- */
-function cfmCast(t,e,P,o,c){const L=c.L,hx=t.x,hy=(t.topY||1)+.05,hz=t.z,lit=new Map(),taken=new Set(),CF={n:0,max:10,pend:0,sp:0,ign:[],fs:new Set(),inf:false,flare:0},mats=[],geos=[];c.cf=CF;
+/* ---- the cast: castCatchFlame's seed, leaps, burn, reach and limit, with real explosions and (when mastered) the masteries hooked in ---- */
+function cfmCast(t,e,P,o,c){const L=c?c.L:0,A5=c?c.a:[1,1,1,1,1],hx=t.x,hy=(t.topY||1)+.05,hz=t.z,lit=new Map(),taken=new Set(),CF={n:0,max:10,pend:0,sp:0,ign:[],fs:new Set(),inf:false},mats=[],geos=[];if(c)c.cf=CF;
   const tuft=s6TuftGeo();geos.push(tuft);const FM={tuft,solid:s6FlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.6,sp:3,h:.5,w:.1}),glow:s6FlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.5,sp:2.6,h:.6,w:.1,add:true})};mats.push(FM.solid,FM.glow);
-  const lv=1+.1*L;/* the ignitions grow brighter with the level */
-  const inferno=why=>{if(CF.inf||L<5)return;CF.inf=true;const B=[...lit].filter(([q,u])=>s6Real(q)&&u>time).map(([q])=>q);const pts=B.length?B:CF.ign.filter(s6Real);
-    let cx=0,cz=0;const P2=pts.length?pts:CF.ign;if(!P2.length)return;P2.forEach(q=>{cx+=q.x;cz+=q.z;});cx/=P2.length;cz/=P2.length;CF.flare=1;cfmLog({ev:'infernoStart',why,n:CF.ign.length});
-    cfmInferno(cx,cz,B,P*c.a[4],o);};
+  const lv=1+.12*L;/* the explosions grow with the level */
+  const inferno=why=>{if(CF.inf||L<5)return;const last=CF.ign[CF.ign.length-1];if(!last)return;CF.inf=true;cfmLog({ev:'infernoStart',why,n:CF.ign.length,e:last});cfmErupt(last,P*A5[4],o);};
   const ignite=(q,dm,wild,how)=>{CF.pend=Math.max(0,CF.pend-1);lit.set(q,time+4);CF.ign.push(q);cfmLog({ev:'ignite',e:q,how});
     if(s6Real(q)){if(L>=2)smOnDie(q,4.05,d=>backdraft(d));if(dm>0)hurt(q,dm,'magic',o);if(!q.dead){applyBurn(q,P*.25,4,o);s6Engulf(q,time+4,FM);}}
-    const p=tpos2(q);flash(p.x,p.y,p.z,L>=5?0xffb040:0xffa040,.5*lv,.16);flash(p.x,p.y,p.z,0xfff0c0,.25*lv,.08);shockwave(p.x,p.z,.7*lv,0xff8a2a,.3);
-    for(let i=0;i<12;i++){const a=i/12*6.283;emit(i%2,{x:p.x+Math.cos(a)*.15,y:gy(p.x,p.z)+.06,z:p.z+Math.sin(a)*.15,vx:Math.cos(a)*1.6*lv,vy:.35,vz:Math.sin(a)*1.6*lv,s:.09,s2:.02,c:0xffb030,c2:0x8a1a04,a:.9,life:.35,drag:2});}nsDecal(p.x,p.z,.35,0x140a06,.5,3,{fout:1});
-    sprayP(1,p.x,p.y,p.z,Math.round(26*lv),{c:0xfff0a0,c2:L>=5?0xffa020:0xff3a00,sp:1.8,up:1.4,s:.07,s2:0,life:.45,g:1.5,drag:.8});sprayP(0,p.x,p.y,p.z,10,{c:0xffa030,c2:0x8a1a04,sp:1.2,up:1.6,s:.08,s2:.02,a:.9,life:.45,g:1});
-    emitS(0,{x:p.x,y:p.y+.2,z:p.z,vx:0,vy:.5,vz:0,s:.22,s2:.7,c:0x3a2a20,c2:0x221c18,a:.35,life:1.2,lift:.3,turb:.4});if(wild)for(let i=0;i<3;i++)nsCrackle(p,.3,0xbfe0ff);
-    if(how==='seed'&&L>=1&&s6Real(q))cfmKindle(q,P*c.a[0],o,taken);
+    const p=tpos2(q);if(how!=='seed'||L<1)cfmBoom(p.x,p.y+.05,p.z,(how==='seed'?.3:.24)*lv,{lobes:how==='seed'?4:3});
+    for(let i=0;i<12;i++){const a=i/12*6.283;emit(i%2,{x:p.x+Math.cos(a)*.15,y:gy(p.x,p.z)+.06,z:p.z+Math.sin(a)*.15,vx:Math.cos(a)*1.6*lv,vy:.35,vz:Math.sin(a)*1.6*lv,s:.09,s2:.02,c:0xffb030,c2:0x8a1a04,a:.9,life:.35,drag:2});}
+    if(wild)for(let i=0;i<3;i++)nsCrackle(p,.3,0xbfe0ff);
+    if(how==='seed'&&L>=1&&s6Real(q))cfmKindle(q,P*A5[0],o,taken);
     if(L>=5&&CF.n>=CF.max&&!CF.pend)inferno('ten');};
   /* M2: a burning foe dies: the flames are sucked in, then burst; fragments light the unlit foes it hits */
   const backdraft=d=>{if(state!=='playing')return;const x=d.x,z=d.z,y=gy(x,z);cfmLog({ev:'backdraft',e:d});
-    cfmBackdraftFx(x,z,y,()=>{const H=cfmHit(x,z,CFM.bdR,P*CFM.bd*c.a[1],o);cfmLog({ev:'backdraftHit',e:d,n:H.length,L:H});
+    cfmBackdraftFx(x,z,y,()=>{const H=cfmHit(x,z,CFM.bdR,P*CFM.bd*A5[1],o);cfmLog({ev:'backdraftHit',e:d,n:H.length,L:H});
       H.filter(q=>s6Real(q)&&!taken.has(q)).forEach(q=>{if(CF.n>=CF.max)return;taken.add(q);CF.n++;CF.pend++;const A=smV(x,y+.45,z),s=(rnd()<.5?-1:1)*(.35+rnd()*.3);
-        cfmBolt(A,q,{dur:.3+rnd()*.08,arc:.45,side:s,helix:.09,turns:1.6,size:.75,col:0xff8a20,len:12,parts:2,land:()=>{cfmSparks(s6V(q),.8);ignite(q,0,false,'backdraft');}});});});};
-  const fire=a=>{if(L>=4&&!CF.fs.has(a)&&s6Real(a)){CF.fs.add(a);cfmVortex(a,P*c.a[3],o);}};
-  const send=(a,q,wild)=>{taken.add(q);CF.n++;CF.pend++;const A=s6V(a);flash(A.x,A.y,A.z,0xffa040,.3,.1);s6Leap(A,q,wild?.24:.34,wild?.55:.85,()=>ignite(q,P*.6,wild,'leap'),wild);};
-  const fork=(a,q1,q2)=>{taken.add(q1);taken.add(q2);CF.n+=2;CF.pend+=2;cfmLog({ev:'fork',a,q1,q2});const A=s6V(a);flash(A.x,A.y,A.z,0xffc040,.4,.12);
-    cfmFork(A,q1,q2,()=>{cfmSparks(s6V(q1),.7);ignite(q1,P*.6,false,'fork');},()=>{cfmSparks(s6V(q2),.7);ignite(q2,P*.6,false,'fork');});};
+        cfmBolt(A,q,{dur:.3+rnd()*.08,arc:.45,side:s,helix:.09,turns:1.6,size:.75,col:0xff8a20,len:12,parts:2,land:()=>ignite(q,0,false,'backdraft')});});});};
+  const fire=a=>{if(L>=4&&!CF.fs.has(a)&&s6Real(a)){CF.fs.add(a);cfmVortex(a,P*A5[3],o);}};
+  const puff=A=>sprayP(1,A.x,A.y,A.z,10,{c:0xfff0b0,c2:0xff6a10,sp:.9,up:.7,s:.05,s2:0,life:.25,g:2});
+  const send=(a,q,wild)=>{taken.add(q);CF.n++;CF.pend++;const A=s6V(a);puff(A);s6Leap(A,q,wild?.24:.34,wild?.55:.85,()=>ignite(q,P*.6,wild,'leap'),wild);};
+  const fork=(a,q1,q2)=>{taken.add(q1);taken.add(q2);CF.n+=2;CF.pend+=2;cfmLog({ev:'fork',a,q1,q2});const A=s6V(a);puff(A);
+    cfmFork(A,q1,q2,()=>ignite(q1,P*.6,false,'fork'),()=>ignite(q2,P*.6,false,'fork'));};
   /* the seed of fire kindles in the hero's hand, then flies */
   taken.add(e);CF.n++;CF.pend++;const H0=new THREE.Vector3(hx,hy,hz);
   addFx(new THREE.Group(),.18,()=>{for(let i=0;i<4+L;i++)emit(1,{x:hx+(rnd()-.5)*.15,y:hy+(rnd()-.5)*.1,z:hz+(rnd()-.5)*.15,vx:(rnd()-.5)*.4,vy:.4+rnd()*.4,vz:(rnd()-.5)*.4,s:.08,s2:.01,c:L>=5?0xffe8a0:0xffd860,c2:0xc02000,a:.9,life:.3,turb:1});},()=>s6Leap(H0,e,.38,1.1,()=>ignite(e,P,false,'seed')));
   let tick=.7;
-  addFx(new THREE.Group(),Math.max(11,CFM.win+1),(f,dt)=>{CF.flare=Math.max(0,CF.flare-dt*1.2);FM.solid.uniforms.uT.value+=dt;FM.glow.uniforms.uT.value+=dt;FM.solid.uniforms.uA.value=.95;FM.glow.uniforms.uA.value=.3+.9*CF.flare;
+  addFx(new THREE.Group(),Math.max(11,CFM.win+1),(f,dt)=>{FM.solid.uniforms.uT.value+=dt;FM.glow.uniforms.uT.value+=dt;FM.solid.uniforms.uA.value=.95;FM.glow.uniforms.uA.value=.3;
     const el=f.max-f.life;if(L>=5&&!CF.inf&&el>CFM.win&&CF.ign.length>=CFM.infMin)inferno('window');
     tick-=dt;if(tick>0||CF.n>=CF.max||el>CFM.win)return;tick=.5;
     for(const [a,u] of [...lit]){if(CF.n>=CF.max)break;if(!s6Real(a)||u<time)continue;
@@ -23856,7 +23883,7 @@ function cfmCast(t,e,P,o,c){const L=c.L,hx=t.x,hy=(t.topY||1)+.05,hz=t.z,lit=new
       const sec=L>=3&&CF.sp%CFM.forkEvery===0&&CF.n+2<=CF.max?(near.find(([q,d])=>q!==best&&d<CFM.forkR*CFM.forkR)||[])[0]:null;
       if(sec)fork(a,best,sec);else send(a,best,false);fire(a);}},null,{mats,geos});}
 const CFM_OLD=castCatchFlame;
-castCatchFlame=function(t,e,P,o){const c=cfmC(o);return c&&t&&e?cfmCast(t,e,P,o,c):CFM_OLD.apply(this,arguments);};
+castCatchFlame=function(t,e,P,o){return t&&e?cfmCast(t,e,P,o,cfmC(o)):CFM_OLD.apply(this,arguments);};
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
@@ -23867,7 +23894,8 @@ const NOTES_V='masteries-1';
 const NOTES_HTML=`<h3>\u2726 Catch Flame masteries, reworked</h3><ul>
 <li><b>Kindling</b> (Mastery 1): when the seed ignites its first foe, the foe erupts in flame and spits three bright embers along curving trails at the unlit foes nearby, 25% each. <b>Backdraft</b> (Mastery 2): a foe that dies while burning sucks its flames in, then bursts in a fiery shockwave for 70%; burning fragments spiral into the unlit foes it hit and set them alight, so the fire spreads on from them.</li>
 <li><b>Forking Flames</b> (Mastery 3): every third leap of the fire splits mid-flight into two twisting streams that strike two different foes, both for the normal damage. <b>Firestorm</b> (Mastery 4): each burning foe that passes the fire on is wrapped in a twisting fire vortex, 45% to the foes around it, then it collapses in a shower of embers.</li>
-<li><b>Living Inferno</b> (Mastery 5): when the tenth foe catches fire, every burning foe flares gold and its flames tear away in streams that spiral into a towering inferno, growing with each one; it collapses into a blinding explosion and a ring of fire for 180%. If the fire stops short, it comes when the spreading ends, as long as five foes caught fire.</li>
+<li><b>Living Inferno</b> (Mastery 5): when the tenth foe catches fire, the fire on it swells into a raging blaze over glowing cracks, draws in for an instant, and erupts in a violent explosion: a billowing fireball with a rising column of smoke, a ring of fire racing out and burning debris, 180% to the foes around it. If the fire stops short, it comes when the spreading ends, as long as five foes caught fire.</li>
+<li>Every Catch Flame ignition, with or without masteries, is now a real explosion: billowing fire that flares white-hot, cools through orange and red, and frays into rising smoke, with sparks, embers and a ring of dust.</li>
 <li>Catch Flame&rsquo;s old masteries (Hotter Flame, Ember Burst, Wildfire, Ash Patch, Firestorm) are replaced. Like every scroll above Common, its masteries are for now only in developer mode.</li></ul>
 <h3>\u2726 Mastery progress in battle</h3><ul>
 <li>A new <b>mastery button</b> on the right, under the top bar, opens a live panel during a run: every building on the board and every scroll of your hero that earns mastery, with its level and how close it is to the next one.</li>
