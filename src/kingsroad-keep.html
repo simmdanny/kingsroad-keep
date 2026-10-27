@@ -23707,6 +23707,8 @@ DPMQ.cyl=()=>DPMQ._cy||(DPMQ._cy=new THREE.CylinderGeometry(1,1,1,128,1,true).tr
 const dpmR=(S,tt)=>{if(tt<S.t0)return 0;const k=Math.min(1,(tt-S.t0)/S.T);return .2+S.R*(1-Math.pow(1-k,2.2));};
 /* when the front reaches radius r */
 const dpmTAt=(S,r)=>{const u=clamp((r-.2)/S.R,0,.999);return S.t0+S.T*(1-Math.pow(1-u,1/2.2));};
+/* a new InstancedMesh draws every instance at full size until its matrices are set: start them all hidden */
+const dpmHideI=im=>{DPO.position.set(0,0,0);DPO.rotation.set(0,0,0);DPO.scale.setScalar(.0001);DPO.updateMatrix();for(let i=0;i<im.count;i++)im.setMatrixAt(i,DPO.matrix);im.instanceMatrix.needsUpdate=true;im.frustumCulled=false;return im;};
 const dpmAM=(col,op)=>new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
 const dpmSM=(col,op,map)=>new THREE.SpriteMaterial({map:map||softDiscTex(),color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false});
 const dpmNM=(col,op,map)=>new THREE.SpriteMaterial({map:map||softDiscTex(),color:col,transparent:true,opacity:op,depthWrite:false});
@@ -23846,7 +23848,7 @@ function dpmCrackMat(S,ri,M){return new THREE.ShaderMaterial({uniforms:{uA:{valu
 function dpmErupt(S,ri,dmg,i){const cx=S.cx,cz=S.cz,g0=S.g0,g=new THREE.Group();g.position.set(cx,g0,cz);scene.add(smTag(g));const SS=ri+.5,mats=[];
   const cp=dpmCrackMat(SS,ri,0),cg=dpmCrackMat(SS,ri,1);mats.push(cp,cg);dpmPlane(g,cp,SS,.03,3);dpmPlane(g,cg,SS,.035,4);
   const n=Math.max(12,Math.min(110,Math.round(Math.PI*2*ri/.15))),sm=new THREE.MeshPhongMaterial({color:0x07030c,emissive:0x3d0e8a,emissiveIntensity:.75,specular:0xb98cff,shininess:60,flatShading:true});mats.push(sm);
-  const im=new THREE.InstancedMesh(DPMQ.spike(),sm,n);im.frustumCulled=false;g.add(im);const sp=[];
+  const im=dpmHideI(new THREE.InstancedMesh(DPMQ.spike(),sm,n));g.add(im);const sp=[];
   for(let j=0;j<n;j++){const a=j/n*6.2832+(rnd()-.5)*.6/n*6.28,r=ri+(rnd()-.5)*.28,lean=.2+rnd()*.5;sp.push({a,r,lean,tw:(rnd()-.5)*.5,yaw:rnd()*6.28,h:.75+rnd()*.9,w:.8+rnd()*.5,dl:rnd()*.07});}
   /* a sharp ring of light where the line tears up */
   const rgeo=new THREE.RingGeometry(1-.035/ri,1+.035/ri,96);rgeo.rotateX(-Math.PI/2);const rm=dpmAM(DPC.L,0);mats.push(rm);const ring=new THREE.Mesh(rgeo,rm);ring.scale.setScalar(ri);ring.position.y=.06;ring.renderOrder=6;g.add(ring);
@@ -23878,9 +23880,9 @@ function dpmSunParts(mats,big){const g=new THREE.Group(),b=big||1;
   return{g,body,bm,rim,rm,disc,dm,dpiv,cor,cK,corV,cV,phs,ph,glow,gl,geos:[body.geometry,rim.geometry,disc.geometry]};}
 function dpmSunTick(P,t,dt,k){P.rm.uniforms.uA.value=.9*k;P.rm.uniforms.uT.value+=dt;P.dm.uniforms.uA.value=k;P.dm.uniforms.uT.value+=dt;P.dpiv.rotation.y+=dt*2.2;
   P.cK.opacity=.85*k;P.cK.rotation+=dt*.5;P.cV.opacity=.6*k*(.85+.15*Math.sin(t*23));P.cV.rotation-=dt*.8;P.ph.opacity=k*(.75+.25*Math.sin(t*31));P.gl.opacity=.28*k;}
-function dpmSun(S,root){if(!root)return;const orb=root.children[0];if(!orb)return;[1,2].forEach(i=>{if(orb.children[i])orb.children[i].visible=false;});const mats=[],P=dpmSunParts(mats),g=P.g;scene.add(smTag(g));dpmLog({ev:'sun'});
+function dpmSun(S,root){if(!root)return;const orb=root.children[0];if(!orb)return;[1,2].forEach(i=>{if(orb.children[i])orb.children[i].visible=false;});const mats=[],P=dpmSunParts(mats),g=P.g;g.visible=false;/* (placed on its first frame) */scene.add(smTag(g));dpmLog({ev:'sun'});
   let t=0,gone=false;const V=new THREE.Vector3();
-  addFx(g,DPM.CH+.4,(f,dt)=>{t+=dt;if(!gone&&orb.visible&&orb.parent){orb.getWorldPosition(V);g.position.copy(V);const s=Math.max(.05,orb.scale.x);g.scale.setScalar(s);const k=Math.min(1,t/.2);dpmSunTick(P,t,dt,k);
+  addFx(g,DPM.CH+.4,(f,dt)=>{t+=dt;if(!gone&&orb.visible&&orb.parent){orb.getWorldPosition(V);g.position.copy(V);g.visible=true;const s=Math.max(.05,orb.scale.x);g.scale.setScalar(s);const k=Math.min(1,t/.2);dpmSunTick(P,t,dt,k);
       let n=dt*70;while(n>0){if(n<1&&rnd()>n)break;n--;const a=rnd()*6.28,b=rnd()*1.4-.5,q=Math.cos(b),rr=.6+rnd()*.4;emit(rnd()<.5?1:0,{x:V.x+Math.cos(a)*q*rr,y:V.y+Math.sin(b)*rr,z:V.z+Math.sin(a)*q*rr,vx:-Math.cos(a)*q*rr*3+(-Math.sin(a))*1.2,vy:-Math.sin(b)*rr*3,vz:-Math.sin(a)*q*rr*3+Math.cos(a)*1.2,s:.04,s2:.005,c:rnd()<.5?DPC.P:0x14041f,c2:DPC.V,life:.3,a:.9});}
       dpmLight(V.x,V.y,V.z,.4+1.2*k*s,3);}
     else if(!gone){gone=true;/* it collapses as the pulse is released */flash(g.position.x,g.position.y,g.position.z,DPC.W,.35,.1);}
@@ -23932,7 +23934,7 @@ function dpmHorizon(S){const cx=S.cx,cz=S.cz,g0=S.g0,oy=S.oy+.15,t=S.t,CH=DPM.eh
   /* the pinprick and its streak */
   const pm=dpmSM(DPC.W,0),qm=dpmSM(DPC.P,0),xm=dpmSM(DPC.L,0,dpmRayTex());mats.push(pm,qm,xm);const pin=new THREE.Sprite(pm),streak=new THREE.Sprite(qm),prays=new THREE.Sprite(xm);pin.position.y=streak.position.y=prays.position.y=oy-g0;root.add(prays,pin,streak);
   /* loose debris lifting off the ground and spiralling in */
-  const NR=14,rkm=new THREE.MeshPhongMaterial({color:0x3a3036,emissive:0x1a0630,emissiveIntensity:.6,flatShading:true});mats.push(rkm);const rk=new THREE.InstancedMesh(DPMQ.rock(),rkm,NR);rk.frustumCulled=false;root.add(rk);
+  const NR=14,rkm=new THREE.MeshPhongMaterial({color:0x3a3036,emissive:0x1a0630,emissiveIntensity:.6,flatShading:true});mats.push(rkm);const rk=dpmHideI(new THREE.InstancedMesh(DPMQ.rock(),rkm,NR));root.add(rk);
   const RK=[];for(let i=0;i<NR;i++){const a=rnd()*6.28,r=.7+rnd()*Math.max(.6,R0-.7);RK.push({a,r,s:.035+rnd()*.05,t0:rnd()*.3,sp:(1.6+rnd()*1.4)*(rnd()<.5?1:1),rx:rnd()*6,wx:(rnd()-.5)*9});}
   /* obsidian spikes erupting where the colossal ring passes */
   const NP=Math.round(16+RM*7),spm=new THREE.MeshPhongMaterial({color:0x0a0510,emissive:0x3a0a6a,emissiveIntensity:.8,flatShading:true});mats.push(spm);const spk=new THREE.InstancedMesh(DPMQ.spike(),spm,NP);spk.frustumCulled=false;root.add(spk);
