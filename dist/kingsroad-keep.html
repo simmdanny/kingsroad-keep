@@ -6958,19 +6958,21 @@ function nsRouteNear(x,z){let best={rt:ROUTES[0],d:0},bd=1e9;for(const rt of ROU
 function castBallLightning(t,e,P,o){let rt,d;if(e&&!e.fake&&e.dist!=null){rt=e.route||ROUTES[0];d=Math.max(0,Math.min(rt.len-.6,e.dist+1.6));}else{const q=nsRouteNear(e.x,e.z);rt=q.rt;d=q.d;}
   const sup=STORM.left>0||CLOUD.left>0,R=sup?1.6:1.3,iv=sup?.4:.5,dm=P*.35*(sup?1.2:1),sc=sup?1.5:1,P0=posAt(d,rt);if(sup)comboFire('supercell',{x:P0[0],z:P0[1],y:.4,hitY:.4});
   const root=new THREE.Group();scene.add(root);const core=new THREE.Mesh(ico(.06*sc,1),NS_WHITE),g1=new THREE.Mesh(ico(.16*sc,1),haloMat(0x8fd8ff)),g2=new THREE.Mesh(ico(.28*sc,1),haloMat(0x2f78ff));root.add(core,g1,g2);
+  /* v404: the masteries' hooks (null at Mastery 0, for echoes and other casters: the old ball) */
+  const B=typeof blmStart==='function'?blmStart(o,{P,sc,root,core,g1,g2,rt,sup}):null;
   let tt=0,zt=.45,st=0,ph=0;root.position.set(P0[0],gy(P0[0],P0[1])+2.3,P0[1]);
-  addFx(root,5.4,(f,dt)=>{tt+=dt;const p=posAt(d,rt),gx=p[0],gz=p[1],g0=gy(gx,gz);
+  addFx(root,5.4+(B?B.extra:0),(f,dt)=>{tt+=dt;const p=posAt(d,rt),gx=p[0],gz=p[1],g0=gy(gx,gz);
     if(ph===0){const k=Math.min(1,tt/.35),y=2.3-(2.3-.4*sc)*k*k;root.position.set(gx,g0+y,gz);if(rnd()<.8)nsCrackle(root.position,.18*sc,0xcfe6ff);
       for(let i=0;i<2;i++)emit(1,{x:gx+(rnd()-.5)*.08,y:g0+y+.05,z:gz+(rnd()-.5)*.08,vy:.6,s:.05,s2:0,c:0xffffff,c2:0x6aa0ff,life:.25});
-      if(k>=1){ph=1;tt=0;flash(gx,g0+.3,gz,0xbfe0ff,.6*sc,.16);shockwave(gx,gz,.9*sc,0x9fc8ff,.35);sprayP(1,gx,g0+.2,gz,26,{c:0xffffff,c2:0x5a8aff,sp:2.2,up:.4,s:.05,s2:0,life:.35,g:3,drag:.6});camShake=Math.max(camShake,.04);}return;}
-    d=Math.max(0,d-.75*dt);const bob=Math.sin(tt*7)*.04+Math.sin(tt*13.7)*.02,life=Math.min(1,f.life/.35);root.position.set(gx+Math.sin(tt*9.1)*.03,g0+.38*sc+bob,gz+Math.cos(tt*8.3)*.03);
-    core.scale.setScalar((.8+rnd()*.5)*life);g1.scale.setScalar((.85+rnd()*.35)*life);g2.scale.setScalar((.9+Math.sin(tt*11)*.12+rnd()*.15)*life);
+      if(k>=1){ph=1;tt=0;if(!(B&&B.land(gx,gz,g0))){flash(gx,g0+.3,gz,0xbfe0ff,.6*sc,.16);shockwave(gx,gz,.9*sc,0x9fc8ff,.35);sprayP(1,gx,g0+.2,gz,26,{c:0xffffff,c2:0x5a8aff,sp:2.2,up:.4,s:.05,s2:0,life:.35,g:3,drag:.6});}camShake=Math.max(camShake,.04);}return;}
+    if(!(B&&B.hold))d=Math.max(0,d-.75*dt);const bob=Math.sin(tt*7)*.04+Math.sin(tt*13.7)*.02,life=Math.min(1,f.life/.35);root.position.set(gx+Math.sin(tt*9.1)*.03,g0+.38*sc+bob,gz+Math.cos(tt*8.3)*.03);
+    core.scale.setScalar((.8+rnd()*.5)*life);g1.scale.setScalar((.85+rnd()*.35)*life);g2.scale.setScalar((.9+Math.sin(tt*11)*.12+rnd()*.15)*life);if(B)B.tick(dt,f,gx,gz,g0);
     if(rnd()<.85)nsCrackle(root.position,.2*sc,rnd()<.5?0xffffff:0x9fc8ff);if(rnd()<.35)nsCrackle(root.position,.32*sc,0x6a8aff);
     if(rnd()<.5)emit(1,{x:root.position.x,y:root.position.y,z:root.position.z,vx:(rnd()-.5)*.8,vy:(rnd()-.2)*.6,vz:(rnd()-.5)*.8,s:.035,s2:0,c:0xffffff,c2:0x5a8aff,life:.3,g:2.5});
     st-=dt;if(st<=0){st=.28;nsDecal(gx,gz,.16*sc,0x101018,.28,1.6,{});}
     zt-=dt;if(zt<=0&&f.life>.3){zt=iv;const tg=enemies.filter(q=>!q.dead&&(q.x-gx)**2+(q.z-gz)**2<R*R).sort((a,b)=>((a.x-gx)**2+(a.z-gz)**2)-((b.x-gx)**2+(b.z-gz)**2)).slice(0,1);
       tg.forEach(q=>{const to=tpos2(q);nsArc(root.position.clone(),new THREE.Vector3(to.x,to.y,to.z),{w:.9*sc,br:2,life:.15,disp:.3});hurt(q,dm,'magic',o);if(!q.dead)q.zapT=4;sprayP(1,to.x,to.y,to.z,8,{c:0xffffff,c2:0x6a9aff,sp:1.4,s:.04,s2:0,life:.25,g:3});});}},
-    ()=>{const p=root.position;flash(p.x,p.y,p.z,0xdff0ff,.5*sc,.15);sprayP(1,p.x,p.y,p.z,30,{c:0xffffff,c2:0x5a8aff,sp:2.4,s:.05,s2:0,life:.4,g:2.5,drag:.6});for(let i=0;i<4;i++)nsCrackle(p,.4*sc,0xbfe0ff);emitS(0,{x:p.x,y:p.y,z:p.z,s:.2,s2:.6,c:0x5a6070,c2:0x3a3e48,a:.3,life:1.2,lift:.2});});}
+    ()=>{if(B&&B.noPop)return;const p=root.position;flash(p.x,p.y,p.z,0xdff0ff,.5*sc,.15);sprayP(1,p.x,p.y,p.z,30,{c:0xffffff,c2:0x5a8aff,sp:2.4,s:.05,s2:0,life:.4,g:2.5,drag:.6});for(let i=0;i<4;i++)nsCrackle(p,.4*sc,0xbfe0ff);emitS(0,{x:p.x,y:p.y,z:p.z,s:.2,s2:.6,c:0x5a6070,c2:0x3a3e48,a:.3,life:1.2,lift:.2});});}
 
 /* ---- Sunflare (uncommon, light): a small writhing sun plunges into the ground and leaves it sunlit ---- */
 function castSunflare(t,c,P,o){const cx=c.x,cz=c.z,g0=gy(cx,cz),R=1.4,H0=1.75,root=new THREE.Group();root.position.set(cx,g0+H0,cz);scene.add(root);const mats=[],geos=[];
@@ -7025,7 +7027,7 @@ COMBOS.push(
   {id:'conductor',n:'Conductor',col:'#b8d0ff',ing:[{st:'Held'},{e:'lightning'}],d:'Lightning runs through whatever holds a foe and arcs into up to 4 foes nearby for 50% of the hit.'},
   {id:'flashpoint',n:'Flashpoint',col:'#ffe08a',ing:[{st:'Burning'},{e:'light'}],d:'Light on a burning foe makes the flames flare: all of the remaining burn damage lands at once at 150%, and half of it splashes onto foes next to it.'},
   {id:'frostbite',n:'Frostbite',col:'#a0e0d0',ing:[{st:'Withered'},{st:'Chilled'}],d:'Wither eats 50% faster into a chilled foe.'},
-  {id:'supercell',n:'Supercell',col:'#cfe0ff',ing:[{s:'balllightning'},{s:'stormcloud',or:['stormcaller']}],d:'Ball Lightning dropped while a Lightning Cloud or Stormcaller is raging grows huge: it reaches further, lashes out twice as often and hits 30% harder.'},
+  {id:'supercell',n:'Supercell',col:'#cfe0ff',ing:[{s:'balllightning'},{s:'stormcloud',or:['stormcaller']}],d:'Ball Lightning dropped while a Lightning Cloud or Stormcaller is raging grows huge: it reaches further, lashes out more often (every 0.4s) and hits 20% harder.'},
   {id:'sunfire',n:'Sunfire',col:'#ffc040',ing:[{s:'sunflare'},{s:'cinders'}],d:'Cinders smouldering on sunlit ground burn twice as hot.'});
 COMBOS.forEach(c=>COMBO_BY[c.id]=c);
 
@@ -7064,7 +7066,7 @@ Object.assign(SIG,{
 Object.assign(SPELL_FX,{frostshard:'160% to one foe, chills it, 30% slow for 1.5s',staticspark:'100% to the first foe, then hops to 3 more (each hop 80% of the last). Leaves every foe it hits Charged for 4s',
   cinders:'6 cinders, 35% where each one lands. Each smoulders for 3.5s and sets ground foes walking through it on fire (30% per second)',
   rimebloom:'220% in a burst (radius 1.3), chills, 45% slow for 3s. The frozen ground slows ground foes crossing it by 25% for 4s',
-  balllightning:'Rolls back along the road for 6s and lashes up to 2 foes in reach every 0.4s for 40% each. Leaves foes Charged',
+  balllightning:'Rolls back along the road for about 5s and zaps the nearest foe in reach (1.3 tiles) every 0.5s for 35%. Leaves foes Charged',
   sunflare:'240% in a flash (radius 1.4). The ground stays sunlit for 4s: foes standing on it take 20% more damage from everything'});
 /* ================= Scrolls batch 2: Ice Tomb, Magma Geyser, Murder of Crows (rare), Rite of the Phoenix, Frostfall Comet, Thunder Wyrm (epic) =================
    Builds on batch 1 helpers (nsDecal, nsSplinters, nsArc, nsCrackle, NS_ICE, tpos2, NSP). New synergies: Ashen Flock, Absolute Zero. */
@@ -14130,6 +14132,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Ball Lightning masteries, reworked',d:'28 Oct',v:'v404',li:[
+    'Thunderstrike: the ball slams onto the road, a ring of lightning races out, 60%. Static Wake: three charged patches on its trail strike the first foe near them, 45%.',
+    'Storm Satellites: three lightning orbs circle it and dart at foes, 45%. Rolling Thunder: halfway it stops, charges for 0.8s and lets three rings of lightning go, 50% each.',
+    'Tempest Incarnate: at the end it becomes a little storm: bolts strike the 6 nearest foes for 100%, Charged ones again for 40%, then it collapses in a flash.',
+    'Fix: Ball Lightning\u2019s stats line and the Supercell text now give its real numbers (since the v389 nerf).']},
   {t:'Bramble Patch masteries, reworked',d:'27 Oct',v:'v402',li:[
     'Barbed Thicket: every second thorny canes whip down on the foes in the patch, 35%. Snaring Vines: after 1s in it a foe is bound for 0.6s (bosses take 40% instead).',
     'Thornheart: a great crimson flower blooms every 2s and fires thorns at the foes in the brambles, 25%. Wall of Thorns: halfway, a thorn wall holds the road for 1s, then collapses for 100%.',
@@ -24128,6 +24135,274 @@ castBramble=function(t,c,P,o){const C=bpmC(o),x=c&&c.x,z=c&&c.z,r=BPM_CAST0.appl
   if(L>=4)mxLater(BPM.wallT,()=>{if(state==='playing')bpmWall(S,P*BPM.wall*a[3],P*BPM.wallBoss*a[3]);});
   if(L>=5)mxLater(BPM.ruinT,()=>{if(state==='playing')bpmRuin(S,P*BPM.ruin*a[4],P*BPM.ruinThorn*a[4]);});
   return r;};
+/* ================= Ball Lightning's masteries, as Simon designed them (v404) ================= */
+/* Simon (abridged; the "why it works" notes left out): "Mastery 1 - Thunderstrike: When Ball Lightning lands on the road, a burst of
+   electricity erupts from the impact point, dealing 60% damage to nearby enemies. Visual: the ball slams down, sending a bright blue-white ring
+   racing along the ground; thin lightning forks briefly crawl across the road before fading. / Mastery 2 - Static Wake: As the ball rolls, it
+   leaves behind three charged patches of ground along its trail. Each patch remains for 2 seconds and discharges when an enemy comes near,
+   dealing 45% damage. Visual: glowing blue scorch marks; each crackles increasingly violently as an enemy approaches, then erupts in a small
+   branching lightning strike. / Mastery 3 - Storm Satellites: Three small lightning orbs begin orbiting Ball Lightning. Every second, one
+   satellite breaks formation, darts toward a nearby enemy, and detonates for 45% damage before reappearing beside the main ball. Visual: three
+   miniature electric spheres circle the core at different speeds; one suddenly accelerates away, leaving a zigzagging lightning trail before
+   bursting against its target. / Mastery 4 - Rolling Thunder: Halfway through its lifetime, Ball Lightning halts its movement and charges a
+   massive electrical discharge. After 0.8 seconds, it releases three expanding rings of lightning, each dealing 50% damage to enemies they pass
+   through, then resumes rolling. Visual: the ball stops abruptly; lightning spirals inward as the core becomes blindingly bright, then three
+   rings erupt outward in rapid succession, with a deep thunderclap and branching arcs. / Mastery 5 - Tempest Incarnate: As Ball Lightning
+   reaches the end of its life, its outer shell fractures and unfolds into a miniature living storm. The core rises above the road while
+   rotating rings of lightning form around it, then unleashes a devastating electrical cascade: lightning strikes up to six nearby enemies,
+   dealing 100% damage to each; enemies already Charged are struck by an additional bolt for 40% damage; the summon then collapses inward in a
+   brilliant flash, leaving branching electrical scars across the road. Visual: the ball stops and trembles; its surface splits into glowing
+   fragments that orbit the core; several concentric rings form, spinning at different angles; bolts rain down from the floating storm onto
+   nearby enemies; everything contracts into a tiny white point before bursting into a final blue flash." And: no low-effort effects, no flat
+   2D explosions.
+   Percentages are of the scroll's power (a zap is 35%). Mastery 0 is the old cast. The ball keeps its state inside castBallLightning, so the
+   cast calls blmStart once the ball is built and gets B (null at Mastery 0, for echoes and other casters, so it is exactly the old ball):
+   B.land on landing (true: the masteries draw the landing instead of the old flash and flat ring), B.hold stops it rolling, B.tick every frame
+   after the ball is drawn (it may move, shake, lift or hide it), B.noPop skips the old pop, B.extra lengthens its life (Mastery 5).
+   The looks are 3D: lightning is soft shader ribbons (white core, blue glow) built along fractal paths with branches, struck out by a leader,
+   flickering and re-struck; bursts are fresnel shells (an expanding glowing bubble) with a soft glow and real light on the road (the shared
+   FXL, through blmLight); the orbs are plasma spheres with crawling veins; the scars are glowing strips lying on the road that cool down.
+   - M1 Thunderstrike (on landing): the ball squashes on the road, a jagged ring of lightning races out along the ground, seven forks crawl
+     over the road, a shell bursts: 60% to every foe within BLM.landR (flyers too; the ball lands 1.6 ahead of its foe, so 1.9 reaches it),
+     a little bolt to each.
+   - M2 Static Wake: at 0.8, 1.8 and 2.8s after landing a charged patch (a glowing electric scorch) is left where the ball is; for 2s it
+     crackles, faster and fiercer the nearer a foe is, and the first foe within BLM.wakeTrig sets it off: a branching bolt from the sky and arcs
+     to every foe within BLM.wakeR, 45% each.
+   - M3 Storm Satellites: three plasma orbs circle the ball on tilted orbits at different speeds; every second from 1s after landing one darts
+     at a foe within BLM.satR (preferring one not hit in the last 1.5s), trailing zigzag lightning, and bursts on it for 45%, then forms again
+     beside the ball.
+   - M4 Rolling Thunder: halfway through its life (2.7s) the ball stops; for 0.8s lightning spirals into it and it grows blinding, then three
+     rings of lightning burst out 0.12s apart with a thunderclap, arcing down to the road: each 50% to every foe it passes (out to BLM.ringR,
+     flyers too); then it rolls on.
+   - M5 Tempest Incarnate (3.75s after landing): it stops and trembles, its shell splits into glowing shards that circle the core, the core
+     rises over the road inside three tilted spinning rings of lightning and a swirl of storm cloud; bolts rain on the 6 nearest foes within
+     BLM.tmpR (100% each, flyers too) and a second bolt hits each one that was already Charged (40%); everything contracts to a point and
+     bursts, leaving glowing scars on the road. The ball's life is 0.5s longer, so it ends with the burst instead of the old pop.
+   BLM.dbg (an array) logs the events for the tests. */
+const BLM={dbg:null,pool:{},k:null,
+  land:.6,landR:1.9,/* the ball lands 1.6 ahead of the foe it was cast at: the burst reaches it */
+  wake:.45,wakeT:2,wakeTrig:.6,wakeR:.8,wakeAt:[.8,1.8,2.8],
+  sat:.45,satR:2.3,satEvery:1,
+  ring:.5,ringAt:2.35,ringCharge:.8,ringGap:.12,ringR:2.4,
+  tmp:1,tmpX:.4,tmpN:6,tmpR:2.6,tmpAt:3.75,extra:.5};
+const blmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='balllightning'?c:null;};
+const blmLog=d=>{if(BLM.dbg)BLM.dbg.push(d);};
+SM_D.balllightning=[
+  {n:'Thunderstrike',d:'The ball slams onto the road in a burst of electricity: a ring of lightning races out and forks crawl over the road, {60}% to the foes nearby.'},
+  {n:'Static Wake',d:'As it rolls it leaves three charged patches on the road. Each lasts 2s and crackles harder as a foe comes near, then strikes it with branching lightning: {45}% to the foes there.'},
+  {n:'Storm Satellites',d:'Three small lightning orbs circle the ball. Every second one darts at a foe nearby, trailing zigzag lightning, and bursts for {45}%, then forms again beside the ball.'},
+  {n:'Rolling Thunder',d:'Halfway through, the ball stops and gathers its charge for 0.8s, then three rings of lightning burst out with a thunderclap: {50}% each to the foes they pass. Then it rolls on.'},
+  {n:'Tempest Incarnate',d:'At the end its shell breaks into a little living storm: the core rises in spinning rings of lightning and bolts strike up to 6 foes nearby for {100}% each, Charged foes a second time for {40}%. Then it collapses in a blinding flash.'}];
+SMF.balllightning={m:.4};
+SMA.balllightning=[1,1,1,1,1];
+/* power with Simon's numbers (tests/sm-ladder.js, 3 runs): 3.10 / 4.77 / 5.48 / 11.08 / 13.21 against the Uncommon ladder 1.09 / 1.23 / 1.35 / 1.52 / 1.74.
+   The old ball zaps one foe at a time (35% every 0.5s); every mastery but the satellites hits a whole area, so on a crowd they multiply its
+   damage many times (Rolling Thunder alone is 150% to everything within 2.4). Simon was told; his numbers are kept (SM.free) until he decides. */
+SMG.balllightning=[1,1,1,1,1];
+SM.free=SM.free||{};SM.free.balllightning='Simon'+String.fromCharCode(8217)+'s own numbers for Ball Lightning';
+
+/* ---- the kit: shaders, shared geometry, a pool of materials (pooled, never disposed: re-making them would recompile the shaders) ---- */
+const BLM_VS='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}';
+/* lightning: a soft ribbon, white core and blue glow across it (v), cut off past uRev along it (u) so a leader can strike it out */
+const BLM_BOLT='uniform vec3 uCore,uGlow;uniform float uOp,uRev;varying vec2 vUv;void main(){if(vUv.x>uRev)discard;float v=abs(vUv.y-.5)*2.;'+
+  'float core=exp(-v*v*30.),glow=exp(-v*3.);vec3 c=mix(uGlow,uCore,clamp(core*1.3,0.,1.));gl_FragColor=vec4(c,clamp((core*1.25+glow*.65)*uOp,0.,1.));}';
+const BLM_NVS='varying vec3 vN,vV,vP;void main(){vP=position;vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}';
+/* a glowing bubble: bright at its rim, clear in the middle */
+const BLM_SHELL='uniform vec3 uCol;uniform float uOp,uPow;varying vec3 vN,vV,vP;void main(){float f=pow(1.-abs(dot(normalize(vN),normalize(vV))),uPow);'+
+  'gl_FragColor=vec4(mix(uCol,vec3(1.),f*.45),clamp(f*uOp,0.,1.));}';
+/* a plasma sphere: a glowing rim and bright veins crawling over it */
+const BLM_ORB='uniform vec3 uCol;uniform float uOp,uT;varying vec3 vN,vV,vP;float w(vec3 p){return sin(p.x*7.+uT*9.)*sin(p.y*6.3-uT*7.)*sin(p.z*7.7+uT*11.)+.5*sin(p.x*13.-uT*6.)*sin(p.z*12.+uT*8.);}'+
+  'void main(){vec3 p=normalize(vP);float f=pow(1.-abs(dot(normalize(vN),normalize(vV))),2.);float vein=1.-smoothstep(0.,.2,abs(w(p*1.3)));'+
+  'gl_FragColor=vec4(mix(uCol,vec3(1.),clamp(vein*.75+f*.25,0.,1.)),clamp((f*.9+vein*.9+.12)*uOp,0.,1.));}';
+/* a charged patch: veins of electricity crawling over a soft blue scorch, fiercer with uI */
+const BLM_PATCH='uniform float uT,uI,uOp;varying vec2 vUv;float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}'+
+  'float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}'+
+  'void main(){vec2 p=vUv-.5;float r=length(p)*2.;if(r>1.)discard;float a=atan(p.y,p.x);float n=vn(vec2(a*2.5+uT*(1.+3.*uI),r*5.-uT*2.))*.6+vn(vec2(a*6.+uT*2.,r*11.))*.4;'+
+  'float vein=1.-smoothstep(0.,.05+.05*uI,abs(n-.5));float fall=1.-smoothstep(.15,1.,r);float I=(vein*(.55+1.2*uI)+fall*(.25+.3*uI))*fall*uOp;'+
+  'gl_FragColor=vec4(mix(vec3(.3,.6,1.),vec3(1.),clamp(vein*.6+uI*.3,0.,1.)),clamp(I,0.,1.));}';
+const BLM_MK={
+  bolt:()=>new THREE.ShaderMaterial({uniforms:{uCore:{value:new THREE.Color(0xffffff)},uGlow:{value:new THREE.Color(0x6aa8ff)},uOp:{value:1},uRev:{value:1.001}},vertexShader:BLM_VS,fragmentShader:BLM_BOLT,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}),
+  shell:()=>new THREE.ShaderMaterial({uniforms:{uCol:{value:new THREE.Color(0x8ac4ff)},uOp:{value:1},uPow:{value:2.2}},vertexShader:BLM_NVS,fragmentShader:BLM_SHELL,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}),
+  orb:()=>new THREE.ShaderMaterial({uniforms:{uCol:{value:new THREE.Color(0x7ab8ff)},uOp:{value:1},uT:{value:rnd()*9}},vertexShader:BLM_NVS,fragmentShader:BLM_ORB,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}),
+  patch:()=>new THREE.ShaderMaterial({uniforms:{uT:{value:0},uI:{value:0},uOp:{value:0}},vertexShader:BLM_VS,fragmentShader:BLM_PATCH,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}),
+  glow:()=>new THREE.SpriteMaterial({map:jvTex('soft'),color:0x8ac4ff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false}),
+  rglow:()=>new THREE.MeshBasicMaterial({map:jvTex('ring'),color:0x6aa8ff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false}),
+  frag:()=>new THREE.MeshBasicMaterial({color:0xcfe6ff,transparent:true,opacity:1})};
+function blmMat(kind){const P=BLM.pool[kind]||(BLM.pool[kind]=[]),m=P.pop()||(typeof asOffRun==='function'?asOffRun(BLM_MK[kind]):BLM_MK[kind]());m.userData.blmK=kind;return m;}
+function blmPut(m){if(m&&m.userData&&m.userData.blmK&&BLM.pool[m.userData.blmK])BLM.pool[m.userData.blmK].push(m);}
+function BLM_K(){if(BLM.k)return BLM.k;const plane=new THREE.PlaneGeometry(1,1);plane.rotateX(-Math.PI/2);return BLM.k={plane,sphere:new THREE.IcosahedronGeometry(1,3),shard:new THREE.IcosahedronGeometry(1,0)};}
+/* the shared effects light: each effect asks every frame, the brightest wins (the same manager as Soul Lantern's, in blue-white) */
+const BLML={on:false,I:0,x:0,y:0,z:0,d:4};
+function blmLight(x,y,z,I,d){if(!(I>0))return;if(I>BLML.I){BLML.I=I;BLML.x=x;BLML.y=y;BLML.z=z;BLML.d=d;}
+  if(BLML.on&&fx.indexOf(BLML.e)>=0)return;BLML.on=true;let idle=0;
+  BLML.e=addFx(new THREE.Group(),1e4,f=>{if(BLML.I>0){idle=0;if(typeof jvLight==='function')jvLight(BLML.x,BLML.y,BLML.z,0xaad6ff,BLML.I,BLML.d);BLML.I=0;}
+    else if(++idle>2||f.life<1){f.life=0;BLML.on=false;BLML.I=0;if(typeof jvLightOff==='function')jvLightOff();}});}
+const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
+/* strips along polylines, two vertices a point: flat ones lie on the road, the others are turned to the camera; u runs along, v across */
+function blmStrips(L,flat){const pos=[],uv=[],idx=[],d=new THREE.Vector3(),v=new THREE.Vector3(),s=new THREE.Vector3(),cp=camera.position;let o=0;
+  for(const S of L){const P=S.P,n=P.length;for(let i=0;i<n;i++){const a=P[Math.max(0,i-1)],b=P[Math.min(n-1,i+1)];d.subVectors(b,a);if(d.lengthSq()<1e-12)d.set(1,0,0);d.normalize();
+      if(flat)s.set(-d.z,0,d.x);else{v.subVectors(cp,P[i]).normalize();s.crossVectors(d,v);}if(s.lengthSq()<1e-12)s.set(0,1,0);s.normalize();
+      const k=n>1?i/(n-1):0,w=S.w0+(S.w1-S.w0)*k,u=S.u0+(S.u1-S.u0)*k;pos.push(P[i].x+s.x*w,P[i].y+s.y*w,P[i].z+s.z*w,P[i].x-s.x*w,P[i].y-s.y*w,P[i].z-s.z*w);uv.push(u,0,u,1);
+      if(i)idx.push(o+2*i-2,o+2*i-1,o+2*i,o+2*i-1,o+2*i+1,o+2*i);}o+=2*n;}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);return g;}
+/* a bolt's paths: the main one (fractal) and its branches, each with where along the bolt it starts (so the leader reaches it in turn) */
+function blmPath(A,B,disp,br,flat){const P=vFract(A,B,disp,5),L=[{P,w0:1,w1:.55,u0:0,u1:1}];
+  if(br){for(const q of vBranches(P,A.distanceTo(B),br,3)){let j=0,bd=1e9;for(let i=0;i<P.length;i++){const dd=P[i].distanceToSquared(q[0]);if(dd<bd){bd=dd;j=i;}}const u0=j/(P.length-1);L.push({P:q,w0:.55,w1:.18,u0,u1:Math.min(1,u0+.3)});}}
+  if(flat)for(const s of L)for(const p of s.P)p.y=A.y;return L;}
+/* a lightning bolt from A to B: the leader strikes it out in o.rev, it is struck again o.flick times with a new path, and fades over o.life */
+function blmBolt(A,B,o){o=o||{};const m=blmMat('bolt'),U=m.uniforms;U.uGlow.value.setHex(o.col||0x6aa8ff);U.uOp.value=1;const W=o.w||.05,disp=o.disp==null?A.distanceTo(B)*.28:o.disp;
+  const mk=()=>{const L=blmPath(A,B,disp,o.br||0,o.flat);for(const s of L){s.w0*=W;s.w1*=W;}return blmStrips(L,o.flat);};
+  let geo=mk();const me=new THREE.Mesh(geo,m);me.frustumCulled=false;me.renderOrder=8;scene.add(smTag(me));const life=o.life||.28,rev=o.rev==null?.05:o.rev,fl=o.flick||0;let t=0,nf=0;U.uRev.value=rev>0?0:1.001;
+  addFx(me,life,(f,dt)=>{t+=dt;U.uRev.value=rev>0?Math.min(1.001,t/rev):1.001;if(nf<fl&&t>rev+.055*(nf+1)){nf++;geo.dispose();geo=mk();me.geometry=geo;}
+    U.uOp.value=(t<rev+.03?1:Math.pow(Math.max(0,f.life/life),.6))*(rnd()<.14?.4:1);if(f.life<=0){geo.dispose();blmPut(m);}});
+  return me;}
+/* a jagged loop of radius r round c (q: a tilt), its last point on its first */
+function blmLoop(c,r,n,jit,yj,q){const P=[];for(let i=0;i<n;i++){const a=i/n*6.2832,rr=r*(1+(rnd()-.5)*jit),p=V3(Math.cos(a)*rr,(rnd()-.5)*yj,Math.sin(a)*rr);if(q)p.applyQuaternion(q);P.push(p.add(c));}P.push(P[0].clone());return P;}
+/* a soft glow that always faces the camera */
+function blmGlow(col,size,op){const m=blmMat('glow');m.color.setHex(col);m.opacity=op;const s=new THREE.Sprite(m);s.scale.setScalar(size);s.renderOrder=9;return s;}
+/* a burst: a glowing bubble swelling out to R, a soft glow and light on the road */
+function blmBurst(x,y,z,R,dur,col){const m=blmMat('shell'),U=m.uniforms;U.uCol.value.setHex(col||0x8ac4ff);U.uPow.value=2.2;const me=new THREE.Mesh(BLM_K().sphere,m),g=new THREE.Group();g.position.set(x,y,z);g.add(me);
+  const gl=blmGlow(col||0x8ac4ff,R*.7,.45);g.add(gl);scene.add(smTag(g));let t=0;
+  addFx(g,dur,(f,dt)=>{t+=dt;const k=Math.min(1,t/dur),e=1-Math.pow(1-k,3);me.scale.setScalar(Math.max(.01,R*e));U.uOp.value=1.05*(1-k);U.uPow.value=1.8+2.6*k;gl.material.opacity=.45*(1-k)*(1-k);gl.scale.setScalar(R*(.7+.6*e));
+    blmLight(x,y+.3,z,Math.min(2.6,1.6*R)*(1-k),2+R*1.4);if(f.life<=0){blmPut(m);blmPut(gl.material);}});}
+const blmSparks=(x,y,z,n,sp)=>{sprayP(1,x,y,z,n,{c:0xffffff,c2:0x5a9aff,sp:sp||2,up:.6,s:.04,s2:0,life:.45,g:4,drag:.5});sprayP(1,x,y,z,Math.ceil(n/3),{c:0xcfe6ff,c2:0x3a6aff,sp:(sp||2)*1.6,up:.3,s:.025,s2:0,life:.3,g:3});};
+/* glowing scars lying on the road, cooling from white-blue to nothing, over a scorch */
+function blmScars(x,z,len,n,life){const y=gy(x,z)+.02;nsDecal(x,z,len*.45,0x0c0f16,.5,life+1,{fout:1});
+  for(let i=0;i<n;i++){const a=i/n*6.28+rnd()*.6,l=len*(.55+rnd()*.5);blmBolt(V3(x+Math.cos(a)*.12,y,z+Math.sin(a)*.12),V3(x+Math.cos(a)*l,y,z+Math.sin(a)*l),{flat:true,w:.03,br:2,rev:.08,life,disp:l*.32,col:0x5a8aff});}}
+
+/* ---- M1 Thunderstrike: the landing ---- */
+function blmThunderstrike(B,x,z,y0){const R=BLM.landR,c=V3(x,y0+.05,z);blmLog({ev:'land'});B.squash=.2;
+  blmBurst(x,y0+.3*B.sc,z,.95,.3,0x9fd0ff);blmSparks(x,y0+.15,z,40,2.6);sprayP(0,x,y0+.05,z,14,{c:0x8a8a90,c2:0x4a4a50,sp:1.6,up:.6,s:.06,s2:.14,a:.45,life:.6,g:2,drag:1.2});
+  camShake=Math.max(camShake,.09);if(typeof sfxBoom==='function')sfxBoom(.04,true);nsDecal(x,z,.8,0x0e1118,.5,2.6,{fout:1});
+  /* the ring racing out along the ground, a soft glow under it */
+  const rm=blmMat('bolt'),gm=blmMat('rglow');rm.uniforms.uGlow.value.setHex(0x8ac4ff);rm.uniforms.uRev.value=1.001;gm.color.setHex(0x6aa8ff);
+  const ring=new THREE.Mesh(new THREE.BufferGeometry(),rm);ring.frustumCulled=false;ring.renderOrder=8;scene.add(smTag(ring));const gp=new THREE.Mesh(BLM_K().plane,gm);gp.position.set(x,y0+.025,z);gp.renderOrder=6;ring.add(gp);
+  /* forks crawling over the road */
+  for(let i=0;i<7;i++){const a=i/7*6.28+rnd()*.5,l=.75+rnd()*.85;blmBolt(V3(x+Math.cos(a)*.15,y0+.03,z+Math.sin(a)*.15),V3(x+Math.cos(a)*l,y0+.03,z+Math.sin(a)*l),{flat:true,w:.032,br:2,rev:.2,life:.6,flick:1,disp:l*.3,col:0x7ab8ff});}
+  let t=0;addFx(ring,.45,(f,dt)=>{t+=dt;const k=Math.min(1,t/.32),r=.2+(R+.2)*(1-Math.pow(1-k,2));ring.geometry.dispose();
+    ring.geometry=blmStrips([{P:blmLoop(c,r,48,.14,0),w0:.065*(1-k*.5),w1:.065*(1-k*.5),u0:0,u1:1},{P:blmLoop(c,r*.94,40,.2,0),w0:.025,w1:.025,u0:0,u1:1}],true);
+    rm.uniforms.uOp.value=Math.max(0,1-k*k);gp.scale.set(r*2.6,1,r*2.6);gm.opacity=.9*(1-k);if(f.life<=0){ring.geometry.dispose();blmPut(rm);blmPut(gm);}});
+  if(state!=='playing')return;
+  for(const e of enemies){if(e.dead||e.fake||(e.x-x)**2+(e.z-z)**2>R*R)continue;hurt(e,B.P*BLM.land*B.a[0],'magic',B.o);blmLog({ev:'strike',e});const p=tpos2(e);blmBolt(c,V3(p.x,p.y,p.z),{w:.035,br:1,life:.24,flick:1});}}
+
+/* ---- M2 Static Wake: a charged patch on the road that strikes the first foe to come near ---- */
+function blmPatch(B,x,z,y0,dmg){const g=new THREE.Group();g.position.set(x,y0+.022,z);scene.add(smTag(g));const pm=blmMat('patch'),U=pm.uniforms;U.uOp.value=0;U.uI.value=0;U.uT.value=rnd()*9;
+  const pl=new THREE.Mesh(BLM_K().plane,pm);pl.scale.set(1.25,1,1.25);pl.renderOrder=6;g.add(pl);nsDecal(x,z,.42,0x0c1018,.55,BLM.wakeT+.8,{fout:.6});
+  const T=BLM.wakeT;let t=0,fired=false,ft=0,ct=0;blmLog({ev:'patch',x,z});
+  addFx(g,T+.6,(f,dt)=>{t+=dt;U.uT.value+=dt;let near=9;for(const e of enemies){if(e.dead||e.fake)continue;const d=Math.hypot(e.x-x,e.z-z);if(d<near)near=d;}
+    const prox=fired?0:clamp(1-(near-BLM.wakeTrig)/1.6,0,1),fade=fired?Math.max(0,1-(t-ft)/.45):t>T?Math.max(0,1-(t-T)/.5):1;U.uI.value=prox+(fired?Math.max(0,1-(t-ft)/.2)*1.5:0);U.uOp.value=Math.min(1,t/.2)*fade;
+    /* it crackles, faster and fiercer as a foe comes */
+    ct-=dt;if(!fired&&t<T&&ct<=0){ct=.3-.24*prox;const a=rnd()*6.28,b=a+1.4+rnd()*2.2,r1=.08+rnd()*.24,r2=.08+rnd()*.3;
+      blmBolt(V3(x+Math.cos(a)*r1,y0+.04,z+Math.sin(a)*r1),V3(x+Math.cos(b)*r2,y0+.04+prox*.3*rnd(),z+Math.sin(b)*r2),{w:.016+.02*prox,life:.12,rev:.02,disp:.1+.08*prox,col:0x7ab8ff});
+      if(prox>.4&&rnd()<prox)emit(1,{x:x+(rnd()-.5)*.4,y:y0+.06,z:z+(rnd()-.5)*.4,vx:(rnd()-.5)*.5,vy:.5+rnd()*.6,vz:(rnd()-.5)*.5,s:.035,s2:0,c:0xffffff,c2:0x5a9aff,life:.25,g:2});}
+    if(fired&&t-ft<.3)blmLight(x,y0+.5,z,1.8*(1-(t-ft)/.3),3);
+    if(!fired&&t<T&&near<BLM.wakeTrig&&state==='playing'){fired=true;ft=t;const c=V3(x,y0+.05,z);
+      blmBolt(V3(x+(rnd()-.5)*.4,y0+2.6,z+(rnd()-.5)*.4),c,{w:.075,br:3,life:.34,flick:2,rev:.04});blmBurst(x,y0+.2,z,.6,.24,0x9fd0ff);blmSparks(x,y0+.1,z,26,2.2);camShake=Math.max(camShake,.05);
+      const L=enemies.filter(e=>!e.dead&&!e.fake&&(e.x-x)**2+(e.z-z)**2<BLM.wakeR*BLM.wakeR);blmLog({ev:'discharge',n:L.length});
+      for(const e of L){hurt(e,dmg,'magic',B.o);blmLog({ev:'wakehit',e});const p=tpos2(e);blmBolt(c,V3(p.x,p.y,p.z),{w:.042,br:2,life:.26,flick:1});}}
+    if(f.life<=0)blmPut(pm);});}
+
+/* ---- M3 Storm Satellites: three plasma orbs circling the ball, darting at foes ---- */
+function blmSats(B,dmg){const K=BLM_K(),g=new THREE.Group();scene.add(smTag(g));const S=[],sc=B.sc,last=new Map();
+  for(let i=0;i<3;i++){const m=blmMat('orb');m.uniforms.uCol.value.setHex(0x7ab8ff);m.uniforms.uOp.value=1;const o=new THREE.Group(),orb=new THREE.Mesh(K.sphere,m),core=new THREE.Mesh(K.sphere,NS_WHITE),gl=blmGlow(0x8ac4ff,.46*sc,.8);
+    orb.scale.setScalar(.075*sc);core.scale.setScalar(.03*sc);o.add(orb,core,gl);o.scale.setScalar(.01);g.add(o);
+    const ax=V3(rnd()-.5,1.6,rnd()-.5).normalize(),u=new THREE.Vector3().crossVectors(ax,V3(1,0,0)).normalize(),v=new THREE.Vector3().crossVectors(ax,u);
+    const tm=blmMat('bolt');tm.uniforms.uGlow.value.setHex(0x7ab8ff);tm.uniforms.uRev.value=1.001;tm.uniforms.uOp.value=0;const trail=new THREE.Mesh(new THREE.BufferGeometry(),tm);trail.frustumCulled=false;trail.renderOrder=8;g.add(trail);
+    S.push({o,m,gl,tm,trail,u,v,r:(.36+i*.09)*sc,w:(2.5+i*.8)*(i%2?-1:1),ph:i*2.1,st:'orbit',t:0,from:V3(0,0,0),tgt:null,hist:[],grow:0});}
+  let next=BLM.satEvery,arc=0;const c=V3(0,0,0),tmp=V3(0,0,0);blmLog({ev:'sats'});
+  const pick=()=>{const L=enemies.filter(e=>!e.dead&&!e.fake&&(e.x-c.x)**2+(e.z-c.z)**2<BLM.satR*BLM.satR);if(!L.length)return null;const fresh=L.filter(e=>!((last.get(e)||-9)>time-1.5));const P=fresh.length?fresh:L;return P[Math.floor(rnd()*P.length)];};
+  addFx(g,99,(f,dt)=>{c.copy(B.root.position);const tb=B.tb,pull=B.pull==null?1:B.pull;
+    for(const s of S){s.m.uniforms.uT.value+=dt;s.t+=dt;
+      if(s.st==='orbit'){s.ph+=s.w*dt;s.grow=Math.min(1,s.grow+dt*5);const r=s.r*pull;s.o.position.copy(c).addScaledVector(s.u,Math.cos(s.ph)*r).addScaledVector(s.v,Math.sin(s.ph)*r);s.o.scale.setScalar(Math.max(.01,s.grow*(B.final?Math.max(.01,pull):1)));s.tm.uniforms.uOp.value=Math.max(0,s.tm.uniforms.uOp.value-dt*5);}
+      else if(s.st==='dart'){const k=Math.min(1,s.t/.22),q=s.tgt.dead?s.end:tpos2(s.tgt);if(!s.tgt.dead)s.end=q;tmp.set(q.x,q.y,q.z);s.o.position.lerpVectors(s.from,tmp,k*k*(3-2*k));
+        s.o.position.x+=(rnd()-.5)*.08*(1-k);s.o.position.y+=(rnd()-.5)*.08*(1-k);s.hist.push(s.o.position.clone());if(s.hist.length>9)s.hist.shift();
+        if(k>=1){s.st='gone';s.t=0;s.o.visible=false;const p=s.o.position;blmBurst(p.x,p.y,p.z,.55,.24,0x9fd0ff);blmSparks(p.x,p.y,p.z,22,2.2);
+          for(let i=0;i<3;i++){const a=rnd()*6.28;blmBolt(p.clone(),V3(p.x+Math.cos(a)*(.3+rnd()*.35),gy(p.x,p.z)+.02+rnd()*.25,p.z+Math.sin(a)*(.3+rnd()*.35)),{w:.026,br:1,life:.18,rev:.02});}
+          if(!s.tgt.dead&&!s.tgt.fake&&state==='playing'){hurt(s.tgt,dmg,'magic',B.o);blmLog({ev:'sat',e:s.tgt});}}}
+      else if(s.st==='gone'){s.tm.uniforms.uOp.value=Math.max(0,s.tm.uniforms.uOp.value-dt*4);if(s.t>=.35&&!B.final){s.st='orbit';s.t=0;s.grow=0;s.o.visible=true;emit(1,{x:c.x,y:c.y,z:c.z,vx:0,vy:.3,vz:0,s:.12,s2:0,c:0xffffff,c2:0x6aa0ff,life:.2});}}
+      /* the zigzag trail behind a darting orb */
+      if(s.st==='dart'&&s.hist.length>1){const H=[];for(let i=0;i<s.hist.length;i++){H.push(s.hist[i].clone());if(i<s.hist.length-1){const m=s.hist[i].clone().lerp(s.hist[i+1],.5);m.add(V3((rnd()-.5)*.16,(rnd()-.5)*.16,(rnd()-.5)*.16));H.push(m);}}s.trail.geometry.dispose();s.trail.geometry=blmStrips([{P:H,w0:.01,w1:.035,u0:0,u1:1}],false);s.tm.uniforms.uOp.value=1;}
+      s.gl.material.opacity=.7+.3*Math.sin(time*23+s.ph);}
+    /* arcs now and then between an orb and the core */
+    arc-=dt;if(arc<=0&&!B.gone){arc=.18+rnd()*.2;const s=S[Math.floor(rnd()*3)];if(s.st==='orbit'&&s.grow>.8)blmBolt(c.clone(),s.o.position.clone(),{w:.016,life:.1,rev:0,disp:.1});}
+    /* one darts every second */
+    if(tb>=next&&!B.final&&!B.gone){next+=BLM.satEvery;const s=S.find(q=>q.st==='orbit'&&q.grow>=1),e=s&&pick();if(s&&e){s.st='dart';s.t=0;s.tgt=e;s.end=tpos2(e);s.from.copy(s.o.position);s.hist=[s.o.position.clone()];last.set(e,time);blmLog({ev:'dart',e});}}
+    if(B.gone||B.pull===0)f.life=0;
+    if(f.life<=0)for(const s of S){blmPut(s.m);blmPut(s.gl.material);blmPut(s.tm);s.trail.geometry.dispose();}});}
+
+/* ---- M4 Rolling Thunder: the ball stops, gathers its charge and lets three rings of lightning go ---- */
+function blmRing(B,c,dmg,i){const R=BLM.ringR,rm=blmMat('bolt'),U=rm.uniforms,gm=blmMat('rglow');U.uGlow.value.setHex(0x7ab8ff);U.uRev.value=1.001;gm.color.setHex(0x5a98ff);
+  const me=new THREE.Mesh(new THREE.BufferGeometry(),rm);me.frustumCulled=false;me.renderOrder=8;scene.add(smTag(me));const y0=gy(c.x,c.z),gp=new THREE.Mesh(BLM_K().plane,gm);gp.position.set(c.x,y0+.03,c.z);gp.renderOrder=6;me.add(gp);
+  const hit=new Set();let t=0,leg=0;blmLog({ev:'ring',i});
+  if(!i){camShake=Math.max(camShake,.17);if(typeof sfxBoom==='function')sfxBoom(.09,true);blmBurst(c.x,c.y,c.z,R*.55,.36,0x9fd0ff);blmSparks(c.x,c.y,c.z,50,3);}
+  addFx(me,.62,(f,dt)=>{t+=dt;const k=Math.min(1,t/.5),r=.25+(R-.25)*(1-Math.pow(1-k,1.6)),op=k<.82?1:Math.max(0,(1-k)/.18);me.geometry.dispose();
+    me.geometry=blmStrips([{P:blmLoop(c,r,64,.06,.2),w0:.075,w1:.075,u0:0,u1:1},{P:blmLoop(c,r*.97,48,.1,.3),w0:.03,w1:.03,u0:0,u1:1}],false);U.uOp.value=op;gp.scale.set(r*2.5,1,r*2.5);gm.opacity=.75*op;
+    blmLight(c.x,c.y+.4,c.z,1.6*(1-k),R+1);
+    /* arcs from the ring down to the road */
+    leg-=dt;if(leg<=0&&k<.9){leg=.045;const a=rnd()*6.28,p=V3(c.x+Math.cos(a)*r,c.y+(rnd()-.5)*.15,c.z+Math.sin(a)*r);blmBolt(p,V3(p.x+(rnd()-.5)*.35,gy(p.x,p.z)+.02,p.z+(rnd()-.5)*.35),{w:.024,br:1,life:.13,rev:.02,disp:.16});}
+    if(state==='playing')for(const e of enemies){if(e.dead||e.fake||hit.has(e))continue;const d=Math.hypot(e.x-c.x,e.z-c.z);if(d<=r){hit.add(e);hurt(e,dmg,'magic',B.o);blmLog({ev:'ringhit',e,i});const p=tpos2(e);blmSparks(p.x,p.y,p.z,8,1.4);}}
+    if(f.life<=0){me.geometry.dispose();blmPut(rm);blmPut(gm);}});}
+
+/* ---- M5 Tempest Incarnate: the shell breaks into a little storm that rains bolts, then collapses in a flash ---- */
+function blmTempest(B,dmg,dX){const K=BLM_K(),g=new THREE.Group();scene.add(smTag(g));const sc=B.sc,c=V3(0,0,0),frags=[],rings=[],mats=[];blmLog({ev:'tempest'});
+  const halo=blmGlow(0x9fd0ff,.9*sc,.25);g.add(halo);
+  for(let i=0;i<12;i++){const m=blmMat('frag');m.color.setHex(rnd()<.5?0xcfe6ff:0x9fd0ff);mats.push(m);const me=new THREE.Mesh(K.shard,m);me.scale.set(.05,.03,.04).multiplyScalar(sc);g.add(me);
+    const ax=V3(rnd()-.5,rnd()*1.2,rnd()-.5).normalize(),u=new THREE.Vector3().crossVectors(ax,V3(0,0,1)).normalize(),v=new THREE.Vector3().crossVectors(ax,u);frags.push({me,u,v,r:(.5+rnd()*.35)*sc,w:(3+rnd()*3)*(rnd()<.5?-1:1),ph:rnd()*6.28,sp:V3(rnd()*6,rnd()*6,rnd()*6)});}
+  for(let i=0;i<3;i++){const m=blmMat('bolt');m.uniforms.uGlow.value.setHex(i===1?0x9fd0ff:0x6aa8ff);m.uniforms.uRev.value=1.001;m.uniforms.uOp.value=0;mats.push(m);const me=new THREE.Mesh(new THREE.BufferGeometry(),m);me.frustumCulled=false;me.renderOrder=8;g.add(me);
+    const tilt=new THREE.Quaternion().setFromEuler(new THREE.Euler((rnd()-.5)*1.4,rnd()*6.28,(rnd()-.5)*1.4));rings.push({me,m,tilt,r:(.55+i*.25)*sc,w:(2+i)*(i%2?-1:1),a:0});}
+  const TR=.35,UP=.75,CAS=.8,COL=1.2,BANG=1.42,END=1.75;let t=0,fx0=false,cas=null,banged=false,crack=0;
+  addFx(g,END,(f,dt)=>{t+=dt;c.copy(B.root.position);halo.position.copy(c);
+    /* it stops and trembles, crackling */
+    B.jit=t<TR?.035*(t/TR):t<BANG?.012:0;crack-=dt;if(crack<=0&&t<COL){crack=t<TR?.04:.07;const a=rnd()*6.28,b=(rnd()-.4)*2,l=(.3+rnd()*.3)*sc;blmBolt(c.clone(),V3(c.x+Math.cos(a)*Math.cos(b)*l,c.y+Math.sin(b)*l,c.z+Math.sin(a)*Math.cos(b)*l),{w:.016,life:.09,rev:0,disp:.12});}
+    /* the shell splits into shards that circle the core */
+    if(!fx0&&t>=TR){fx0=true;B.hideShell=true;blmSparks(c.x,c.y,c.z,30,1.6);if(typeof sfxBoom==='function')sfxBoom(.03,true);}
+    const open=fx0?Math.min(1,(t-TR)/.3):0,shut=t<COL?1:Math.max(0,1-(t-COL)/(BANG-COL));B.lift=1.0*sc*(1-Math.pow(1-clamp((t-TR)/.4,0,1),3));B.pull=t<COL?1:shut;
+    for(const q of frags){q.me.visible=fx0&&!banged;q.ph+=q.w*dt;const r=q.r*open*shut;q.me.position.copy(c).addScaledVector(q.u,Math.cos(q.ph)*r).addScaledVector(q.v,Math.sin(q.ph)*r);q.me.rotation.set(t*q.sp.x,t*q.sp.y,t*q.sp.z);}
+    /* the rings of lightning, spinning at different angles */
+    for(const R of rings){R.a+=R.w*dt;const ok=fx0&&!banged;R.me.visible=ok;if(!ok)continue;const q=R.tilt.clone().multiply(new THREE.Quaternion().setFromAxisAngle(V3(0,1,0),R.a));R.me.geometry.dispose();
+      R.me.geometry=blmStrips([{P:blmLoop(c,Math.max(.02,R.r*open*shut),40,.12,.05,q),w0:.03*sc,w1:.03*sc,u0:0,u1:1}],false);R.m.uniforms.uOp.value=open*(.8+.2*Math.sin(t*30+R.r*9));}
+    /* a swirl of storm cloud round it */
+    if(fx0&&t<COL&&rnd()<.8){const a=rnd()*6.28,r=(.45+rnd()*.4)*sc;emitS(0,{x:c.x+Math.cos(a)*r,y:c.y+.15+rnd()*.3,z:c.z+Math.sin(a)*r,vx:-Math.sin(a)*.6,vy:.1,vz:Math.cos(a)*.6,s:.2,s2:.5,c:0x3a4458,c2:0x161a24,a:.4,life:.8,turb:.4});}
+    halo.scale.setScalar(sc*(.8+.5*open*shut+(t>COL&&t<BANG?.6*(t-COL)/(BANG-COL):0)));halo.material.opacity=banged?Math.max(0,.4-(t-BANG)/.3):.22+.18*open;
+    if(fx0&&!banged)blmLight(c.x,c.y,c.z,.6+1*open+(t>COL?1.4*(t-COL)/(BANG-COL):0),3.5);
+    /* the cascade: bolts on the 6 nearest foes, a second one on each that was Charged */
+    if(!cas&&t>=CAS){const gx=c.x,gz=c.z,L=enemies.filter(e=>!e.dead&&!e.fake&&(e.x-gx)**2+(e.z-gz)**2<BLM.tmpR*BLM.tmpR).sort((a,b)=>((a.x-gx)**2+(a.z-gz)**2)-((b.x-gx)**2+(b.z-gz)**2)).slice(0,BLM.tmpN);
+      cas=L.map((e,i)=>({e,t:CAS+i*.07,ch:e.zapT>0,done:0}));blmLog({ev:'cascade',n:L.length});camShake=Math.max(camShake,.12);}
+    if(cas)for(const q of cas){const e=q.e;
+      if(q.done<1&&t>=q.t){q.done=1;const p=e.dead?{x:e.x,y:gy(e.x,e.z)+.3,z:e.z}:tpos2(e);blmBolt(V3(c.x+(rnd()-.5)*.2,c.y+.1,c.z+(rnd()-.5)*.2),V3(p.x,p.y,p.z),{w:.075,br:3,life:.36,flick:2,rev:.04});
+        blmBurst(p.x,p.y,p.z,.45,.22,0x9fd0ff);blmSparks(p.x,gy(p.x,p.z)+.1,p.z,16,1.8);blmScars(p.x,p.z,.55,3,1.4);if(!e.dead&&!e.fake&&state==='playing'){hurt(e,dmg,'magic',B.o);blmLog({ev:'bolt',e});}}
+      if(q.ch&&q.done<2&&t>=q.t+.14){q.done=2;const p=e.dead?{x:e.x,y:gy(e.x,e.z)+.3,z:e.z}:tpos2(e);blmBolt(V3(c.x+(rnd()-.5)*.5,c.y+.4,c.z+(rnd()-.5)*.5),V3(p.x,p.y,p.z),{w:.06,br:2,life:.3,flick:1,rev:.03,col:0x9fe8ff});
+        blmSparks(p.x,p.y,p.z,12,1.6);if(!e.dead&&!e.fake&&state==='playing'){hurt(e,dX,'magic',B.o);blmLog({ev:'bolt2',e});}}}
+    /* it all contracts to a point and bursts */
+    if(!banged&&t>=BANG){banged=true;B.hideCore=true;const y0=gy(c.x,c.z);blmBurst(c.x,c.y,c.z,1.6*sc,.4,0xbfe0ff);blmSparks(c.x,c.y,c.z,70,3.4);blmScars(c.x,c.z,1.9,8,2.6);
+      camShake=Math.max(camShake,.22);if(typeof sfxBoom==='function')sfxBoom(.1,true);blmLog({ev:'collapse'});emitS(0,{x:c.x,y:y0+.2,z:c.z,s:.4,s2:1.1,c:0x4a5468,c2:0x22262e,a:.35,life:1.4,lift:.2});}
+    if(f.life<=0){for(const m of mats)blmPut(m);blmPut(halo.material);for(const R of rings)R.me.geometry.dispose();}});}
+
+/* ---- the hook: castBallLightning calls blmStart once its ball is built ---- */
+function blmStart(o,R0){const C=blmC(o);if(!C)return null;const L=C.L,a=C.a;
+  const B={L,a,P:R0.P,o:smO(o),C,sc:R0.sc,root:R0.root,core:R0.core,g1:R0.g1,g2:R0.g2,hold:0,noPop:L>=5,extra:L>=5?BLM.extra:0,tb:-1,jit:0,lift:0,squash:0,pull:1,final:false,gone:false,hideShell:false,hideCore:false,
+    land(gx,gz,g0){B.tb=0;blmLog({ev:'cast',L});if(L>=3)blmSats(B,B.P*BLM.sat*a[2]);if(L>=1){blmThunderstrike(B,gx,gz,g0);return true;}return false;},
+    tick(dt,f,gx,gz,g0){if(B.tb<0)return;B.tb+=dt;const tb=B.tb,r=B.root;
+      /* the landing squash */
+      if(B.squash>0){B.squash=Math.max(0,B.squash-dt);const k=B.squash/.2;r.scale.set(1+.35*k,1-.4*k,1+.35*k);}else r.scale.set(1,1,1);
+      /* Static Wake: three charged patches on the trail */
+      if(L>=2)for(let i=0;i<BLM.wakeAt.length;i++){const k='w'+i;if(!B[k]&&tb>=BLM.wakeAt[i]&&!B.final){B[k]=1;if(state==='playing')blmPatch(B,gx,gz,g0,B.P*BLM.wake*a[1]);}}
+      /* Rolling Thunder: stop, gather, three rings, roll on */
+      if(L>=4){const s=BLM.ringAt,e=s+BLM.ringCharge;B.hold=tb>=s&&tb<e+.4?1:0;
+        if(tb>=s&&tb<e){const k=(tb-s)/BLM.ringCharge;B.core.scale.multiplyScalar(1+1.6*k);B.g1.scale.multiplyScalar(1+1*k);blmLight(r.position.x,r.position.y,r.position.z,.7+2*k*k,3+k);
+          if(!B.ch||tb-B.ch>.05){B.ch=tb;const a0=tb*7+rnd()*.5;for(let j=0;j<2;j++){const an=a0+j*Math.PI,rr=1.25-.4*k,p=V3(r.position.x+Math.cos(an)*rr,r.position.y+(rnd()-.3)*.5,r.position.z+Math.sin(an)*rr);
+              blmBolt(p,r.position.clone(),{w:.02+.02*k,br:1,life:.12,rev:.05,disp:.35});}}
+          for(let j=0;j<2;j++){const an=rnd()*6.28,rr=.9+rnd()*.5;emit(1,{x:r.position.x+Math.cos(an)*rr,y:r.position.y+(rnd()-.5)*.4,z:r.position.z+Math.sin(an)*rr,vx:-Math.cos(an)*rr*2.4,vy:0,vz:-Math.sin(an)*rr*2.4,s:.035,s2:0,c:0xffffff,c2:0x6aa0ff,life:.38});}
+          if(!B.chlog){B.chlog=1;blmLog({ev:'charge'});}}
+        for(let i=0;i<3;i++){const k='r'+i;if(!B[k]&&tb>=e+i*BLM.ringGap){B[k]=1;if(state==='playing')blmRing(B,r.position.clone(),B.P*BLM.ring*a[3],i);}}}
+      /* Tempest Incarnate */
+      if(L>=5&&tb>=BLM.tmpAt){if(!B.final){B.final=true;blmTempest(B,B.P*BLM.tmp*a[4],B.P*BLM.tmpX*a[4]);}B.hold=1;}
+      if(B.jit)r.position.set(r.position.x+(rnd()-.5)*2*B.jit,r.position.y+(rnd()-.5)*2*B.jit,r.position.z+(rnd()-.5)*2*B.jit);
+      if(B.lift)r.position.y+=B.lift;
+      if(B.hideShell){B.g1.scale.setScalar(.001);B.g2.scale.setScalar(.001);B.core.scale.multiplyScalar(1.15);}
+      if(B.hideCore){B.core.scale.setScalar(.001);f.life=Math.min(f.life,.02);}
+      if(f.life<=0)B.gone=true;}};
+  BLM.last=B;return B;}
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
@@ -24135,7 +24410,13 @@ if(GAME.setAside)setTimeout(()=>toast('Your open-world run now belongs to Kingsg
 requestAnimationFrame(frame);
 /* ---- What's new: shown once per notes version (per account), on the first open after an update ---- */
 const NOTES_V='masteries-1';
-const NOTES_HTML=`<h3>\u2726 Bramble Patch masteries, reworked</h3><ul>
+const NOTES_HTML=`<h3>\u2726 Ball Lightning masteries, reworked</h3><ul>
+<li><b>Thunderstrike</b> (Mastery 1): the ball slams onto the road in a burst of electricity; a jagged ring of lightning races out along the ground and forks crawl over the road: 60% to the foes nearby. <b>Static Wake</b> (Mastery 2): as it rolls it leaves three glowing charged patches on its trail; each lasts 2s, crackles harder as a foe comes near, then strikes it with branching lightning for 45%.</li>
+<li><b>Storm Satellites</b> (Mastery 3): three small plasma orbs circle the ball; every second one darts at a foe nearby, trailing zigzag lightning, and bursts on it for 45%, then forms again beside the ball. <b>Rolling Thunder</b> (Mastery 4): halfway through, the ball stops and lightning spirals into it until it is blinding; then three rings of lightning burst out one after another with a thunderclap, 50% each to the foes they pass, and it rolls on.</li>
+<li><b>Tempest Incarnate</b> (Mastery 5): at the end the ball trembles, its shell breaks into glowing shards and the core rises over the road inside spinning rings of lightning; bolts strike the 6 nearest foes for 100%, Charged ones a second time for 40%, then everything collapses to a point and bursts, leaving glowing scars on the road.</li>
+<li>Ball Lightning&rsquo;s old masteries are replaced. Like every scroll above Common, its masteries are only in developer mode for now.</li>
+<li>Fix: Ball Lightning&rsquo;s stats line and the Supercell synergy text still described it before the v389 nerf; they now say what it does (the nearest foe every 0.5s for 35%; with a storm every 0.4s and 20% harder).</li></ul>
+<h3>\u2726 Bramble Patch masteries, reworked</h3><ul>
 <li><b>Barbed Thicket</b> (Mastery 1): every second the brambles snap shut round the foes in the patch: thorny canes bend over them and whip down for 35%, in a spray of red thorns, leaves and green sparks. <b>Snaring Vines</b> (Mastery 2): a foe that has been in the patch for 1s is snared once: green vines spiral round its ankles, tighten and bind it for 0.6s, then snap into leaves. A boss is not held; the vines strain round its legs for 40%.</li>
 <li><b>Thornheart</b> (Mastery 3): a closed crimson bud on a thorny stem rises in the middle of the patch; every 2s it swells, unfurls and fires a volley of needles at the foes in the brambles for 25%, then closes. <b>Wall of Thorns</b> (Mastery 4): halfway through, the brambles surge into a wall of thorns studded with roses across the road; for 1s no foe gets past it, then it bursts apart into the patch for 100%. Bosses push through it and are cut for 40%.</li>
 <li><b>Garden of Ruin</b> (Mastery 5): as the patch ends the ground splits, thick roots rise and the thicket folds into a colossal carnivorous flower that snaps shut on everything in it for 180%. It pulses green, then bursts in a storm of petals and leaves, a thorn flying at each foe nearby for 35%, and leaves a dark green stain on the road.</li>
