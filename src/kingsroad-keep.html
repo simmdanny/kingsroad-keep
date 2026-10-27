@@ -28,6 +28,13 @@ svg.ic{width:1em;height:1em;vertical-align:-.12em;fill:currentColor}
   padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 10px;
   background:linear-gradient(#140e09e6,#140e0900);z-index:5;pointer-events:none}
 #hud > *{pointer-events:auto}
+/* v397: narrow screens. At full size the bar needs about 540px with the camera button and late-game numbers, so on phones the buttons were
+   squeezed to 17px and the menu button pushed off screen. Three tighter tiers; the buttons never shrink, the wave reads "W 188". */
+@media (max-width:560px){#hud{gap:3px;padding-left:5px;padding-right:5px}#hud .stat{flex:none;font-size:13px;padding:3px 5px;gap:3px}#hud .hbtn{flex:none;width:30px;height:30px}
+  #hud .stat.wave{font-size:0;gap:2px;padding:3px 5px}#hud .stat.wave::before{content:'W';font:800 10px/1 sans-serif;color:var(--muted)}#hud .stat.wave .num{font-size:14px}}
+@media (max-width:410px){#hud{gap:2px;padding-left:4px;padding-right:4px}#hud .stat{font-size:12px;padding:3px 4px;gap:2px}#hud .stat.wave .num{font-size:13px}#hud .hbtn{width:28px;height:28px}}
+@media (max-width:359px){#hud{gap:1px;padding-left:3px;padding-right:3px}#hud .stat{font-size:11px;padding:3px 3px}#hud .stat.wave .num{font-size:12px}#hud .hbtn{width:26px;height:26px}
+  #hud .stat.gems{flex:0 1 auto;min-width:0;overflow:hidden}#hud .stat.gems .num{min-width:0;overflow:hidden;text-overflow:ellipsis}}
 .stat{display:flex;align-items:center;gap:4px;background:#2a1d14e0;border:1px solid var(--edge);border-radius:8px;padding:4px 7px;font-weight:800;font-size:15px;white-space:nowrap}
 .gem{display:inline-block;width:.62em;height:.62em;transform:rotate(45deg);border-radius:2px;background:linear-gradient(135deg,#e6fbff,#5fc8f0 45%,#2a6fb8);box-shadow:0 0 0 1px #16406b inset,0 0 6px #5fc8f088;vertical-align:.02em;margin:0 .12em}
 .stat.gems{color:#bfeeff}
@@ -14127,7 +14134,8 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
 const CLOG=[
   {t:'Mastery progress in battle',d:'27 Oct',v:'v397',li:[
     'A new button on the right, under the top bar, shows your mastery progress during a run: every building on the board and your hero\u2019s scrolls, with their level and bar.',
-    'The part of each bar earned this run glows, with the XP earned this run and the next upgrade. Tap a row to see all five masteries (the run pauses meanwhile).']},
+    'The part of each bar earned this run glows, with the XP earned this run and the next upgrade. Tap a row to see all five masteries (the run pauses meanwhile).',
+    'Phones: the top bar fits on narrow screens; the menu button is no longer pushed off the edge late in a run.']},
   {t:'Grasping Shadows masteries, reworked',d:'27 Oct',v:'v396',li:[
     'Shackled Souls: chains between grabbed foes. Shadow Snare: three enormous fingers sweep in, 65% to the foes the hands missed.',
     'The Grasping Circle: a ring of hands closes in, 35%. Dragged Below: one foe pulled under the road and hurled back for 130%.',
@@ -23637,7 +23645,8 @@ requestAnimationFrame(frame);
 const NOTES_V='masteries-1';
 const NOTES_HTML=`<h3>\u2726 Mastery progress in battle</h3><ul>
 <li>A new <b>mastery button</b> on the right, under the top bar, opens a live panel during a run: every building on the board and every scroll of your hero that earns mastery, with its level and how close it is to the next one.</li>
-<li>The part of each bar earned in this run glows, next to the XP earned this run, and a level reached this run is called out (the button counts them too). Tap a row to see all five masteries; the run pauses while the card is open.</li></ul>
+<li>The part of each bar earned in this run glows, next to the XP earned this run, and a level reached this run is called out (the button counts them too). Tap a row to see all five masteries; the run pauses while the card is open.</li>
+<li>On phones the top bar now fits: its numbers and buttons are a little smaller on narrow screens, so the menu button is never pushed off the edge (the wave reads <b>W 188</b> there).</li></ul>
 <h3>\u2726 Grasping Shadows masteries, reworked</h3><ul>
 <li><b>Shackled Souls</b> (Mastery 1): when the hands let go, spectral violet chains bind the ankles of grabbed foes standing near each other for 2s; if another effect pushes one of them back, the chains tug the others ahead of it along. <b>Shadow Snare</b> (Mastery 2): as the hands sink, the cracks race along the road and three enormous shadow fingers sweep in like a closing claw, seizing the foes nearby that the hands missed for 65% and dragging them back toward the rune.</li>
 <li><b>The Grasping Circle</b> (Mastery 3): then a ring of shadow hands rises round the rune and sweeps inward one after another, 35% to each foe they touch, nudging it toward the centre. <b>Dragged Below</b> (Mastery 4): when the hold ends, the hands drag one grabbed foe under the road for 1s and hurl it back onto the path for 130%; a boss resists and takes a heavy slam for 130% instead.</li>

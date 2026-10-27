@@ -38,7 +38,7 @@ try{
   ok('the levels follow the scroll thresholds',smLv('hexspark')===0&&(setL('hexspark',3),smLv('hexspark')===3)&&(meta.smast.hexspark=SMX[4]-1,smLv('hexspark')===4)&&(setL('hexspark',5),smLv('hexspark')===5));
   ok('rarer scrolls earn XP more slowly',smRate('hexspark')===1&&smRate('darkpulse')<1&&smRate('riftfang')<smRate('darkpulse')&&smRate('citadel')<smRate('gaia')&&Math.abs(smRate('citadel')-.53)<.01,
     ['hexspark','darkpulse','riftfang','loop','compress','gaia','citadel','pulsar'].map(k=>smRate(k)).join(' '));
-  meta.smast={};{const L=foe(near(),0,1e6,true),x0=smXp('hexspark');meta.spells.hexspark=meta.spells.hexspark||{lvl:1,hero:null};heroU.scd={};heroU.gcd=0;state='playing';fireScroll(heroU,'hexspark',tStats(heroU),[L]);
+  meta.smast={};{const L=foe(near(),0,1e6,true),x0=smXp('hexspark');meta.spells.hexspark=meta.spells.hexspark||{lvl:1,hero:null};meta.spells.riftfang=meta.spells.riftfang||{lvl:1,hero:null};heroU.scd={};heroU.gcd=0;state='playing';fireScroll(heroU,'hexspark',tStats(heroU),[L]);
     const x1=smXp('hexspark');heroU.scd={};heroU.gcd=0;fireScroll(heroU,'riftfang',tStats(heroU),[L]);
     ok('a cast gives XP equal to its cooldown times its rarity rate',Math.abs(x1-x0-SPELLS_S.hexspark.cd)<1e-6&&Math.abs(smXp('riftfang')-SPELLS_S.riftfang.cd*smRate('riftfang'))<1e-6,(x1-x0)+' / '+smXp('riftfang'));
     state='menu';const x2=smXp('hexspark');heroU.scd={};heroU.gcd=0;fireScroll(heroU,'hexspark',tStats(heroU),[L]);ok('no XP outside a run',smXp('hexspark')===x2);state='playing';

@@ -3,7 +3,8 @@
    Puts the account back the way it was afterwards. */
 const out=[],ok=(n,c,d)=>out.push([n,!!c,d===undefined?'':d]);const m0=JSON.stringify(meta);
 const act=a=>{const b=document.querySelector(`#devPanel [data-a="${a}"]`);if(!b)throw new Error('no button '+a);b.click();};
-const pick=()=>{const o={};for(const k in DEV_KEYS)o[k]=meta[k]===undefined?null:meta[k];return JSON.stringify(o);};
+/* a key the account never had comes back from developer mode as its empty default (devDisable), so both count as that default */
+const pick=()=>{const o={};for(const k in DEV_KEYS){const v=meta[k];o[k]=v===undefined||v===null?DEV_KEYS[k]:v;}return JSON.stringify(o);};
 try{
  const tb=$('#bTestAll');ok('menu button is Developer mode',/^Developer mode/.test(tb.textContent),tb.textContent);
  /* a known starting account: some currency, one scroll, hero and tower still locked */
