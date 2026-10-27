@@ -1,0 +1,9 @@
+# Old version copies (Git keeps history now)
+_backup/
+# Experiments / heavy scratch files
+lab/
+
+node_modules/
+*.log
+Thumbs.db
+desktop.ini
