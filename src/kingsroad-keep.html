@@ -14132,6 +14132,10 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Bramble Patch masteries, reworked',d:'27 Oct',v:'v402',li:[
+    'Barbed Thicket: every second thorny canes whip down on the foes in the patch, 35%. Snaring Vines: after 1s in it a foe is bound for 0.6s (bosses take 40% instead).',
+    'Thornheart: a great crimson flower blooms every 2s and fires thorns at the foes in the brambles, 25%. Wall of Thorns: halfway, a thorn wall holds the road for 1s, then collapses for 100%.',
+    'Garden of Ruin: at the end the thicket becomes a colossal carnivorous flower that snaps shut for 180%, then bursts and scatters thorns for 35% each.']},
   {t:'Graveburst masteries, reworked',d:'27 Oct',v:'v399',li:[
     'Gravequake: three branching fissures race out from the crater, 45%. The Unburied: a spectral skeleton climbs out and swings a rusted greatsword round, 100%.',
     'The Open Pit: the crater stays open 4s and spits obsidian spikes at the foes standing in it, 35% each time. Ribcage Prison: giant ribs hold the ground foes in for 1.5s, then splinter for 70%.',
@@ -23932,6 +23936,200 @@ castGraveburst=function(t,c,P,o){const C=gvbC(o),cx=c&&c.x,cz=c&&c.z,r=GVB_CAST0
   if(L>=2)mxLater(D+GVB.ubT,()=>{if(state==='playing')gvbUnburied(S,P*GVB.ub*a[1]);});
   if(L>=4)mxLater(D+GVB.cgT0,()=>{if(state==='playing')gvbCage(S,P*GVB.cg*a[3],P*GVB.cg*GVB.cgBoss*a[3]);});
   return r;};
+/* ================= Bramble Patch's masteries, as Simon designed them (v402) ================= */
+/* Simon (abridged; the "why it works" notes left out): "Mastery 1 - Barbed Thicket: Every second, the brambles violently snap shut around
+   enemies inside the patch, dealing an additional 35% damage. Visual: thorny canes bend toward nearby enemies before whipping inward; red thorns
+   shoot out, with a spray of leaves and tiny green sparks. / Mastery 2 - Snaring Vines: When an enemy has been inside the patch for 1 second,
+   thick vines erupt beneath it and briefly bind it in place for 0.6 seconds. Each enemy can be snared once per cast. Bosses cannot be rooted,
+   but the vines wrap around their legs and deal 40% damage instead. Visual: green vines spiral around an enemy's ankles, tighten suddenly, then
+   snap apart into leaves; larger enemies visibly strain against the roots. / Mastery 3 - Thornheart: A massive thorned flower grows at the
+   centre of the patch. Every 2 seconds, it blooms and launches a volley of thorns at enemies inside the brambles, dealing 25% damage per thorn
+   volley. Visual: a tightly closed crimson bud rises from the ground; its petals unfurl dramatically before a burst of needle-like thorns shoots
+   outward, then it closes again. / Mastery 4 - Wall of Thorns: Halfway through its duration, the patch's brambles surge upward into a tangled
+   wall of thorns, briefly blocking ground enemies from advancing through that section of the road. After 1 second, the wall collapses into the
+   patch, dealing 100% damage to enemies caught inside. The wall cannot permanently block the path, and bosses push through it while taking
+   damage. Visual: thorny canes grow rapidly, weaving into a dense wall studded with crimson roses; it trembles as enemies press against it, then
+   bursts apart into splintering wood and flying leaves. / Mastery 5 - Garden of Ruin: As the patch reaches the end of its duration, the entire
+   thicket comes alive and folds inward, forming a colossal carnivorous flower made of twisted roots, thorny vines, and crimson petals. The flower
+   snaps shut on enemies caught within the patch, dealing 180% damage. After a brief pause, it bursts open and scatters thorn projectiles toward
+   nearby enemies for 35% damage each. Visual: the ground splits as thick roots rise around the patch; brambles coil together into an enormous
+   flower; the petals slam shut with enemies still inside; the flower pulses with bright green energy before exploding into a storm of red
+   petals, thorns, and leaves; the roots retract underground, leaving a dark green stain on the road."
+   Percentages are of the scroll's power (the patch itself is 45% a second). Mastery 0 is the old cast. From Mastery 1 castBramble is wrapped;
+   everything plays on the patch (radius 1.15, 6.4s) and, like the patch, reaches only ground foes unless it says otherwise:
+   - M1 Barbed Thicket: at 1, 2 ... 6s, a thorny cane (twLash, Thorn Whip's lash) bends over each foe in the patch and whips down: 35% to every
+     ground foe in it at that moment, red thorns, leaves and green sparks.
+   - M2 Snaring Vines: a ground foe that has spent 1s in the patch (in all, this cast) is snared once: green vines spiral round its ankles and
+     tighten, holding it 0.6s (stunE, so Resolve applies; it counts as Held), then snap into leaves. A boss is not held: the vines strain round
+     its legs for 40%.
+   - M3 Thornheart: a closed crimson bud on a thorny stem rises in the middle; at 2, 4 and 6s it swells, unfurls and fires a needle at every
+     ground foe in the patch (25% each), then closes.
+   - M4 Wall of Thorns: halfway (3.2s) canes surge up into a wall studded with roses across the road at the patch's keep-side edge. For 1s no
+     ground foe walks past it: one reaching it is stopped there (stunE for the time left, Resolve applies; a foe it frees walks through), and it
+     trembles. A boss pushes through and is cut for 40% (Simon gave no number; 40% as Snaring Vines'). Then it collapses into the patch: 100% to
+     every ground foe in it.
+   - M5 Garden of Ruin: at 5.5s the ground splits and thick roots rise round the patch, brambles coil up and six huge crimson petals with
+     thorned rims rise from its edge; at 6.3s they slam shut: 180% to every foe in the patch (flyers too: they are inside the flower; ground foes
+     that are not bosses are held for the pause, stunE). It pulses green and at 6.9s bursts: a thorn flies at each foe within 3 tiles (up to 14,
+     flyers too) for 35%, in a storm of red petals and leaves; the roots sink and a dark green stain stays on the road.
+   BPM.dbg (an array) logs the events for the tests. */
+const BPM={dbg:null,R:1.15,LIFE:6.4,
+  snap:.35,snapHit:.16,
+  snareT:1,snareHold:.6,snareBoss:.4,
+  heart:.25,heartT:[2,4,6],
+  wall:1,wallT:3.2,wallHold:1,wallBoss:.4,
+  ruin:1.8,ruinThorn:.35,ruinT:5.5,ruinR:3,ruinN:14};
+const bpmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='bramble'?c:null;};
+const bpmLog=d=>{if(BPM.dbg)BPM.dbg.push(d);};
+SM_D.bramble=[
+  {n:'Barbed Thicket',d:'Every second the brambles snap shut round the foes in the patch: thorny canes bend over them and whip down for {35}% more.'},
+  {n:'Snaring Vines',d:'A foe that has been in the patch for 1s is snared once: vines spiral round its ankles and bind it for 0.6s. Bosses are not held, the vines cut their legs for {40}% instead.'},
+  {n:'Thornheart',d:'A great thorned flower grows in the middle of the patch. Every 2s it unfurls and fires a volley of thorns at the foes in the brambles: {25}% each.'},
+  {n:'Wall of Thorns',d:'Halfway through, the brambles surge into a wall of thorns across the road: for 1s no foe gets past. Then it collapses into the patch for {100}%. Bosses push through it and are cut for {40}%.'},
+  {n:'Garden of Ruin',d:'As the patch ends, the thicket folds into a colossal carnivorous flower that snaps shut on the foes in it for {180}%, then bursts and scatters thorns at the foes nearby: {35}% each.'}];
+SMF.bramble={m:.45};
+SMA.bramble=[1,1,1,1,1];
+/* power with Simon's numbers (tests/sm-ladder.js, 3 runs): 1.73 / 1.78 / 2.03 / 2.28 / 3.13 against the Uncommon ladder 1.09 / 1.23 / 1.35 / 1.52 / 1.74.
+   Every level is above the ladder (Barbed Thicket alone adds 35% a second to the patch's 45%), so no hidden factor. SM.free: his numbers. */
+SMG.bramble=[1,1,1,1,1];
+SM.free=SM.free||{};SM.free.bramble='Simon'+String.fromCharCode(8217)+'s own numbers for Bramble Patch';
+
+/* ---- shared pieces ---- */
+const bpmIn=(e,S,R)=>!e.dead&&!e.fake&&!e.fly&&(e.x-S.x)**2+(e.z-S.z)**2<(R||BPM.R)*(R||BPM.R);
+/* a cupped petal along +y from its base, hollow toward +z (the centre, once hinged), the tip curling back: vertex colours from the base to the tip; teeth: thorns along its rim */
+function bpmPetal(w,l,cup,cols,teeth){const g=new THREE.PlaneGeometry(1,1,4,8),p=g.attributes.position,col=new Float32Array(p.count*3),c=cols.map(x=>new THREE.Color(x)),cc=new THREE.Color();
+  for(let i=0;i<p.count;i++){const s=p.getX(i),t=p.getY(i)+.5,wd=w*Math.pow(Math.sin(Math.PI*Math.min(1,.06+t*.98)),.7)*(1-.2*t);p.setXYZ(i,s*2*wd,t*l,cup*(2*s)*(2*s)*wd-.18*l*t*t);
+    cc.copy(t<.5?c[0]:c[1]).lerp(t<.5?c[1]:c[2],t<.5?t*2:(t-.5)*2);col[i*3]=cc.r;col[i*3+1]=cc.g;col[i*3+2]=cc.b;}
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();if(!teeth)return g;
+  /* thorns along both edges, pointing out and up */
+  const parts=[g],up=new THREE.Vector3(0,1,0);for(const sd of [-1,1])for(let i=1;i<=teeth;i++){const t=i/(teeth+1),wd=w*Math.pow(Math.sin(Math.PI*Math.min(1,.06+t*.98)),.7)*(1-.2*t),
+      c=new THREE.ConeGeometry(.035*l,.16*l,4);c.translate(0,.08*l,0);const q=new THREE.Quaternion().setFromUnitVectors(up,new THREE.Vector3(sd,.55,.25).normalize());c.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(q));c.translate(sd*wd,t*l,cup*wd-.18*l*t*t);
+      const cl=new Float32Array(c.attributes.position.count*3);for(let k=0;k<cl.length;k+=3){cl[k]=.18;cl[k+1]=.1;cl[k+2]=.06;}c.setAttribute('color',new THREE.BufferAttribute(cl,3));parts.push(c);}
+  const m=bpmMerge(parts);parts.forEach(x=>x.dispose());return m;}
+/* merge indexed geometries with position and colour (no BufferGeometryUtils in this build) */
+function bpmMerge(L){let n=0,ni=0;for(const g of L){n+=g.attributes.position.count;ni+=g.index?g.index.count:g.attributes.position.count;}
+  const P=new Float32Array(n*3),C=new Float32Array(n*3),I=[];let o=0;
+  for(const g of L){const p=g.attributes.position,c=g.attributes.color;P.set(p.array,o*3);if(c)C.set(c.array,o*3);if(g.index)for(const v of g.index.array)I.push(v+o);else for(let i=0;i<p.count;i++)I.push(i+o);o+=p.count;}
+  const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.BufferAttribute(P,3));G.setAttribute('color',new THREE.BufferAttribute(C,3));G.setIndex(I);G.computeVertexNormals();return G;}
+/* the shared kit: the needle and its material, built once and never disposed */
+function bpmKit(){if(BPM.k)return BPM.k;const mk=()=>{const ng=new THREE.ConeGeometry(.022,.26,4);ng.translate(0,.13,0);
+    return{ng,nm:new THREE.MeshPhongMaterial({color:0x6a1018,emissive:0x2a0408,specular:0xd08080,shininess:40,flatShading:true})};};
+  return BPM.k=(typeof asOffRun==='function'?asOffRun(mk):mk());}
+/* a thorn needle flying from p to the foe (homing on where it is now): onHit when it gets there; one that loses its foe sticks into the road */
+function bpmNeedle(p,e,dt0,onHit){const K=bpmKit(),m=new THREE.Mesh(K.ng,K.nm);m.position.copy(p);scene.add(smTag(m));const from=p.clone(),up=new THREE.Vector3(0,1,0),to=new THREE.Vector3(),dir=new THREE.Vector3();let t=0,done=false;
+  const T=Math.max(.08,dt0||.18);
+  addFx(m,T+.5,(f,dt)=>{t+=dt;if(!done){const q=e.dead||e.fake?null:tpos2(e);if(q)to.set(q.x,q.y,q.z);else if(!to.lengthSq())to.set(from.x,gy(from.x,from.z),from.z);
+      const k=Math.min(1,t/T);m.position.lerpVectors(from,to,k);m.position.y+=Math.sin(k*Math.PI)*.18;dir.subVectors(to,from);dir.y+=Math.cos(k*Math.PI)*.3;if(dir.lengthSq()>1e-6)m.quaternion.setFromUnitVectors(up,dir.normalize());
+      if(k>=1){done=true;if(onHit)onHit(e,to);sprayP(0,to.x,to.y,to.z,4,{c:0xc0182a,c2:0x4a0008,sp:.9,up:.3,s:.026,s2:0,life:.3,g:5});m.visible=!!(e.dead||e.fake);}}
+    m.scale.setScalar(Math.min(1,f.life/.3));});}
+/* a needle shot off into the air and falling (looks only) */
+function bpmStray(p,a,v){const K=bpmKit(),m=new THREE.Mesh(K.ng,K.nm);m.position.copy(p);scene.add(smTag(m));const vel=new THREE.Vector3(Math.cos(a)*v,1.2+rnd()*1.4,Math.sin(a)*v),up=new THREE.Vector3(0,1,0);let rest=false;
+  addFx(m,1.1,(f,dt)=>{if(!rest){vel.y-=9*dt;m.position.addScaledVector(vel,dt);m.quaternion.setFromUnitVectors(up,vel.clone().normalize());const fl=gy(m.position.x,m.position.z)+.05;if(m.position.y<fl){m.position.y=fl;rest=true;}}m.scale.setScalar(Math.min(1,f.life/.3));});}
+const bpmSparks=(x,y,z,n)=>sprayP(1,x,y,z,n,{c:0xd8ff90,c2:0x5aa02a,sp:1.2,up:.8,s:.03,s2:0,life:.4,g:1.5});
+const bpmThorns=(x,y,z,n)=>sprayP(0,x,y,z,n,{c:0xb01828,c2:0x4a0610,sp:2,up:.6,s:.03,s2:.01,life:.35,g:5});
+
+/* ---- M1 Barbed Thicket: canes bend over the foes in the patch and whip down ---- */
+function bpmSnap(S,dmg,n){const L=enemies.filter(e=>bpmIn(e,S));bpmLog({ev:'snap',n,k:L.length});const K=natKit();
+  L.forEach((e,i)=>{if(i>=8)return;const a=Math.atan2(e.z-S.z,e.x-S.x)+Math.PI+(rnd()-.5)*1.4;
+    twLash(e,{a,d:.45+rnd()*.12,h:.68+rnd()*.2,r:.038,thorns:12,pal:'bramble',leaves:3,glow:false,hitT:BPM.snapHit,hold:.24,ret:.3,burst:false,tag:true,
+      onHit:p=>{bpmThorns(p.x,p.y,p.z,14);bpmSparks(p.x,p.y,p.z,8);nfxLeaves(p.x,p.y,p.z,3,[K.leaf,K.leaf2,K.crown[2]]);}});});
+  mxLater(BPM.snapHit,()=>{if(state!=='playing')return;for(const e of L){if(e.dead)continue;hurt(e,dmg,'magic',S.o);bpmLog({ev:'snaphit',e});}});}
+
+/* ---- M2 Snaring Vines: vines spiral round a foe's ankles and bind it ---- */
+function bpmSnare(S,e,dBoss){const boss=!!e.boss,got=boss?0:stunE(e,BPM.snareHold);if(!boss&&got>0)e.heldT=Math.max(e.heldT||0,got);
+  if(boss&&state==='playing')hurt(e,dBoss,'magic',S.o);bpmLog({ev:boss?'snareboss':'snare',e,got});
+  const x=e.x,z=e.z,y=gy(x,z),hy=Math.max(.25,e.hitY||.4),R=Math.max(.14,.1+hy*.22)*(boss?1.5:1),g=new THREE.Group();g.position.set(x,y,z);scene.add(smTag(g));const geos=[],V=[],K=natKit();
+  for(let j=0;j<3;j++){const p=[],a0=j/3*6.28+rnd()*.6,n=9;for(let i=0;i<=n;i++){const u=i/n,a=a0+u*5.6,r=R*(1.15-.3*u);p.push(nfxV(Math.cos(a)*r,u*hy*(boss?.55:.45)-.05,Math.sin(a)*r));}
+    const v=natVine(p,boss?.03:.022,7,'vine',{leaves:2,glow:false,taper:.45});g.add(v.g);geos.push(v.geo);V.push(v);}
+  natDirt(x,z,6,.6);bpmSparks(x,y+.1,z,5);const hold=boss?.6:Math.max(.25,got);let t=0,snapped=false;
+  addFx(g,hold+.2,(f,dt)=>{t+=dt;if(!e.dead){g.position.x=e.x;g.position.z=e.z;}const grow=Math.min(1,t/.14),tight=t<.14?1.18:t<.22?1.18-.3*(t-.14)/.08:.88;
+    for(const v of V)v.grow(snapped?0:grow);g.scale.set(tight*(boss?1+.06*Math.sin(t*38):1),1,tight*(boss?1+.06*Math.cos(t*41):1));g.rotation.y=boss?Math.sin(t*23)*.12:0;
+    if(boss&&!snapped&&!e.dead&&e.g)e.g.rotation.z=Math.sin(t*31)*.05;
+    if(!snapped&&t>=hold){snapped=true;nfxLeaves(g.position.x,y+hy*.3,g.position.z,6,[K.leaf,K.leaf2,K.crown[1]]);bpmSparks(g.position.x,y+.15,g.position.z,6);if(boss&&e.g)e.g.rotation.z=0;}
+    if(f.life<=0&&boss&&e.g)e.g.rotation.z=0;},null,{geos});}
+
+/* ---- M3 Thornheart: a crimson bud that unfurls and fires thorns every 2s ---- */
+function bpmHeart(S,dmg){const g=new THREE.Group();g.position.set(S.x,S.y-1.1,S.z);scene.add(smTag(g));const geos=[],mats=[],K=natKit();
+  const stem=natVine([nfxV(0,-.1,0),nfxV(.06,.25,.03),nfxV(-.04,.55,-.02),nfxV(0,.82,0)],.055,12,'vine',{leaves:5,glow:false,taper:.45});g.add(stem.g);geos.push(stem.geo);stem.grow(1);
+  const pm=new THREE.MeshPhongMaterial({vertexColors:true,side:THREE.DoubleSide,shininess:34,emissive:0x2a0008,flatShading:true});mats.push(pm);
+  const pg=bpmPetal(.17,.46,.5,[0x3a000c,0xa8102a,0xff4a5a],3);geos.push(pg);const head=new THREE.Group();head.position.y=.82;g.add(head);const P=[];
+  for(let i=0;i<7;i++){const pv=new THREE.Group();pv.rotation.order='YXZ';pv.rotation.y=i/7*6.283+Math.PI;pv.position.set(Math.sin(i/7*6.283)*.05,0,Math.cos(i/7*6.283)*.05);pv.add(new THREE.Mesh(pg,pm));head.add(pv);P.push(pv);}
+  const sg=new THREE.ConeGeometry(.05,.22,4);sg.translate(0,.11,0);geos.push(sg);for(let i=0;i<5;i++){const s=new THREE.Mesh(sg,K.crown[0]);s.rotation.order='YXZ';s.rotation.y=i/5*6.283;s.rotation.x=-1.1;head.add(s);}
+  const core=new THREE.Mesh(new THREE.IcosahedronGeometry(.07,1),new THREE.MeshPhongMaterial({color:0xffd860,emissive:0x8a5a08,shininess:40}));geos.push(core.geometry);mats.push(core.material);core.position.y=.06;head.add(core);
+  nfxBurst(S.x,S.z,.5,{cracks:5,n:10,life:1.2});const T=BPM.heartT,RISE0=.5,END=T[T.length-1]+.75;let t=0,fired=new Set();bpmLog({ev:'heart'});
+  /* how open the bud is at time t: closed (0) except for the 0.6s round each bloom */
+  const openAt=t=>{let k=0;for(const b of T){const u=t-(b-.05);if(u<0||u>.6)continue;k=Math.max(k,u<.15?(()=>{const q=u/.15,s=1.70158;return 1+(s+1)*Math.pow(q-1,3)+s*Math.pow(q-1,2);})():u<.3?1:1-SMS(u,.3,.6));}return k;};
+  addFx(g,END,(f,dt)=>{t+=dt;const rise=clamp((t-RISE0)/.45,0,1),sink=clamp((t-T[T.length-1]-.4)/.35,0,1);g.position.y=S.y-1.1+1.1*(1-Math.pow(1-rise,3))-1.1*sink*sink;
+    let sw=0;for(const b of T){const u=b-t;if(u>0&&u<.4)sw=Math.max(sw,1-u/.4);}head.scale.setScalar(1+.14*sw);pm.emissive.setRGB(.16+.5*sw,.0,.03+.04*sw);
+    const o=openAt(t);for(const p of P)p.rotation.x=.34-1.5*o;core.scale.setScalar(.6+.8*o);
+    for(const b of T){if(fired.has(b)||t<b+.08)continue;fired.add(b);const top=new THREE.Vector3();head.getWorldPosition(top);top.y+=.1;const L=enemies.filter(e=>bpmIn(e,S));bpmLog({ev:'volley',n:L.length});
+      bpmThorns(top.x,top.y,top.z,10);bpmSparks(top.x,top.y,top.z,8);flash(top.x,top.y,top.z,0xff4a5a,.3,.12);for(let i=0;i<8;i++)bpmStray(top,i/8*6.28+rnd()*.4,1.2+rnd());
+      for(const e of L){if(state!=='playing')break;bpmNeedle(top,e,.12+Math.hypot(e.x-top.x,e.z-top.z)*.05,q=>{if(!q.dead&&!q.fake&&state==='playing'){hurt(q,dmg,'magic',S.o);bpmLog({ev:'needle',e:q});}});}}},null,{geos,mats});}
+
+/* ---- M4 Wall of Thorns: canes surge up into a wall across the road, then collapse into the patch ---- */
+function bpmWall(S,dmg,dBoss){const wD=Math.min(S.rt.len,S.rd+BPM.R*.85),w=posAt(wD,S.rt),nx=Math.cos(w[2]),nz=-Math.sin(w[2]),y0=gy(w[0],w[1]),g=new THREE.Group();g.position.set(w[0],y0,w[1]);scene.add(smTag(g));
+  const geos=[],V=[],RS=[],K=natKit(),Wd=.8,Hh=.95,P=(s,h)=>nfxV(nx*s,h,nz*s);
+  /* woven: canes crossing both ways, a few upright, roses studded on them */
+  for(let i=0;i<10;i++){const s0=-Wd+i/9*2*Wd,dir=i%2?1:-1,s1=clamp(s0+dir*(.6+rnd()*.5),-Wd,Wd),pts=[P(s0,-.05),P(s0+(s1-s0)*.35,Hh*.4+rnd()*.1),P(s0+(s1-s0)*.7,Hh*.75),P(s1,Hh*(.85+rnd()*.2))];
+    const v=natVine(pts,.04+rnd()*.015,11,'bramble',{leaves:3,berries:i%3?0:2,glow:false,taper:.6});g.add(v.g);geos.push(v.geo);V.push(v);}
+  for(let i=0;i<5;i++){const s=-Wd*.8+i/4*1.6*Wd,v=natVine([P(s,-.05),P(s+.05,Hh*.5),P(s-.04,Hh*1.05)],.05,10,'bramble',{leaves:2,glow:false,taper:.5});g.add(v.g);geos.push(v.geo);V.push(v);}
+  for(let i=0;i<6;i++){const rs=twRose('red',.42+rnd()*.15),s=(rnd()*2-1)*Wd*.85;rs.position.copy(P(s,Hh*(.3+rnd()*.6)));rs.position.x-=Math.sin(w[2])*.06;rs.position.z-=Math.cos(w[2])*.06;
+    rs.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(-Math.sin(w[2]),.3,-Math.cos(w[2])).normalize());g.add(rs);RS.push(rs);}
+  nfxBurst(w[0],w[1],.7,{cracks:7,n:14,life:1.4});const past=new Set(enemies.filter(e=>e.route===S.rt&&e.dist>=wD-.02)),held=new Map(),bossHit=new Set(),HOLD=BPM.wallHold;
+  let t=0,down=false;bpmLog({ev:'wall',wD});
+  addFx(g,HOLD+.6,(f,dt)=>{t+=dt;const k=down?Math.max(0,1-(t-HOLD)/.18):Math.min(1,t/.25);for(const v of V)v.grow(k);for(const r of RS)r.userData.open(down?k:clamp((t-.12)/.3,0,1));
+    let press=0;
+    if(!down){for(const e of enemies){if(e.dead||e.fake||e.fly||e.route!==S.rt||past.has(e))continue;
+        if(e.boss){if(e.dist>=wD-.05&&!bossHit.has(e)){bossHit.add(e);if(state==='playing')hurt(e,dBoss,'magic',S.o);bpmLog({ev:'wallboss',e});const p=tpos2(e);bpmThorns(p.x,p.y,p.z,10);nfxLeaves(p.x,p.y,p.z,4,[K.leaf,K.crown[0]]);}continue;}
+        const h=held.get(e);if(h==='free')continue;if(e.dist>wD-.06){e.dist=wD-.06;moveEnemy(e,0);press++;if(!(e.stunT>0)){const got=stunE(e,HOLD-t);if(got<=1e-3){held.set(e,'free');past.add(e);bpmLog({ev:'wallfree',e});}else if(!h){held.set(e,1);bpmLog({ev:'wallheld',e,got});}}}}}
+    g.position.set(w[0]+(press?(rnd()-.5)*.04:0),y0,w[1]+(press?(rnd()-.5)*.04:0));
+    if(!down&&t>=HOLD){down=true;const L=enemies.filter(e=>bpmIn(e,S));bpmLog({ev:'collapse',n:L.length});camShake=Math.max(camShake,.1);natDirt(w[0],w[1],14,1.1);
+      for(let i=0;i<10;i++){const s=(rnd()*2-1)*Wd;sprayP(0,w[0]+nx*s,y0+Hh*rnd(),w[1]+nz*s,3,{c:0x6a3a1a,c2:0x3a200c,sp:2.2,up:1.2,s:.03,s2:.01,life:.7,g:6});}
+      nfxLeaves(w[0],y0+.5,w[1],12,[K.leaf,K.leaf2,K.crown[0]],null,Wd);nfxLeaves(w[0],y0+.5,w[1],8,[twKit().pet.red],K.petG,Wd);bpmThorns(S.x,S.y+.3,S.z,16);
+      for(const e of L){if(state!=='playing')break;hurt(e,dmg,'magic',S.o);bpmLog({ev:'wallhit',e});}}},null,{geos});}
+
+/* ---- M5 Garden of Ruin: the thicket folds into a colossal carnivorous flower that snaps shut, then bursts ---- */
+function bpmRuin(S,dSnap,dThorn){const R=BPM.R,g=new THREE.Group();g.position.set(S.x,S.y,S.z);scene.add(smTag(g));const geos=[],mats=[],K=natKit(),roots=[],coils=[],P=[];
+  /* thick roots arching up out of the split ground round the patch */
+  for(let i=0;i<9;i++){const a=i/9*6.283+rnd()*.3,r0=R*1.25,r1=R*(.7+rnd()*.2),h=.55+rnd()*.35,v=natVine([nfxV(Math.cos(a)*r0*1.15,-.15,Math.sin(a)*r0*1.15),nfxV(Math.cos(a)*r0,h*.6,Math.sin(a)*r0),nfxV(Math.cos(a+.15)*r1,h,Math.sin(a+.15)*r1),nfxV(Math.cos(a+.3)*r1*.8,-.1,Math.sin(a+.3)*r1*.8)],.075+rnd()*.03,6,'root',{leaves:1,glow:false,taper:.55});
+    g.add(v.g);geos.push(v.geo);roots.push(v);}
+  /* six huge crimson petals with thorned rims, hinged at the patch's edge */
+  const pm=new THREE.MeshPhongMaterial({vertexColors:true,side:THREE.DoubleSide,shininess:30,emissive:0x1a0004,flatShading:true});mats.push(pm);
+  const pg=bpmPetal(.62,1.55,.42,[0x2a0008,0x9a0a24,0xe8384a],6);geos.push(pg);
+  for(let i=0;i<6;i++){const a=i/6*6.283+rnd()*.2,pv=new THREE.Group();pv.rotation.order='YXZ';pv.position.set(Math.sin(a)*R*.95,-.02,Math.cos(a)*R*.95);pv.rotation.y=a+Math.PI;pv.rotation.x=-1.5;pv.scale.setScalar(.01);
+    pv.add(new THREE.Mesh(pg,pm));g.add(pv);P.push({pv,a,v:new THREE.Vector3(),w:(rnd()-.5)*6});}
+  /* brambles coiling up the petals */
+  for(let i=0;i<8;i++){const a=i/8*6.283,pts=[];for(let j=0;j<6;j++){const u=j/5,aa=a+u*1.4,r=R*(1.05-.35*u);pts.push(nfxV(Math.sin(aa)*r,u*1.1,Math.cos(aa)*r));}
+    const v=natVine(pts,.032,10,'bramble',{leaves:3,berries:i%2?2:0,glow:false,taper:.6});g.add(v.g);geos.push(v.geo);coils.push(v);}
+  const T0=BPM.ruinT,UP=T0+.3,SHUT=T0+.8,BURST=SHUT+.6,END=BURST+1.3;let t=T0,shut=false,burst=false,caught=[];bpmLog({ev:'ruin'});
+  nfxBurst(S.x,S.z,R*1.1,{cracks:12,n:22,life:1.6});camShake=Math.max(camShake,.08);
+  addFx(g,END-T0,(f,dt)=>{t+=dt;const rk=clamp((t-T0)/.35,0,1),rback=burst?Math.max(0,1-(t-BURST-.2)/.6):1;for(const v of roots)v.grow(rk*rback);
+    const ck=clamp((t-T0-.15)/.5,0,1);for(const v of coils)v.grow(burst?0:ck);
+    for(const p of P){if(burst){const u=t-BURST;p.v.y-=9*dt;p.pv.position.addScaledVector(p.v,dt);p.pv.rotation.x+=p.w*dt*.5;p.pv.scale.setScalar(Math.max(.01,1-u/.9));continue;}
+      const up=clamp((t-UP)/.35,0,1),sh=clamp((t-SHUT)/.1,0,1);p.pv.scale.setScalar(Math.max(.01,Math.min(1,(t-T0)/.3)));p.pv.rotation.x=-1.5+1.5*(1-Math.pow(1-up,3))+.98*sh*sh;}
+    /* it snaps shut on everything in the patch */
+    if(!shut&&t>=SHUT){shut=true;caught=enemies.filter(e=>!e.dead&&!e.fake&&(e.x-S.x)**2+(e.z-S.z)**2<R*R);bpmLog({ev:'shut',n:caught.length});camShake=Math.max(camShake,.16);if(typeof sfxBoom==='function')sfxBoom(.06,true);
+      natDirt(S.x,S.z,16,1.2);for(const e of caught){if(state!=='playing')break;hurt(e,dSnap,'magic',S.o);bpmLog({ev:'chomp',e});if(!e.dead&&!e.fly&&!e.boss)stunE(e,BURST-t);}}
+    if(shut&&!burst){const u=t-SHUT,gl=(.5+.5*Math.sin(u*22))*Math.min(1,u*3);pm.color.setRGB(1-.7*gl,1,1-.7*gl);pm.emissive.setRGB(.02,.1+.62*gl,.03);if(rnd()<.7)bpmSparks(S.x+(rnd()-.5)*R,S.y+.3+rnd()*.6,S.z+(rnd()-.5)*R,3);}
+    /* it bursts: a storm of petals, thorns and leaves, and a thorn for each foe nearby */
+    if(!burst&&t>=BURST){burst=true;pm.emissive.setHex(0x1a0004);pm.color.setRGB(1,1,1);flash(S.x,S.y+.6,S.z,0xb8ff70,1.1,.18);ringFx(S.x,S.y+.06,S.z,R*1.6,0x8ad24a,.45);camShake=Math.max(camShake,.14);
+      for(const p of P){p.v.set(Math.sin(p.a)*(1.5+rnd()),1.6+rnd()*1.2,Math.cos(p.a)*(1.5+rnd()));}
+      nfxLeaves(S.x,S.y+.6,S.z,18,[twKit().pet.red],K.petG,R);nfxLeaves(S.x,S.y+.5,S.z,12,[K.leaf,K.leaf2,K.crown[0]],null,R);bpmThorns(S.x,S.y+.6,S.z,24);
+      const top=new THREE.Vector3(S.x,S.y+.6,S.z),N=enemies.filter(e=>!e.dead&&!e.fake&&(e.x-S.x)**2+(e.z-S.z)**2<BPM.ruinR*BPM.ruinR).slice(0,BPM.ruinN);bpmLog({ev:'burst',n:N.length});
+      for(const e of N)bpmNeedle(top,e,.14+Math.hypot(e.x-S.x,e.z-S.z)*.06,q=>{if(!q.dead&&!q.fake&&state==='playing'){hurt(q,dThorn,'magic',S.o);bpmLog({ev:'thorn',e:q});}});
+      for(let i=0;i<10;i++)bpmStray(top,i/10*6.28+rnd()*.3,1.8+rnd()*1.2);
+      nsDecal(S.x,S.z,R*1.15,0x16260a,.75,3.2,{fout:1.2});}},null,{geos,mats});}
+
+/* ---- the hooks ---- */
+const BPM_CAST0=castBramble;
+castBramble=function(t,c,P,o){const C=bpmC(o),x=c&&c.x,z=c&&c.z,r=BPM_CAST0.apply(this,arguments);if(!C||!c)return r;const L=C.L,a=C.a,q=nsRouteNear(x,z),S={x,z,y:gy(x,z),rd:q.d,rt:q.rt,C,P,o:smO(o)};bpmLog({ev:'cast',L,S});
+  if(L>=1)for(let i=1;i<=Math.floor(BPM.LIFE);i++)mxLater(i,()=>{if(state==='playing')bpmSnap(S,P*BPM.snap*a[0],i);});
+  if(L>=2){const inT=new Map(),done=new Set();let tt=0;addFx(new THREE.Group(),BPM.LIFE,(f,dt)=>{tt+=dt;if(state!=='playing')return;
+      for(const e of enemies){if(done.has(e)||!bpmIn(e,S))continue;const v=(inT.get(e)||0)+dt;inT.set(e,v);if(v>=BPM.snareT-1e-6){done.add(e);bpmSnare(S,e,P*BPM.snareBoss*a[1]);}}});}
+  if(L>=3)bpmHeart(S,P*BPM.heart*a[2]);
+  if(L>=4)mxLater(BPM.wallT,()=>{if(state==='playing')bpmWall(S,P*BPM.wall*a[3],P*BPM.wallBoss*a[3]);});
+  if(L>=5)mxLater(BPM.ruinT,()=>{if(state==='playing')bpmRuin(S,P*BPM.ruin*a[4],P*BPM.ruinThorn*a[4]);});
+  return r;};
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
@@ -23939,7 +24137,12 @@ if(GAME.setAside)setTimeout(()=>toast('Your open-world run now belongs to Kingsg
 requestAnimationFrame(frame);
 /* ---- What's new: shown once per notes version (per account), on the first open after an update ---- */
 const NOTES_V='masteries-1';
-const NOTES_HTML=`<h3>\u2726 Graveburst masteries, reworked</h3><ul>
+const NOTES_HTML=`<h3>\u2726 Bramble Patch masteries, reworked</h3><ul>
+<li><b>Barbed Thicket</b> (Mastery 1): every second the brambles snap shut round the foes in the patch: thorny canes bend over them and whip down for 35%, in a spray of red thorns, leaves and green sparks. <b>Snaring Vines</b> (Mastery 2): a foe that has been in the patch for 1s is snared once: green vines spiral round its ankles, tighten and bind it for 0.6s, then snap into leaves. A boss is not held; the vines strain round its legs for 40%.</li>
+<li><b>Thornheart</b> (Mastery 3): a closed crimson bud on a thorny stem rises in the middle of the patch; every 2s it swells, unfurls and fires a volley of needles at the foes in the brambles for 25%, then closes. <b>Wall of Thorns</b> (Mastery 4): halfway through, the brambles surge into a wall of thorns studded with roses across the road; for 1s no foe gets past it, then it bursts apart into the patch for 100%. Bosses push through it and are cut for 40%.</li>
+<li><b>Garden of Ruin</b> (Mastery 5): as the patch ends the ground splits, thick roots rise and the thicket folds into a colossal carnivorous flower that snaps shut on everything in it for 180%. It pulses green, then bursts in a storm of petals and leaves, a thorn flying at each foe nearby for 35%, and leaves a dark green stain on the road.</li>
+<li>Bramble Patch&rsquo;s old masteries (Sharper Thorns, Snagging Vines, Spreading Brambles, Thorn Burst, Rose Garden) are replaced. Like every scroll above Common, its masteries are only in developer mode for now.</li></ul>
+<h3>\u2726 Graveburst masteries, reworked</h3><ul>
 <li><b>Gravequake</b> (Mastery 1): when the grave bursts, a shockwave tears through the ground and three branching fissures race out from the crater, erupting with dark energy: 45% to each foe they strike. <b>The Unburied</b> (Mastery 2): a spectral skeletal warrior, its ribcage glowing violet, climbs out of the crater and swings an enormous rusted blade round in a wide arc for 100%, then breaks apart and sinks back into the earth.</li>
 <li><b>The Open Pit</b> (Mastery 3): the crater stays open as a violet-black pit for 4s; again and again cracks flash under the foes standing in it and obsidian spikes thrust up there for 35%. Foes can still walk out. <b>Ribcage Prison</b> (Mastery 4): giant ribs tear up through the road and close over the crater for 1.5s; the ground foes inside cannot leave, then the cage splinters into falling bone for 70% (bosses are never held and take half).</li>
 <li><b>Hand of the Underworld</b> (Mastery 5): the crater tears open into a vast abyss; two colossal skeletal hands rise from both sides of the road and seize every foe in it for 100%, dragging the ground foes under on spectral chains (not bosses), then the grave slams shut for 100% more.</li>
