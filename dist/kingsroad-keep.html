@@ -14137,6 +14137,10 @@ const CLOG=[
     'Storm Satellites: three lightning orbs circle it and dart at foes, 45%. Rolling Thunder: halfway it stops, charges for 0.8s and lets three rings of lightning go, 50% each.',
     'Tempest Incarnate: at the end it becomes a little storm: bolts strike the 6 nearest foes for 100%, Charged ones again for 40%, then it collapses in a flash.',
     'Fix: Ball Lightning\u2019s stats line and the Supercell text now give its real numbers (since the v389 nerf).']},
+  {t:'Basic Beam masteries, reworked',d:'27 Oct',v:'v403',li:[
+    'Shatterlight: every foe the beam strikes splinters glass-like shards sideways, 35% to the foes nearby. Prism Split: a crystal prism catches the beam and splits it into three beams aimed at the foes, 65% each.',
+    'Lightbound Mirrors: three mirrors spin into place along the beam and reflect it onto different groups, 75% each. Heaven\u2019s Verdict: a halo gathers above the path and a column of light crashes down on every foe the beam hit, 100%.',
+    'Absolute Radiance: the charge becomes a miniature star; the beam\u2019s scar widens into a colossal blade of light for 150% and a starburst blooms at its end.']},
   {t:'Bramble Patch masteries, reworked',d:'27 Oct',v:'v402',li:[
     'Barbed Thicket: every second thorny canes whip down on the foes in the patch, 35%. Snaring Vines: after 1s in it a foe is bound for 0.6s (bosses take 40% instead).',
     'Thornheart: a great crimson flower blooms every 2s and fires thorns at the foes in the brambles, 25%. Wall of Thorns: halfway, a thorn wall holds the road for 1s, then collapses for 100%.',
@@ -25090,6 +25094,326 @@ castDarkPulse=function(t,Rr,dmg,o){const C=dpmC(o);if(!C||!t)return DPM_CAST0.ap
   if(L>=2)dpmEcho(S,S.dmg*DPM.echo*a[1]);
   if(L>=3)dpmRupture(S,P*DPM.rup*a[2]);
   if(L>=4)dpmWall(S);};
+/* ================= Basic Beam's masteries, as Simon designed them (v403) ================= */
+/* Simon (abridged; the "why it works" notes left out): "Mastery 1 - Shatterlight: When the beam hits an enemy, a burst of radiant shards sprays
+   sideways from the impact, striking nearby enemies for 35% damage. Each enemy can trigger the effect once per cast. Visual: The beam flashes
+   white on impact, then splinters into razor-sharp blue-white fragments that shoot out like broken glass. / Mastery 2 - Prism Split: At the
+   beam's endpoint, a floating crystal prism forms and splits the remaining energy into three thinner beams, fanning outward across the road.
+   Each secondary beam deals 65% damage and can hit each enemy once. Visual: A brilliant crystalline prism appears at the beam's endpoint. It
+   catches the fading laser, flashes, and sends three razor-straight beams in different directions. / Mastery 3 - Lightbound Mirrors: Three
+   floating mirrors of light appear along the original beam's path. After the initial hit, each mirror fires a short reflected beam at a
+   different nearby group of enemies. Each reflected beam deals 75% damage. Visual: Thin geometric panels materialise along the beam, rotating
+   into position. The white core ricochets between them in sharp angles, creating a brief web of brilliant blue-white lines. / Mastery 4 -
+   Heaven's Verdict: After the initial beam passes, a column of celestial light descends from above along the same path, striking every enemy
+   the original beam hit. The column deals 100% additional damage. Visual: The original laser leaves a thin glowing line on the ground. A white
+   halo appears above it, then a colossal pillar of light crashes down, illuminating the entire battlefield before dissolving into drifting
+   motes. / Mastery 5 - Absolute Radiance: The hero's charging orb becomes a miniature star. When released, the beam tears open a radiant
+   corridor through the battlefield, expanding from its normal thin line into a colossal blade of light. The initial beam deals its normal
+   damage. The expanded blade sweeps across the same path, dealing an additional 150% damage to enemies caught in it. The final impact at the
+   endpoint erupts into a brilliant starburst. Visual sequence: the orb grows brighter until the hero is silhouetted in white light; thin
+   geometric rings rotate around it as the charge builds; the beam fires, leaving a perfectly straight white scar across the battlefield; the
+   scar widens into an enormous blade of light, briefly washing the screen in white; a radiant starburst blooms at the far end as the corridor
+   collapses into sparkling particles." He also asked: "NO LOW EFFORT EFFECTS are acceptable".
+   Percentages are of the scroll's power (the beam itself is 225%). Mastery 0, echoes and other casters are the old beam (bemC(o): the SM.ctx
+   entry of o.smId, not o.smx). From Mastery 1 castBeam is wrapped: the old beam still fires (its hits play Shatterlight through
+   SMF.beam.hit, once per foe, and note who it hit, S.hits) and the wrapper plays the rest along its line (S: start, end, direction, length,
+   worked out as castBeam does), timed from the moment it fires (BEM.TF, 0.24s after the call).
+   - M1 Shatterlight: bemShatter, a white flash and a spray of glass shards (instanced) bursting sideways from the struck foe, and a shard
+     flying to each other foe within BEM.shR: 35% each (flyers too).
+   - M2 Prism Split: bemPrism, a crystal prism (faceted glass, an iridescent rim, a white heart) forms at the beam's end and catches it, then
+     fires three thin beams (bemRay) 3.4 long, aimed where they hit the most foes (bemPrismDirs; never back toward the hero; any left over fan
+     out round the beam's line): 65% to each foe on each, once per beam. Then it shatters.
+   - M3 Lightbound Mirrors: bemMirrors, three hexagonal mirrors (a glinting face, a double frame) materialise along the beam, spinning into
+     place, each turned so it truly reflects the beam onto its target; the white core ricochets hero - mirror - mirror - mirror in a web of
+     lines, then each fires a reflected beam 2.8 long at a different group of foes nearby (bemMirrorTargets): 75% to each foe on it.
+   - M4 Heaven's Verdict: bemVerdict, a glowing line along the beam's path on the ground (bemStripMat); a halo of white and gold light
+     (elliptical, the length of the path) gathers 3 tiles above it, then a colossal column of light (Sunflare's snfBeamMat on an elongated
+     column) crashes down along the path: 100% to every foe the beam hit, wherever it is now; the board flashes white, then the column thins
+     and dissolves into drifting motes.
+   - M5 Absolute Radiance: bemStar charges a miniature star over the hero for 0.62s before the old beam is cast (a white heart, a spiked star,
+     a blue corona, three geometric rings turning on their own axes, a great glow behind the hero so it stands out in silhouette); the old
+     charge orb is hidden. When the beam fires, bemBlade: its white scar widens into a blade of light (a corridor on the ground, two walls and
+     a central sheet, bemWallMat) sweeping out along the path: 150% to each foe within BEM.raW of it (flyers too), the screen washed white;
+     a starburst blooms at the far end (bemStarTex, lens streaks, rings) and the corridor collapses into sparkles.
+   BEM.dbg (an array) logs the events for the tests. */
+const BEM={dbg:null,TF:.24,sh:.35,shR:.95,pr:.65,prL:3.4,prW:.3,mi:.75,miL:2.8,miW:.3,miR:3.2,miAt:[.28,.52,.76],hv:1,hvH:3.1,ra:1.5,raW:.95,raT0:.62};
+const BEC={W:0xffffff,I:0xeaf6ff,B:0x9ad0ff,D:0x3a78d8,G:0xffe6a0};
+const bemC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='beam'?c:null;};
+const bemLog=d=>{if(BEM.dbg)BEM.dbg.push(d);};
+SM_D.beam=[
+  {n:'Shatterlight',d:'Each foe the beam strikes flashes white and splinters a burst of razor-sharp light shards sideways: {35}% to each foe nearby.'},
+  {n:'Prism Split',d:'A crystal prism forms at the beam\'s end, catches the fading light and splits it into three thin beams fanning out across the road: {65}% to each foe they pierce.'},
+  {n:'Lightbound Mirrors',d:'Three mirrors of light spin into place along the beam; the light ricochets between them, and each fires a reflected beam at a different group of foes nearby: {75}% each.'},
+  {n:'Heaven\'s Verdict',d:'The beam leaves a glowing line; a halo gathers above it and a colossal column of light crashes down along the path: {100}% more to every foe the beam struck.'},
+  {n:'Absolute Radiance',d:'The charging orb becomes a miniature star. The beam\'s scar then widens into a colossal blade of light sweeping the whole path, {150}% more, and a starburst blooms at its end.'}];
+SMF.beam={m:2.25,
+  hit(c,e){if(smSeen(e,c,'b'))return;const S=c.bem;if(S)S.hits.push(e);if(c.L>=1)bemShatter(c,e,c.P*BEM.sh*c.a[0]);}};
+SMA.beam=[1,1,1,1,1];
+SMG.beam=[1,1,1,1,1];
+SM.free=SM.free||{};SM.free.beam='Simon'+String.fromCharCode(8217)+'s own numbers for the Basic Beam';
+
+/* ---- shared pieces ---- */
+const BEMQ={},BEMO=new THREE.Object3D(),BEMV={up:new THREE.Vector3(0,1,0),a:new THREE.Vector3(),b:new THREE.Vector3()};
+BEMQ.cyl=()=>BEMQ._cy||(BEMQ._cy=new THREE.CylinderGeometry(1,1,1,12,1,true).translate(0,.5,0));
+BEMQ.shard=()=>BEMQ._sh||(BEMQ._sh=(()=>{const g=new THREE.OctahedronGeometry(1,0);g.scale(.22,1,.22);const j=jitterGeo(g,.08);g.dispose();return j;})());
+BEMQ.strip=()=>BEMQ._st||(BEMQ._st=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2).translate(.5,0,0));
+BEMQ.wall=()=>BEMQ._wl||(BEMQ._wl=new THREE.PlaneGeometry(1,1).translate(.5,.5,0));
+const bemAM=(col,op)=>new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+const bemSM=(col,op,map)=>new THREE.SpriteMaterial({map:map||softDiscTex(),color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false});
+const bemGlass=()=>new THREE.MeshPhongMaterial({color:0xeef8ff,emissive:0x6aa8f0,emissiveIntensity:1.1,specular:0xffffff,shininess:140,flatShading:true,transparent:true,opacity:.92});
+/* a new InstancedMesh draws every instance at full size until its matrices are set: start them all hidden */
+const bemHide=im=>{BEMO.position.set(0,0,0);BEMO.rotation.set(0,0,0);BEMO.scale.setScalar(.0001);BEMO.updateMatrix();for(let i=0;i<im.count;i++)im.setMatrixAt(i,BEMO.matrix);im.instanceMatrix.needsUpdate=true;im.frustumCulled=false;return im;};
+const bemAng=(a,b)=>{let d=a-b;while(d>Math.PI)d-=6.2832;while(d<-Math.PI)d+=6.2832;return d;};
+/* the shared effects light (FXL, through jvLight so a spell already using it keeps it), cold white: every effect asks each frame, the brightest wins */
+const BEML={on:false,I:0,x:0,y:0,z:0,d:5};
+function bemLight(x,y,z,I,d){if(!(I>0))return;if(I>BEML.I){BEML.I=I;BEML.x=x;BEML.y=y;BEML.z=z;BEML.d=d;}
+  if(BEML.on&&fx.indexOf(BEML.e)>=0)return;BEML.on=true;let idle=0;/* (clearWorld empties the effect list, so the manager can vanish unfinished) */
+  BEML.e=addFx(new THREE.Group(),1e4,f=>{if(BEML.I>0){idle=0;if(typeof jvLight==='function')jvLight(BEML.x,BEML.y,BEML.z,0xe4f0ff,BEML.I,BEML.d);BEML.I=0;}
+    else if(++idle>2||f.life<1){f.life=0;BEML.on=false;BEML.I=0;if(typeof jvLightOff==='function')jvLightOff();}});}
+const bemGlowDisc=(x,z,y,R,col,op,life)=>{if(typeof snfGlowDisc==='function')snfGlowDisc(x,z,y,R,col,op,life,.03);};
+/* a spiked star (drawn once): four long spikes, four short ones, a white heart and a soft halo */
+const BEMT={};
+function bemStarTex(){if(BEMT.star)return BEMT.star;const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.globalCompositeOperation='lighter';
+  const gr=g.createRadialGradient(128,128,0,128,128,128);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.08,'rgba(240,248,255,.8)');gr.addColorStop(.25,'rgba(190,225,255,.22)');gr.addColorStop(1,'rgba(160,210,255,0)');g.fillStyle=gr;g.fillRect(0,0,256,256);
+  const spike=(a,L,w)=>{g.save();g.translate(128,128);g.rotate(a);const q=g.createLinearGradient(0,0,L,0);q.addColorStop(0,'rgba(255,255,255,1)');q.addColorStop(.5,'rgba(220,238,255,.55)');q.addColorStop(1,'rgba(180,215,255,0)');g.fillStyle=q;
+    g.beginPath();g.moveTo(0,-w);g.lineTo(L,0);g.lineTo(0,w);g.closePath();g.fill();g.restore();};
+  for(let i=0;i<4;i++){spike(i*Math.PI/2,126,7);spike(i*Math.PI/2+Math.PI/4,70,4.5);}for(let i=0;i<16;i++)spike(i*Math.PI/8+Math.PI/16,38,2);
+  BEMT.star=new THREE.CanvasTexture(c);return BEMT.star;}
+/* a lens streak: a thin horizontal line of light, brightest in the middle */
+function bemStreakTex(){if(BEMT.st)return BEMT.st;const c=document.createElement('canvas');c.width=256;c.height=32;const g=c.getContext('2d');const q=g.createLinearGradient(0,0,256,0);q.addColorStop(0,'rgba(255,255,255,0)');q.addColorStop(.5,'rgba(255,255,255,1)');q.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=q;for(const[h,a]of[[16,.18],[6,.5],[2,1]]){g.globalAlpha=a;g.fillRect(0,16-h/2,256,h);}BEMT.st=new THREE.CanvasTexture(c);return BEMT.st;}
+/* a laser between two points: a white core, a blue glow and a soft outer sheath, snapping out in o.grow and fading over o.life, sparks and arcs along it */
+function bemRay(A,B,o){o=o||{};const g=new THREE.Group();scene.add(smTag(g));const dir=new THREE.Vector3().subVectors(B,A),L=dir.length()||.01;dir.normalize();g.position.copy(A);g.quaternion.setFromUnitVectors(BEMV.up,dir);
+  const w=o.w||.045,mc=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:1,depthWrite:false}),mg=bemAM(o.col||BEC.B,.6),mo=bemAM(o.halo||BEC.D,.22);
+  const c1=new THREE.Mesh(BEMQ.cyl(),mc),c2=new THREE.Mesh(BEMQ.cyl(),mg),c3=new THREE.Mesh(BEMQ.cyl(),mo);c1.renderOrder=9;c2.renderOrder=8;c3.renderOrder=7;g.add(c3,c2,c1);for(const c of[c1,c2,c3])c.scale.setScalar(.0001);/* (until its first frame) */
+  const G=o.grow||.05,F=o.life||.38;let t=0;
+  addFx(g,G+F,(f,dt)=>{t+=dt;const k=Math.min(1,t/G),fd=t<G?1:Math.max(0,1-(t-G)/F),s=Math.max(.001,L*k);
+    c1.scale.set(w*fd+.001,s,w*fd+.001);const w2=w*2.6*(.45+.55*fd),w3=w*5.5*(.3+.7*fd);c2.scale.set(w2,s,w2);c3.scale.set(w3,s,w3);mc.opacity=fd;mg.opacity=.6*fd;mo.opacity=.22*fd;
+    if(fd>.2&&!o.quiet){for(let i=0;i<3;i++){const a=rnd()*k*L;emit(1,{x:A.x+dir.x*a+(rnd()-.5)*.12,y:A.y+dir.y*a+(rnd()-.5)*.12,z:A.z+dir.z*a+(rnd()-.5)*.12,vx:(rnd()-.5)*1.2,vy:(rnd()-.3)*1.2,vz:(rnd()-.5)*1.2,s:.035+rnd()*.04,s2:0,c:0xffffff,c2:o.col||BEC.B,life:.25+rnd()*.25,drag:2.5});}
+      if(rnd()<dt*20){const a=rnd()*k*L,b=Math.min(L,a+.15+rnd()*.25),j=()=>(rnd()-.5)*.16;zap({x:A.x+dir.x*a+j(),y:A.y+dir.y*a+j(),z:A.z+dir.z*a+j()},{x:A.x+dir.x*b+j(),y:A.y+dir.y*b+j(),z:A.z+dir.z*b+j()},0xffffff,.06);}}},null,{mats:[mc,mg,mo]});
+  return g;}
+/* the foes within w of the segment A-B on the ground plane (flyers too), each once per seen set */
+function bemOnLine(A,B,w,seen){const dx=B.x-A.x,dz=B.z-A.z,l2=dx*dx+dz*dz||1,out=[];for(const q of enemies){if(q.dead||q.fake||(seen&&seen.has(q)))continue;const u=clamp(((q.x-A.x)*dx+(q.z-A.z)*dz)/l2,0,1),px=A.x+dx*u,pz=A.z+dz*u;if((q.x-px)**2+(q.z-pz)**2<w*w)out.push(q);}return out;}
+function bemHitFx(p,s){s=s||1;flash(p.x,p.y,p.z,0xffffff,.26*s,.1);sprayP(1,p.x,p.y,p.z,Math.round(7*s),{c:0xffffff,c2:BEC.B,sp:1.3*s,up:.5,s:.035,s2:0,life:.3,g:2});}
+/* the beam's line, as castBeam works it out */
+function bemGeo(S){const t=S.t,e=S.e,sx=t.x,sy=t.topY,sz=t.z,tp=e.hitY!=null?tpos(e):{x:e.x,y:.3,z:e.z},dx=tp.x-sx,dz=tp.z-sz,dl=Math.hypot(dx,dz)||1,ux=dx/dl,uz=dz/dl,len=S.len;
+  Object.assign(S,{sx,sy,sz,ux,uz,ex:sx+ux*len,ey:Math.max(.15,sy+(tp.y-sy)*len/dl),ez:sz+uz*len,ry:Math.atan2(-uz,ux),px:-uz,pz:ux});
+  S.at=u=>({x:S.sx+(S.ex-S.sx)*u,y:S.sy+(S.ey-S.sy)*u,z:S.sz+(S.ez-S.sz)*u});return S;}
+
+/* ---- M1 Shatterlight: the struck foe splinters light shards sideways ---- */
+function bemShard(A,e,dmg,o){if(!e||e.dead)return;const g=new THREE.Group();g.position.copy(A);scene.add(smTag(g));const mt=bemGlass(),hm=bemSM(BEC.B,.8);const m=new THREE.Mesh(BEMQ.shard(),mt);m.scale.setScalar(.12);g.add(m);const h=new THREE.Sprite(hm);h.scale.setScalar(.3);g.add(h);
+  let last=tpos2(e),tt=0,done=false;const T=.16+rnd()*.06;
+  addFx(g,T+.02,(f,dt)=>{tt+=dt;if(!e.dead)last=tpos2(e);const k=Math.min(1,tt/T),x=A.x+(last.x-A.x)*k,y=A.y+(last.y-A.y)*k+Math.sin(k*Math.PI)*.08,z=A.z+(last.z-A.z)*k;
+    BEMV.a.set(last.x-g.position.x,last.y-g.position.y,last.z-g.position.z);g.position.set(x,y,z);if(BEMV.a.lengthSq()>1e-6)m.quaternion.setFromUnitVectors(BEMV.up,BEMV.a.normalize());
+    emit(1,{x,y,z,vx:0,vy:0,vz:0,s:.06,s2:0,c:0xffffff,c2:BEC.D,life:.2});
+    if(k>=1&&!done){done=true;if(!e.dead&&state==='playing')hurt(e,dmg,'magic',smO(o));bemHitFx(last,.8);}},null,{mats:[mt,hm]});}
+function bemShatter(c,e,dmg){const S=c.bem,p=tpos2(e),ux=S?S.ux:1,uz=S?S.uz:0;bemLog({ev:'shatter',e});
+  flash(p.x,p.y,p.z,0xffffff,.22,.08);const sm=bemSM(0xffffff,0,bemStreakTex()),sp=new THREE.Sprite(sm);sp.position.set(p.x,p.y,p.z);scene.add(smTag(sp));
+  const km=bemSM(BEC.I,0,bemStarTex()),ks=new THREE.Sprite(km);ks.position.set(p.x,p.y,p.z);scene.add(smTag(ks));
+  /* the spray: glass fragments bursting out to both sides of the beam */
+  const N=18,mt=bemGlass(),im=bemHide(new THREE.InstancedMesh(BEMQ.shard(),mt,N));const g=new THREE.Group();g.position.set(p.x,p.y,p.z);g.add(im);scene.add(smTag(g));const F=[];
+  for(let i=0;i<N;i++){const sd=i%2?1:-1,sa=(rnd()-.5)*1.1,cx=-uz*sd,cz=ux*sd,vx=cx*Math.cos(sa)-cz*Math.sin(sa),vz=cx*Math.sin(sa)+cz*Math.cos(sa),v=2.2+rnd()*2.6;F.push({vx:vx*v,vy:(rnd()-.1)*1.6,vz:vz*v,s:.07+rnd()*.08,x:0,y:0,z:0});}
+  let t=0;addFx(g,.55,(f,dt)=>{t+=dt;const k=t/.55;sm.opacity=Math.max(0,1-t/.14);sp.scale.set(.9*(1+t*5),.07,1);km.opacity=Math.max(0,.9-t*5);ks.scale.setScalar(.35+t*2.5);km.rotation+=dt*3;
+    for(let i=0;i<N;i++){const q=F[i];q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;q.vx*=1-dt*4;q.vz*=1-dt*4;q.vy-=dt*3;BEMV.a.set(q.vx,q.vy,q.vz);BEMO.position.set(q.x,q.y,q.z);BEMO.quaternion.setFromUnitVectors(BEMV.up,BEMV.a.normalize());
+      BEMO.scale.setScalar(q.s*(1-k*.6)+.001);BEMO.updateMatrix();im.setMatrixAt(i,BEMO.matrix);emit(1,{x:p.x+q.x,y:p.y+q.y,z:p.z+q.z,vx:0,vy:0,vz:0,s:.05,s2:0,c:0xffffff,c2:BEC.D,life:.18});}
+    im.instanceMatrix.needsUpdate=true;mt.opacity=.95*(1-k*k);if(t>.15)sp.visible=false;if(t>.19)ks.visible=false;},null,{mats:[mt,sm,km]});
+  addFx(sp,.16,null);addFx(ks,.2,null);
+  /* a shard to each other foe nearby */
+  const A=smV(p.x,p.y,p.z);for(const q of enemies){if(q===e||q.dead||q.fake)continue;if((q.x-e.x)**2+(q.z-e.z)**2>BEM.shR*BEM.shR)continue;bemLog({ev:'shard',e:q,src:e});bemShard(A,q,dmg,c.o);}}
+
+/* ---- M2 Prism Split: a crystal prism at the beam's end splits it into three ---- */
+/* an iridescent fresnel rim: the colours of a prism running round its edges, additive */
+function bemIrisMat(){return new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:rnd()*9}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  vertexShader:'varying vec3 vN,vV,vO;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);vO=position;gl_Position=projectionMatrix*mv;}',
+  fragmentShader:'uniform float uA,uT;varying vec3 vN,vV,vO;void main(){float f=abs(dot(normalize(vN),normalize(vV)));float r=pow(1.-f,1.6);vec3 c=.55+.45*cos(6.2832*(r*1.3+vO.y*1.5+uT*.35+vec3(0.,.33,.67)));c=mix(c,vec3(1.),.35);gl_FragColor=vec4(c,clamp(r*1.2*uA,0.,1.));}'});}
+function bemPrismDirs(px,pz,ux,uz){const L=BEM.prL,W=BEM.prW,cand=[];
+  const score=a=>{const vx=Math.cos(a),vz=Math.sin(a);let n=0;for(const q of enemies){if(q.dead||q.fake)continue;const dx=q.x-px,dz=q.z-pz,pr=dx*vx+dz*vz;if(pr<0||pr>L)continue;const cx=dx-vx*pr,cz=dz-vz*pr;if(cx*cx+cz*cz<W*W)n++;}return n;};
+  for(const q of enemies){if(q.dead||q.fake)continue;const dx=q.x-px,dz=q.z-pz,d=Math.hypot(dx,dz);if(d<.2||d>L)continue;if((dx*ux+dz*uz)/d<-.87)continue;cand.push(Math.atan2(dz,dx));}
+  const sc=cand.map(a=>({a,n:score(a)})).sort((x,y)=>y.n-x.n),out=[];for(const c of sc){if(out.length>=3)break;if(out.every(a=>Math.abs(bemAng(a,c.a))>=.42))out.push(c.a);}
+  const a0=Math.atan2(uz,ux);for(const off of[0,-.6,.6,-1.1,1.1,-1.5,1.5]){if(out.length>=3)break;const a=a0+off;if(out.every(b=>Math.abs(bemAng(b,a))>=.42))out.push(a);}return out.slice(0,3);}
+function bemPrism(S,dmg){const TF=BEM.TF,px=S.ex,pz=S.ez,py=Math.max(.45,S.ey)+.15,g=new THREE.Group();g.position.set(px,py,pz);g.scale.setScalar(.01);scene.add(smTag(g));const mats=[],geos=[];
+  const og=new THREE.OctahedronGeometry(.22,0);og.scale(1,1.75,1);geos.push(og);const gm=bemGlass();gm.opacity=.62;mats.push(gm);const body=new THREE.Mesh(og,gm);g.add(body);
+  const ig=new THREE.OctahedronGeometry(.25,0);ig.scale(1,1.75,1);geos.push(ig);const im=bemIrisMat();mats.push(im);const iris=new THREE.Mesh(ig,im);g.add(iris);
+  const hm=bemSM(0xffffff,0),gl=bemSM(BEC.B,0),xm=bemSM(BEC.I,0,bemStarTex());mats.push(hm,gl,xm);const heart=new THREE.Sprite(hm),glow=new THREE.Sprite(gl),star=new THREE.Sprite(xm);heart.scale.setScalar(.16);glow.scale.setScalar(.8);star.scale.setScalar(.7);g.add(glow,star,heart);
+  /* a thin ring of light turning round it */
+  const rg=new THREE.TorusGeometry(.3,.006,6,64);geos.push(rg);const rm=bemAM(BEC.I,0);mats.push(rm);const ring=new THREE.Mesh(rg,rm);ring.rotation.x=1.2;g.add(ring);
+  const dirs=bemPrismDirs(px,pz,S.ux,S.uz),hitL=[];let t=0,fired=false,broke=false;bemLog({ev:'prism0',dirs});
+  addFx(g,TF+.95,(f,dt)=>{t+=dt;im.uniforms.uT.value+=dt;const u=t-TF;body.rotation.y+=dt*(1.5+(u>0&&u<.25?8:0));iris.rotation.y=body.rotation.y;ring.rotation.z+=dt*3;
+    if(t<TF){const k=SMS(t,TF-.16,TF);g.scale.setScalar(.01+.99*k);gm.opacity=.62*k;im.uniforms.uA.value=k;gl.opacity=.25*k;rm.opacity=.5*k;
+      if(rnd()<dt*30){const a=rnd()*6.28,b=rnd()*2-1,q=Math.sqrt(1-b*b),r=.5;emit(1,{x:px+Math.cos(a)*q*r,y:py+b*r,z:pz+Math.sin(a)*q*r,vx:-Math.cos(a)*q*r*3,vy:-b*r*3,vz:-Math.sin(a)*q*r*3,s:.03,s2:0,c:0xffffff,c2:BEC.B,life:.16});}}
+    else if(u<.18){/* it catches the beam: brightening, the heart flaring */const k=u/.18;g.scale.setScalar(1+.12*Math.sin(u*60)*k);hm.opacity=.6+.4*k;heart.scale.setScalar(.16+.22*k);gl.opacity=.25+.45*k;xm.opacity=.7*k;star.material.rotation+=dt*4;im.uniforms.uA.value=1+k;bemLight(px,py,pz,.5+.9*k,2.5);}
+    else if(!fired){fired=true;bemLog({ev:'prism',t});flash(px,py,pz,0xffffff,.32,.1);bemGlowDisc(px,pz,gy(px,pz),.9,BEC.D,.4,.4);
+      const cols=[0x7ab8ff,0xffffff,0xb8a8ff];dirs.forEach((a,i)=>{const vx=Math.cos(a),vz=Math.sin(a),A=smV(px,py,pz),B=smV(px+vx*BEM.prL,.3,pz+vz*BEM.prL);bemRay(A,B,{w:.03,col:cols[i%3],halo:BEC.D,grow:.05,life:.36});
+        const seen=new Set();if(state==='playing')for(const q of bemOnLine(A,B,BEM.prW,seen)){hurt(q,dmg,'magic',S.o);hitL.push({e:q,i});bemHitFx(tpos2(q));}
+        flash(B.x,B.y,B.z,cols[i%3],.3,.12);sprayP(1,B.x,B.y,B.z,10,{c:0xffffff,c2:cols[i%3],sp:1.6,s:.04,s2:0,life:.35,g:2});});bemLog({ev:'prismHits',hits:hitL});}
+    if(fired){const v=u-.18;hm.opacity=Math.max(0,1-v*2.5);xm.opacity=Math.max(0,.7-v*2.2);gl.opacity=Math.max(0,.7-v*1.8);rm.opacity=Math.max(0,.5-v*1.5);star.scale.setScalar(.7+v*1.5);bemLight(px,py,pz,Math.max(0,1.3-v*4),2.5);
+      /* then the crystal cracks apart into glittering glass */
+      if(v>.3&&!broke){broke=true;body.visible=iris.visible=false;bemGlassBurst(px,py,pz,12,.5);}}},null,{mats,geos});}
+/* glass splinters flying out from a point and falling, glittering */
+function bemGlassBurst(x,y,z,n,sp){const mt=bemGlass(),im=bemHide(new THREE.InstancedMesh(BEMQ.shard(),mt,n));const g=new THREE.Group();g.position.set(x,y,z);g.add(im);scene.add(smTag(g));const F=[];
+  for(let i=0;i<n;i++){const a=rnd()*6.28,b=rnd()*1.6-.5,v=(.6+rnd())*sp*3;F.push({x:0,y:0,z:0,vx:Math.cos(a)*Math.cos(b)*v,vy:Math.sin(b)*v+.4,vz:Math.sin(a)*Math.cos(b)*v,rx:rnd()*6,wx:(rnd()-.5)*16,s:.03+rnd()*.04});}
+  flash(x,y,z,0xffffff,.3,.1);sprayP(1,x,y,z,14,{c:0xffffff,c2:BEC.B,sp:1.4,s:.03,s2:0,life:.4,g:2});let t=0;
+  addFx(g,.6,(f,dt)=>{t+=dt;const k=t/.6;for(let i=0;i<n;i++){const q=F[i];q.vy-=dt*4;q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;q.rx+=q.wx*dt;BEMO.position.set(q.x,q.y,q.z);BEMO.rotation.set(q.rx,q.rx*.6,0);BEMO.scale.setScalar(q.s*(1-k*.6));BEMO.updateMatrix();im.setMatrixAt(i,BEMO.matrix);
+      if(rnd()<dt*6)emit(1,{x:x+q.x,y:y+q.y,z:z+q.z,vx:0,vy:0,vz:0,s:.04,s2:0,c:0xffffff,c2:BEC.B,life:.2});}im.instanceMatrix.needsUpdate=true;mt.opacity=.92*(1-k);},null,{mat:mt});}
+
+/* ---- M3 Lightbound Mirrors: mirrors along the beam reflect it onto groups of foes ---- */
+/* a mirror's face (CircleGeometry uv): a cold sheen, a glint sweeping across, a bright rim, additive */
+function bemMirrorMat(){return new THREE.ShaderMaterial({uniforms:{uA:{value:0},uG:{value:-1},uT:{value:rnd()*9}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+  vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uA,uG,uT;varying vec2 vU;void main(){vec2 p=vU-.5;float r=length(p)*2.;float glint=exp(-pow((vU.x+vU.y-1.-uG)*7.,2.));float rim=smoothstep(.72,.98,r);float sheen=.18+.12*sin(vU.x*20.+vU.y*14.+uT*3.);'+
+    'vec3 c=mix(vec3(.55,.78,1.),vec3(1.),glint+rim*.5);gl_FragColor=vec4(c,clamp((sheen+glint*.9+rim*.55)*uA,0.,1.));}'});}
+function bemMirrorTargets(M){const used=[],R=BEM.miR;return M.map(m=>{const near=enemies.filter(q=>!q.dead&&!q.fake&&(q.x-m.x)**2+(q.z-m.z)**2<R*R&&used.every(u=>(q.x-u.x)**2+(q.z-u.z)**2>.9*.9));if(!near.length)return null;const d=densest(near);used.push(d);const p=tpos2(d);return{x:p.x,y:p.y,z:p.z,e:d};});}
+function bemMirrors(S,dmg){const TF=BEM.TF,mats=[],geos=[],root=new THREE.Group();scene.add(smTag(root));
+  const M=BEM.miAt.map((u,i)=>{const p=S.at(u),sd=i%2?1:-1;return{x:p.x+S.px*.32*sd,y:Math.max(.45,p.y)+.12,z:p.z+S.pz*.32*sd};});
+  const T=bemMirrorTargets(M);bemLog({ev:'mirrors0',M,T});
+  const fg=new THREE.CircleGeometry(.36,6),eg=new THREE.EdgesGeometry(fg),eg2=new THREE.EdgesGeometry(new THREE.CircleGeometry(.27,6));geos.push(fg,eg,eg2);
+  M.forEach((m,i)=>{const piv=new THREE.Group();piv.position.set(m.x,m.y,m.z);root.add(piv);const sp=new THREE.Group();piv.add(sp);const fm=bemMirrorMat();mats.push(fm);sp.add(new THREE.Mesh(fg,fm));
+    const lm=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}),lm2=new THREE.LineBasicMaterial({color:BEC.B,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(lm,lm2);
+    sp.add(new THREE.LineSegments(eg,lm));const in2=new THREE.LineSegments(eg2,lm2);in2.rotation.z=Math.PI/6;sp.add(in2);
+    const gm=bemSM(BEC.B,0);mats.push(gm);const gl=new THREE.Sprite(gm);gl.scale.setScalar(.75);piv.add(gl);
+    /* turned to truly reflect the beam onto its target: the face's normal halves the angle between the light coming in and going out */
+    const tg=T[i],ox=tg?tg.x-m.x:S.px*(i%2?1:-1),oz=tg?tg.z-m.z:S.pz*(i%2?1:-1),oy=tg?tg.y-m.y:-.2,ol=Math.hypot(ox,oy,oz)||1;BEMV.a.set(-S.ux+ox/ol,oy/ol*.5,-S.uz+oz/ol);if(BEMV.a.lengthSq()<1e-4)BEMV.a.set(S.px,0,S.pz);
+    BEMV.a.normalize();piv.lookAt(m.x+BEMV.a.x,m.y+BEMV.a.y,m.z+BEMV.a.z);Object.assign(m,{piv,sp,fm,lm,lm2,gm,gl,out:{x:ox/ol,y:oy/ol,z:oz/ol},tg});});
+  let t=0,web=0,fired=false,broke=false;
+  addFx(root,TF+1,(f,dt)=>{t+=dt;const u=t-TF;
+    M.forEach((m,i)=>{m.fm.uniforms.uT.value+=dt;const k=SMS(u,.04+i*.05,.26+i*.05);m.sp.scale.setScalar(.01+.99*k);m.sp.rotation.z=(1-k)*7+(i%2?-1:1)*(1-k)*2;m.fm.uniforms.uA.value=k*(fired?Math.max(0,1-(u-.48)*2.2):1);m.lm.opacity=.95*k*(fired?Math.max(0,1-(u-.48)*2):1);m.lm2.opacity=.7*k*(fired?Math.max(0,1-(u-.48)*2):1);
+      m.gm.opacity=.25*k+(u>.3&&u<.6?.45:0);m.fm.uniforms.uG.value=-1+2.2*SMS(u,.2+i*.05,.5+i*.05);if(k>0&&k<1&&rnd()<.4)emit(1,{x:m.x+(rnd()-.5)*.4,y:m.y+(rnd()-.5)*.4,z:m.z+(rnd()-.5)*.4,vx:0,vy:.3,vz:0,s:.03,s2:0,c:0xffffff,c2:BEC.B,life:.3});});
+    /* the white core ricochets from the hero from mirror to mirror */
+    if(u>=.3&&web<4){const A=web===0?smV(S.sx,S.sy,S.sz):smV(M[web-1].x,M[web-1].y,M[web-1].z),B=smV(M[Math.min(web,2)].x,M[Math.min(web,2)].y,M[Math.min(web,2)].z);
+      if(web<3){bemRay(A,B,{w:.018,col:BEC.B,grow:.03,life:.32,quiet:true});flash(B.x,B.y,B.z,0xffffff,.32,.1);if(web>0){/* and back across, for the web of lines */const C=smV(M[(web+1)%3].x,M[(web+1)%3].y,M[(web+1)%3].z);bemRay(B,C,{w:.012,col:BEC.I,grow:.04,life:.26,quiet:true});}}
+      web++;}
+    if(u>=.46&&!fired){fired=true;bemLog({ev:'mirrors',t});const hitL=[];M.forEach((m,i)=>{const A=smV(m.x,m.y,m.z),B=smV(m.x+m.out.x*BEM.miL,Math.max(.22,m.y+m.out.y*BEM.miL),m.z+m.out.z*BEM.miL);
+        bemRay(A,B,{w:.032,col:BEC.B,grow:.045,life:.34});flash(m.x,m.y,m.z,0xffffff,.45,.12);const seen=new Set();if(state==='playing')for(const q of bemOnLine(A,B,BEM.miW,seen)){hurt(q,dmg,'magic',S.o);hitL.push({e:q,i});bemHitFx(tpos2(q));}
+        sprayP(1,B.x,B.y,B.z,8,{c:0xffffff,c2:BEC.B,sp:1.4,s:.035,s2:0,life:.3,g:2});});bemLog({ev:'mirrorHits',hits:hitL});bemLight(S.at(.5).x,1,S.at(.5).z,1.1,S.len*.6+2);}
+    if(fired&&u>.62&&!broke){broke=true;M.forEach(m=>bemGlassBurst(m.x,m.y,m.z,6,.35));}
+    if(u>.3&&u<.6)bemLight(S.at(.5).x,1,S.at(.5).z,.7,S.len*.6+2);},null,{mats,geos});}
+
+/* ---- M4 Heaven's Verdict: a halo above the path, a column of light crashing down along it ---- */
+/* a glowing line on the ground (a strip: uv.x along, uv.y across). uM 0: a cold shadow beside it so the light reads on the bright plains
+   (normal); uM 1: the line itself (additive). uW: its core width (of the strip), uF: how far along it is drawn, uB: brightness */
+function bemStripMat(M){return new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:rnd()*9},uW:{value:.12},uF:{value:1},uB:{value:1}},transparent:true,depthWrite:false,
+  blending:M?THREE.AdditiveBlending:THREE.NormalBlending,polygonOffset:true,polygonOffsetFactor:-3-M,polygonOffsetUnits:-3-M,
+  vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uA,uT,uW,uF,uB;varying vec2 vU;'+SLM_N+
+    'void main(){float v=(vU.y-.5)*2.;float sides=1.-v*v;float core=exp(-v*v/(uW*uW));float halo=exp(-abs(v)/(uW*2.5+.05))*.45*sides*sides;float sh=.75+.25*n1(vec2(vU.x*60.-uT*9.,vU.y*5.));'+
+    'float ends=smoothstep(0.,.015,vU.x)*smoothstep(1.,.985,vU.x);float m=smoothstep(uF+.01,uF-.01,vU.x);float front=exp(-pow((vU.x-uF)*40.,2.))*step(.01,uF)*step(uF,.99);'+
+    (M?'vec3 c=mix(vec3(.55,.78,1.),vec3(1.),clamp(core*1.2,0.,1.));gl_FragColor=vec4(c,clamp((core+halo)*sh*m*ends+front*(core+halo)*1.5,0.,1.)*uA*uB);}':
+     'gl_FragColor=vec4(vec3(.04,.08,.22),clamp(exp(-v*v*1.6)*.32*sides*m*ends,0.,1.)*uA);}')});}
+function bemStrip(S,W,life,o){o=o||{};const g=new THREE.Group();g.position.set(S.sx,gy(S.sx,S.sz)+.035,S.sz);g.rotation.y=S.ry;scene.add(smTag(g));
+  const m0=bemStripMat(0),m1=bemStripMat(1);const a=new THREE.Mesh(BEMQ.strip(),m0),b=new THREE.Mesh(BEMQ.strip(),m1);a.renderOrder=4;b.renderOrder=5;g.add(a,b);g.scale.set(S.len,1,W);
+  const st={g,m0,m1,t:0};addFx(g,life,(f,dt)=>{st.t+=dt;for(const m of[m0,m1])m.uniforms.uT.value+=dt;if(o.tick)o.tick(st,f,dt);},null,{mats:[m0,m1]});return st;}
+function bemVerdict(S,dmg){const TF=BEM.TF,H=BEM.hvH,half=S.len/2,mx=S.sx+S.ux*half,mz=S.sz+S.uz*half,g0=gy(mx,mz),mats=[],geos=[],root=new THREE.Group();scene.add(smTag(root));
+  const tH=TF+.5,tC=TF+.95,tE=tC+1;
+  /* the line the beam leaves on the ground, flaring when the column lands */
+  bemStrip(S,.8,tE-.1,{tick:(st,f,dt)=>{const t=st.t,u=t-TF;const a=u<0?0:Math.min(1,u/.05)*Math.min(1,f.life/.4);for(const m of[st.m0,st.m1]){m.uniforms.uA.value=a;m.uniforms.uW.value=t<tC?.1:.1+.25*Math.exp(-(t-tC)*4);}st.m1.uniforms.uB.value=t<tC?.7+.3*Math.sin(t*20):1+1.5*Math.exp(-(t-tC)*3);}});
+  /* the halo: an ellipse of white-gold light the length of the path, gathering above it */
+  const hp=new THREE.Group();hp.position.set(mx,g0+H,mz);hp.rotation.y=S.ry;root.add(hp);const hs=new THREE.Group();hs.scale.set(half+.3,1,.5);hp.add(hs);
+  const tg=new THREE.TorusGeometry(1,.012,8,128),tg2=new THREE.TorusGeometry(.86,.008,8,128);geos.push(tg,tg2);const hm=bemAM(0xffffff,0),hm2=bemAM(0xfff4d8,0);mats.push(hm,hm2);
+  const h1=new THREE.Mesh(tg,hm),h2=new THREE.Mesh(tg2,hm2);h1.rotation.x=h2.rotation.x=Math.PI/2;hs.add(h2,h1);
+  /* points of light strung round it, turning */
+  const NP=28,pts=[],pm=bemSM(0xffffff,0),pm2=bemSM(BEC.G,0);mats.push(pm,pm2);for(let i=0;i<NP;i++){const s=new THREE.Sprite(i%3?pm:pm2);s.scale.setScalar(i%3?.09:.16);hp.add(s);pts.push({s,a:i/NP*6.2832});}
+  /* the column: an elongated shaft of light hanging from the halo (its top at 0), grown downward when it crashes */
+  const cg=new THREE.CylinderGeometry(1,1,1,48,1,true);cg.translate(0,-.5,0);geos.push(cg);const cm=typeof snfBeamMat==='function'?snfBeamMat({p:2.4,s:22,sp:3.4,top:.6,bot:.02,rim:.9,g:0x9ac8ff,w:0xffffff}):bemAM(BEC.I,0);mats.push(cm);
+  const col=new THREE.Mesh(cg,cm);col.position.set(mx,g0+H,mz);col.rotation.y=S.ry;col.scale.set(half+.35,.001,.42);col.visible=false;root.add(col);
+  const cg2=new THREE.CylinderGeometry(1,1,1,48,1,true);cg2.translate(0,-.5,0);geos.push(cg2);const cm2=bemAM(0xffffff,0);mats.push(cm2);const core=new THREE.Mesh(cg2,cm2);core.position.copy(col.position);core.rotation.y=S.ry;core.visible=false;root.add(core);
+  let t=0,crash=false;
+  addFx(root,tE+.6,(f,dt)=>{t+=dt;if(cm.uniforms)cm.uniforms.uT.value+=dt;
+    if(t>=tH&&t<tC+.3){const k=SMS(t,tH,tC-.08);hm.opacity=.9*k*(.85+.15*Math.sin(t*25));hm2.opacity=.5*k;const sx=(half+.3)*(1.25-.25*k),sz=.5*(1.25-.25*k);hs.scale.set(sx,1,sz);h1.rotation.z+=dt;
+      pm.opacity=.9*k;pm2.opacity=.7*k;for(const q of pts){q.a+=dt*.8;q.s.position.set(Math.cos(q.a)*sx,0,Math.sin(q.a)*sz);}
+      if(rnd()<dt*30*k){const v=rnd(),x=S.sx+S.ux*S.len*v+(rnd()-.5)*.6,z=S.sz+S.uz*S.len*v+(rnd()-.5)*.6;emit(1,{x,y:g0+H-.1,z,vx:0,vy:-2.6,vz:0,s:.03,s2:.01,c:0xffffff,c2:BEC.G,life:1,a:.8});}
+      if(rnd()<dt*40*k){const a=rnd()*6.28,rx=Math.cos(a)*(half+.3),rz=Math.sin(a)*.5,wx=mx+rx*S.ux-rz*S.uz,wz=mz+rx*S.uz+rz*S.ux;emit(1,{x:wx,y:g0+H,z:wz,vx:0,vy:-.3,vz:0,s:.05,s2:0,c:0xffffff,c2:BEC.G,life:.5});}
+      bemLight(mx,g0+H,mz,.4+.8*k,half+3);}
+    if(t>=tC){const u=t-tC;col.visible=core.visible=true;const k=Math.min(1,u/.12),fade=u<.28?1:Math.max(0,1-(u-.28)/.5),thin=u<.28?1:.35+.65*fade;
+      col.scale.set((half+.3)*(.92+.08*thin),Math.max(.001,H*k),.3*thin);core.scale.set((half+.15)*thin,Math.max(.001,H*k),.07*thin);if(cm.uniforms)cm.uniforms.uA.value=fade*.5;else cm.opacity=.35*fade;cm2.opacity=.12*fade*(u<.15?2.5:1);
+      hm.opacity=Math.max(0,.9-u*3);hm2.opacity=Math.max(0,.5-u*2);pm.opacity=pm2.opacity=Math.max(0,.9-u*3);
+      if(k>=1&&!crash){crash=true;bemLog({ev:'verdict',t});camShake=Math.max(camShake,.1);flashA=Math.max(flashA,.28);flashCol='#f4f8ff';flashDecay=2.6;
+        for(let i=0;i<6;i++){const v=(i+.5)/6;bemGlowDisc(S.sx+S.ux*S.len*v,S.sz+S.uz*S.len*v,g0,1.1,BEC.I,.4,.6);}
+        for(const e of S.hits){if(e.dead)continue;if(state==='playing')hurt(e,dmg,'magic',S.o);bemLog({ev:'verdictHit',e});const p=tpos2(e);flash(p.x,p.y,p.z,0xffffff,.4,.14);sprayP(1,p.x,p.y,p.z,10,{c:0xffffff,c2:BEC.G,sp:1.6,up:1,s:.04,s2:0,life:.4,g:1});}
+        for(let i=0;i<26;i++){const v=rnd(),x=S.sx+S.ux*S.len*v+(rnd()-.5)*.5,z=S.sz+S.uz*S.len*v+(rnd()-.5)*.5;emitS(0,{x,y:g0+.1,z,vx:(rnd()-.5)*1.4,vy:.3+rnd()*.4,vz:(rnd()-.5)*1.4,s:.25,s2:.7,c:0xd8d0c0,c2:0x8a8478,a:.35,life:1.1,turb:.6,drag:1.4});}}
+      bemLight(mx,g0+1.2,mz,(crash?2.6*Math.exp(-u*3)+.7*fade:1.2),half+5);
+      /* drifting motes as it dissolves */
+      if(u>.2&&rnd()<dt*90*fade+dt*20){const v=rnd(),x=S.sx+S.ux*S.len*v+(rnd()-.5)*.7,z=S.sz+S.uz*S.len*v+(rnd()-.5)*.7;emit(1,{x,y:g0+.1+rnd()*H*.6*fade,z,vx:(rnd()-.5)*.15,vy:.25+rnd()*.35,vz:(rnd()-.5)*.15,s:.035+rnd()*.03,s2:.005,c:rnd()<.4?BEC.G:0xffffff,c2:BEC.B,a:.9,life:1+rnd()*.8,turb:.3});}}},null,{mats,geos});}
+
+/* ---- M5 Absolute Radiance: a star charging over the hero, the scar widening into a blade of light ---- */
+/* the blade's sheets of light (a plane: uv.x along the path, uv.y up): brightest at the foot, streaks running along, drawn up to uF */
+function bemWallMat(){return new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:rnd()*9},uF:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+  vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uA,uT,uF;varying vec2 vU;'+SLM_N+'void main(){float u=vU.x,y=vU.y;float st=.55+.45*n1(vec2(u*36.-uT*14.,y*3.));float st2=.7+.3*n1(vec2(u*90.-uT*22.,y*9.));'+
+    'float edge=1.-smoothstep(.55+.25*n1(vec2(u*20.+uT*2.,1.)),1.,y);float k=(pow(1.-y,2.2)*.75*st*st2+exp(-y*16.)*.5)*edge;float ends=smoothstep(0.,.06,u)*smoothstep(1.,.9,u);float m=smoothstep(uF+.01,uF-.02,u)*ends;float front=exp(-pow((u-uF)*30.,2.))*step(uF,.99)*(1.-y)*1.2;'+
+    'vec3 c=mix(vec3(.6,.82,1.),vec3(1.),clamp(pow(1.-y,3.)+front,0.,1.));gl_FragColor=vec4(c,clamp((k*m+front)*uA,0.,1.));}'});}
+function bemStar(S){const t=S.t,T=BEM.raT0+BEM.TF,x=t.x,y=t.topY,z=t.z,mats=[],geos=[],g=new THREE.Group();g.position.set(x,y,z);scene.add(smTag(g));bemLog({ev:'star0'});
+  const cm=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false});mats.push(cm);const cg=new THREE.IcosahedronGeometry(.07,2);geos.push(cg);const core=new THREE.Mesh(cg,cm);g.add(core);
+  const xm=bemSM(0xffffff,0,bemStarTex()),gm=bemSM(BEC.B,0),bm=bemSM(BEC.I,0),sm=bemSM(0xffffff,0,bemStreakTex());mats.push(xm,gm,bm,sm);const star=new THREE.Sprite(xm),glow=new THREE.Sprite(gm),bloom=new THREE.Sprite(bm),streak=new THREE.Sprite(sm);g.add(bloom,glow,star,streak);
+  /* three geometric rings turning on their own axes: a circle, a hexagon and a triangle of thin bars */
+  const rm=bemAM(BEC.B,0),rm2=bemAM(0x6aa8ff,0);mats.push(rm,rm2);const rings=[];const tor=new THREE.TorusGeometry(.46,.014,6,96);geos.push(tor);const r0=new THREE.Group();r0.add(new THREE.Mesh(tor,rm));rings.push(r0);
+  const bar=new THREE.CylinderGeometry(.012,.012,1,5);geos.push(bar);const poly=(n,R,m)=>{const p=new THREE.Group();for(let i=0;i<n;i++){const a0=i/n*6.2832,a1=(i+1)/n*6.2832,ax=Math.cos(a0)*R,az=Math.sin(a0)*R,bx=Math.cos(a1)*R,bz=Math.sin(a1)*R,L=Math.hypot(bx-ax,bz-az);
+      const b=new THREE.Mesh(bar,m);b.position.set((ax+bx)/2,0,(az+bz)/2);b.scale.y=L;b.rotation.set(0,0,Math.PI/2);b.rotation.y=-Math.atan2(bz-az,bx-ax);p.add(b);const d=new THREE.Mesh(new THREE.OctahedronGeometry(.035,0),m);geos.push(d.geometry);d.position.set(ax,0,az);p.add(d);}return p;};
+  rings.push(poly(6,.6,rm2),poly(3,.76,rm));rings[0].rotation.x=1.1;rings[1].rotation.z=.9;rings[2].rotation.x=-.5;rings.forEach(r=>{r.scale.setScalar(.01);g.add(r);});
+  /* a great glow behind the hero (away from the camera), so the hero stands out against it in silhouette */
+  const sil=new THREE.Sprite(bemSM(0xf4f8ff,0));mats.push(sil.material);sil.scale.setScalar(.01);scene.add(smTag(sil));
+  if(t.anim&&t.anim.k==='beam'&&t.anim.t<.1)t.anim.d=T/.26;
+  let tt=0,gone=false;
+  addFx(g,T+.3,(f,dt)=>{tt+=dt;const k=Math.min(1,tt/T),s=SMS(k,0,1);
+    if(tt<T){core.scale.setScalar(.6+1.6*s);cm.opacity=Math.min(1,k*3);xm.opacity=.95*s;star.scale.setScalar(.3+1.2*s+.06*Math.sin(tt*37));xm.rotation+=dt*(1+3*s);gm.opacity=.4*s;glow.scale.setScalar(.4+.5*s);bm.opacity=.1*s;bloom.scale.setScalar(.9+.9*s);
+      sm.opacity=.7*s;streak.scale.set(.6+2.2*s,.05+.02*s,1);
+      rings.forEach((r,i)=>{r.scale.setScalar(.01+.99*SMS(k,.1+i*.12,.45+i*.12));r.rotation.y+=dt*(2.2+i*1.3)*(i%2?-1:1);r.rotation.x+=dt*(.6+i*.4);});rm.opacity=.85*s;rm2.opacity=.75*s;
+      BEMV.a.set(t.x-camera.position.x,0,t.z-camera.position.z).normalize();sil.position.set(t.x+BEMV.a.x*.8,y*.55,t.z+BEMV.a.z*.8);sil.scale.setScalar(.01+1.8*s*s);sil.material.opacity=.55*s*s;
+      let n=dt*(40+80*s);while(n>0){if(n<1&&rnd()>n)break;n--;const a=rnd()*6.28,b=rnd()*2-1,q=Math.sqrt(1-b*b),r=.6+rnd()*.5;emit(1,{x:x+Math.cos(a)*q*r,y:y+b*r,z:z+Math.sin(a)*q*r,vx:-Math.cos(a)*q*r*3,vy:-b*r*3,vz:-Math.sin(a)*q*r*3,s:.035,s2:0,c:0xffffff,c2:BEC.B,life:.3});}
+      bemLight(x,y,z,.4+1.5*s,3.5+1.5*s);}
+    else{if(!gone){gone=true;bemLog({ev:'star',t:tt});flash(x,y,z,0xffffff,.7,.14);sprayP(1,x,y,z,24,{c:0xffffff,c2:BEC.B,sp:2.6,s:.05,s2:0,life:.4,drag:2});}
+      const u=(tt-T)/.3;g.scale.setScalar(Math.max(.01,1-u*1.6));xm.opacity=Math.max(0,.9-u*2);sil.material.opacity=Math.max(0,.95-u*3);rm.opacity=rm2.opacity=Math.max(0,.8-u*3);}},
+    ()=>{},{mats,geos});
+  addFx(sil,T+.3,null);}
+function bemBlade(S,dmg){const TF=BEM.TF,W=BEM.raW,g0=gy(S.sx,S.sz),t0=TF+.06,TW=.1,TS=.22,TC=.45,mats=[],root=new THREE.Group();root.position.set(S.sx,g0,S.sz);root.rotation.y=S.ry;scene.add(smTag(root));
+  /* the scar: a perfectly straight white line first, then the corridor on the ground */
+  const st=bemStrip(S,W*3,t0+TS+TC+.35,{tick:(q,f,dt)=>{const t=q.t;let w,a,b;if(t<t0){w=.035;a=t<TF?0:1;b=1.6;}else if(t<t0+TS+.05){const k=Math.min(1,(t-t0)/TW);w=.035+.4*k;a=1;b=1.6+.6*k;}else{const c=Math.min(1,(t-t0-TS-.05)/TC);w=.43*(1-c)+.02;a=1-c*c;b=2.2-1.4*c;}
+    for(const m of[q.m0,q.m1])m.uniforms.uA.value=a;q.m0.uniforms.uW.value=q.m1.uniforms.uW.value=w;q.m1.uniforms.uB.value=b;}});
+  /* the blade: a sheet of light up the middle and two walls at its sides */
+  const sheets=[];for(const[off,h]of[[0,2.4],[-1,1.25],[1,1.25]]){const m=bemWallMat();mats.push(m);const p=new THREE.Mesh(BEMQ.wall(),m);p.renderOrder=9;root.add(p);sheets.push({p,m,off,h});}
+  const hit=new Set();let t=0,burst=false;bemLog({ev:'blade0'});
+  addFx(root,t0+TS+TC+.4,(f,dt)=>{t+=dt;if(t<t0)return;const u=t-t0,kw=Math.min(1,u/TW),kf=Math.min(1,u/TS),c=u<TS+.05?0:Math.min(1,(u-TS-.05)/TC),w=W*kw*(1-c*.92);
+    for(const s of sheets){s.m.uniforms.uT.value+=dt;s.m.uniforms.uF.value=kf;s.m.uniforms.uA.value=(1-c)*(s.off?.32:.8);s.p.position.set(0,0,-s.off*w);s.p.scale.set(S.len,Math.max(.001,s.h*(.35+.65*kw)*(1-c*.6)),1);}
+    if(u<.04)flashA=Math.max(flashA,.38),flashCol='#ffffff',flashDecay=2.6;
+    bemLight(S.at(kf*.5).x,1.2,S.at(kf*.5).z,(1-c)*1.6,S.len*.7+3);
+    /* the hits, as the front sweeps past */
+    if(kf<=1&&c===0&&state==='playing'){const fr=S.len*kf;for(const e of enemies){if(e.dead||e.fake||hit.has(e))continue;const dx=e.x-S.sx,dz=e.z-S.sz,pr=dx*S.ux+dz*S.uz;if(pr<-.2||pr>fr)continue;const cx=dx-S.ux*pr,cz=dz-S.uz*pr;if(cx*cx+cz*cz>W*W)continue;
+      hit.add(e);hurt(e,dmg,'magic',S.o);bemLog({ev:'blade',e});const p=tpos2(e);flash(p.x,p.y,p.z,0xffffff,.45,.12);sprayP(1,p.x,p.y,p.z,10,{c:0xffffff,c2:BEC.B,sp:2,up:.8,s:.045,s2:0,life:.4,g:1});}}
+    if(c===0){const fr=S.len*kf;for(let i=0;i<6;i++){const sd=(rnd()-.5)*2*w;emit(1,{x:S.sx+S.ux*fr-S.uz*sd,y:g0+.05+rnd()*.6,z:S.sz+S.uz*fr+S.ux*sd,vx:S.ux*2+(rnd()-.5),vy:.5+rnd(),vz:S.uz*2+(rnd()-.5),s:.05,s2:0,c:0xffffff,c2:BEC.B,life:.35,drag:1.5});}}
+    if(kf>=1&&!burst){burst=true;bemStarburst(S.ex,S.ez,Math.max(.4,S.ey));}
+    /* collapsing into sparkles */
+    if(c>0&&c<1){let n=dt*160*(1-c);while(n>0){if(n<1&&rnd()>n)break;n--;const v=rnd(),sd=(rnd()-.5)*2*Math.max(.1,w);emit(1,{x:S.sx+S.ux*S.len*v-S.uz*sd,y:g0+.05+rnd()*.9*(1-c),z:S.sz+S.uz*S.len*v+S.ux*sd,vx:(rnd()-.5)*.3,vy:.3+rnd()*.5,vz:(rnd()-.5)*.3,s:.03+rnd()*.03,s2:0,c:rnd()<.5?0xffffff:BEC.I,c2:BEC.B,life:.6+rnd()*.6,turb:.3});}}},null,{mats});}
+/* the starburst at the blade's end: a spiked star blooming and turning, crossed lens streaks, rings racing out, a spray of light */
+function bemStarburst(x,z,y){const g=new THREE.Group();g.position.set(x,y,z);scene.add(smTag(g));const g0=gy(x,z);bemLog({ev:'starburst'});
+  const xm=bemSM(0xffffff,0,bemStarTex()),xm2=bemSM(BEC.B,0,bemStarTex()),s1=bemSM(0xffffff,0,bemStreakTex()),s2=bemSM(BEC.I,0,bemStreakTex()),gm=bemSM(BEC.B,0);const st=new THREE.Sprite(xm),st2=new THREE.Sprite(xm2),l1=new THREE.Sprite(s1),l2=new THREE.Sprite(s2),gl=new THREE.Sprite(gm);
+  s2.rotation=Math.PI/2;xm2.rotation=Math.PI/4;g.add(gl,st2,st,l1,l2);flash(x,y,z,0xffffff,.5,.12);bemGlowDisc(x,z,g0,1.8,BEC.D,.5,.6);camShake=Math.max(camShake,.08);
+  if(typeof tclRing==='function')tclRing(x,g0+.06,z,2,BEC.D,.4,.35);
+  /* rays of light shooting out along the ground */
+  for(let i=0;i<10;i++){const a=i/10*6.2832+rnd()*.3,L=1.1+rnd()*.9;bemRay(smV(x,y,z),smV(x+Math.cos(a)*L,g0+.08,z+Math.sin(a)*L),{w:.012,col:BEC.B,halo:BEC.D,grow:.08,life:.3,quiet:true});}
+  sprayP(1,x,y,z,46,{c:0xffffff,c2:BEC.B,sp:3.2,s:.055,s2:0,life:.6,drag:1.8,g:1});
+  let t=0;addFx(g,.75,(f,dt)=>{t+=dt;const k=t/.75,b=Math.min(1,t/.06)*(1-k);st.scale.setScalar(.4+2.6*Math.sqrt(k));st2.scale.setScalar(.3+1.9*Math.sqrt(k));xm.opacity=b;xm2.opacity=.6*b;xm.rotation+=dt*1.5;xm2.rotation-=dt*1;
+    l1.scale.set(1+5*Math.sqrt(k),.1,1);l2.scale.set(.8+3*Math.sqrt(k),.08,1);s1.opacity=b;s2.opacity=.7*b;gl.scale.setScalar(1.2+1.5*k);gm.opacity=.4*b;bemLight(x,y,z,2*b,5);},null,{mats:[xm,xm2,s1,s2,gm]});}
+
+/* from Mastery 2 the prism catches the beam just past the last foe on its line (0.8 beyond it, at least 1.2 from the hero, at most the old
+   length): the beam ends there, so the prism and its three beams are where the foes are, not out on the grass beyond them */
+function bemCatch(t,e,len){const tp=tpos(e),dx=tp.x-t.x,dz=tp.z-t.z,dl=Math.hypot(dx,dz)||1,ux=dx/dl,uz=dz/dl;let far=dl;
+  for(const q of enemies){if(q.dead||q.fake)continue;const px=q.x-t.x,pz=q.z-t.z,pr=px*ux+pz*uz;if(pr<0||pr>len)continue;const cx=px-ux*pr,cz=pz-uz*pr;if(cx*cx+cz*cz<.42*.42)far=Math.max(far,pr);}
+  return clamp(far+.8,1.2,len);}
+/* ---- the hook ---- */
+const BEM_CAST0=castBeam;
+function bemFire(S,big){let root=null;const add0=scene.add;if(big)scene.add=function(...q){if(!root&&q[0]&&q[0].isGroup)root=q[0];return add0.apply(this,q);};
+  try{BEM_CAST0.call(null,S.t,S.e,S.len,S.dmg,S.o0);}finally{scene.add=add0;}
+  /* the star does the charging: the old charge orb is hidden */
+  if(big&&root&&root.children[0])root.children[0].visible=false;
+  bemGeo(S);const L=S.L,a=S.a,P=S.P;bemLog({ev:'fire',L});
+  if(L>=2)bemPrism(S,P*BEM.pr*a[1]);
+  if(L>=3)bemMirrors(S,P*BEM.mi*a[2]);
+  if(L>=4)bemVerdict(S,P*BEM.hv*a[3]);
+  if(L>=5)bemBlade(S,P*BEM.ra*a[4]);}
+castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.apply(this,arguments);
+  if(C.L>=2)len=bemCatch(t,e,len);
+  const S={t,e,len,dmg,C,P:C.P,L:C.L,a:C.a,o:smO(o),o0:o,hits:[]};C.bem=S;bemLog({ev:'cast',L:C.L});
+  if(C.L>=5){bemStar(S);mxLater(BEM.raT0,()=>{if(state==='playing')bemFire(S,true);});}
+  else bemFire(S,false);};
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
@@ -25103,6 +25427,11 @@ const NOTES_HTML=`<h3>\u2726 Ball Lightning masteries, reworked</h3><ul>
 <li><b>Tempest Incarnate</b> (Mastery 5): at the end the ball trembles, its shell breaks into glowing shards and the core rises over the road inside spinning rings of lightning; bolts strike the 6 nearest foes for 100%, Charged ones a second time for 40%, then everything collapses to a point and bursts, leaving glowing scars on the road.</li>
 <li>Ball Lightning&rsquo;s old masteries are replaced. Like every scroll above Common, its masteries are only in developer mode for now.</li>
 <li>Fix: Ball Lightning&rsquo;s stats line and the Supercell synergy text still described it before the v389 nerf; they now say what it does (the nearest foe every 0.5s for 35%; with a storm every 0.4s and 20% harder).</li></ul>
+<h3>\u2726 Basic Beam masteries, reworked</h3><ul>
+<li><b>Shatterlight</b> (Mastery 1): every foe the beam strikes flashes white and splinters a burst of razor-sharp blue-white shards sideways, like broken glass, 35% to each foe nearby. <b>Prism Split</b> (Mastery 2): a crystal prism forms where the beam ends, just past the foes it pierced, catches the fading light and splits it into three thin beams aimed where they strike the most foes, 65% each.</li>
+<li><b>Lightbound Mirrors</b> (Mastery 3): three hexagonal mirrors of light spin into place along the beam, each turned to truly reflect it; the light ricochets between them in a web of lines, then each fires a reflected beam at a different group of foes, 75% each. <b>Heaven&rsquo;s Verdict</b> (Mastery 4): the beam leaves a glowing line on the ground, a halo of light gathers above it and a column of celestial light crashes down along the path, 100% more to every foe the beam struck, then dissolves into drifting motes.</li>
+<li><b>Absolute Radiance</b> (Mastery 5): the charging orb becomes a miniature star ringed by turning geometric rings; the beam leaves a perfectly straight white scar that widens into a colossal blade of light sweeping the path for 150% more, washing the screen white, and a starburst blooms at its end.</li>
+<li>The Basic Beam&rsquo;s old masteries (Searing Line, Prism Edge, Blinding, Lingering Light, Solar Lance) are replaced. Like every scroll above Common, its masteries are only in developer mode for now.</li></ul>
 <h3>\u2726 Bramble Patch masteries, reworked</h3><ul>
 <li><b>Barbed Thicket</b> (Mastery 1): every second the brambles snap shut round the foes in the patch: thorny canes bend over them and whip down for 35%, in a spray of red thorns, leaves and green sparks. <b>Snaring Vines</b> (Mastery 2): a foe that has been in the patch for 1s is snared once: green vines spiral round its ankles, tighten and bind it for 0.6s, then snap into leaves. A boss is not held; the vines strain round its legs for 40%.</li>
 <li><b>Thornheart</b> (Mastery 3): a closed crimson bud on a thorny stem rises in the middle of the patch; every 2s it swells, unfurls and fires a volley of needles at the foes in the brambles for 25%, then closes. <b>Wall of Thorns</b> (Mastery 4): halfway through, the brambles surge into a wall of thorns studded with roses across the road; for 1s no foe gets past it, then it bursts apart into the patch for 100%. Bosses push through it and are cut for 40%.</li>
