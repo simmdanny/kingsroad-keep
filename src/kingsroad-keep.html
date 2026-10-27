@@ -14132,6 +14132,10 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Graveburst masteries, reworked',d:'27 Oct',v:'v399',li:[
+    'Gravequake: three branching fissures race out from the crater, 45%. The Unburied: a spectral skeleton climbs out and swings a rusted greatsword round, 100%.',
+    'The Open Pit: the crater stays open 4s and spits obsidian spikes at the foes standing in it, 35% each time. Ribcage Prison: giant ribs hold the ground foes in for 1.5s, then splinter for 70%.',
+    'Hand of the Underworld: two colossal skeletal hands seize everything in the abyss for 100% and drag the foes under on chains, then the grave slams shut for 100% more.']},
   {t:'Mastery progress in battle',d:'27 Oct',v:'v397',li:[
     'A new button on the right, under the top bar, shows your mastery progress during a run: every building on the board and your hero\u2019s scrolls, with their level and bar.',
     'The part of each bar earned this run glows, with the XP earned this run and the next upgrade. Tap a row to see all five masteries (the run pauses meanwhile).',
@@ -23636,6 +23640,298 @@ setInterval(()=>{try{mpgSync();const el=$('#liveMast');if(el&&!el.hidden){if(sta
   '.mpg-gain{margin-left:auto;font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap}.mpg-gain.on{color:#8fe08a}'+
   '.mpg-bar{display:flex}.mpg-bar i{flex:none}.mpg-bar i.mpg-new{background:linear-gradient(90deg,#fff3b8,#ffe27a);box-shadow:0 0 6px #ffe27a;animation:mpgGlow 1.6s ease-in-out infinite}@keyframes mpgGlow{50%{opacity:.55}}'+
   '.mpg-up{font-weight:800;color:#8fe08a}.mpg-none{font-size:12px;line-height:1.35;color:var(--muted);margin:5px 0 0}.mpg-foot{font-size:11px;color:var(--muted);margin:10px 0 0}';document.head.appendChild(st);}
+/* ================= Graveburst's masteries, as Simon designed them (v399) ================= */
+/* Simon (abridged; the "why it works" notes left out): "Mastery 1 - Gravequake: When Graveburst erupts, a violent shockwave tears through the
+   ground, creating three branching fissures that spread outward from the impact zone. Enemies struck by a fissure take 45% damage. Visual: the
+   ground splits into glowing violet cracks that race along the road; each fissure briefly erupts with dark energy before crumbling into dust. /
+   Mastery 2 - The Unburied: After the initial eruption, a spectral skeletal warrior rises from the crater and swings an enormous rusted blade in
+   a wide arc, dealing 100% damage to nearby enemies. Visual: a ghostly figure pulls itself out of the grave, its ribcage glowing violet; it
+   raises its weapon overhead and performs one heavy sweep before breaking apart into dark particles and sinking back into the earth. /
+   Mastery 3 - The Open Pit: The eruption leaves behind a deep, unstable grave for 4 seconds. After a brief warning, jagged obsidian spikes
+   periodically erupt from inside it, dealing 35% damage to enemies standing in the crater. Visual: the road caves inward, revealing a
+   violet-black abyss; before each spike eruption, cracks flash beneath the affected enemies, followed by a violent upward thrust of obsidian.
+   Enemies can still walk out. / Mastery 4 - Ribcage Prison: After the initial burst, giant skeletal ribs rise around the impact zone, forming a
+   cage for 1.5 seconds. Ground enemies inside cannot leave until the ribs splinter and collapse, dealing 70% damage to enemies caught in the
+   collapse. Bosses cannot be trapped, but take reduced damage from the collapsing ribs. Visual: massive bone pillars tear through the road and
+   curve overhead; violet energy pulses between them before the entire cage fractures into flying bone fragments. / Mastery 5 - Hand of the
+   Underworld: The initial grave erupts as normal, but the crater tears open into a massive violet abyss. Two colossal skeletal hands emerge,
+   sweep inward, and seize enemies across the impact area. The hands then plunge back underground, dragging spectral chains with them before
+   the grave violently seals shut. The hands deal 100% damage when they seize enemies; enemies caught in the final collapse take another 100%.
+   Bosses cannot be dragged underground but are struck by the hands and damaged by the collapse."
+   Percentages are of the scroll's power (the burst itself is 260%). Mastery 0 is the old cast. From Mastery 1 castGraveburst is wrapped and
+   the masteries play round the crater (the spot the runes mark when it is cast), one after another so they never stand in each other's way:
+   - M1 Gravequake (at the burst): gvbQuake, a shockwave and three branching fissures from the crater's rim, two racing along the road both ways
+     and one across the ground. Each part flares as the crack reaches it, then crumbles; a ground foe within GVB.fqW of an erupting part takes
+     45%, once.
+   - M3 The Open Pit (at the burst, GVB.pitT): gvbPit, the road caves into a violet-black hole of the crater's size. GVB.pitFirst after the
+     burst and then every GVB.pitEvery, cracks flash under the ground foes standing in it and GVB.pitTell later obsidian spikes thrust up
+     there: 35% to each foe still in the crater within GVB.spR of a spike. A foe that walks out in time is spared.
+   - M2 The Unburied (GVB.ubT after the burst): gvbUnburied, a spectral skeleton (glowing ribcage, rusted greatsword) climbs out facing up the
+     road, winds up over its shoulder and sweeps the blade round (about 330 degrees): 100% to every foe within GVB.ubR the blade passes over,
+     flyers too, then it breaks apart and sinks.
+   - M4 Ribcage Prison (GVB.cgT0 after the burst, as the warrior crumbles): gvbCage, five pairs of tapered ribs tear up through the road on both
+     sides and meet a spine over it. The ground foes inside when it closes (not bosses) cannot walk out: one reaching the ribs is stopped there
+     (stunE for the time left, so Resolve applies; a foe Resolve frees walks out). After GVB.cgT the cage splinters into falling bone: 70% to
+     every foe within the cage (flyers too), half to bosses.
+   - M5 Hand of the Underworld: gvbUnderworld, the crater tears open into an abyss of GVB.abR right after the burst; when the cage splinters
+     (GVB.uwHands later) two colossal skeletal hands rise from both sides of the road, sweep in and seize: 100% to every foe in the abyss, flyers
+     too. Ground foes that are not bosses are held (stunE, Resolve) and dragged under on spectral chains as the hands plunge (hidden, e.burrow so
+     towers skip them); then the grave slams shut for 100% more to every foe in it, and the dragged ones are back on the road.
+   GVB.dbg (an array) logs the events for the tests. */
+const GVB={dbg:null,del:1.15,R:1.05,
+  fq:.45,fqLen:2.4,fqW:.32,fqSpd:7,
+  ub:1,ubR:1.9,ubT:.2,
+  pit:.35,pitT:4,pitFirst:.6,pitEvery:.9,pitTell:.32,spR:.55,
+  cg:.7,cgBoss:.5,cgR:1.25,cgT:1.5,cgT0:1.45,
+  hd:1,seal:1,abR:2.1,uwT:.1,uwHands:3.05};
+const gvbC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='graveburst'?c:null;};
+const gvbLog=d=>{if(GVB.dbg)GVB.dbg.push(d);};
+SM_D.graveburst=[
+  {n:'Gravequake',d:'When the grave bursts, a shockwave tears through the ground and three branching fissures race out from the crater, erupting with dark energy: {45}% to each foe a fissure strikes.'},
+  {n:'The Unburied',d:'After the eruption a spectral skeletal warrior climbs out of the crater and swings an enormous rusted blade in a wide arc: {100}% to the foes around it.'},
+  {n:'The Open Pit',d:'The crater stays open as a deep grave for 4s. Again and again cracks flash under the foes standing in it, then obsidian spikes thrust up there: {35}% each time. Foes can still walk out.'},
+  {n:'Ribcage Prison',d:'Giant ribs tear up through the road and close over the crater for 1.5s: the ground foes inside cannot leave. Then the cage splinters for {70}% (bosses are never held and take half).'},
+  {n:'Hand of the Underworld',d:'The crater tears open into a vast abyss. Two colossal skeletal hands sweep in and seize every foe across it for {100}%, dragging them under on spectral chains (not bosses), then the grave slams shut for {100}% more.'}];
+SMF.graveburst={m:1.3};
+SMA.graveburst=[1,1,1,1,1];
+/* power with Simon's numbers (tests/sm-ladder.js, 3 runs): 1.24 / 1.48 / 1.97 / 2.38 / 3.26 against the Uncommon ladder 1.09 / 1.23 / 1.35 / 1.52 / 1.74.
+   Every level is above the ladder, so no hidden factor; Mastery 5 is about 1.9x the ladder (Grasping Shadows' is about 4.4x). SM.free: his numbers. */
+SMG.graveburst=[1,1,1,1,1];
+SM.free=SM.free||{};SM.free.graveburst='Simon'+String.fromCharCode(8217)+'s own numbers for Graveburst';
+
+/* ---- shared pieces ---- */
+const gvbSegD=(px,pz,ax,az,bx,bz)=>{const dx=bx-ax,dz=bz-az,l2=dx*dx+dz*dz||1e-9,u=clamp(((px-ax)*dx+(pz-az)*dz)/l2,0,1);return Math.hypot(px-ax-dx*u,pz-az-dz*u);};
+const gvbIn=(e,S,R)=>!e.dead&&!e.fake&&(e.x-S.cx)**2+(e.z-S.cz)**2<R*R;
+/* the crater: its road spot and the direction up the road (where the foes come from) */
+function gvbS(cx,cz,C,P,o){const q=nsRouteNear(cx,cz),a=posAt(clamp(q.d-.3,0,q.rt.len),q.rt),b=posAt(clamp(q.d+.3,0,q.rt.len),q.rt);let ux=a[0]-b[0],uz=a[1]-b[1];const l=Math.hypot(ux,uz)||1;
+  return{cx,cz,y:gy(cx,cz),rd:q.d,rt:q.rt,ux:ux/l,uz:uz/l,C,P,o:smO(o)};}
+const GVB_Y=new THREE.Vector3(0,1,0),GVB_V=new THREE.Vector3();
+/* a unit cylinder mesh stretched between two points (local to its parent) */
+function gvbPlace(o,A,B){GVB_V.subVectors(B,A);const L=GVB_V.length()||1e-3;o.position.copy(A).addScaledVector(GVB_V,.5);o.quaternion.setFromUnitVectors(GVB_Y,GVB_V.multiplyScalar(1/L));const r=o.userData.r;o.scale.set(r,L,r);}
+/* a tube along a curve that narrows toward its end (ribs, forearms) */
+function gvbTaper(curve,seg,r,taper){const g=new THREE.TubeGeometry(curve,seg,r,7,false),p=g.attributes.position,n=8;
+  for(let i=0;i<=seg;i++){const c=curve.getPointAt(i/seg),k=1-taper*i/seg;for(let j=0;j<n;j++){const v=i*n+j;p.setXYZ(v,c.x+(p.getX(v)-c.x)*k,c.y+(p.getY(v)-c.y)*k,c.z+(p.getZ(v)-c.z)*k);}}
+  g.computeVertexNormals();return g;}
+let GVB_LINE=null,GVB_RUST=null;
+function gvbLineTex(){if(GVB_LINE)return GVB_LINE;const c=document.createElement('canvas');c.width=4;c.height=32;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,0,32);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.5,'#fff');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,4,32);return GVB_LINE=new THREE.CanvasTexture(c);}
+function gvbRustTex(){if(GVB_RUST)return GVB_RUST;const c=document.createElement('canvas');c.width=32;c.height=128;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,32,0);
+  [[0,'#a39c90'],[.13,'#625d56'],[.5,'#48433d'],[.87,'#625d56'],[1,'#a39c90']].forEach(([k,col])=>g.addColorStop(k,col));x.fillStyle=g;x.fillRect(0,0,32,128);
+  for(let i=0;i<80;i++){x.fillStyle=`rgba(${120+Math.random()*70|0},${48+Math.random()*30|0},${18+Math.random()*14|0},${.45+Math.random()*.45})`;x.beginPath();x.arc(Math.random()*32,Math.random()*128,1+Math.random()*4.5,0,6.3);x.fill();}
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(5,1/1.48);t.offset.set(.5,0);return GVB_RUST=t;}
+const gvbDust=(x,y,z,n,r)=>sprayP(0,x,y,z,n,{c:0x6a5a48,c2:0x3a3028,sp:1.4,up:.7,s:.1,s2:.24,a:.5,life:.8,g:1.5,drag:1.3,r:r||.2});
+const gvbBone=()=>new THREE.MeshPhongMaterial({color:0xd6cab0,emissive:0x24083e,emissiveIntensity:.3,specular:0x9a8a7a,shininess:18,flatShading:true});
+const gvbBoneDust=(x,y,z,n)=>sprayP(0,x,y,z,n,{c:0xd8ccb8,c2:0x8a7e6a,sp:1.6,up:.6,s:.05,s2:.14,a:.6,life:.7,g:2.4,drag:1});
+
+/* ---- M1 Gravequake: a shockwave and three branching fissures racing out from the crater ---- */
+function gvbQuake(S,dmg){const R=GVB.R,R0=R*.55,LEN=GVB.fqLen,SP=GVB.fqSpd;shockwave(S.cx,S.cz,R*1.75,GSC.V,.5);camShake=Math.max(camShake,.1);gvbDust(S.cx,S.y+.05,S.cz,18,R*.8);
+  const g=new THREE.Group();scene.add(smTag(g));const pg=new THREE.PlaneGeometry(1,1);pg.rotateX(-Math.PI/2);pg.translate(.5,0,0);
+  const mGlow=Object.assign(gsmAM(GSC.V,0),{map:gvbLineTex()}),mHot=gsmAM(GSC.P,0),mCore=new THREE.MeshBasicMaterial({color:GSC.D,transparent:true,opacity:0,depthWrite:false}),segs=[];
+  const seg=(p,q,d0,w)=>{const dx=q[0]-p[0],dz=q[1]-p[1],L=Math.hypot(dx,dz);if(L<1e-3)return;
+    const ms=[[mGlow,w*3,.02,3],[mCore,w,.024,4],[mHot,w*.35,.026,5]].map(([mm,wd,yy,ro])=>{const m=new THREE.Mesh(pg,mm);m.position.set(p[0],gy(p[0],p[1])+yy,p[1]);m.rotation.y=Math.atan2(-dz,dx);m.scale.set(.001,1,wd);m.renderOrder=ro;g.add(m);return m;});
+    segs.push({ms,a:p,b:q,L,d0,w,mx:(p[0]+q[0])/2,mz:(p[1]+q[1])/2});};
+  /* two along the road (a segment's angle is atan2(dx,dz): (cos,-sin) runs across it), one across the ground to a random side */
+  const road=sg=>{const pts=[];let off=(rnd()-.5)*.1,s=R0;while(s<=R0+LEN){const dd=S.rd+sg*s;if(dd<0||dd>S.rt.len)break;const w=posAt(dd,S.rt),nx=Math.cos(w[2]),nz=-Math.sin(w[2]);
+      off=clamp(off+(rnd()-.5)*.24,-.26,.26);pts.push([w[0]+nx*off,w[1]+nz*off,s]);s+=.16+rnd()*.12;}return pts;};
+  const across=()=>{const w=posAt(S.rd,S.rt),sd=rnd()<.5?-1:1;let h=Math.atan2(Math.cos(w[2])*sd,-Math.sin(w[2])*sd),x=S.cx+Math.sin(h)*R0,z=S.cz+Math.cos(h)*R0,s=R0;const pts=[[x,z,s]];
+    while(s<R0+LEN*.8){h+=(rnd()-.5)*.6;const st=.16+rnd()*.12;x+=Math.sin(h)*st;z+=Math.cos(h)*st;s+=st;pts.push([x,z,s]);}return pts;};
+  for(const pts of [road(-1),road(1),across()])for(let i=1;i<pts.length;i++){const p=pts[i-1],q=pts[i],w=.055*(1-.55*(q[2]-R0)/LEN);seg(p,q,p[2],w);
+    /* spurs branching off */
+    if(rnd()<.32){const dx=q[0]-p[0],dz=q[1]-p[1],l=Math.hypot(dx,dz)||1,an=(rnd()<.5?-1:1)*(.55+rnd()*.35),ca=Math.cos(an),sa=Math.sin(an),sl=.2+rnd()*.25;
+      seg(q,[q[0]+(dx*ca-dz*sa)/l*sl,q[1]+(dx*sa+dz*ca)/l*sl],q[2]+.05,w*.55);}}
+  const hit=new Set();let t=0;gvbLog({ev:'quake',n:segs.length});
+  addFx(g,1.5,(f,dt)=>{t+=dt;const reach=R0+SP*t,fade=Math.min(1,f.life/.4);mCore.opacity=.92*fade;mGlow.opacity=.5*fade*(.8+.2*Math.sin(t*26));mHot.opacity=.95*fade;
+    for(const s of segs){const u=clamp((reach-s.d0)/s.L,0,1),age=t-(s.d0-R0)/SP,er=age>0&&age<.45?1-age/.45:0;for(const m of s.ms)m.scale.x=Math.max(.001,s.L*u);
+      s.ms[0].scale.z=s.w*3*(.7+1.1*er);s.ms[2].scale.z=Math.max(.001,s.w*.35*(age<.8?1:Math.max(0,1-(age-.8)/.3)));
+      if(u>0&&!s.er){s.er=1;const yy=gy(s.mx,s.mz);for(let i=0;i<3;i++)emit(1,{x:s.mx+(rnd()-.5)*.1,y:yy+.03,z:s.mz+(rnd()-.5)*.1,vx:(rnd()-.5)*.25,vy:.9+rnd()*1.1,vz:(rnd()-.5)*.25,s:.06,s2:0,c:GSC.L,c2:GSC.V,a:.95,life:.45});
+        emitS(0,{x:s.mx,y:yy+.05,z:s.mz,vy:.6+rnd()*.4,s:.1,s2:.34,c:0x2a1440,c2:0x12081e,a:.55,life:.7,turb:.4});if(rnd()<.5)darkMote(s.mx,yy+.05,s.mz);}
+      if(age>.7&&!s.cr){s.cr=1;if(rnd()<.7)emit(0,{x:s.mx,y:gy(s.mx,s.mz)+.03,z:s.mz,vx:(rnd()-.5)*.3,vy:.25,vz:(rnd()-.5)*.3,s:.08,s2:.18,c:0x7a6a55,c2:0x4a3e32,a:.45,life:.7});}}
+    if(state!=='playing')return;
+    for(const e of enemies){if(e.dead||e.fake||e.fly||hit.has(e))continue;
+      for(const s of segs){const age=t-(s.d0-R0)/SP;if(age<=0||age>.45)continue;const u=clamp((reach-s.d0)/s.L,0,1);
+        if(gvbSegD(e.x,e.z,s.a[0],s.a[1],s.a[0]+(s.b[0]-s.a[0])*u,s.a[1]+(s.b[1]-s.a[1])*u)<GVB.fqW){hit.add(e);hurt(e,dmg,'magic',S.o);gvbLog({ev:'fissure',e});const p=tpos2(e);gsmBurst(p.x,p.y,p.z,.6);break;}}}},null,{mats:[mGlow,mHot,mCore],geos:[pg]});}
+
+/* ---- M2 The Unburied: a spectral skeleton climbs out of the crater and sweeps a rusted greatsword round ---- */
+function gvbUnburied(S,dmg){const R=GVB.ubR,root=new THREE.Group(),F=Math.atan2(S.ux,S.uz);root.position.set(S.cx,S.y-2.4,S.cz);root.rotation.y=F;scene.add(smTag(root));const mats=[],geos=[];
+  const mB=new THREE.MeshPhongMaterial({color:0xd9d0ea,emissive:0x3a1670,emissiveIntensity:.55,specular:0xffffff,shininess:25,flatShading:true,transparent:true,opacity:.92}),
+    mK=new THREE.MeshPhongMaterial({color:0x22142e,emissive:0x5a14a0,emissiveIntensity:.8,flatShading:true,transparent:true,opacity:.92}),
+    mR=new THREE.MeshPhongMaterial({color:0xffffff,map:gvbRustTex(),emissive:0x12041a,emissiveIntensity:.5,specular:0x8a8070,shininess:22,flatShading:true,transparent:true,opacity:1}),
+    mI=new THREE.MeshPhongMaterial({color:0x3a3440,emissive:0x140a1e,emissiveIntensity:.4,specular:0x9a90b0,shininess:40,flatShading:true,transparent:true,opacity:1}),
+    mG=gsmAM(GSC.V,.5),mE=gsmAM(GSC.P,.95),mT=new THREE.MeshBasicMaterial({color:0x6a2ad0,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}),mT2=new THREE.MeshBasicMaterial({color:0xb07aff,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide});mats.push(mB,mK,mR,mI,mG,mE,mT,mT2);
+  const G=geo=>{geos.push(geo);return geo;},mesh=(geo,m,par,x,y,z)=>{const o=new THREE.Mesh(G(geo),m);o.position.set(x||0,y||0,z||0);par.add(o);return o;};
+  const unit=G(new THREE.CylinderGeometry(1,1,1,6)),bone=(r,m,par)=>{const o=new THREE.Mesh(unit,m);o.userData.r=r;par.add(o);return o;},V=(x,y,z)=>new THREE.Vector3(x,y,z);
+  const body=new THREE.Group();root.add(body);const up=new THREE.Group();up.position.y=1;body.add(up);const parts=[];
+  /* pelvis and legs */
+  const pel=mesh(new THREE.IcosahedronGeometry(.15,0),mB,body,0,1,0);pel.scale.set(1.5,.7,.9);parts.push(pel);
+  for(const sd of [-1,1]){const hip=V(sd*.13,.98,0),knee=V(sd*.16,.52,.07),ank=V(sd*.14,.08,0);const a=bone(.04,mB,body),b=bone(.034,mB,body);gvbPlace(a,hip,knee);gvbPlace(b,knee,ank);
+    const kn=mesh(new THREE.IcosahedronGeometry(.05,0),mK,body,knee.x,knee.y,knee.z),ft=mesh(new THREE.BoxGeometry(.09,.05,.2),mB,body,ank.x,.04,.06);parts.push(a,b,kn,ft);}
+  /* spine, ribs and the glow inside them */
+  for(let i=0;i<5;i++){const v=mesh(new THREE.CylinderGeometry(.045,.05,.09,6),i%2?mK:mB,up,0,.06+i*.14,-.06);parts.push(v);}
+  [[.32,.25],[.42,.28],[.52,.27],[.62,.23]].forEach(([y,r])=>{const rgeo=new THREE.TorusGeometry(r,.022,5,14,Math.PI*1.6);rgeo.rotateX(Math.PI/2);rgeo.rotateY(-.7*Math.PI);const rb=mesh(rgeo,mB,up,0,y,-.02);rb.scale.z=.85;rb.rotation.x=.12;parts.push(rb);});
+  const core=mesh(new THREE.IcosahedronGeometry(.14,1),mG,up,0,.47,-.02),core2=mesh(new THREE.IcosahedronGeometry(.055,1),mE,up,0,.47,-.02);parts.push(core,core2);
+  const cla=mesh(new THREE.BoxGeometry(.58,.045,.06),mB,up,0,.72,-.02);parts.push(cla);
+  /* the skull: sockets with violet sparks in them, a jaw */
+  const skull=new THREE.Group();skull.position.set(0,.95,0);up.add(skull);const sk=mesh(new THREE.IcosahedronGeometry(.16,1),mB,skull);sk.scale.set(1,1.12,1.08);
+  mesh(new THREE.BoxGeometry(.19,.07,.15),mB,skull,0,-.14,.04);for(const sd of [-1,1]){mesh(new THREE.IcosahedronGeometry(.045,0),mK,skull,sd*.06,.01,.13);mesh(new THREE.IcosahedronGeometry(.026,0),mE,skull,sd*.06,.01,.155);}parts.push(skull);
+  /* arms (shoulder, elbow, hands on the grip) placed every frame */
+  const arms=[-1,1].map(sd=>({sd,s:V(sd*.28,.7,-.02),a:bone(.036,mB,up),b:bone(.03,mB,up),h:mesh(new THREE.IcosahedronGeometry(.05,0),mB,up)}));arms.forEach(q=>parts.push(q.a,q.b,q.h));
+  /* the rusted greatsword: a notched blade, an iron guard, a grip and pommel */
+  const sw=new THREE.Group();up.add(sw);parts.push(sw);const sh=new THREE.Shape();
+  [[-.095,0],[-.1,.5],[-.074,.56],[-.098,.62],[-.09,1.1],[-.06,1.16],[-.08,1.22],[-.03,1.42],[0,1.48],[.035,1.4],[.085,1.05],[.068,.98],[.09,.92],[.1,.3],[.095,0]].forEach((p,i)=>i?sh.lineTo(p[0],p[1]):sh.moveTo(p[0],p[1]));
+  const bg=new THREE.ExtrudeGeometry(sh,{depth:.035,bevelEnabled:true,bevelThickness:.008,bevelSize:.008,bevelSegments:1});bg.translate(0,0,-.0175);
+  const blade=mesh(bg,mR,sw,0,.19,0),bglow=mesh(bg,mG,sw,0,.19,0);bglow.scale.set(1.25,1.02,1.6);bglow.material=gsmAM(GSC.V,.18);mats.push(bglow.material);
+  mesh(new THREE.BoxGeometry(.44,.05,.08),mI,sw,0,.17,0);mesh(new THREE.CylinderGeometry(.03,.03,.3,6),mI,sw,0,0,0);mesh(new THREE.IcosahedronGeometry(.055,0),mI,sw,0,-.17,0);
+  /* poses: G the grip and D the blade's direction, in the chest's frame (+z up the road, +x to its left as it faces) */
+  const T0=2.4,T1=-2.4,B0=.5,B1=-.5,Gp=V(),D=V(),tmp=V(),E=V(),Hd=V();
+  const pUp=[V(0,.35,.3),V(0,1,.08).normalize()],pWind=[V(Math.sin(T0)*.3,.95,Math.cos(T0)*.3-.05),V(Math.sin(T0)*.55,.75,Math.cos(T0)*.55).normalize()];
+  const sweepP=th=>[V(Math.sin(th)*.36,.2,Math.cos(th)*.36),V(Math.sin(th),-.06,Math.cos(th)).normalize()];
+  const pose=(A,B,k)=>{Gp.lerpVectors(A[0],B[0],k);D.lerpVectors(A[1],B[1],k).normalize();};
+  const setArms=()=>{sw.position.copy(Gp);sw.quaternion.setFromUnitVectors(GVB_Y,D);for(const q of arms){Hd.copy(Gp).addScaledVector(D,q.sd>0?.07:-.07);E.lerpVectors(q.s,Hd,.5);E.x+=q.sd*.16;E.y-=.08;E.z-=.04;gvbPlace(q.a,q.s,E);gvbPlace(q.b,E,Hd);q.h.position.copy(Hd);}};
+  /* the swoosh: a ring sector at blade height behind the sweep */
+  let trail=null,tgs=[];const setTrail=(a0,a1)=>{tgs.forEach(g=>g.dispose());tgs=[[R*.58,R*.98,1.05],[R*.88,R,.6]].map(([r0,r1,lag])=>{const len=Math.max(.01,Math.min(a0,a1+lag)-a1),g=new THREE.RingGeometry(r0,r1,32,1,a1-Math.PI/2,len);g.rotateX(-Math.PI/2);return g;});
+    if(!trail){trail=new THREE.Group();trail.add(new THREE.Mesh(tgs[0],mT),new THREE.Mesh(tgs[1],mT2));trail.position.y=1.18;root.add(trail);}else trail.children.forEach((m,i)=>m.geometry=tgs[i]);};
+  const hit=new Set(),vel=parts.map(()=>V((rnd()-.5)*.9,.2+rnd()*.6,(rnd()-.5)*.9)),toLocal=e=>{const dx=e.x-S.cx,dz=e.z-S.cz;return[dx*Math.cos(F)-dz*Math.sin(F),dx*Math.sin(F)+dz*Math.cos(F)];};
+  let t=0,aPrev=T0+B0,boom=false;gvbLog({ev:'unburied'});gvbDust(S.cx,S.y+.05,S.cz,16,.5);debris(S.cx,S.cz,8);
+  const RISE=.55,WIND=.85,SW=1.17,BRK=1.35,END=1.85;pose(pUp,pUp,0);setArms();
+  addFx(root,END+.05,(f,dt)=>{t+=dt;const y0=S.y;
+    if(t<RISE){const k=t/RISE,e=1-Math.pow(1-k,3);root.position.y=y0-2.4*(1-e);up.rotation.x=.4*(1-e);skull.rotation.x=-.3*(1-e);pose(pUp,pUp,0);
+      if(rnd()<.8)emitS(0,{x:S.cx+(rnd()-.5)*.6,y:y0+.08,z:S.cz+(rnd()-.5)*.6,vy:.5,s:.14,s2:.4,c:0x2a1440,c2:0x12081e,a:.45,life:.8,turb:.4});if(rnd()<.5)darkMote(S.cx+(rnd()-.5)*.5,y0+.1,S.cz+(rnd()-.5)*.5);}
+    else if(t<WIND){root.position.y=y0;up.rotation.x=0;const k=SMS(t,RISE,WIND);pose(pUp,pWind,k);body.rotation.y=B0*k;skull.rotation.y=-.3*k;}
+    else if(t<SW){const u=(t-WIND)/(SW-WIND),e=u<.5?2*u*u:1-2*(1-u)*(1-u),th=T0+(T1-T0)*e,P2=sweepP(th);body.rotation.y=B0+(B1-B0)*e;
+      if(u<.15)pose(pWind,P2,u/.15);else pose(P2,P2,0);const a=th+body.rotation.y;setTrail(T0+B0,a);mT.opacity=.34;mT2.opacity=.6;
+      /* the blade passes over every foe between its last angle and this one */
+      if(state==='playing')for(const e of enemies){if(e.dead||e.fake||hit.has(e))continue;const[lx,lz]=toLocal(e),d=Math.hypot(lx,lz);if(d>R)continue;const ph=Math.atan2(lx,lz);
+        if(ph<=aPrev+.02&&ph>=a-.02){hit.add(e);hurt(e,dmg,'magic',S.o);gvbLog({ev:'sweep',e});const p=tpos2(e);gsmBurst(p.x,p.y,p.z,.8);if(!boom){boom=true;camShake=Math.max(camShake,.09);if(typeof sfxBoom==='function')sfxBoom(.05,true);}}}
+      aPrev=a;}
+    else{const k=clamp((t-SW)/.18,0,1);Gp.y=.2-.15*k;D.y=-.06-.25*k;D.normalize();const fd=Math.max(0,1-(t-SW)/.4);mT.opacity=.34*fd;mT2.opacity=.6*fd;
+      if(t>BRK){const k2=clamp((t-BRK)/(END-BRK),0,1);root.position.y=y0-.7*k2*k2;const op=.92*(1-k2);mB.opacity=op;mK.opacity=op;mR.opacity=1-k2;mI.opacity=1-k2;mG.opacity=.5*(1-k2);mE.opacity=.95*(1-k2);
+        parts.forEach((p,i)=>{p.position.addScaledVector(vel[i],dt*k2*.9);p.rotation.x+=vel[i].x*dt*2;});
+        if(rnd()<.9){const p=parts[Math.floor(rnd()*parts.length)];p.getWorldPosition(tmp);emit(0,{x:tmp.x,y:tmp.y,z:tmp.z,vx:(rnd()-.5)*.4,vy:.3+rnd()*.4,vz:(rnd()-.5)*.4,s:.09,s2:.02,c:0x0a0612,c2:0x1a0a2a,a:.8,life:.7,turb:1});
+          if(rnd()<.5)emit(1,{x:tmp.x,y:tmp.y,z:tmp.z,vx:(rnd()-.5)*.3,vy:.3,vz:(rnd()-.5)*.3,s:.04,s2:0,c:GSC.L,c2:GSC.V,life:.5});}}}
+    if(t<BRK+.1)setArms();core.scale.setScalar(1+.15*Math.sin(t*9));
+    if(f.life<=0)tgs.forEach(g=>g.dispose());},null,{mats,geos});}
+
+/* ---- M3 The Open Pit: a violet-black hole that spits obsidian spikes at the foes standing in it ---- */
+function gvbPit(S,dmg){const R=GVB.R*.95,T=GVB.pitT,root=new THREE.Group();root.position.set(S.cx,S.y,S.cz);scene.add(smTag(root));const mats=[],geos=[];
+  const dg=new THREE.CircleGeometry(1,40);dg.rotateX(-Math.PI/2);geos.push(dg);
+  const mHole=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0x040108,transparent:true,opacity:0,depthWrite:false}),mDeep=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0x6a22c8,transparent:true,opacity:0,depthWrite:false}),mRim=gsmAM(GSC.V,0),mWarn=gsmAM(GSC.L,0);mats.push(mHole,mDeep,mRim,mWarn);
+  const discs=[[mHole,R*1.45,.026,4],[mHole,R*1.05,.028,5],[mDeep,R*.62,.03,6]].map(([m,s,y,ro])=>{const d=new THREE.Mesh(dg,m);d.position.y=y;d.userData.s=s;d.scale.setScalar(.01);d.renderOrder=ro;root.add(d);return d;});
+  const rg=new THREE.RingGeometry(.93,1,48);rg.rotateX(-Math.PI/2);geos.push(rg);const rim=new THREE.Mesh(rg,mRim);rim.position.y=.032;rim.scale.setScalar(R);rim.renderOrder=7;root.add(rim);
+  const cr=crackSet(root,10,R*1.35,0x050208,0x7a2aff);mats.push(cr.gm);
+  /* broken road round the rim, slowly slipping in */
+  const rocks=[];for(let i=0;i<14;i++){const a=i/14*6.283+rnd()*.3,r=R*(.92+rnd()*.16),m=add(root,dod(.07+rnd()*.07),rnd()<.5?0x3a3430:0x2a2420,Math.sin(a)*r,.02,Math.cos(a)*r,false);m.rotation.set(rnd()*3,rnd()*3,rnd()*3);rocks.push({m,a,r,s:.15+rnd()*.3});}
+  /* the spikes: glossy obsidian shards, shared by every eruption of this pit */
+  const mOb=new THREE.MeshPhongMaterial({color:0x120818,emissive:0x2e0858,emissiveIntensity:.5,specular:0x6a4a9a,shininess:60,flatShading:true});mats.push(mOb);
+  const sg=[new THREE.ConeGeometry(.13,1,4),new THREE.ConeGeometry(.085,.62,4),new THREE.ConeGeometry(.07,.5,4)];sg.forEach(g=>{g.translate(0,g.parameters.height/2,0);geos.push(g);});
+  const wg=new THREE.PlaneGeometry(1,.032);wg.rotateX(-Math.PI/2);wg.translate(.5,0,0);geos.push(wg);
+  const spikes=[],warns=[];
+  const spike=(x,z)=>{const g=new THREE.Group();g.position.set(x-S.cx,.02,z-S.cz);root.add(g);sg.forEach((geo,i)=>{const m=new THREE.Mesh(geo,mOb);if(i){const a=rnd()*6.28;m.position.set(Math.sin(a)*.1,0,Math.cos(a)*.1);m.rotation.set(Math.cos(a)*.4,0,-Math.sin(a)*.4);}else m.rotation.set((rnd()-.5)*.2,rnd()*3,(rnd()-.5)*.2);g.add(m);});
+    g.scale.set(1,.01,1);spikes.push({g,t:0});const y=gy(x,z);sprayP(0,x,y+.05,z,10,{c:0x2a1a3a,c2:0x0a0610,sp:1.6,up:.9,s:.07,s2:.14,a:.7,life:.6,g:2.5});sprayP(1,x,y+.1,z,8,{c:GSC.P,c2:GSC.V,sp:1.2,up:1.4,s:.04,s2:0,life:.4,g:2});
+    for(let i=0;i<4;i++)shard(x+(rnd()-.5)*.2,y+.1,z+(rnd()-.5)*.2);};
+  const warn=(x,z)=>{const g=new THREE.Group();g.position.set(x-S.cx,.034,z-S.cz);root.add(g);for(let i=0;i<5;i++){const m=new THREE.Mesh(wg,mWarn);m.rotation.y=i/5*6.28+rnd()*.5;m.scale.set(.25+rnd()*.25,1,1+rnd());m.renderOrder=8;g.add(m);}warns.push(g);};
+  const pulses=[];for(let k=GVB.pitFirst;k<=T-.25;k+=GVB.pitEvery)pulses.push({t:k,spots:null,fired:false});
+  let t=0;gvbLog({ev:'pit',n:pulses.length});
+  addFx(root,T+.5,(f,dt)=>{t+=dt;const open=SMS(t,0,.3),shut=t>T?Math.max(0,1-(t-T)/.45):1,k=open*shut;
+    for(const d of discs)d.scale.setScalar(Math.max(.01,d.userData.s*k));mHole.opacity=.95*k;mDeep.opacity=(.42+.12*Math.sin(t*5))*k;mRim.opacity=(.3+.1*Math.sin(t*17))*k;cr.grow(Math.min(1,t/.3)*shut);cr.gm.opacity=.5*k;
+    for(const r of rocks){const sl=Math.min(1,t*r.s/4);r.m.position.set(Math.sin(r.a)*r.r*(1-.25*sl),.02-.12*sl-(t>T?(t-T)*.6:0),Math.cos(r.a)*r.r*(1-.25*sl));}
+    if(rnd()<dt*8*k)darkMote(S.cx+(rnd()-.5)*R,S.y+.05,S.cz+(rnd()-.5)*R);
+    for(const p of pulses){
+      if(!p.spots&&t>=p.t-GVB.pitTell){const L=enemies.filter(e=>!e.fly&&gvbIn(e,S,R)).slice(0,8);p.spots=L.length?L.map(e=>[e.x,e.z]):[0,1].map(()=>{const a=rnd()*6.28,r=rnd()*R*.6;return[S.cx+Math.sin(a)*r,S.cz+Math.cos(a)*r];});
+        for(const s of p.spots)warn(s[0],s[1]);gvbLog({ev:'warn',n:L.length});}
+      if(p.spots&&!p.fired&&t>=p.t){p.fired=true;for(const w of warns)root.remove(w);warns.length=0;for(const s of p.spots)spike(s[0],s[1]);camShake=Math.max(camShake,.05);
+        if(state==='playing')for(const e of enemies){if(e.fly||!gvbIn(e,S,R))continue;if(!p.spots.some(s=>(e.x-s[0])**2+(e.z-s[1])**2<GVB.spR*GVB.spR))continue;hurt(e,dmg,'magic',S.o);gvbLog({ev:'spike',e});}}}
+    mWarn.opacity=warns.length?.55+.45*Math.sin(t*40):0;
+    for(let i=spikes.length-1;i>=0;i--){const s=spikes[i];s.t+=dt;const u=s.t,y=u<.07?u/.07*1.15:u<.12?1.15-.15*(u-.07)/.05:u<.32?1:Math.max(.01,1-(u-.32)/.3);s.g.scale.set(1,Math.max(.01,y),1);if(u>.62){root.remove(s.g);spikes.splice(i,1);}}},null,{mats,geos});}
+
+/* ---- M4 Ribcage Prison: ribs tear up through the road and close over the crater, then splinter ---- */
+/* the farthest road distance a foe can walk to and still be inside radius R of the crater */
+function gvbDmax(e,S,R){const rt=e.route||S.rt;let d=e.dist;for(let i=0;i<80;i++){const n=d+.05;if(n>rt.len)break;const w=posAt(n,rt),x=w[0]+Math.cos(w[2])*(e.off||0),z=w[1]-Math.sin(w[2])*(e.off||0);if((x-S.cx)**2+(z-S.cz)**2>R*R)break;d=n;}return d;}
+function gvbCage(S,dmg,dBoss){const Rc=GVB.cgR,Hs=2.05,root=new THREE.Group();root.position.set(S.cx,S.y,S.cz);root.rotation.y=Math.atan2(S.ux,S.uz);scene.add(smTag(root));
+  /* local frame: +z up the road, x across it */
+  const mb=gvbBone(),mg=gsmAM(GSC.V,0),mats=[mb,mg,GSM_KNUCKLE(mb)],geos=[],cage=new THREE.Group();root.add(cage);const pairs=[],curves=[];
+  [-.86,-.43,0,.43,.86].forEach((s0,i)=>{const s=s0*Rc,w=Math.max(.45,Math.sqrt(Rc*Rc-s*s)),top=Hs*(1-.06*Math.abs(s0)),pg=new THREE.Group();cage.add(pg);
+    for(const sd of [-1,1]){const c=new THREE.CubicBezierCurve3(new THREE.Vector3(sd*w,-.25,s),new THREE.Vector3(sd*w*1.08,top*.62,s),new THREE.Vector3(sd*w*.55,top*1.04,s),new THREE.Vector3(0,top,s));
+      const g1=gvbTaper(c,18,.09,.5),g2=gvbTaper(c,18,.16,.45);geos.push(g1,g2);pg.add(new THREE.Mesh(g1,mb));const gl=new THREE.Mesh(g2,mg);gl.renderOrder=6;pg.add(gl);
+      const kg=new THREE.IcosahedronGeometry(.15,0);geos.push(kg);const kn=new THREE.Mesh(kg,GSM_KNUCKLE(mb));kn.position.set(sd*w,.04,s);pg.add(kn);curves.push(c);}
+    pairs.push({g:pg,d:i*.04,s,w});});
+  /* the spine over the top */
+  const vg=new THREE.CylinderGeometry(.11,.11,.13,7);vg.rotateX(Math.PI/2);const pr=new THREE.ConeGeometry(.05,.22,5);pr.translate(0,.12,0);geos.push(vg,pr);const spine=new THREE.Group();cage.add(spine);pairs.push({g:spine,d:.1,s:0,w:0,spine:1});
+  for(let i=0;i<9;i++){const z=(-1+i/4)*Rc*.98,y=Hs*(1-.06*Math.abs(z/Rc))+.02,v=new THREE.Mesh(vg,i%2?GSM_KNUCKLE(mb):mb);v.position.set(0,y,z);spine.add(v);const p=new THREE.Mesh(pr,mb);p.position.set(0,y,z);spine.add(p);}
+  const RISE=.3,HOLD=GVB.cgT,wp=new THREE.Vector3();let t=0,caged=null,broke=false,frags=[],arcT=0;gvbLog({ev:'ribs'});camShake=Math.max(camShake,.08);
+  for(const p of pairs)if(!p.spine)for(const sd of [-1,1]){wp.set(sd*p.w,0,p.s);root.localToWorld(wp);gvbDust(wp.x,S.y+.05,wp.z,6,.15);debris(wp.x,wp.z,3);}
+  const fg=new THREE.CylinderGeometry(.045,.055,.24,5);geos.push(fg);
+  addFx(root,RISE+HOLD+1.05,(f,dt)=>{t+=dt;
+    if(!broke){for(const p of pairs){const k=clamp((t-p.d)/RISE,0,1);p.g.position.y=-Hs*1.15*(1-(1-Math.pow(1-k,3)));}cage.position.y=0;
+      mg.opacity=t<RISE?0:.12+.08*Math.sin(t*9);mb.emissiveIntensity=.3+.35*Math.max(0,Math.sin(t*9));}
+    /* it closes: whoever stands inside (ground, not a boss) is held in */
+    if(!caged&&t>=RISE){caged=enemies.filter(e=>!e.fly&&!e.boss&&gvbIn(e,S,Rc*.92)).map(e=>({e,dmax:gvbDmax(e,S,Rc*.9)}));gvbLog({ev:'cage',n:caged.length,caged:caged.map(c=>c.e)});}
+    if(caged&&!broke){const left=RISE+HOLD-t;for(const c of caged){const e=c.e;if(e.dead||c.free||!(left>0))continue;if(e.dist>c.dmax){e.dist=c.dmax;moveEnemy(e,0);
+        if(!(e.stunT>0)){const got=stunE(e,left);if(got<=1e-3){c.free=true;gvbLog({ev:'escape',e});}else{gvbLog({ev:'bars',e,got});const p=tpos2(e);gsmBurst(p.x,p.y,p.z,.4);}}}}
+      /* violet energy crackling between neighbouring ribs */
+      if(t>RISE&&(arcT-=dt)<=0){arcT=.09+rnd()*.08;const i=Math.floor(rnd()*(curves.length-2)),A=curves[i].getPointAt(.25+rnd()*.5).clone(),B=curves[i+2].getPointAt(.25+rnd()*.5).clone();root.localToWorld(A);root.localToWorld(B);nsArc(A,B,{col:GSC.L,halo:GSC.V,w:.7,disp:.16,life:.14});}}
+    /* the cage splinters into falling bone */
+    if(!broke&&t>=RISE+HOLD){broke=true;cage.visible=false;camShake=Math.max(camShake,.14);flash(S.cx,S.y+1,S.cz,GSC.L,1,.18);shockwave(S.cx,S.cz,Rc*1.25,GSC.V,.45);if(typeof sfxBoom==='function')sfxBoom(.06,true);
+      for(const c of curves)for(let i=0;i<7;i++){const u=(i+.5)/7,p=c.getPointAt(u),tn=c.getTangentAt(u),m=new THREE.Mesh(fg,mb);m.position.copy(p);m.quaternion.setFromUnitVectors(GVB_Y,tn);root.add(m);
+        const out=new THREE.Vector3(p.x,0,p.z).normalize();frags.push({m,v:new THREE.Vector3(out.x*(.8+rnd()*1.4),1+rnd()*1.6,out.z*(.8+rnd()*1.4)+(rnd()-.5)*.6),w:new THREE.Vector3((rnd()-.5)*12,(rnd()-.5)*6,(rnd()-.5)*12),rest:0});
+        if(i===3){wp.copy(p);root.localToWorld(wp);gvbBoneDust(wp.x,wp.y,wp.z,8);}}
+      sprayP(1,S.cx,S.y+.8,S.cz,30,{c:GSC.P,c2:GSC.V,sp:2.4,up:.6,s:.05,s2:0,life:.5,g:1.5,drag:.8,r:Rc*.6});
+      let n=0;if(state==='playing')for(const e of enemies){if(!gvbIn(e,S,Rc*1.1))continue;hurt(e,e.boss?dBoss:dmg,'magic',S.o);n++;gvbLog({ev:'collapse',e,boss:!!e.boss});}gvbLog({ev:'collapse0',n});}
+    for(const q of frags){if(q.rest>0){q.rest+=dt;q.m.scale.setScalar(Math.max(.01,1-(q.rest-.25)/.4));continue;}q.v.y-=9*dt;q.m.position.addScaledVector(q.v,dt);q.m.rotation.x+=q.w.x*dt;q.m.rotation.z+=q.w.z*dt;
+      if(q.m.position.y<=.05&&q.v.y<0){if(q.v.y<-1.5){q.v.y*=-.3;q.v.x*=.5;q.v.z*=.5;}else{q.m.position.y=.05;q.rest=.001;}}}},null,{mats,geos});}
+
+/* ---- M5 Hand of the Underworld: the crater tears open into an abyss, two colossal hands seize the foes and drag them under ---- */
+/* a colossal skeletal hand: forearm bones going down into the ground, a palm of long bones, four fingers and a thumb (gsmFinger) */
+function gvbHand(mb,mg,sd,geos){const sc=1.05,hand=new THREE.Group(),pivot=new THREE.Group();hand.add(pivot);const fingers=[],V=(x,y,z)=>new THREE.Vector3(x,y,z);
+  const unit=new THREE.CylinderGeometry(1,1,1,7);geos.push(unit);const bone=(r,A,B,par)=>{const o=new THREE.Mesh(unit,mb);o.userData.r=r;gvbPlace(o,A,B);par.add(o);return o;};
+  bone(.17*sc,V(-.16,0,0),V(-.2,-1.9,-.95),pivot);bone(.14*sc,V(.16,0,0),V(.22,-1.9,-.9),pivot);
+  const kg=new THREE.IcosahedronGeometry(.22*sc,0);geos.push(kg);const wr=new THREE.Mesh(kg,GSM_KNUCKLE(mb));pivot.add(wr);
+  const pg=new THREE.BoxGeometry(.98*sc,.72*sc,.16*sc);pg.translate(0,.42*sc,-.03);geos.push(pg);pivot.add(new THREE.Mesh(pg,mb));
+  [-.42,-.14,.14,.42].forEach((x,i)=>{bone(.07*sc,V(x*.45,.05,.08),V(x*sc,.8*sc,.08),pivot);const fg=gsmFinger(1.02-.06*Math.abs(i-1.5),mb,mg,[.62,.52,.42]);geos.push(...fg.geos);fg.root.position.set(x*sc,.8*sc,.02);fg.root.rotation.z=-x*.8;fg.sp=-x*.8;pivot.add(fg.root);fingers.push(fg);});
+  const th=gsmFinger(.9,mb,mg,[.5,.42,.34]);geos.push(...th.geos);th.root.position.set(sd*.52*sc,.3*sc,.06);th.root.rotation.set(.3,0,-sd*.7);th.sp=-sd*.7;pivot.add(th.root);fingers.push(th);
+  const anchor=new THREE.Object3D();anchor.position.set(0,.66*sc,.14);pivot.add(anchor);
+  return{hand,pivot,fingers,anchor};}
+function gvbUnderworld(S,dSeize,dSeal){const AR=GVB.abR,root=new THREE.Group();root.position.set(S.cx,S.y,S.cz);root.rotation.y=Math.atan2(S.ux,S.uz);scene.add(smTag(root));const mats=[],geos=[];
+  const dg=new THREE.CircleGeometry(1,48);dg.rotateX(-Math.PI/2);geos.push(dg);
+  const mA=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0x030006,transparent:true,opacity:0,depthWrite:false}),mV=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0x6a22c8,transparent:true,opacity:0,depthWrite:false}),mRim=gsmAM(GSC.V,0);mats.push(mA,mV,mRim);
+  const discs=[[mA,AR*1.5,.02,2],[mA,AR*1.1,.022,3],[mV,AR*.7,.024,3]].map(([m,s,y,ro])=>{const d=new THREE.Mesh(dg,m);d.position.y=y;d.userData.s=s;d.scale.setScalar(.01);d.renderOrder=ro;root.add(d);return d;});
+  const rg=new THREE.RingGeometry(.95,1,64);rg.rotateX(-Math.PI/2);geos.push(rg);const rim=new THREE.Mesh(rg,mRim);rim.position.y=.03;rim.renderOrder=6;root.add(rim);const cr=crackSet(root,16,AR*1.25,0x030106,0x8a3aff);mats.push(cr.gm);
+  const mb=gvbBone(),mg=gsmAM(GSC.V,.1);mats.push(mb,mg,GSM_KNUCKLE(mb));
+  const H=[-1,1].map(sd=>{const h=gvbHand(mb,mg,sd,geos);h.hand.position.set(sd*AR*.92,-3.4,0);h.hand.rotation.y=sd>0?-Math.PI/2:Math.PI/2;h.hand.visible=false;root.add(h.hand);return Object.assign(h,{sd});});
+  const HT=GVB.uwHands,RISE=.35,SWEEP=.45,PLUNGE=.5,SEAL=HT+RISE+SWEEP+PLUNGE+.3,END=SEAL+.55,tmp=new THREE.Vector3(),A=new THREE.Vector3(),B=new THREE.Vector3(),tan=new THREE.Vector3(),P=new THREE.Vector3();
+  const dragged=[],inAbyss=()=>enemies.filter(e=>gvbIn(e,S,AR));let t=0,seized=false,sealed=false;gvbLog({ev:'abyss'});camShake=Math.max(camShake,.08);
+  const restore=d=>{const e=d.e;if(d.under){d.under=false;e.burrow=0;if(e.g)e.g.visible=true;}gsmY(e,0);};
+  addFx(root,END,(f,dt)=>{t+=dt;const open=SMS(t,0,.45),shut=sealed?Math.max(0,1-(t-SEAL)/.18):1,k=open*shut;
+    for(const d of discs)d.scale.setScalar(Math.max(.01,d.userData.s*k));rim.scale.setScalar(Math.max(.01,AR*k));mA.opacity=.96*k;mV.opacity=(.35+.12*Math.sin(t*4))*k;mRim.opacity=(.35+.12*Math.sin(t*15))*k;cr.grow(Math.min(1,t/.45)*shut);cr.gm.opacity=.6*k;
+    /* the abyss swirls */
+    if(k>.2&&rnd()<dt*14){const a=rnd()*6.28,r=AR*(.3+rnd()*.6);emit(1,{x:S.cx+Math.sin(a)*r,y:S.y+.05,z:S.cz+Math.cos(a)*r,vx:Math.cos(a)*.5,vy:.25+rnd()*.3,vz:-Math.sin(a)*.5,s:.05,s2:0,c:GSC.L,c2:GSC.V,a:.9,life:.6});
+      if(rnd()<.4)emitS(0,{x:S.cx+Math.sin(a)*r*.6,y:S.y+.05,z:S.cz+Math.cos(a)*r*.6,vy:.4,s:.16,s2:.5,c:0x1a0a2a,c2:0x0a0412,a:.4,life:1,turb:.4});}
+    /* the hands rise from both sides of the road, sweep in and close */
+    for(const h of H){const u=t-HT;if(u<0)continue;h.hand.visible=true;const rise=Math.min(1,u/RISE),sw=clamp((u-RISE)/SWEEP,0,1),pl=clamp((u-RISE-SWEEP)/PLUNGE,0,1),e=1-Math.pow(1-sw,2.2);
+      h.hand.position.y=-3.4+3.25*(1-Math.pow(1-rise,3))-3.4*pl*pl;h.pivot.rotation.x=-.35+1.1*e+.25*pl;h.fingers.forEach((F,i)=>{F.root.rotation.x=(i<4?.1+.45*e:.3);gsmCurl(F,.1+1.15*e+.15*pl);});
+      if(rise<1&&rnd()<.8){tmp.set(h.sd*AR*.92,0,(rnd()-.5)*1.2);root.localToWorld(tmp);sprayP(0,tmp.x,S.y+.1,tmp.z,3,{c:0x2a2030,c2:0x15101a,sp:1.2,up:1.4,s:.06,s2:.02,life:.6,g:3});darkMote(tmp.x,S.y+.1,tmp.z);}}
+    /* they seize everything in the abyss; the ground foes that are not bosses are held and dragged under */
+    if(!seized&&t>=HT+RISE+SWEEP){seized=true;const L=inAbyss();gvbLog({ev:'seize',n:L.length});camShake=Math.max(camShake,.14);flash(S.cx,S.y+.8,S.cz,GSC.L,1.3,.2);
+      for(const e of L){if(state!=='playing')continue;hurt(e,dSeize,'magic',S.o);gvbLog({ev:'grip',e});if(e.dead)continue;const p=tpos2(e);gsmBurst(p.x,p.y,p.z,.8);
+        if(!e.fly&&!e.boss&&dragged.length<8){const got=stunE(e,SEAL-t+.05);if(got>=SEAL-t-.05){const LK=gbLinks(26,true);root.add(LK.core,LK.glow);dragged.push({e,LK,cl:H[(e.x-S.cx)*S.uz-(e.z-S.cz)*S.ux>0?1:0].anchor,Hh:Math.max(.5,(e.hitY||.45)*2),under:false});gvbLog({ev:'drag',e,got});}}}}
+    /* spectral chains from each dragged foe to the hand pulling it under */
+    for(const d of dragged){const e=d.e,u=clamp((t-HT-RISE-SWEEP)/PLUNGE,0,1);if(!sealed&&!e.dead){if(u<1)gsmY(e,-d.Hh*u*u);else if(!d.under){d.under=true;e.burrow=1;if(e.g)e.g.visible=false;gsmBurst(e.x,S.y+.1,e.z,.7);}}
+      const show=!sealed&&!e.dead&&t<SEAL;if(show){d.cl.getWorldPosition(B);A.set(e.x,S.y+.1-(d.under?.4:d.Hh*u*u*.6),e.z);root.worldToLocal(A);root.worldToLocal(B);tan.subVectors(B,A);const len=A.distanceTo(B),n=Math.min(26,Math.max(4,Math.round(len/.13)));
+        const shoot=Math.min(1,(t-HT-RISE-SWEEP)/.15);for(let i=0;i<26;i++){const v=(i+.5)/n;if(i>=n||v>shoot){d.LK.hide(i);continue;}P.lerpVectors(A,B,v);P.y-=Math.sin(v*Math.PI)*.08*(1-u);d.LK.set(i,P,tan,i%2,2.1);}}else for(let i=0;i<26;i++)d.LK.hide(i);d.LK.flush();}
+    /* the grave slams shut */
+    if(!sealed&&t>=SEAL){sealed=true;for(const d of dragged){restore(d);d.LK.core.visible=d.LK.glow.visible=false;}const L=inAbyss();gvbLog({ev:'seal',n:L.length});
+      for(const e of L){if(state!=='playing')continue;hurt(e,dSeal,'magic',S.o);gvbLog({ev:'sealhit',e});}for(const d of dragged)if(!d.e.dead){debris(d.e.x,d.e.z,5);gsmBurst(d.e.x,S.y+.25,d.e.z,1);}
+      shockwave(S.cx,S.cz,AR*1.45,GSC.V,.6);camShake=Math.max(camShake,.26);flashA=Math.max(flashA,.14);flashCol='#3a1a5a';debris(S.cx,S.cz,18);gvbDust(S.cx,S.y+.05,S.cz,30,AR*.8);
+      sprayP(1,S.cx,S.y+.2,S.cz,46,{c:GSC.P,c2:GSC.V,sp:3.2,up:.8,s:.05,s2:0,life:.6,g:2,drag:.85,r:AR*.6});if(typeof sfxBoom==='function')sfxBoom(.1,true);}
+    if(f.life<=0){for(const d of dragged){restore(d);d.LK.dispose();}}},null,{mats,geos});}
+
+/* ---- the hooks ---- */
+const GVB_CAST0=castGraveburst;
+castGraveburst=function(t,c,P,o){const C=gvbC(o),cx=c&&c.x,cz=c&&c.z,r=GVB_CAST0.apply(this,arguments);if(!C||!c)return r;const L=C.L,a=C.a,S=gvbS(cx,cz,C,P,o),D=GVB.del;gvbLog({ev:'cast',L,S});
+  if(L>=1)mxLater(D,()=>{if(state==='playing')gvbQuake(S,P*GVB.fq*a[0]);});
+  if(L>=3)mxLater(D,()=>{if(state==='playing')gvbPit(S,P*GVB.pit*a[2]);});
+  if(L>=5)mxLater(D+GVB.uwT,()=>{if(state==='playing')gvbUnderworld(S,P*GVB.hd*a[4],P*GVB.seal*a[4]);});
+  if(L>=2)mxLater(D+GVB.ubT,()=>{if(state==='playing')gvbUnburied(S,P*GVB.ub*a[1]);});
+  if(L>=4)mxLater(D+GVB.cgT0,()=>{if(state==='playing')gvbCage(S,P*GVB.cg*a[3],P*GVB.cg*GVB.cgBoss*a[3]);});
+  return r;};
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
@@ -23643,7 +23939,12 @@ if(GAME.setAside)setTimeout(()=>toast('Your open-world run now belongs to Kingsg
 requestAnimationFrame(frame);
 /* ---- What's new: shown once per notes version (per account), on the first open after an update ---- */
 const NOTES_V='masteries-1';
-const NOTES_HTML=`<h3>\u2726 Mastery progress in battle</h3><ul>
+const NOTES_HTML=`<h3>\u2726 Graveburst masteries, reworked</h3><ul>
+<li><b>Gravequake</b> (Mastery 1): when the grave bursts, a shockwave tears through the ground and three branching fissures race out from the crater, erupting with dark energy: 45% to each foe they strike. <b>The Unburied</b> (Mastery 2): a spectral skeletal warrior, its ribcage glowing violet, climbs out of the crater and swings an enormous rusted blade round in a wide arc for 100%, then breaks apart and sinks back into the earth.</li>
+<li><b>The Open Pit</b> (Mastery 3): the crater stays open as a violet-black pit for 4s; again and again cracks flash under the foes standing in it and obsidian spikes thrust up there for 35%. Foes can still walk out. <b>Ribcage Prison</b> (Mastery 4): giant ribs tear up through the road and close over the crater for 1.5s; the ground foes inside cannot leave, then the cage splinters into falling bone for 70% (bosses are never held and take half).</li>
+<li><b>Hand of the Underworld</b> (Mastery 5): the crater tears open into a vast abyss; two colossal skeletal hands rise from both sides of the road and seize every foe in it for 100%, dragging the ground foes under on spectral chains (not bosses), then the grave slams shut for 100% more.</li>
+<li>Graveburst&rsquo;s old masteries (Bone Shards, Open Grave, Deathmark, Aftershock, Mass Burial) are replaced. Like every scroll above Common, its masteries are only in developer mode for now.</li></ul>
+<h3>\u2726 Mastery progress in battle</h3><ul>
 <li>A new <b>mastery button</b> on the right, under the top bar, opens a live panel during a run: every building on the board and every scroll of your hero that earns mastery, with its level and how close it is to the next one.</li>
 <li>The part of each bar earned in this run glows, next to the XP earned this run, and a level reached this run is called out (the button counts them too). Tap a row to see all five masteries; the run pauses while the card is open.</li>
 <li>On phones the top bar now fits: its numbers and buttons are a little smaller on narrow screens, so the menu button is never pushed off the edge (the wave reads <b>W 188</b> there).</li></ul>
