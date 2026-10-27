@@ -14148,6 +14148,10 @@ const CLOG=[
     'Forking Flames: every third leap splits in two. Firestorm: a fire vortex round each foe that passes the fire on, 45%.',
     'Living Inferno: at ten foes the fire on the last one swells and erupts in a violent explosion, 180%.',
     'Every Catch Flame ignition is now a real billowing fireball that cools into smoke.']},
+  {t:'Dark Pulse masteries, reworked',d:'27 Oct',v:'v400',li:[
+    'Void Resonance: every foe the ring strikes releases a ripple, 25% to the foes around it. Echo Pulse: the ring\u2019s traces rush back, compress into an orb and burst out again for 45% of its damage.',
+    'Rupture Wave: three lines of obsidian spikes tear up behind the ring, 40% each. Black Sun: the orb becomes a black sun and a towering wall rides the ring, 50% more (flyers too).',
+    'Event Horizon: a black sphere draws in debris and darkens the area, implodes for 30% (drawing foes toward the hero) and releases a colossal ring for 150%.']},
   {t:'Graveburst masteries, reworked',d:'27 Oct',v:'v399',li:[
     'Gravequake: three branching fissures race out from the crater, 45%. The Unburied: a spectral skeleton climbs out and swings a rusted greatsword round, 100%.',
     'The Open Pit: the crater stays open 4s and spits obsidian spikes at the foes standing in it, 35% each time. Ribcage Prison: giant ribs hold the ground foes in for 1.5s, then splinter for 70%.',
@@ -24713,6 +24717,381 @@ function blmStart(o,R0){const C=blmC(o);if(!C)return null;const L=C.L,a=C.a;
       if(B.hideCore){B.core.scale.setScalar(.001);f.life=Math.min(f.life,.02);}
       if(f.life<=0)B.gone=true;}};
   BLM.last=B;return B;}
+/* ================= Dark Pulse's masteries, as Simon designed them (v400) ================= */
+/* Simon (abridged; the "why it works" notes left out): "Mastery 1 - Void Resonance: When the expanding ring hits an enemy, a small dark pulse
+   detonates around that enemy, dealing 25% damage to nearby foes. Visual: Each enemy struck briefly flashes violet, then releases a small
+   circular ripple of dark energy. When several enemies are clustered together, the ripples overlap into a chain of purple flashes. /
+   Mastery 2 - Echo Pulse: After the first shockwave reaches its maximum radius, a second, thinner ring races outward from the hero, dealing 45%
+   of the original damage. Visual: The first ring leaves glowing violet traces on the ground. A moment later, those traces reverse toward the
+   hero, compress into a bright orb, and burst outward again as a sharper, faster ring. / Mastery 3 - Rupture Wave: As Dark Pulse expands, three
+   jagged eruptions of dark energy burst from the ground behind the advancing ring, following its path at short intervals. Each eruption deals
+   40% damage to enemies in its small area. Visual: The original ring rolls outward, followed by three successive lines of violet-black spikes
+   tearing through the road. Each line erupts with a sharp flash before crumbling into dark particles. / Mastery 4 - Black Sun: The orb above
+   the hero collapses into a miniature black sun. When the pulse is released, dark energy erupts upward as well as outward, forming a towering
+   circular wall of violet-black energy. The vertical wave hits all enemies the normal pulse reaches, including flyers, and deals an additional
+   50% damage. Visual: The ground ring becomes a massive cylindrical wall of dark energy, with jagged violet lightning crawling along its
+   surface. The wall fractures into dark shards before dissolving. / Mastery 5 - Event Horizon: The hero begins charging a dense black sphere
+   above their head. Instead of releasing a normal shockwave, the sphere implodes and briefly distorts the entire area around the hero before
+   unleashing a colossal expanding ring. The implosion draws nearby enemies slightly toward the hero. The expanding ring then deals 150% damage
+   and applies the normal knockback. Enemies caught by both stages take damage from both. Visual: Ambient particles and loose debris lift off
+   the ground and spiral into the sphere. The world briefly darkens around it, a thin violet halo forms, and then the sphere collapses into a
+   pinprick of light. A gigantic ring detonates outward, distorting the ground as it passes before fading into drifting black particles."
+   He also asked: "no low effort effects are acceptable and spell should get visually better as masteries go".
+   Percentages are of the scroll's power (the pulse itself is 60%), except Echo Pulse, which is 45% of the ring's own damage, as Simon wrote it.
+   Mastery 0, echoes and other casters are the old cast (dpmC(o): the SM.ctx entry of o.smId, not o.smx). From Mastery 1 castDarkPulse is
+   wrapped; the ring's own hits (SMF.darkpulse.hit, once per foe) play Masteries 1 and 4, the wrapper plays the rest. S is the cast: its centre,
+   the ring's start (S.t0), duration (S.T) and reach (S.R; the front is at 0.2 + R x the old ease, as in the old cast, so it ends at 0.2 + R).
+   - M1 Void Resonance: dpmResonance, the foe flashes violet (dpmGlow), then a ripple (dpmRipple) bursts round it: 25% to the other foes within
+     DPM.resR (flyers too). Ripples of a pack overlap.
+   - M2 Echo Pulse: dpmEcho, violet traces drawn on the ground behind the ring (dpmTraceMat) flow back to the hero when it reaches full size,
+     compress into a bright orb and burst out as a thin, faster ring (0.34s against 0.62s): 45% of the ring's damage to each foe it reaches once.
+   - M3 Rupture Wave: dpmRupture, three rings of obsidian spikes (dpmErupt: a cracked fissure, instanced spikes, a sharp flash, then they crumble)
+     erupting behind the front at 34%, 63% and 92% of its reach: 40% to the ground foes within DPM.rupW of each.
+   - M4 Black Sun: dpmSun dresses the old cast's charge orb as a black sun (a black body with a violet rim, a photon ring, a dark corona and an
+     accretion disc); dpmWall, a towering wall of violet-black energy riding the ring (painted body, crawling lightning, jagged crest) that
+     fractures into shards (instanced) and dissolves: every foe the ring hits takes 50% more (flyers too, as the ring hits them).
+   - M5 Event Horizon: dpmHorizon replaces the old cast: a dense black sphere charges over the hero for 1.05s while debris and motes spiral into
+     it, the area darkens (darkTarget, a lensing disc on the ground) and a thin violet halo forms; it implodes (30% to every foe within the
+     normal reach; ground foes already past the hero are drawn back toward it, at most 0.35, the others are seized for 0.25s; pulling the ones
+     before it forward would help them), collapses to a pinprick and releases a colossal ring 30% wider (0.8s): 150% instead of 60%, the usual
+     knockback, slow and Torn Asunder. Masteries 1-4 ride it.
+   DPM.dbg (an array) logs the events for the tests. */
+const DPM={dbg:null,res:.25,resR:.7,resT:.1,echo:.45,echoT:.34,rup:.4,rupW:.3,rupAt:[.34,.63,.92],sun:.5,wallH:1.45,ehCh:1.05,ehT0:1.25,ehT:.8,ehW:1.3,ehImp:.3,ehPull:.35,ehSeize:.25,eh:1.5,CH:.42,WV:.62};
+const DPC={K:0x040108,D:0x1c0634,M:0x5a1aa8,V:0x8a3aff,L:0xb98cff,P:0xeadcff,W:0xffffff};
+const dpmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='darkpulse'?c:null;};
+const dpmLog=d=>{if(DPM.dbg)DPM.dbg.push(d);};
+SM_D.darkpulse=[
+  {n:'Void Resonance',d:'Each foe the ring strikes flashes violet and releases a small ripple of dark energy: {25}% to the foes around it. In a crowd the ripples overlap into a chain of purple flashes.'},
+  {n:'Echo Pulse',d:'When the ring reaches its full size, the violet traces it left rush back to the hero, compress into a bright orb and burst out again as a thinner, faster ring: {45}% of the ring\'s damage.'},
+  {n:'Rupture Wave',d:'Three jagged lines of violet-black spikes tear through the ground behind the advancing ring, one after another: {40}% to the foes in each.'},
+  {n:'Black Sun',d:'The orb collapses into a miniature black sun, and the pulse erupts upward too: a towering wall of dark energy strikes every foe the ring reaches, flyers too, for {50}% more.'},
+  {n:'Event Horizon',d:'A dense black sphere gathers over the hero, drawing in debris, then implodes: {30}% to the foes nearby, drawing them toward the hero. Then a colossal ring 30% wider detonates: {150}% instead of the pulse\'s 60%, with the usual knockback.'}];
+SMF.darkpulse={m:.6,
+  hit(c,e){if(smSeen(e,c,'p'))return;const L=c.L,a=c.a;if(L>=1)dpmResonance(c,e,c.P*DPM.res*a[0]);if(L>=4)dpmSunHit(c,e,c.P*DPM.sun*a[3]);}};
+SMA.darkpulse=[1,1,1,1,1];
+SMG.darkpulse=[1,1,1,1,1];
+SM.free=SM.free||{};SM.free.darkpulse='Simon'+String.fromCharCode(8217)+'s own numbers for Dark Pulse';
+
+/* ---- shared pieces ---- */
+const DPMQ={},DPO=new THREE.Object3D();
+/* shared geometries (cached, never disposed): a jagged obsidian spike (base at 0, pointing up), a dark glass shard, a rock */
+DPMQ.spike=()=>DPMQ._sp||(DPMQ._sp=(()=>{const c=new THREE.ConeGeometry(.075,.5,5);c.translate(0,.25,0);const j=jitterGeo(c,.022);c.dispose();return j;})());
+DPMQ.shard=()=>DPMQ._sh||(DPMQ._sh=jitterGeo(new THREE.TetrahedronGeometry(1,0),.25));
+DPMQ.rock=()=>DPMQ._rk||(DPMQ._rk=jitterGeo(new THREE.DodecahedronGeometry(1,0),.3));
+DPMQ.plane=()=>DPMQ._pl||(DPMQ._pl=new THREE.PlaneGeometry(2,2).rotateX(-Math.PI/2));
+DPMQ.cyl=()=>DPMQ._cy||(DPMQ._cy=new THREE.CylinderGeometry(1,1,1,128,1,true).translate(0,.5,0));
+/* the ring's front radius at time tt of the cast (the old cast's ease) */
+const dpmR=(S,tt)=>{if(tt<S.t0)return 0;const k=Math.min(1,(tt-S.t0)/S.T);return .2+S.R*(1-Math.pow(1-k,2.2));};
+/* when the front reaches radius r */
+const dpmTAt=(S,r)=>{const u=clamp((r-.2)/S.R,0,.999);return S.t0+S.T*(1-Math.pow(1-u,1/2.2));};
+/* a new InstancedMesh draws every instance at full size until its matrices are set: start them all hidden */
+const dpmHideI=im=>{DPO.position.set(0,0,0);DPO.rotation.set(0,0,0);DPO.scale.setScalar(.0001);DPO.updateMatrix();for(let i=0;i<im.count;i++)im.setMatrixAt(i,DPO.matrix);im.instanceMatrix.needsUpdate=true;im.frustumCulled=false;return im;};
+const dpmAM=(col,op)=>new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+const dpmSM=(col,op,map)=>new THREE.SpriteMaterial({map:map||softDiscTex(),color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false});
+const dpmNM=(col,op,map)=>new THREE.SpriteMaterial({map:map||softDiscTex(),color:col,transparent:true,opacity:op,depthWrite:false});
+/* textures drawn once: spiky rays (a corona) and a thin glowing ring (a halo) */
+const DPMT={};
+function dpmRayTex(){if(DPMT.ray)return DPMT.ray;const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');let sd=29;const r=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};
+  const gr=g.createRadialGradient(128,128,0,128,128,128);gr.addColorStop(0,'rgba(255,255,255,.9)');gr.addColorStop(.2,'rgba(255,255,255,.55)');gr.addColorStop(.42,'rgba(255,255,255,.12)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,256,256);
+  for(let i=0;i<38;i++){const a=i/38*Math.PI*2+(r()-.5)*.12,L=48+r()*76,w=1.6+r()*3.4;g.save();g.translate(128,128);g.rotate(a);const q=g.createLinearGradient(18,0,L+18,0);q.addColorStop(0,'rgba(255,255,255,.95)');q.addColorStop(1,'rgba(255,255,255,0)');
+    g.fillStyle=q;g.beginPath();g.moveTo(18,-w);g.lineTo(L*.5+18,-w*.35);g.lineTo(L+18,0);g.lineTo(L*.5+18,w*.35);g.lineTo(18,w);g.closePath();g.fill();g.restore();}
+  DPMT.ray=new THREE.CanvasTexture(c);return DPMT.ray;}
+function dpmRingTex(){if(DPMT.ring)return DPMT.ring;const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');
+  for(const[w,a]of[[22,.12],[10,.35],[4,.9],[1.6,1]]){g.strokeStyle=`rgba(255,255,255,${a})`;g.lineWidth=w;g.beginPath();g.arc(128,128,96,0,Math.PI*2);g.stroke();}
+  DPMT.ring=new THREE.CanvasTexture(c);return DPMT.ring;}
+/* a band racing over the ground (a 2x2 plane scaled by uS, vP its own xz, so p = metres from the centre). uM 0: violet-black tongues and the
+   front painted over the ground (normal blending: on the bright plains additive light only washes out to white); uM 1: the hot line along
+   the front (additive); uM 2: the scorch left behind (normal). uW: the tongues' length, uK: the front's sharpness (smaller is thinner), uRp:
+   ripples running ahead of the front (the ground distorting) */
+function dpmBandMat(S,M,o){o=o||{};return new THREE.ShaderMaterial({uniforms:{uR:{value:.2},uT:{value:rnd()*9},uA:{value:0},uS:{value:S},uW:{value:o.w||.5},uK:{value:o.k||1},uRp:{value:o.rp||0},uE:{value:o.e||99},uPl:{value:o.pl==null?.7:o.pl}},transparent:true,depthWrite:false,
+  blending:M===1?THREE.AdditiveBlending:THREE.NormalBlending,polygonOffset:true,polygonOffsetFactor:-4-M,polygonOffsetUnits:-4-M,
+  vertexShader:'varying vec2 vP;void main(){vP=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uR,uT,uA,uS,uW,uK,uRp,uE,uPl;varying vec2 vP;'+SLM_N+
+    'void main(){vec2 p=vP*uS;float d=length(p),a=atan(p.y,p.x);float x=d-uR;float th=.05*uK;'+
+    'float fl=fb(vec2(a*17.,d*2.2-uT*3.)),fl2=fb(vec2(a*41.+3.,d*4.-uT*5.));float len=uW*(.35+.95*fl);'+
+    'float tg=step(x,0.)*smoothstep(-len,-len*.15,x)*(.45+.55*fl2);float front=exp(-pow(x/th,2.))*(.75+.25*fl2);float ahead=step(0.,x)*exp(-x/(th*2.2));'+
+    'float rp=uRp*step(0.,x)*exp(-x*3.2)*pow(.5+.5*sin(x*48.-uT*26.+fl*3.),3.)+uRp*step(x,0.)*exp(x*2.6)*pow(.5+.5*sin(x*36.+uT*14.),4.)*.6;'+
+    (M===1?'gl_FragColor=vec4(mix(vec3(.5,.2,1.),vec3(.8,.62,1.),uPl),clamp(front*.95+ahead*.3+tg*fl2*.12,0.,1.)*uA);}':
+     M===2?'float n=fb(p*2.1),n2=fb(p*6.3+4.);float k=smoothstep(uR+.05,uR-.7,d)*smoothstep(uE+.05,uE-.4-.3*n,d)*(.25+.45*n*n2+.2*n2);gl_FragColor=vec4(vec3(.05,.01,.09)+vec3(.1,.03,.2)*n2,k*uA);}':
+     'vec3 c=mix(vec3(.05,.01,.1),vec3(.38,.12,.74),clamp(tg*.85+front,0.,1.));c=mix(c,vec3(.93,.85,1.),clamp(front*uPl+tg*fl2*.15*uPl,0.,1.));'+
+     'c=mix(c,vec3(.2,.06,.4),clamp(rp*.8,0.,1.));gl_FragColor=vec4(c,clamp(tg*.9+front*.95+ahead*.3+rp*.32,0.,.95)*uA);}')});}
+/* the painted ground pieces sit on a shared plane; the mesh is scaled to S metres */
+function dpmPlane(par,mat,S,y,ro){const m=new THREE.Mesh(DPMQ.plane(),mat);m.scale.setScalar(S);m.position.y=y||0;m.renderOrder=ro||4;par.add(m);return m;}
+/* a glowing fresnel shell (rims of spheres, the distortion of the implosion) */
+function dpmRimMat(col,p,add){return new THREE.ShaderMaterial({uniforms:{uA:{value:0},uC:{value:new THREE.Color(col)},uP:{value:p||2.5},uT:{value:rnd()*9}},transparent:true,depthWrite:false,blending:add===false?THREE.NormalBlending:THREE.AdditiveBlending,
+  vertexShader:'varying vec3 vN,vV,vO;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);vO=position;gl_Position=projectionMatrix*mv;}',
+  fragmentShader:'uniform float uA,uP,uT;uniform vec3 uC;varying vec3 vN,vV,vO;void main(){float f=abs(dot(normalize(vN),normalize(vV)));float r=pow(1.-f,uP);float w=.75+.25*sin(vO.y*40.+uT*7.)*sin(vO.x*31.-uT*5.);gl_FragColor=vec4(uC,clamp(r*w*uA,0.,1.));}'});}
+/* the black body of a black sun: black, its rim violet (painted, opaque) */
+function dpmBodyMat(){return new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*9},uK:{value:1}},
+  vertexShader:'varying vec3 vN,vV;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
+  fragmentShader:'uniform float uT,uK;varying vec3 vN,vV;void main(){float f=abs(dot(normalize(vN),normalize(vV)));float r=pow(1.-f,3.2);vec3 c=mix(vec3(.004,0.,.012),vec3(.62,.32,1.),r*uK);gl_FragColor=vec4(c,1.);}'});}
+/* a swirling accretion disc (uv of a plane): violet arms, white-hot inner edge, additive */
+function dpmDiscMat(){return new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:rnd()*9},uIn:{value:.34}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+  vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uA,uT,uIn;varying vec2 vU;'+SLM_N+'void main(){vec2 p=(vU-.5)*2.;float r=length(p);if(r>1.)discard;float a=atan(p.y,p.x);'+
+    'float sw=a*3.+log(r+.02)*5.-uT*4.;float arms=pow(.5+.5*sin(sw+fb(p*3.+uT*.3)*3.),3.);float body=smoothstep(uIn-.04,uIn+.1,r)*smoothstep(1.,.55,r);'+
+    'float hot=exp(-pow((r-uIn-.05)*22.,2.));vec3 c=mix(vec3(.36,.1,.8),vec3(.8,.62,1.),arms*.6);c=mix(c,vec3(1.,.96,1.),hot);gl_FragColor=vec4(c,clamp(body*(.25+.75*arms)*.9+hot*.95,0.,1.)*uA);}'});}
+/* the tall wall of Black Sun, on an open cylinder (uv.y 0 at the ground). uM 0: the violet-black body (normal blending) with a jagged crest,
+   veins and the cracks it fractures along (uD); uM 1: the lightning crawling over it, its crest and its foot (additive) */
+function dpmWallMat(M){return new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:rnd()*9},uD:{value:0}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
+  blending:M?THREE.AdditiveBlending:THREE.NormalBlending,
+  vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uA,uT,uD;varying vec2 vU;'+SLM_N+
+    'float rdg(vec2 p){return 1.-abs(n1(p)*2.-1.);}'+
+    'void main(){float u=vU.x,v=vU.y;float n=fb(vec2(u*26.,v*1.6-uT*1.4)),n2=fb(vec2(u*70.+5.,v*3.-uT*2.4));'+
+    'float top=.62+.3*fb(vec2(u*34.+uT*.2,uT*.4))+.08*n2;float body=1.-smoothstep(top-.1,top,v);float crest=exp(-pow((v-top+.05)*26.,2.));'+
+    'float cr=fb(vec2(u*44.,v*5.)+3.1);float hole=smoothstep(uD-.03,uD+.03,cr+.3*(1.-v)-.15);float edge=uD>0.?exp(-pow((cr+.3*(1.-v)-.15-uD)*30.,2.)):0.;'+
+    'float L1=pow(rdg(vec2(u*40.+uT*.7,v*4.2-uT*2.6)),22.),L2=pow(rdg(vec2(u*90.-uT*1.1,v*7.-uT*4.)),30.);float foot=exp(-v*9.);'+
+    (M?'float k=(L1*.9+L2*.7)*body*(.4+.6*smoothstep(.0,.5,v))+crest*.7*body+foot*.35+edge*.9;gl_FragColor=vec4(mix(vec3(.55,.28,1.),vec3(.9,.8,1.),clamp(L1*.8+crest*.3,0.,1.)),clamp(k*hole,0.,1.)*uA);}':
+     'float vein=pow(rdg(vec2(u*55.,v*3.-uT*1.8)),10.);vec3 c=mix(vec3(.03,0.,.07),vec3(.26,.07,.52),clamp(n*.9+vein*.6,0.,1.));c=mix(c,vec3(.58,.28,1.),clamp(vein*.55+crest*.5+edge,0.,1.));'+
+     'float al=body*(.55+.4*n+.35*foot)*(1.-.3*smoothstep(.25,.95,v))+crest*.3*body;gl_FragColor=vec4(c,clamp(al*hole,0.,.92)*uA);}')});}
+/* a short glowing curtain rising off a ring (uv.y 0 at the ground), additive */
+function dpmCurtainMat(col){return new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:rnd()*9},uC:{value:new THREE.Color(col)}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+  vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uA,uT;uniform vec3 uC;varying vec2 vU;'+SLM_N+'void main(){float u=vU.x,v=vU.y;float n=n1(vec2(u*60.,v*2.-uT*5.));float k=pow(1.-v,2.2)*(.45+.55*n);gl_FragColor=vec4(uC,clamp(k*uA,0.,1.));}'});}
+/* a light from the shared manager (violet), only if Soul Lantern's manager exists */
+/* a soft glow lying on the ground (Sunflare's, if it is there) */
+const dpmGlowDisc=(x,z,y,R,col,op,life)=>{if(typeof snfGlowDisc==='function')snfGlowDisc(x,z,y,R,col,op,life,.03);};
+const dpmLight=(x,y,z,I,d)=>{if(typeof slmLight==='function')slmLight(x,y,z,I,d);};
+
+/* ---- M1 Void Resonance: the struck foe flashes violet, then a ripple bursts round it ---- */
+function dpmGlow(e){if(!e||e.dead||!e.g)return;const g=new THREE.Group();scene.add(smTag(g));const m1=dpmSM(DPC.L,0),m2=dpmSM(DPC.P,0);const s1=new THREE.Sprite(m1),s2=new THREE.Sprite(m2);g.add(s1,s2);
+  const hy=e.hitY||.4;let t=0;addFx(g,DPM.resT+.08,(f,dt)=>{t+=dt;const p=tpos2(e);g.position.set(p.x,p.y,p.z);const k=Math.min(1,t/.04)*Math.min(1,f.life/.06);
+    s1.scale.setScalar(hy*(1.5+t*3));s2.scale.setScalar(hy*.8);m1.opacity=.75*k;m2.opacity=.55*k;},null,{mats:[m1,m2]});}
+function dpmRipple(x,z,R,hot){const y=gy(x,z),g=new THREE.Group();g.position.set(x,y,z);scene.add(smTag(g));const S=R+.25,mats=[];
+  const pm=dpmBandMat(S,0,{w:.55,k:.6,pl:.25}),gm=dpmBandMat(S,1,{w:.55,k:.45,pl:.15});mats.push(pm,gm);dpmPlane(g,pm,S,.04,5);dpmPlane(g,gm,S,.045,6);
+  const cm=dpmCurtainMat(DPC.M);mats.push(cm);const cur=new THREE.Mesh(DPMQ.cyl(),cm);g.add(cur);
+  flash(x,y+.3,z,DPC.V,.34*R,.12);sprayP(1,x,y+.3,z,8,{c:DPC.L,c2:DPC.M,sp:1.2,up:.8,s:.035,s2:0,life:.3,g:1});sprayP(1,x,y+.12,z,10,{c:DPC.P,c2:DPC.V,sp:1.6*R,up:.35,s:.04,s2:0,life:.32,g:1,flat:true});
+  for(let i=0;i<3;i++)emit(0,{x:x+(rnd()-.5)*.2,y:y+.06,z:z+(rnd()-.5)*.2,vx:(rnd()-.5)*.4,vy:.4+rnd()*.4,vz:(rnd()-.5)*.4,s:.08,s2:.18,c:0x0a0414,c2:0x3a1060,a:.6,life:.7,turb:.8});
+  let t=0;const T=.3;addFx(g,T+.25,(f,dt)=>{t+=dt;const k=Math.min(1,t/T),r=.08+(R-.08)*(1-Math.pow(1-k,2)),fade=t<T?1:Math.max(0,1-(t-T)/.25);
+    pm.uniforms.uA.value=fade*Math.min(1,t/.03);gm.uniforms.uA.value=.6*fade*Math.min(1,t/.03);for(const m of[pm,gm]){m.uniforms.uR.value=r;m.uniforms.uT.value+=dt;}
+    cur.scale.set(r,Math.max(.001,.22*(1-k*.6)*fade),r);cm.uniforms.uA.value=.5*fade*(1-.5*k);cm.uniforms.uT.value+=dt;},null,{mats});}
+function dpmResonance(c,e,dmg){const p0=tpos2(e);dpmGlow(e);dpmLog({ev:'res',e});
+  mxLater(DPM.resT,()=>{if(state!=='playing')return;const x=e.dead?p0.x:e.x,z=e.dead?p0.z:e.z,R=DPM.resR;dpmRipple(x,z,R);
+    for(const q of enemies){if(q===e||q.dead||q.fake)continue;if((q.x-x)**2+(q.z-z)**2<=R*R){hurt(q,dmg,'magic',smO(c.o));dpmLog({ev:'resHit',e:q,src:e});const p=tpos2(q);flash(p.x,p.y,p.z,DPC.L,.26,.12);
+      /* the chain: a dark arc from the struck foe to each foe its ripple reaches */
+      smArc('dark',smV(x,p.y,z),smP3(q),{w:.7,disp:.1,life:.18});}}});}
+
+/* ---- M2 Echo Pulse: traces drawn behind the ring flow back, compress into an orb and burst out as a thin, fast ring ---- */
+/* the traces (vP metres from the centre via uS): broken radial streaks and arcs where the front has passed (d < uR), inside uO (shrinks as
+   they flow back); uF shifts them inward as they flow; uM 0 painted violet, uM 1 their glow (additive) */
+function dpmTraceMat(S,M){return new THREE.ShaderMaterial({uniforms:{uR:{value:0},uO:{value:99},uF:{value:0},uA:{value:0},uB:{value:.5},uT:{value:rnd()*9},uS:{value:S}},transparent:true,depthWrite:false,
+  blending:M?THREE.AdditiveBlending:THREE.NormalBlending,polygonOffset:true,polygonOffsetFactor:-3-M,polygonOffsetUnits:-3-M,
+  vertexShader:'varying vec2 vP;void main(){vP=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uR,uO,uF,uA,uB,uT,uS;varying vec2 vP;'+SLM_N+
+    'void main(){vec2 p=vP*uS;float d=length(p),a=atan(p.y,p.x);float q=d+uF;'+
+    'float s1=pow(n1(vec2(a*24.,q*1.1)),6.)*2.2*smoothstep(.15,.6,d);float ring=sin(q*8.5+n1(vec2(a*5.,q*.7))*5.);float s2=pow(max(0.,ring),18.)*smoothstep(.35,.75,n1(vec2(a*9.,floor(q*1.35))));'+
+    'float m=step(d,uR)*smoothstep(uO+.02,uO-.3,d)*smoothstep(.08,.3,d);float k=clamp((s1+s2)*m,0.,1.);'+
+    (M?'gl_FragColor=vec4(vec3(.75,.55,1.),k*uB*uA);}':'gl_FragColor=vec4(mix(vec3(.22,.06,.45),vec3(.6,.35,1.),k),clamp(k*.85,0.,.9)*uA);}')});}
+function dpmEcho(S,dmg){const cx=S.cx,cz=S.cz,g0=S.g0,RM=.2+S.R,SS=RM+.6,tMax=S.t0+S.T,tBack=tMax+.06,tOrb=tBack+.3,tBurst=tOrb+.14,T2=DPM.echoT,mats=[],g=new THREE.Group();g.position.set(cx,g0,cz);scene.add(smTag(g));
+  const tp=dpmTraceMat(SS,0),tg=dpmTraceMat(SS,1);mats.push(tp,tg);dpmPlane(g,tp,SS,.035,3);dpmPlane(g,tg,SS,.04,4);
+  const om=dpmSM(DPC.W,0),oh=dpmSM(DPC.V,0),os=dpmSM(DPC.L,0,dpmRingTex()),oy2=Math.max(.45,(S.oy-g0)*.62),ox=dpmSM(DPC.L,0,dpmRayTex());mats.push(om,oh,os,ox);const orb=new THREE.Group();orb.position.y=oy2;const oc=new THREE.Sprite(om),ohs=new THREE.Sprite(oh),ors=new THREE.Sprite(os),oxs=new THREE.Sprite(ox);orb.add(ohs,oxs,ors,oc);orb.visible=false;g.add(orb);
+  const rp=dpmBandMat(SS,0,{w:.6,k:.5,pl:.55}),rg=dpmBandMat(SS,1,{w:.6,k:.42,pl:.6});mats.push(rp,rg);dpmPlane(g,rp,SS,.05,5);dpmPlane(g,rg,SS,.055,6);
+  const cm=dpmCurtainMat(DPC.P);mats.push(cm);const cur=new THREE.Mesh(DPMQ.cyl(),cm);cur.visible=false;g.add(cur);
+  const hit=new Set();let t=0,burst=false;
+  addFx(g,tBurst+T2+.5,(f,dt)=>{t+=dt;for(const m of mats)if(m.uniforms)m.uniforms.uT.value+=dt;
+    /* traces: drawn behind the front, then flowing back to the hero */
+    const fr=dpmR(S,t);tp.uniforms.uR.value=tg.uniforms.uR.value=fr;
+    if(t<tBack){const a=t<S.t0?0:Math.min(1,(t-S.t0)/.15);tp.uniforms.uA.value=tg.uniforms.uA.value=a;tg.uniforms.uB.value=.45;}
+    else if(t<tOrb){const k=(t-tBack)/(tOrb-tBack),e=k*k*(3-2*k);const o=RM*(1-e);tp.uniforms.uO.value=tg.uniforms.uO.value=o+.05;tp.uniforms.uF.value=tg.uniforms.uF.value=RM*e*1.15;
+      tg.uniforms.uB.value=.45+1.1*e;tp.uniforms.uA.value=tg.uniforms.uA.value=1;
+      let n=dt*90;while(n>0){if(n<1&&rnd()>n)break;n--;const a=rnd()*6.28,r=o*(.4+rnd()*.6)+.1;emit(1,{x:cx+Math.cos(a)*r,y:g0+.06,z:cz+Math.sin(a)*r,vx:-Math.cos(a)*(2+r*3),vy:.3,vz:-Math.sin(a)*(2+r*3),s:.045,s2:.01,c:DPC.P,c2:DPC.V,life:.18,a:.95});}
+      if(k>.55){orb.visible=true;const u=(k-.55)/.45;orb.scale.setScalar(.2+u*.8);om.opacity=.5*u;oh.opacity=.6*u;os.opacity=.4*u;ox.opacity=.5*u;oxs.scale.setScalar(1.1);}}
+    else if(t<tBurst){tp.uniforms.uA.value=tg.uniforms.uA.value=0;const k=(t-tOrb)/(tBurst-tOrb);orb.visible=true;orb.scale.setScalar(1);oc.scale.setScalar(.36-.16*k);ohs.scale.setScalar(1.35-.55*k+.1*Math.sin(t*60));ors.scale.setScalar(1.05-.6*k);oxs.scale.setScalar(1.5-.8*k);
+      om.opacity=.8+.2*k;oh.opacity=.75;os.opacity=.55+.4*k;ox.opacity=.75;ors.material.rotation+=dt*6;ox.rotation-=dt*4;
+      for(let i=0;i<3;i++){const a=rnd()*6.28,b=rnd()*2-1,q=Math.sqrt(1-b*b),r=.45;emit(1,{x:cx+Math.cos(a)*q*r,y:g0+oy2+b*r,z:cz+Math.sin(a)*q*r,vx:-Math.cos(a)*q*r*6,vy:-b*r*6,vz:-Math.sin(a)*q*r*6,s:.04,s2:.01,c:DPC.W,c2:DPC.L,life:.08});}
+      dpmLight(cx,g0+.5,cz,.8+1.2*k,3);}
+    else{if(!burst){burst=true;orb.visible=false;flash(cx,g0+oy2,cz,DPC.W,.5,.12);dpmGlowDisc(cx,cz,g0,1.4,DPC.V,.55,.45);sprayP(1,cx,g0+oy2,cz,30,{c:DPC.P,c2:DPC.V,sp:2.6,s:.05,s2:0,life:.35,drag:2,flat:true});
+        camShake=Math.max(camShake,.04);cur.visible=true;dpmLog({ev:'echo0',t});}
+      const u=t-tBurst,k=Math.min(1,u/T2),r=.15+RM*(1-Math.pow(1-k,1.6)),fade=u<T2?1:Math.max(0,1-(u-T2)/.4);
+      for(const m of[rp,rg]){m.uniforms.uR.value=r;m.uniforms.uA.value=fade;}cur.scale.set(r,Math.max(.001,.48*(1-.45*k)*fade),r);cm.uniforms.uA.value=fade;dpmLight(cx,g0+.4,cz,1.4*fade*(1-k),4);
+      if(u<T2&&rnd()<dt*40){const a=rnd()*6.28,b=a+(rnd()<.5?1:-1)*.35/Math.max(1,r);zap({x:cx+Math.cos(a)*r,y:g0+.08+rnd()*.2,z:cz+Math.sin(a)*r},{x:cx+Math.cos(b)*r,y:g0+.06+rnd()*.25,z:cz+Math.sin(b)*r},rnd()<.5?0xe6d4ff:0xa060ff,.1);}
+      if(u<T2&&state==='playing'){for(const e of enemies){if(e.dead||e.fake||hit.has(e))continue;if((e.x-cx)**2+(e.z-cz)**2<=r*r){hit.add(e);hurt(e,dmg,'magic',S.o);dpmLog({ev:'echo',e,r});const p=tpos2(e);flash(p.x,p.y,p.z,DPC.P,.26,.1);
+          sprayP(1,p.x,p.y,p.z,6,{c:DPC.P,c2:DPC.V,sp:1.2,s:.035,s2:0,life:.25});}}
+        let n=dt*120;while(n>0){if(n<1&&rnd()>n)break;n--;const a=rnd()*6.28,rr=r-rnd()*.08;emit(1,{x:cx+Math.cos(a)*rr,y:g0+.06,z:cz+Math.sin(a)*rr,vx:Math.cos(a)*.4,vy:.15+rnd()*.3,vz:Math.sin(a)*.4,s:.035,s2:0,c:rnd()<.4?DPC.W:DPC.L,c2:DPC.V,life:.4+rnd()*.3,a:.95});}}}
+  },null,{mats});}
+
+/* ---- M3 Rupture Wave: three lines of spikes tearing up behind the front ---- */
+/* the fissure under a line of spikes: a jagged crack round the ring at uRi with spurs, dark around it (uM 0, normal) or glowing (uM 1) */
+function dpmCrackMat(S,ri,M){return new THREE.ShaderMaterial({uniforms:{uA:{value:0},uG:{value:1},uRi:{value:ri},uS:{value:S},uT:{value:rnd()*9}},transparent:true,depthWrite:false,
+  blending:M?THREE.AdditiveBlending:THREE.NormalBlending,polygonOffset:true,polygonOffsetFactor:-2-M,polygonOffsetUnits:-2-M,
+  vertexShader:'varying vec2 vP;void main(){vP=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uA,uG,uRi,uS,uT;varying vec2 vP;'+SLM_N+
+    'void main(){vec2 p=vP*uS;float d=length(p),a=atan(p.y,p.x);float s=a*uRi;float off=(fb(vec2(s*2.2,1.3))-.5)*.34+(n1(vec2(s*9.,4.))-.5)*.08;float x=d-uRi-off;'+
+    'float crack=exp(-pow(x/.028,2.));float sp=pow(n1(vec2(s*5.,7.)),5.)*2.;float spur=exp(-pow((x-(n1(vec2(s*3.,2.))-.5)*.4)/.02,2.))*step(.55,n1(vec2(s*6.,9.)))*smoothstep(.35,0.,abs(x));'+
+    'float dark=exp(-pow(x/.2,2.))*(.4+.6*fb(p*4.));float k=clamp(crack+spur*.7+sp*crack,0.,1.);'+
+    (M?'gl_FragColor=vec4(mix(vec3(.55,.25,1.),vec3(.95,.88,1.),crack*.6),k*uG*uA*(.75+.25*sin(uT*30.+s*3.)));}':
+     'gl_FragColor=vec4(vec3(.03,0.,.06),clamp(k*.95+dark*.5,0.,.92)*uA);}')});}
+function dpmErupt(S,ri,dmg,i){const cx=S.cx,cz=S.cz,g0=S.g0,g=new THREE.Group();g.position.set(cx,g0,cz);scene.add(smTag(g));const SS=ri+.5,mats=[];
+  const cp=dpmCrackMat(SS,ri,0),cg=dpmCrackMat(SS,ri,1);mats.push(cp,cg);dpmPlane(g,cp,SS,.03,3);dpmPlane(g,cg,SS,.035,4);
+  const n=Math.max(12,Math.min(110,Math.round(Math.PI*2*ri/.15))),sm=new THREE.MeshPhongMaterial({color:0x07030c,emissive:0x3d0e8a,emissiveIntensity:.75,specular:0xb98cff,shininess:60,flatShading:true});mats.push(sm);
+  const im=dpmHideI(new THREE.InstancedMesh(DPMQ.spike(),sm,n));g.add(im);const sp=[];
+  for(let j=0;j<n;j++){const a=j/n*6.2832+(rnd()-.5)*.6/n*6.28,r=ri+(rnd()-.5)*.28,lean=.2+rnd()*.5;sp.push({a,r,lean,tw:(rnd()-.5)*.5,yaw:rnd()*6.28,h:.75+rnd()*.9,w:.8+rnd()*.5,dl:rnd()*.07});}
+  /* a sharp ring of light where the line tears up */
+  const rgeo=new THREE.RingGeometry(1-.035/ri,1+.035/ri,96);rgeo.rotateX(-Math.PI/2);const rm=dpmAM(DPC.L,0);mats.push(rm);const ring=new THREE.Mesh(rgeo,rm);ring.scale.setScalar(ri);ring.position.y=.06;ring.renderOrder=6;g.add(ring);
+  const hitL=[];if(state==='playing')for(const e of enemies){if(e.dead||e.fake||e.fly)continue;const d=Math.hypot(e.x-cx,e.z-cz);if(Math.abs(d-ri)<=DPM.rupW){hurt(e,dmg,'magic',S.o);hitL.push(e);const p=tpos2(e);flash(p.x,p.y,p.z,DPC.L,.3,.12);
+    sprayP(0,p.x,p.y-.1,p.z,6,{c:0x1a0a26,c2:0x05020a,sp:1,up:1,s:.06,s2:.02,life:.5,g:3});}}
+  dpmLog({ev:'rupture',i,r:ri,hit:hitL});camShake=Math.max(camShake,.035+.01*i);
+  for(let k=0;k<6;k++){const q=sp[Math.floor(rnd()*n)],x=cx+Math.cos(q.a)*q.r,z=cz+Math.sin(q.a)*q.r;flash(x,g0+.25,z,DPC.L,.35,.12);}
+  for(let k=0;k<Math.round(n*.4);k++){const q=sp[Math.floor(rnd()*n)],x=cx+Math.cos(q.a)*q.r,z=cz+Math.sin(q.a)*q.r;sprayP(0,x,g0+.08,z,2,{c:0x3a2e28,c2:0x1a1418,sp:.7,up:.8,s:.06,s2:.14,a:.7,life:.6,g:2});
+    emit(1,{x,y:g0+.1,z,vx:Math.cos(q.a)*.6,vy:1+rnd()*.8,vz:Math.sin(q.a)*.6,s:.045,s2:0,c:DPC.P,c2:DPC.V,life:.35,g:2});}
+  dpmLight(cx,g0+.6,cz,1.1,ri+1.5);
+  const T=1.15;let t=0;
+  addFx(g,T,(f,dt)=>{t+=dt;cp.uniforms.uT.value+=dt;cg.uniforms.uT.value+=dt;const fade=Math.min(1,f.life/.4);cp.uniforms.uA.value=fade*Math.min(1,t/.05);cg.uniforms.uA.value=fade;cg.uniforms.uG.value=Math.max(.25,1.4*Math.exp(-t*3));
+    rm.opacity=Math.max(0,.8*(1-t/.16));ring.scale.setScalar(ri*(1+.08*Math.min(1,t/.16)));
+    for(let j=0;j<n;j++){const q=sp[j],u=t-q.dl;const up=u<=0?0:Math.min(1,u/.07),ov=up<1?up*1.12:1+.12*Math.max(0,1-(u-.07)/.08),dn=SMS(u,.42,.82);const hs=Math.max(.001,q.h*ov*(1-dn));
+      DPO.position.set(Math.cos(q.a)*q.r,-.03-dn*.12,Math.sin(q.a)*q.r);DPO.rotation.set(0,0,0);DPO.rotateY(-q.a);DPO.rotateZ(-q.lean);DPO.rotateX(q.tw);DPO.rotateY(q.yaw);DPO.scale.set(q.w*(1-dn*.5),hs,q.w*(1-dn*.5));DPO.updateMatrix();im.setMatrixAt(j,DPO.matrix);
+      if(dn>0&&dn<1&&rnd()<dt*5){const x=cx+Math.cos(q.a)*q.r,z=cz+Math.sin(q.a)*q.r;emit(0,{x,y:g0+.1+q.h*.3*(1-dn),z,vx:(rnd()-.5)*.3,vy:.25+rnd()*.3,vz:(rnd()-.5)*.3,s:.06,s2:.02,c:0x0a0612,c2:0x2a0a3a,a:.8,life:.7,turb:.8,g:-.3});
+        if(rnd()<.4)emit(1,{x,y:g0+.15,z,vx:(rnd()-.5)*.4,vy:.3,vz:(rnd()-.5)*.4,s:.03,s2:0,c:DPC.L,c2:DPC.M,life:.3});}}
+    im.instanceMatrix.needsUpdate=true;sm.emissiveIntensity=.38+1.2*Math.exp(-t*5);},null,{mats,geos:[rgeo]});}
+function dpmRupture(S,dmg){DPM.rupAt.forEach((u,i)=>{const ri=(.2+S.R)*u,at=dpmTAt(S,ri)+.14+i*.05;mxLater(at,()=>{if(state==='playing')dpmErupt(S,ri,dmg,i);});});}
+
+/* ---- M4 Black Sun: the charge orb dressed as a black sun; a tall wall riding the ring ---- */
+/* the sun's parts, in a group the caller places and scales */
+function dpmSunParts(mats,big){const g=new THREE.Group(),b=big||1;
+  const bm=dpmBodyMat();mats.push(bm);const body=new THREE.Mesh(new THREE.IcosahedronGeometry(.15*b,3),bm);g.add(body);
+  const rm=dpmRimMat(DPC.L,2.2);mats.push(rm);const rim=new THREE.Mesh(new THREE.IcosahedronGeometry(.19*b,3),rm);g.add(rim);
+  const dm=dpmDiscMat();mats.push(dm);const disc=new THREE.Mesh(new THREE.PlaneGeometry(.95*b,.95*b),dm);disc.rotation.x=-Math.PI/2+.42;const dpiv=new THREE.Group();dpiv.add(disc);g.add(dpiv);
+  const cK=dpmNM(0x12031e,0,dpmRayTex()),cV=dpmSM(DPC.V,0,dpmRayTex()),ph=dpmSM(DPC.P,0,dpmRingTex()),gl=dpmSM(DPC.M,0);mats.push(cK,cV,ph,gl);
+  const cor=new THREE.Sprite(cK),corV=new THREE.Sprite(cV),phs=new THREE.Sprite(ph),glow=new THREE.Sprite(gl);cor.scale.setScalar(.95*b);corV.scale.setScalar(.8*b);phs.scale.setScalar(.48*b);glow.scale.setScalar(1.3*b);g.add(glow,corV,cor,phs);
+  return{g,body,bm,rim,rm,disc,dm,dpiv,cor,cK,corV,cV,phs,ph,glow,gl,geos:[body.geometry,rim.geometry,disc.geometry]};}
+function dpmSunTick(P,t,dt,k){P.rm.uniforms.uA.value=.9*k;P.rm.uniforms.uT.value+=dt;P.dm.uniforms.uA.value=k;P.dm.uniforms.uT.value+=dt;P.dpiv.rotation.y+=dt*2.2;
+  P.cK.opacity=.85*k;P.cK.rotation+=dt*.5;P.cV.opacity=.6*k*(.85+.15*Math.sin(t*23));P.cV.rotation-=dt*.8;P.ph.opacity=k*(.75+.25*Math.sin(t*31));P.gl.opacity=.28*k;}
+function dpmSun(S,root){if(!root)return;const orb=root.children[0];if(!orb)return;[1,2].forEach(i=>{if(orb.children[i])orb.children[i].visible=false;});const mats=[],P=dpmSunParts(mats),g=P.g;g.visible=false;/* (placed on its first frame) */scene.add(smTag(g));dpmLog({ev:'sun'});
+  let t=0,gone=false;const V=new THREE.Vector3();
+  addFx(g,DPM.CH+.4,(f,dt)=>{t+=dt;if(!gone&&orb.visible&&orb.parent){orb.getWorldPosition(V);g.position.copy(V);g.visible=true;const s=Math.max(.05,orb.scale.x);g.scale.setScalar(s);const k=Math.min(1,t/.2);dpmSunTick(P,t,dt,k);
+      let n=dt*70;while(n>0){if(n<1&&rnd()>n)break;n--;const a=rnd()*6.28,b=rnd()*1.4-.5,q=Math.cos(b),rr=.6+rnd()*.4;emit(rnd()<.5?1:0,{x:V.x+Math.cos(a)*q*rr,y:V.y+Math.sin(b)*rr,z:V.z+Math.sin(a)*q*rr,vx:-Math.cos(a)*q*rr*3+(-Math.sin(a))*1.2,vy:-Math.sin(b)*rr*3,vz:-Math.sin(a)*q*rr*3+Math.cos(a)*1.2,s:.04,s2:.005,c:rnd()<.5?DPC.P:0x14041f,c2:DPC.V,life:.3,a:.9});}
+      dpmLight(V.x,V.y,V.z,.4+1.2*k*s,3);}
+    else if(!gone){gone=true;/* it collapses as the pulse is released */flash(g.position.x,g.position.y,g.position.z,DPC.W,.35,.1);}
+    if(gone){g.scale.multiplyScalar(Math.max(0,1-dt*14));dpmSunTick(P,t,dt,Math.max(0,g.scale.x));if(g.scale.x<.01)g.visible=false;}},null,{mats,geos:P.geos});}
+function dpmSunHit(c,e,dmg){if(!e||e.dead)return;hurt(e,dmg,'magic',smO(c.o));dpmLog({ev:'wall',e});const p=tpos2(e);
+  zap({x:p.x+(rnd()-.5)*.1,y:p.y-.15,z:p.z+(rnd()-.5)*.1},{x:p.x+(rnd()-.5)*.2,y:p.y+.55,z:p.z+(rnd()-.5)*.2},rnd()<.5?0xc080ff:0xe6d4ff,.12);flash(p.x,p.y,p.z,DPC.V,.32,.12);}
+function dpmWall(S){const cx=S.cx,cz=S.cz,g0=S.g0,H=S.H||DPM.wallH,mats=[],g=new THREE.Group();g.position.set(cx,g0,cz);scene.add(smTag(g));
+  const wp=dpmWallMat(0),wg=dpmWallMat(1);mats.push(wp,wg);const w1=new THREE.Mesh(DPMQ.cyl(),wp),w2=new THREE.Mesh(DPMQ.cyl(),wg);w1.renderOrder=7;w2.renderOrder=8;w1.visible=w2.visible=false;g.add(w1,w2);
+  const NS=Math.round(34+12*S.R),shm=new THREE.MeshPhongMaterial({color:0x0c0614,emissive:0x5a1aa8,emissiveIntensity:.9,specular:0xd0b0ff,shininess:80,flatShading:true,transparent:true,opacity:1});mats.push(shm);
+  const sh=new THREE.InstancedMesh(DPMQ.shard(),shm,NS);sh.frustumCulled=false;sh.visible=false;g.add(sh);const SH=[];
+  const tEnd=S.t0+S.T,FR=.5;let t=0,fr=false,zt=0;
+  addFx(g,tEnd+FR+.35,(f,dt)=>{t+=dt;if(t<S.t0)return;wp.uniforms.uT.value+=dt;wg.uniforms.uT.value+=dt;const r=dpmR(S,t),k=Math.min(1,(t-S.t0)/S.T);w1.visible=w2.visible=true;
+    const rise=Math.min(1,(t-S.t0)/.12),hgt=H*rise*(1-.2*k);w1.scale.set(r,Math.max(.001,hgt),r);w2.scale.set(r*1.004,Math.max(.001,hgt),r*1.004);
+    const WA=S.wa||1;if(t<tEnd){wp.uniforms.uA.value=WA*Math.min(1,(t-S.t0)/.06);wg.uniforms.uA.value=Math.min(1,(t-S.t0)/.06);dpmLight(cx,g0+H*.6,cz,1.2+1.2*(1-k),r+2);
+      zt-=dt;while(zt<=0){zt+=.035;const a=rnd()*6.28,y0=rnd()*hgt*.7,b=a+(rnd()-.5)*.5/Math.max(.5,r),y1=y0+(.2+rnd()*.4)*hgt*.6;
+        zap({x:cx+Math.cos(a)*r,y:g0+y0,z:cz+Math.sin(a)*r},{x:cx+Math.cos(b)*r,y:g0+Math.min(hgt,y1),z:cz+Math.sin(b)*r},rnd()<.5?0xc080ff:0xe6d4ff,.1);}
+      let n=dt*(60+30*r);while(n>0){if(n<1&&rnd()>n)break;n--;const a=rnd()*6.28;emit(1,{x:cx+Math.cos(a)*r,y:g0+rnd()*hgt,z:cz+Math.sin(a)*r,vx:Math.cos(a)*.5,vy:.6+rnd()*.8,vz:Math.sin(a)*.5,s:.035,s2:0,c:rnd()<.3?DPC.W:DPC.L,c2:DPC.V,life:.35,a:.9});}}
+    else{const u=(t-tEnd)/FR;if(!fr){fr=true;sh.visible=true;dpmLog({ev:'fracture'});for(let j=0;j<NS;j++){const a=rnd()*6.28,y=rnd()*hgt*.85,sp=.8+rnd()*1.6;SH.push({x:Math.cos(a)*r,y,z:Math.sin(a)*r,vx:Math.cos(a)*sp+(rnd()-.5)*.4,vy:.4+rnd()*1.3,vz:Math.sin(a)*sp+(rnd()-.5)*.4,
+          rx:rnd()*6,ry:rnd()*6,wx:(rnd()-.5)*14,wy:(rnd()-.5)*14,s:.035+rnd()*.07});}
+        for(let j=0;j<10;j++){const a=rnd()*6.28;flash(cx+Math.cos(a)*r,g0+rnd()*hgt,cz+Math.sin(a)*r,DPC.L,.3,.1);}}
+      wp.uniforms.uD.value=wg.uniforms.uD.value=Math.min(1.2,u*1.25);wp.uniforms.uA.value=WA*Math.max(0,1-u*.9);wg.uniforms.uA.value=Math.max(0,1-u*.9);
+      const fs=Math.max(0,1-(t-tEnd)/(FR+.35));shm.opacity=Math.min(1,fs*1.6);shm.emissiveIntensity=.5+.8*fs;
+      for(let j=0;j<SH.length;j++){const q=SH[j];q.vy-=dt*3.2;q.x+=q.vx*dt;q.y=Math.max(.02,q.y+q.vy*dt);q.z+=q.vz*dt;q.rx+=q.wx*dt;q.ry+=q.wy*dt;
+        DPO.position.set(q.x,q.y,q.z);DPO.rotation.set(q.rx,q.ry,0);DPO.scale.set(q.s*.6*fs+.001,q.s*1.6*fs+.001,q.s*.6*fs+.001);DPO.updateMatrix();sh.setMatrixAt(j,DPO.matrix);
+        if(rnd()<dt*3)emit(0,{x:cx+q.x,y:g0+q.y,z:cz+q.z,vx:0,vy:.2,vz:0,s:.05,s2:.01,c:0x0a0612,c2:0x2a0a3a,a:.7,life:.5,turb:.6});}
+      sh.instanceMatrix.needsUpdate=true;}},null,{mats});}
+
+/* ---- M5 Event Horizon ---- */
+/* the ground under the sphere: a darkening disc with lensing rings that run inward (uIn speeds them as it implodes); painted */
+function dpmLensMat(S){return new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:rnd()*9},uE:{value:.3},uIn:{value:0},uS:{value:S}},transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2,
+  vertexShader:'varying vec2 vP;void main(){vP=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uA,uT,uE,uIn,uS;varying vec2 vP;'+SLM_N+
+    'void main(){vec2 p=vP*uS;float d=length(p),a=atan(p.y,p.x);float edge=smoothstep(uE,uE*.55,d);float sw=a*2.+log(d+.05)*3.-uT*1.6;float arms=.5+.5*sin(sw*2.+fb(p*1.7+uT*.2)*4.);'+
+    'float rings=pow(.5+.5*sin(d*11.+uT*(3.+uIn*20.)+fb(p*2.)*2.),10.)*smoothstep(.2,.9,d/uE);'+
+    'vec3 c=mix(vec3(.01,0.,.03),vec3(.22,.06,.45),arms*.55*smoothstep(.1,.8,d/uE));c=mix(c,vec3(.55,.3,.95),rings*.6);gl_FragColor=vec4(c,clamp(edge*(.55+.25*arms)+rings*.25*edge,0.,.9)*uA);}'});}
+function dpmHorizon(S){const cx=S.cx,cz=S.cz,g0=S.g0,oy=S.oy+.15,t=S.t,CH=DPM.ehCh,TI=CH,TP=CH+.1,mats=[],geos=[],root=new THREE.Group();root.position.set(cx,g0,cz);scene.add(smTag(root));
+  const R0=.2+S.Rr,RM=.2+S.R,o=S.o0,D=S.dmg;dpmLog({ev:'horizon0'});
+  /* the hero's push lands with the release */
+  if(t&&t.anim&&t.anim.k==='darkpulse'&&t.anim.t<.1)t.anim.d=DPM.ehT0/.42;
+  /* the sphere */
+  const P=dpmSunParts(mats,1.25);geos.push(...P.geos);const sph=P.g;sph.position.y=oy-g0;sph.scale.setScalar(.05);root.add(sph);
+  const hm=dpmSM(DPC.L,0,dpmRingTex());mats.push(hm);const halo=new THREE.Sprite(hm);halo.scale.setScalar(.01);sph.add(halo);
+  /* the ground: darkening lens, then the colossal ring's band, hot line, scorch and ripples */
+  const LS=R0+.6,lm=dpmLensMat(LS);mats.push(lm);dpmPlane(root,lm,LS,.03,2);
+  const SS=RM+.8,bp=dpmBandMat(SS,0,{w:1.1,k:1.6,rp:1,e:RM}),bg=dpmBandMat(SS,1,{w:1.1,k:1.3}),bs=dpmBandMat(SS,2,{e:RM});mats.push(bp,bg,bs);dpmPlane(root,bs,SS,.025,2);dpmPlane(root,bp,SS,.05,5);dpmPlane(root,bg,SS,.055,6);
+  const cm=dpmCurtainMat(DPC.L);mats.push(cm);const cur=new THREE.Mesh(DPMQ.cyl(),cm);cur.visible=false;root.add(cur);
+  /* the implosion's distortion: a shell round the hero shrinking into the sphere */
+  const dm=dpmRimMat(DPC.V,2.4);mats.push(dm);const dg=new THREE.IcosahedronGeometry(1,3);geos.push(dg);const dis=new THREE.Mesh(dg,dm);dis.visible=false;root.add(dis);
+  /* the pinprick and its streak */
+  const pm=dpmSM(DPC.W,0),qm=dpmSM(DPC.P,0),xm=dpmSM(DPC.L,0,dpmRayTex());mats.push(pm,qm,xm);const pin=new THREE.Sprite(pm),streak=new THREE.Sprite(qm),prays=new THREE.Sprite(xm);pin.position.y=streak.position.y=prays.position.y=oy-g0;root.add(prays,pin,streak);
+  /* loose debris lifting off the ground and spiralling in */
+  const NR=14,rkm=new THREE.MeshPhongMaterial({color:0x3a3036,emissive:0x1a0630,emissiveIntensity:.6,flatShading:true});mats.push(rkm);const rk=dpmHideI(new THREE.InstancedMesh(DPMQ.rock(),rkm,NR));root.add(rk);
+  const RK=[];for(let i=0;i<NR;i++){const a=rnd()*6.28,r=.7+rnd()*Math.max(.6,R0-.7);RK.push({a,r,s:.035+rnd()*.05,t0:rnd()*.3,sp:(1.6+rnd()*1.4)*(rnd()<.5?1:1),rx:rnd()*6,wx:(rnd()-.5)*9});}
+  /* obsidian spikes erupting where the colossal ring passes */
+  const NP=Math.round(16+RM*7),spm=new THREE.MeshPhongMaterial({color:0x0a0510,emissive:0x3a0a6a,emissiveIntensity:.8,flatShading:true});mats.push(spm);const spk=new THREE.InstancedMesh(DPMQ.spike(),spm,NP);spk.frustumCulled=false;root.add(spk);
+  const SP=[];for(let i=0;i<NP;i++){const a=rnd()*6.28,d=.5+Math.sqrt(rnd())*(RM-.6);SP.push({a,d,h:.9+rnd()*1.1,lean:(rnd()-.5)*.7,yaw:rnd()*6,t0:-1});}
+  const hit=new Set();let tt=0,imp=false,rel=false,lastR=0,dk=0;
+  const hide=()=>{DPO.position.set(0,-9,0);DPO.scale.setScalar(.001);DPO.updateMatrix();};hide();for(let i=0;i<NP;i++)spk.setMatrixAt(i,DPO.matrix);spk.instanceMatrix.needsUpdate=true;
+  addFx(root,S.t0+S.T+1.4,(f,dt)=>{tt+=dt;for(const m of mats)if(m.uniforms&&m.uniforms.uT)m.uniforms.uT.value+=dt;const sp=sph.position;
+    /* ---- charge ---- */
+    if(tt<TI){const k=tt/CH,s=SMS(k,0,1);sph.scale.setScalar(.12+1.55*s+.05*Math.sin(tt*40)*s);dpmSunTick(P,tt,dt,Math.min(1,tt/.25));P.bm.uniforms.uK.value=.6+.6*s;
+      const hk=SMS(k,.45,.75);halo.scale.setScalar(.01+.75*hk);hm.opacity=.85*hk*(.8+.2*Math.sin(tt*27));halo.material.rotation+=dt*2;
+      lm.uniforms.uE.value=.3+(R0-.1)*SMS(k,0,.8);lm.uniforms.uA.value=Math.min(1,k*2);
+      dk=.32*SMS(k,.1,.85);darkTarget=Math.max(darkTarget,dk);vigTarget=Math.max(vigTarget,.4*s);
+      /* motes spiralling in (dark and violet), dust lifting off the ground */
+      let n=dt*(60+90*s);while(n>0){if(n<1&&rnd()>n)break;n--;const a=rnd()*6.28,b=rnd()*1.2-.5,q=Math.cos(b),rr=.9+rnd()*.9;const X=cx+Math.cos(a)*q*rr,Y=oy+Math.sin(b)*rr,Z=cz+Math.sin(a)*q*rr,L2=.45;
+        emit(rnd()<.55?1:0,{x:X,y:Y,z:Z,vx:(cx-X)/L2-Math.sin(a)*2.2,vy:(oy-Y)/L2,vz:(cz-Z)/L2+Math.cos(a)*2.2,s:.045,s2:.004,c:rnd()<.5?DPC.P:0x0a0314,c2:DPC.V,life:L2,a:.9});}
+      if(rnd()<dt*30){const a=rnd()*6.28,r=.5+rnd()*R0;emitS(0,{x:cx+Math.cos(a)*r,y:g0+.08,z:cz+Math.sin(a)*r,vx:-Math.cos(a)*.6-Math.sin(a)*.8,vy:.5+rnd()*.5,vz:-Math.sin(a)*.6+Math.cos(a)*.8,s:.2,s2:.45,c:0x2a1a30,c2:0x0c0810,a:.45,life:1,turb:.6,drag:.6});}
+      dpmLight(cx,oy,cz,.3+1.4*s,3+s);}
+    /* ---- the implosion: the sphere collapses into a pinprick ---- */
+    else if(tt<S.t0){if(!imp){imp=true;dpmImplode(S);dis.visible=true;camShake=Math.max(camShake,.06);}
+      const k=Math.min(1,(tt-TI)/(TP-TI));sph.scale.setScalar(Math.max(.02,1.67*(1-k*k)));dpmSunTick(P,tt,dt,1-k*.5);halo.scale.setScalar(1.16+.4*k);hm.opacity=.9*(1-k*.4);
+      const dk2=Math.min(1,(tt-TI)/.15);dis.position.y=oy-g0;dis.scale.setScalar(Math.max(.02,R0*.85*(1-dk2*dk2)));dm.uniforms.uA.value=.4*(1-dk2*.3);if(dk2>=1)dis.visible=false;
+      lm.uniforms.uIn.value=1;lm.uniforms.uE.value=Math.max(.3,(R0+.1)*(1-.6*k));darkTarget=Math.max(darkTarget,dk);
+      if(tt>=TP){sph.visible=false;const u=(tt-TP)/(S.t0-TP);pm.opacity=1;pin.scale.setScalar(.22-.12*u);qm.opacity=.95;streak.scale.set(1.6+1.4*u,.05,1);xm.opacity=.8*(1-u*.5);prays.scale.setScalar(.9-.5*u);xm.rotation+=dt*3;}
+      for(let i=0;i<4;i++){const a=rnd()*6.28,b=rnd()*2-1,q=Math.sqrt(1-b*b),r=.7;emit(1,{x:cx+Math.cos(a)*q*r,y:oy+b*r,z:cz+Math.sin(a)*q*r,vx:-Math.cos(a)*q*r*8,vy:-b*r*8,vz:-Math.sin(a)*q*r*8,s:.05,s2:.01,c:DPC.W,c2:DPC.L,life:.09});}
+      dpmLight(cx,oy,cz,2.4,4);}
+    /* ---- the colossal ring ---- */
+    else{if(!rel){rel=true;pin.visible=streak.visible=prays.visible=false;halo.visible=false;cur.visible=true;dpmLog({ev:'release',t:tt});
+        flash(cx,oy,cz,DPC.W,.8,.16);dpmGlowDisc(cx,cz,g0,RM*.9,DPC.V,.6,.6);camShake=Math.max(camShake,.16);flashA=Math.max(flashA,.2);flashCol='#e6d4ff';flashDecay=3;
+        if(Math.abs(darkTarget-dk)<1e-6)darkTarget=0;vigTarget=0;
+        sprayP(1,cx,oy,cz,40,{c:DPC.P,c2:DPC.V,sp:3.4,s:.06,s2:0,life:.55,drag:2});sprayP(0,cx,oy,cz,16,{c:0x05020a,c2:0x2a0a3a,sp:1,s:.2,s2:.45,a:.7,life:.9,turb:.9});
+        for(let i=0;i<24;i++){const a=i/24*6.28+rnd()*.2;emitS(0,{x:cx+Math.cos(a)*.3,y:g0+.12,z:cz+Math.sin(a)*.3,vx:Math.cos(a)*(2.4+rnd()*1.4),vy:.2+rnd()*.3,vz:Math.sin(a)*(2.4+rnd()*1.4),s:.35,s2:1.1,c:rnd()<.5?0x2a1238:0x3a2a28,c2:0x0c0810,a:.55,life:1.4+rnd()*.5,turb:.8,drag:1.6});}}
+      const k=Math.min(1,(tt-S.t0)/S.T),r=dpmR(S,tt),fade=tt<S.t0+S.T?1:Math.max(0,1-(tt-S.t0-S.T)/.9);
+      lm.uniforms.uA.value=Math.max(0,1-(tt-S.t0)/.25);
+      for(const m of[bp,bg]){m.uniforms.uR.value=r;m.uniforms.uA.value=fade*Math.min(1,(tt-S.t0)/.04);}bs.uniforms.uR.value=r;bs.uniforms.uA.value=Math.min(1,(tt-S.t0)/.1)*Math.min(1,f.life/.9);
+      cur.scale.set(r,Math.max(.001,.6*(1-.4*k)*fade),r);cm.uniforms.uA.value=fade*.9;
+      dpmLight(cx,g0+1,cz,3*(1-k)*fade+.3*fade,RM+2);
+      /* spikes erupting where it passes */
+      for(let i=0;i<NP;i++){const q=SP[i];if(q.t0<0&&r>=q.d){q.t0=tt;const x=cx+Math.cos(q.a)*q.d,z=cz+Math.sin(q.a)*q.d;sprayP(0,x,g0+.06,z,3,{c:0x3a2e28,c2:0x1a1418,sp:.7,up:.5,s:.1,s2:.24,a:.6,life:.7,turb:.5});sprayP(1,x,g0+.12,z,4,{c:DPC.P,c2:DPC.M,sp:1.3,up:.7,s:.04,s2:0,life:.35,g:2});}
+        if(q.t0>=0){const a2=tt-q.t0,up=SMS(a2,0,.09),dn=SMS(a2,.45,.9);DPO.position.set(Math.cos(q.a)*q.d,-.03-dn*.08,Math.sin(q.a)*q.d);DPO.rotation.set(q.lean,q.yaw,q.lean*.5);DPO.scale.set(1.2*(1-dn*.5),Math.max(.001,q.h*up*(1-dn)),1.2*(1-dn*.5));DPO.updateMatrix();spk.setMatrixAt(i,DPO.matrix);}}
+      spk.instanceMatrix.needsUpdate=true;
+      /* the hits: the old cast's own (once per foe; held foes take double instead of the push) */
+      if(r>lastR&&tt<S.t0+S.T+.01){lastR=r;for(const e of enemies){if(e.dead||hit.has(e))continue;if((e.x-cx)**2+(e.z-cz)**2<=r*r){hit.add(e);const held=e.heldT>0;if(state==='playing'){hurt(e,held?D*2:D,'magic',o);if(held)comboFire('torn',e);}dpmLog({ev:'ring',e,r});
+          const ey=(e.y||0)+.2;sprayP(1,e.x,ey,e.z,10,{c:DPC.P,c2:DPC.V,sp:1.8,s:.05,s2:0,life:.4,drag:1.5});sprayP(0,e.x,ey,e.z,5,{c:0x05020a,c2:0x2a0a3a,sp:.5,up:.5,s:.1,s2:.24,a:.7,life:.7,turb:.8});
+          if(!e.dead){if(!held)pushE(e,e.boss?.1:.38);e.slow=Math.max(e.slow||0,.3);e.slowT=Math.max(e.slowT||0,1.5);}}}}
+      if(tt<S.t0+S.T){let n=dt*(140+40*r);while(n>0){if(n<1&&rnd()>n)break;n--;const a=rnd()*6.28,rr=r*(.93+rnd()*.1),x=cx+Math.cos(a)*rr,z=cz+Math.sin(a)*rr;
+          if(rnd()<.5)emit(0,{x,y:g0+.06,z,vx:Math.cos(a)*.9*(1-k),vy:.15+rnd()*.4,vz:Math.sin(a)*.9*(1-k),s:.14+rnd()*.14,s2:.36,c:rnd()<.6?0x0a0612:0x4a3a2e,c2:0x1a1420,a:.55,life:.6+rnd()*.5,turb:.8});
+          else emit(1,{x,y:g0+.08,z,vx:Math.cos(a)*1.5*(1-k),vy:.4+rnd()*.8,vz:Math.sin(a)*1.5*(1-k),s:.05,s2:0,c:rnd()<.3?DPC.W:DPC.L,c2:DPC.M,life:.45,drag:1.2,g:1});}
+        if(rnd()<dt*14){const a=rnd()*6.28,b=a+(rnd()<.5?1:-1)*.3/Math.max(1,r);zap({x:cx+Math.cos(a)*r,y:g0+.1,z:cz+Math.sin(a)*r},{x:cx+Math.cos(b)*r*.97,y:g0+.12,z:cz+Math.sin(b)*r*.97},rnd()<.5?0xc080ff:0x8030ff,.12);}}
+      /* drifting black particles over the area as it fades */
+      if(rnd()<dt*40*fade+dt*10){const a=rnd()*6.28,d=Math.sqrt(rnd())*Math.min(r,RM);darkMote(cx+Math.cos(a)*d,g0+.05,cz+Math.sin(a)*d,rnd()<.5?0x05020a:0x2a0a3a);}}
+    /* the debris: lifting off, spiralling in faster and faster, swallowed by the sphere */
+    for(let i=0;i<NR;i++){const q=RK[i],u=clamp((tt-q.t0)/(CH-q.t0-.05),0,1);if(u>=1||tt>=TI){DPO.position.set(0,-9,0);DPO.scale.setScalar(.001);}else{const e=u*u,rr=q.r*(1-e),a=q.a+q.sp*(u*2+e*5),y=(sp.y)*SMS(u,0,.5)*(.25+.75*e)+.05*(1-u);
+        DPO.position.set(Math.cos(a)*rr,y,Math.sin(a)*rr);q.rx+=q.wx*dt;DPO.rotation.set(q.rx,q.rx*.7,0);DPO.scale.setScalar(q.s*(1-.7*e));
+        if(rnd()<dt*8)emit(0,{x:cx+DPO.position.x,y:g0+y,z:cz+DPO.position.z,vx:0,vy:.05,vz:0,s:.05,s2:.01,c:0x2a1a30,c2:0x0a0610,a:.6,life:.4});}
+      DPO.updateMatrix();rk.setMatrixAt(i,DPO.matrix);}rk.instanceMatrix.needsUpdate=true;
+    if(f.life<=dt+1e-6&&Math.abs(darkTarget-dk)<1e-6)darkTarget=0;
+  },null,{mats,geos});}
+/* the implosion: 30% to every foe within the normal reach (flyers too); ground foes already past the hero are drawn back toward it, the
+   others seized for a moment */
+function dpmImplode(S){const cx=S.cx,cz=S.cz,R=.2+S.Rr,dh=new Map(),oy=S.oy+.15;
+  const hd=rt=>{if(!dh.has(rt)){let bd=1e9,b=0;for(let d=0;d<rt.len;d+=.1){const p=posAt(d,rt),q=(p[0]-cx)**2+(p[1]-cz)**2;if(q<bd){bd=q;b=d;}}dh.set(rt,b);}return dh.get(rt);};
+  const L=[];for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-cx)**2+(e.z-cz)**2>R*R)continue;L.push(e);}
+  for(const e of L){if(state!=='playing')break;hurt(e,S.imp,'magic',S.o);let pulled=0,seized=0;
+    if(!e.dead&&!e.fly&&e.dist!=null&&!(e.heldT>0)){const gap=e.dist-hd(e.route||ROUTES[0]);if(gap>.02)pulled=pushE(e,Math.min(DPM.ehPull,gap));else seized=smStun(e,DPM.ehSeize);}
+    dpmLog({ev:'implode',e,pulled,seized});const p=tpos2(e);
+    for(let i=0;i<6;i++){const k=rnd(),x=p.x+(cx-p.x)*k*.3,y=p.y+(oy-p.y)*k*.3,z=p.z+(cz-p.z)*k*.3;emit(1,{x,y,z,vx:(cx-p.x)*2.2,vy:(oy-p.y)*2.2,vz:(cz-p.z)*2.2,s:.04,s2:.01,c:DPC.P,c2:DPC.V,life:.25});}
+    flash(p.x,p.y,p.z,DPC.V,.3,.12);}}
+
+/* ---- the hook ---- */
+const DPM_CAST0=castDarkPulse;
+castDarkPulse=function(t,Rr,dmg,o){const C=dpmC(o);if(!C||!t)return DPM_CAST0.apply(this,arguments);const L=C.L,a=C.a,P=C.P;
+  const S={cx:t.x,cz:t.z,g0:gy(t.x,t.z),oy:(t.topY||1)+.62,t,Rr,C,P,L,o:smO(o),o0:o};C.dpm=S;dpmLog({ev:'cast',L});
+  if(L>=5){S.t0=DPM.ehT0;S.T=DPM.ehT;S.R=Rr*DPM.ehW;S.dmg=P*DPM.eh*a[4];S.imp=P*DPM.ehImp*a[4];S.H=DPM.wallH*1.2;S.wa=.62;dpmHorizon(S);}
+  else{S.t0=DPM.CH;S.T=DPM.WV;S.R=Rr;S.dmg=dmg;let root=null;const add0=scene.add;
+    if(L>=4)scene.add=function(...q){if(!root&&q[0]&&q[0].isGroup)root=q[0];return add0.apply(this,q);};
+    try{DPM_CAST0.apply(this,arguments);}finally{scene.add=add0;}
+    if(L>=4)dpmSun(S,root);}
+  if(L>=2)dpmEcho(S,S.dmg*DPM.echo*a[1]);
+  if(L>=3)dpmRupture(S,P*DPM.rup*a[2]);
+  if(L>=4)dpmWall(S);};
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
@@ -24737,6 +25116,11 @@ const NOTES_HTML=`<h3>\u2726 Ball Lightning masteries, reworked</h3><ul>
 <li><b>Living Inferno</b> (Mastery 5): when the tenth foe catches fire, the fire on it swells into a raging blaze over glowing cracks, draws in for an instant, and erupts in a violent explosion: a billowing fireball with a rising column of smoke, a ring of fire racing out and burning debris, 180% to the foes around it. If the fire stops short, it comes when the spreading ends, as long as five foes caught fire.</li>
 <li>Every Catch Flame ignition, with or without masteries, is now a real explosion: billowing fire that flares white-hot, cools through orange and red, and frays into rising smoke, with sparks, embers and a ring of dust.</li>
 <li>Catch Flame&rsquo;s old masteries (Hotter Flame, Ember Burst, Wildfire, Ash Patch, Firestorm) are replaced. Like every scroll above Common, its masteries are for now only in developer mode.</li></ul>
+<h3>\u2726 Dark Pulse masteries, reworked</h3><ul>
+<li><b>Void Resonance</b> (Mastery 1): every foe the shockwave strikes flashes violet and releases a small ripple of dark energy, 25% to the foes around it; in a crowd the ripples overlap into a chain of purple flashes. <b>Echo Pulse</b> (Mastery 2): the ring leaves glowing violet traces on the ground; when it reaches full size they rush back to the hero, compress into a bright orb and burst out again as a thinner, faster ring for 45% of the pulse&rsquo;s damage.</li>
+<li><b>Rupture Wave</b> (Mastery 3): three jagged lines of violet-black spikes tear through the ground behind the advancing ring, one after another, 40% to the foes on each. <b>Black Sun</b> (Mastery 4): the charging orb collapses into a miniature black sun, and the pulse erupts upward as well as outward: a towering wall of dark energy crawling with violet lightning rides the ring, 50% more to every foe it reaches (flyers too), then fractures into shards.</li>
+<li><b>Event Horizon</b> (Mastery 5): a dense black sphere gathers over the hero, drawing debris and motes into it as the area darkens and a thin violet halo forms; it implodes for 30%, drawing the foes nearby toward the hero, collapses to a pinprick of light and detonates a colossal ring 30% wider than the pulse for 150%, with the usual knockback.</li>
+<li>Dark Pulse&rsquo;s old masteries (Dread, Echo Pulse, Shadow Tendrils, Undertow, Black Tide) are replaced. Like every scroll above Common, its masteries are only in developer mode for now.</li></ul>
 <h3>\u2726 Graveburst masteries, reworked</h3><ul>
 <li><b>Gravequake</b> (Mastery 1): when the grave bursts, a shockwave tears through the ground and three branching fissures race out from the crater, erupting with dark energy: 45% to each foe they strike. <b>The Unburied</b> (Mastery 2): a spectral skeletal warrior, its ribcage glowing violet, climbs out of the crater and swings an enormous rusted blade round in a wide arc for 100%, then breaks apart and sinks back into the earth.</li>
 <li><b>The Open Pit</b> (Mastery 3): the crater stays open as a violet-black pit for 4s; again and again cracks flash under the foes standing in it and obsidian spikes thrust up there for 35%. Foes can still walk out. <b>Ribcage Prison</b> (Mastery 4): giant ribs tear up through the road and close over the crater for 1.5s; the ground foes inside cannot leave, then the cage splinters into falling bone for 70% (bosses are never held and take half).</li>
