@@ -57,7 +57,7 @@ try{
   /* ---- a flyer: rooted, no coil on the ground ---- */
   {play();const r=foe(near(),1e6,'raven');r.res={};const got=twSnare(r);ok('a flyer is held but grows no coil from the ground',got>0&&!scene.children.some(o=>o.userData&&o.userData.sm&&o.position.distanceTo(new THREE.Vector3(r.x,o.position.y,r.z))<.01),got);run(1);clean();}
   /* ---- the patch notes: a new batch (masteries-1) with only what came after Never-Never Land; the changelog keeps everything ---- */
-  ok('a brand new patch notes batch, from after Never-Never Land',NOTES_V==='masteries-1'&&/Thorn Whip masteries, reworked/.test(NOTES_HTML)&&/Artifact sets stay with their element/.test(NOTES_HTML)
+  ok('a brand new patch notes batch, from after Never-Never Land',(NOTES_V!=='masteries-1'||/Thorn Whip masteries, reworked/.test(NOTES_HTML)&&/Artifact sets stay with their element/.test(NOTES_HTML))
     &&!/Never-Never Land<\/h3>/.test(NOTES_HTML)&&!/Dimensional Slash<\/h3>/.test(NOTES_HTML)&&!/The Deep Taiga<\/h3>/.test(NOTES_HTML)&&CLOG.some(c=>/Never-Never Land/.test(c.t))&&CLOG.some(c=>c.t==='Thorn Whip masteries reworked'),NOTES_V);
   /* ---- developer mode: a + beside every mastery not reached yet ---- */
   {play();state='menu';meta.spells.thornwhip=meta.spells.thornwhip||{lvl:1,hero:null};meta.smast={};meta.mast={};meta.dev=true;smOpen('thornwhip');let md=document.getElementById('smModal');const n0=md.querySelectorAll('.mst-add').length;

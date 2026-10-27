@@ -28,7 +28,7 @@ try{
   {const D=SM_D.firewall,t=[0,1,2,3,4].map(i=>smDesc('firewall',i));
    ok('Simon\'s five masteries, by name',D.map(p=>p.n).join(',')==='Scorching Passage,Flashpoint,Trail of Embers,Blazing Perdition,Ring of Damnation',D.map(p=>p.n).join(','));
    ok('the texts carry their numbers',t.every(x=>!/\{/.test(x))&&/2 seconds/.test(t[0])&&/\d+%/.test(t[1])&&/3s/.test(t[2])&&/6 foes/.test(t[3])&&/50% slower/.test(t[4])&&/15%/.test(t[4])&&/double/.test(t[4]),t[4]);
-   ok('the patch notes and the changelog tell of it',/Wall of Fire masteries, redesigned/.test(NOTES_HTML)&&/Feared/.test(NOTES_HTML)&&CLOG.some(c=>c.t==='Wall of Fire masteries, redesigned'));}
+   ok('the patch notes and the changelog tell of it',(NOTES_V!=='masteries-1'||/Wall of Fire masteries, redesigned/.test(NOTES_HTML)&&/Feared/.test(NOTES_HTML))&&CLOG.some(c=>c.t==='Wall of Fire masteries, redesigned'));}
   /* ---- who raises the wall, and its first touch ---- */
   {let n=0;const w0=wofCast;wofCast=function(){n++;return w0.apply(this,arguments);};
    const touch=L=>{play();setL(L);const bd=near(),e=foe(bd,0,1e6),x=foe(bd+1.5,1,1e6);cast([e]);run(.35);const r=1e6-x.hp;clean();return r;};

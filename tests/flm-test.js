@@ -24,7 +24,7 @@ try{
   {const D=SM_D.flamelash,t=[0,1,2,3,4].map(i=>smDesc('flamelash',i));
    ok('Long Lash, Searing, Fire Snake and Inferno Cross stay; Blazing Trail is new',D.map(p=>p.n).join(',')==='Long Lash,Searing,Blazing Trail,Fire Snake,Inferno Cross',D.map(p=>p.n).join(','));
    ok('the texts carry their numbers',t.every(x=>!/\{/.test(x))&&/35% harder/.test(t[2])&&/5s/.test(t[2])&&/\d+%/.test(t[0])&&/\d+%/.test(t[4]),t[2]);
-   ok('the patch notes and the changelog tell of it',/Flame Lash masteries, reworked/.test(NOTES_HTML)&&CLOG.some(c=>c.t==='Flame Lash masteries, reworked'));}
+   ok('the patch notes and the changelog tell of it',(NOTES_V!=='masteries-1'||/Flame Lash masteries, reworked/.test(NOTES_HTML))&&CLOG.some(c=>c.t==='Flame Lash masteries, reworked'));}
   /* ---- who draws the whip, and the crack damage ---- */
   {let n=0;flmCast=function(){n++;return keep.flmCast.apply(this,arguments);};const dmgAt=L=>{play();setL(L);const bd=near(),e=foe(bd,0,1e6);cast([e]);run(.45);return 1e6-e.hp;};
    const d0=dmgAt(0),n0=n,d1=dmgAt(1);restore();

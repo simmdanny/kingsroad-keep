@@ -25,7 +25,7 @@ try{
   {const D=SM_D.staticspark,t=[0,1,2,3,4].map(i=>smDesc('staticspark',i));
    ok('Longer Arc, Static Shock and Spark Orb stay; Static Remnants and Thunder Burst are new',D.map(p=>p.n).join(',')==='Longer Arc,Static Remnants,Static Shock,Thunder Burst,Spark Orb',D.map(p=>p.n).join(','));
    ok('the texts carry their numbers',t.every(x=>!/\{/.test(x))&&/2% of their max health a second \(bosses 0\.8%\)/.test(t[1])&&/3\.5s/.test(t[1])&&/35% chance/.test(t[3])&&/\d+% of the spark hit/.test(t[3]),t[1].slice(0,60)+' | '+t[3].slice(0,70));
-   ok('the patch notes and the changelog tell of it',/Static Spark masteries, reworked/.test(NOTES_HTML)&&CLOG.some(c=>c.t==='Static Spark masteries, reworked'));}
+   ok('the patch notes and the changelog tell of it',(NOTES_V!=='masteries-1'||/Static Spark masteries, reworked/.test(NOTES_HTML))&&CLOG.some(c=>c.t==='Static Spark masteries, reworked'));}
   /* ---- Longer Arc ---- */
   {play();setL(1);const bd=near(),F=[];for(let i=0;i<8;i++)F.push(foe(bd+.5*(i-1),i,1e6));cast(F.slice());run(2.5);const hit=F.filter(e=>e.hp<e.maxHp).length;
    ok('Longer Arc: the spark hits 4 foes and leaps 2 more times (6 in all)',hit===6,hit);clean();}

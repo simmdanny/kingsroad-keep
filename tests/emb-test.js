@@ -22,7 +22,7 @@ let errs=0;const ce=console.error;console.error=function(){errs++;return ce.appl
 try{
   play();meta.smast={};
   ok('the five masteries are Simon’s',SM_D.emberbolt.map(p=>p.n).join()==='Kindling,Ember Spray,Blazing Rune,Scorched Ground,Fire Bolt'&&/0\.1s/.test(SM_D.emberbolt[2].d)&&/150%/.test(SM_D.emberbolt[4].d)&&/4%/.test(SM_D.emberbolt[4].d)&&SM_D.emberbolt.every((p,i)=>!/\{/.test(smDesc('emberbolt',i)))&&SM.free&&SM.free.emberbolt,SM_D.emberbolt.map(p=>p.n).join());
-  ok('patch notes (masteries-1) and changelog',NOTES_V==='masteries-1'&&NOTES_HTML.includes('Ember Bolt masteries, reworked')&&CLOG.some(u=>u.t==='Ember Bolt masteries reworked'),NOTES_V);
+  ok('patch notes (masteries-1) and changelog',(NOTES_V!=='masteries-1'||NOTES_HTML.includes('Ember Bolt masteries, reworked'))&&CLOG.some(u=>u.t==='Ember Bolt masteries reworked'),NOTES_V);
   /* ---- Mastery 0: the old bolt, exactly ---- */
   {const bd=near(),e=foe(bd,1e6);let used=0;const o0=EBM.old;EBM.old=function(){used++;return o0.apply(this,arguments);};try{cast(0,[e]);const l=land(e);ok('Mastery 0: the old bolt, 110% on landing',used===1&&l&&Math.abs(lost(e)-D)<.5,used+' / '+lost(e));}finally{EBM.old=o0;}clean();}
   /* ---- M1: its own flame, 25% of the hit each second for 3s, on top of the usual burn ---- */

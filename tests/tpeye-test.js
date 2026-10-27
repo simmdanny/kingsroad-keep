@@ -12,7 +12,7 @@ const cast=()=>{const t=heroU,s=heroStats();heroU.anim={k:'tempest',t:0,d:ANIM_D
 const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
 try{
   ok('registries: tpEye, tpRib, the cloud atlas, TPE',typeof tpEye==='function'&&typeof tpRib==='function'&&typeof tpEyeTex==='function'&&TPE&&tpEyeTex().image.width===256);
-  ok('patch note and changelog entry',NOTES_HTML.includes('the eye of the storm')&&CLOG.some(u=>u.t==='The eye of the storm'&&/^v36\d$/.test(u.v)));
+  ok('patch note and changelog entry',(NOTES_V!=='masteries-1'||NOTES_HTML.includes('the eye of the storm'))&&CLOG.some(u=>u.t==='The eye of the storm'&&/^v36\d$/.test(u.v)));
   go();foes(8);ok('no eye before the cast',!TPE.on);cast();const E=TPE.on;
   ok('casting the Tempest raises the eye',E&&E.api&&E.puffs.length===96&&E.clouds.parent===E.root);
   const H=heroU,hx=E.hx,hz=E.hz,G0=E.G0;

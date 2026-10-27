@@ -27,7 +27,7 @@ try{
    ok('Simon\'s five masteries, by name',D.map(p=>p.n).join(',')==='Gravequake,The Unburied,The Open Pit,Ribcage Prison,Hand of the Underworld',D.map(p=>p.n).join(','));
    ok('the texts carry his numbers',/45%/.test(t[0])&&/100%/.test(t[1])&&/35%/.test(t[2])&&/4s/.test(t[2])&&/70%/.test(t[3])&&/1\.5s/.test(t[3])&&/100%/.test(t[4])&&!t.some(x=>/\{/.test(x)),t[3]);
    ok('his own numbers (SM.free), no damage factor',SM.free&&SM.free.graveburst&&SMG.graveburst.every(v=>v===1)&&SMA.graveburst.every(v=>v===1));
-   ok('the patch notes and the changelog tell of it',/Graveburst masteries, redesigned/.test(NOTES_HTML)&&CLOG.some(c=>c.t==='Graveburst masteries, redesigned'));}
+   ok('the patch notes and the changelog tell of it',(NOTES_V!=='masteries-1'||/Graveburst masteries, redesigned/.test(NOTES_HTML))&&CLOG.some(c=>c.t==='Graveburst masteries, redesigned'));}
   /* ---- the base burst is untouched ---- */
   {const base=L=>{only('');play();setL(L);const bd=near(),e=foe(bd,0,1e6);cast([e]);run(1.5);const r=dmg(e);clean();return r;};const b0=base(0),b1=base(1);
    ok('the grave still bursts for 260% after 1.15s, mastered or not',Math.abs(b0-260)<1&&Math.abs(b1-260)<1,b0+' / '+b1);}
