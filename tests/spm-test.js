@@ -6,7 +6,7 @@ const out=[],ok=(n,c,d)=>out.push([n,!!c,d===undefined?'':String(d)]);const m0=J
 let errs=0;const ce=console.error;console.error=function(){errs++;return ce.apply(console,arguments);};
 try{
   meta.dev=false;const id=HEROES.find(h=>h.scrolls&&!h.light&&!h.dark).id;meta.equipped=id;
-  const CO=SCROLL_IDS.filter(k=>SPELLS_S[k].r==='common'&&SM_D[k]),A=CO[0],B=CO[1],RA=SCROLL_IDS.find(k=>SPELLS_S[k].r==='rare');
+  const CO=SCROLL_IDS.filter(k=>SPELLS_S[k].r==='common'&&SM_D[k]),A=CO[0],B=CO[1],RA=SCROLL_IDS.find(k=>SPELLS_S[k].r==='epic');   /* v417: Rare scrolls have masteries for everyone now, so an Epic is the one without */
   for(const k of SCROLL_IDS)if(meta.spells[k]&&meta.spells[k].hero===id)meta.spells[k].hero=null;
   for(const k of [A,B,RA])meta.spells[k]={lvl:1,hero:id};meta.smast={};meta.smast[A]=SM_XP[1]+3000;
   meta.arena='plains';lsSet(KR,null);state='menu';clearWorld();buildMap(31);MAP.fresh=true;newGame(1);paused=true;auto=0;

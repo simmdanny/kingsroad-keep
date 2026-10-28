@@ -14146,6 +14146,8 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Rare masteries for everyone',d:'28 Oct',v:'v417',li:[
+    'The ten Rare scrolls now earn mastery XP and use their new masteries in every game, not only in developer mode. Scrolls above Rare come later.']},
   {t:'Entangling Roots masteries reworked',d:'28 Oct',v:'v416',li:[
     'Entangling Roots (Rare) has five new masteries, for now in developer mode: Thornbound (thorns grow on the roots and stab as they let go: 100% more, 150% to foes already Overgrown), Root Network (roots tunnel between the prisoners and pulse twice: 55% each pulse), Verdant Reclamation (thorny patches for 3s: 35% a second and 25% slower), Earth\'s Reprisal (a great root throws each prisoner: 130%, and 40% to the foes round it) and Heart of the Wildwood (a great rune and ancient roots that burst: 180% more to the prisoners, 100% within 1.5, 3s more Overgrown).']},
   {t:'Frost Wolves masteries, reworked',d:'28 Oct',v:'v415',li:[
@@ -22428,7 +22430,8 @@ updBatBtn();
    kill (an assist; 0.5, elites 1.5, bosses 15), as the hero XP already did (40%). Its own kills count once, as kills. */
 /* v405 (Simon): "make it so that uncommon masteries can now be obtained when playing normally (without dev mode) so normal players can
    start exping them". SM_OPEN lists the rarities whose masteries are open to everyone; the rest stay developer-mode only. */
-const SM_OPEN=['common','uncommon'];
+/* v417 (Simon): "change the rare scrolls to be public now": the Rare masteries are open to everyone too */
+const SM_OPEN=['common','uncommon','rare'];
 function smOpenTop(){return RB[SM_OPEN[SM_OPEN.length-1]].n;}
 const smOn=k=>!!meta.dev||!SPELLS_S[k]||SM_OPEN.includes(SPELLS_S[k].r);
 {const l0=smLv;smLv=function(k){return smOn(k)?l0.apply(this,arguments):0;};}
@@ -28174,15 +28177,15 @@ showOverlay('menu');updSpells();
 if(GAME.setAside)setTimeout(()=>toast('Your open-world run now belongs to Kingsgaard. It is safe: More > Kingsgaard transfer','big'),1500);
 requestAnimationFrame(frame);
 /* ---- What's new: shown once per notes version (per account), on the first open after an update ---- */
-const NOTES_V='masteries-3';
+const NOTES_V='masteries-4';
 const NOTES_HTML=`<h3>\u2726 Hall of Champions, and profiles</h3><ul>
 <li>A leaderboard for you and your friends: tap the gold trophy on the land card to see everyone&rsquo;s best wave on every land, carve your name in and climb the podium. New records go up by themselves.</li>
 <li>Your profile: tap your portrait at the top left to pick a portrait (a Knight or a Mage), rename your account and see your records.</li></ul>
 <h3>\u2726 Scroll masteries reworked</h3><ul>
 <li><b>Common scrolls:</b> masteries reworked for Hexspark, Light Bolt, Basic Wither, Ember Bolt, Gravebind, Frost Shard, Static Spark, Cinder Scatter, Flame Lash, Thunderclap and Thorn Whip.</li>
 <li><b>Uncommon scrolls:</b> masteries reworked for Dark Pulse, Basic Beam, Grasping Shadows, Soul Lantern, Graveburst, Rime Bloom, Ball Lightning, Sunflare, Catch Flame, Wall of Fire and Bramble Patch.</li>
-<li><b>Uncommon masteries are open to everyone:</b> cast an Uncommon scroll in any game and it earns mastery XP, all the way to Mastery 5. Scrolls above Uncommon follow in a later update.</li>
-<li><b>Rare scrolls:</b> masteries reworked for Spatial Deflection, Riftfang, Piercing Verdict, Magma Geyser, Murder of Crows, Lightning Cloud, Ice Tomb, Fire Tornado, Frost Wolves and Entangling Roots. For now they are in developer mode; they open to everyone in a later update.</li>
+<li><b>Uncommon and Rare masteries are open to everyone:</b> cast an Uncommon or Rare scroll in any game and it earns mastery XP, all the way to Mastery 5. Scrolls above Rare follow in a later update.</li>
+<li><b>Rare scrolls:</b> masteries reworked for Spatial Deflection, Riftfang, Piercing Verdict, Magma Geyser, Murder of Crows, Lightning Cloud, Ice Tomb, Fire Tornado, Frost Wolves and Entangling Roots.</li>
 <li><b>Lightning Cloud:</b> its storm cloud floats twice as high and is a little see-through, so you can see the road under it.</li></ul>`;
 function showNotes(force){if(!force&&meta.notesSeen===NOTES_V)return;let o=$('#notesPop');if(!o){o=document.createElement('div');o.id='notesPop';document.body.appendChild(o);}
   o.innerHTML=`<div class="np-card"><div class="np-top"><small>Update</small><h2>What's new</h2></div><div class="np-body">${NOTES_HTML}</div><button class="np-log">See the full changelog</button><button class="np-ok">Got it</button></div>`;

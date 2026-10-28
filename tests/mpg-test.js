@@ -11,12 +11,12 @@ const row=k=>panel()&&panel().querySelector(`[data-mpg="${k}"]`);
 let errs=0;const ce=console.error;console.error=function(){errs++;return ce.apply(console,arguments);};
 try{
   play();state='playing';meta.mast={archer:1000,cannon:1990};meta.smast={hexspark:500};gold=1e9;
-  const UN=SCROLL_IDS.find(k=>SPELLS_S[k].r==='rare'&&SM_D[k]);/* v405: Uncommon scrolls earn now, so a Rare is the one that does not */for(const k of ['hexspark',UN])meta.spells[k]=meta.spells[k]||{lvl:1,hero:null};
+  const UN=SCROLL_IDS.find(k=>SPELLS_S[k].r==='epic'&&SM_D[k]);/* v405, v417: Uncommon and Rare scrolls earn now, so an Epic is the one that does not */for(const k of ['hexspark',UN])meta.spells[k]=meta.spells[k]||{lvl:1,hero:null};
   ok('a new run starts with no mastery XP earned',!RSTAT.mx||(!Object.keys(mpgRun().b).length&&!Object.keys(mpgRun().s).length));
   /* ---- XP earned this run ---- */
   mastGain('archer',500);mastGain('cannon',20);smGain('hexspark',42.5,heroU);smGain(UN,30,heroU);
   ok('building XP is counted for the run and the account',mpgRun().b.archer===500&&meta.mast.archer===1500&&mpgRun().b.cannon===20,JSON.stringify(mpgRun().b));
-  ok('scroll XP is counted, only for scrolls that earn it (Common and Uncommon outside developer mode)',mpgRun().s.hexspark===42.5&&!(UN in mpgRun().s),JSON.stringify(mpgRun().s));
+  ok('scroll XP is counted, only for scrolls that earn it (Common, Uncommon and Rare outside developer mode)',mpgRun().s.hexspark===42.5&&!(UN in mpgRun().s),JSON.stringify(mpgRun().s));
   state='menu';mastGain('archer',99);state='playing';ok('no XP and nothing counted outside a run',mpgRun().b.archer===500&&meta.mast.archer===1500);
   ok('levels reached this run are counted (the cannon passed Mastery 1)',mpgUps()===1,mpgUps());
   /* ---- the button ---- */
@@ -30,7 +30,7 @@ try{
   btn().click();ok('tapping it opens the panel',open()&&btn().classList.contains('on'));
   ok('every building on the board is listed, and one that earned XP this run',!!row('b:archer')&&!!row('b:frost')&&!!row('b:cannon'),[...panel().querySelectorAll('[data-mpg]')].map(r=>r.dataset.mpg).join(','));
   ok('most XP this run first',panel().querySelector('[data-mpg]').dataset.mpg==='b:archer');
-  ok('the hero\'s Common scroll is listed, the Rare one is named as not earning yet',!!row('s:hexspark')&&!row('s:'+UN)&&panel().textContent.includes(SPELLS_S[UN].n+': masteries for scrolls above Uncommon'));
+  ok('the hero\'s Common scroll is listed, the Epic one is named as not earning yet',!!row('s:hexspark')&&!row('s:'+UN)&&panel().textContent.includes(SPELLS_S[UN].n+': masteries for scrolls above '+smOpenTop())&&smOpenTop()==='Rare');
   {const r=row('b:archer'),seg=r.querySelectorAll('.mpg-bar i');
     ok('a row shows the XP this run, the level and the progress',/\+500 XP this run/.test(r.textContent)&&/Mastery 0/.test(r.textContent)&&/1500 \/ 2000 XP/.test(r.textContent),r.textContent);
     ok('the bar: earlier XP, then this run\'s part glowing (50% + 25%)',seg.length===2&&seg[0].style.width==='50%'&&seg[1].style.width==='25%'&&seg[1].classList.contains('mpg-new'),[...seg].map(i=>i.style.width).join(' + '));
