@@ -52,7 +52,10 @@ try{
   /* the storm's light stays violet under the lightning set (only its effects take the set's colours) */
   {go();foes(4);meta.dev=true;meta.arts=meta.arts||{own:{},eq:{},pend:[]};const ids=ARTS.filter(x=>x.el==='lightning').slice(0,3).map(x=>x.id);ids.forEach(id=>meta.arts.own[id]=1);meta.arts.eq[heroU.hero]=ids;ART_V++;AS.k=null;asEl();asTick(.001);
     const had=!!meta.spells.tempest;if(!had)meta.spells.tempest={lvl:1,own:1};heroU.scd={};heroU.gcd=0;fireScroll(heroU,'tempest',heroStats(),[]);if(!had)delete meta.spells.tempest;for(let i=0;i<40&&!ANC.live.tempest;i++)run(.05);worldSlow=1;slowT=0;runTo(6);
-    const L=ANC.L.tempest;ok("under the lightning set the storm's light stays violet",AS.el==='lightning'&&L&&L.hc.getHex()===0x8c74e0&&L.sc.getHex()===0xa880ff&&TPE.on,L&&L.hc.getHexString());
+    /* v420: its own lightning whitens the light for a moment (toward 0xf0e8ff, by up to .7 / .6), so a check landing on a flash used to fail at random;
+       the colour must be the violet, or the violet on its way to that white, never the set's colours */
+    const onLine=(c,a,w,mx)=>{const A=new THREE.Color(a),W=new THREE.Color(w),k=(c.r-A.r)/(W.r-A.r),P=A.clone().lerp(W,k);return k>-.01&&k<mx+.01&&Math.abs(P.g-c.g)<.004&&Math.abs(P.b-c.b)<.004;};
+    const L=ANC.L.tempest;ok("under the lightning set the storm's light stays violet",AS.el==='lightning'&&L&&onLine(L.hc,0x8c74e0,0xf0e8ff,.7)&&onLine(L.sc,0xa880ff,0xf0e8ff,.6)&&TPE.on,L&&L.hc.getHexString()+' '+L.sc.getHexString());
     resetCine();meta.arts.eq[heroU.hero]=[];ART_V++;AS.k=null;asEl();}
   for(const a of['snow','tundra','whitewaste','taiga']){go(a);foes(4);let err=null;try{cast();runTo(5);anim(.016,performance.now()/1000);renderer.render(scene,camera);runTo(19);run(1);}catch(x){err=x.message;}ok('eye of the storm in '+a,!err&&!TPE.on,err);}
 }catch(e){ok('no errors',false,e.message+' '+(e.stack||'').split('\n')[1]);}
