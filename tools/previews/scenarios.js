@@ -10,7 +10,7 @@
 //   spd    walking speed of the foes          hp  their health (x spell power) unless set
 //   castAt when the scroll is cast (s)         casts  [times] to cast it more than once       also  [{k, at}] another scroll cast after it
 //   cnt    the scroll's cast counter before the first cast (2 = the next cast is the 3rd)
-//   zoom   camera distance (1 = the old preview's)   fw  how far the camera leans from the hero to the pack (0..1)   look  where the pack is then
+//   framing is automatic: a run without pictures logs where foes are hit; the camera frames them and the hero (zmin/zmax/zk/margin/cz tune it)
 //   len    a fixed clip length (s), else it ends when the scroll's effects are done
 //   probe  must be true at the end, or the next seed is tried (chance-based masteries)      note  the caption under the clip
 const TAG = { hp1: '#ff6a5a', tough: '#ffcf5a', fly: '#8fd8ff', mark: '#d7a6ff' };
@@ -23,7 +23,7 @@ const PACK = [
 const TRAIL = [{ t: 'soldier', at: -2.3, off: .1 }, { t: 'peasant', at: -2.65, off: -.15 }, { t: 'soldier', at: -3.0, off: .05 }];
 /* the stage (found by searching map seeds for a straight stretch of road running across the view with a hero tile in front of it) */
 const STAGE = process.env.PV_STAGE ? JSON.parse(process.env.PV_STAGE) : { seed: 98, ri: 0, d: 31.35, c: 8, r: 16 };
-const DEF = { hero: 'aldric', st: STAGE, spd: .32, hp: 12, castAt: .6, fw: .6, look: 1.2, zoom: .56, pack: PACK, trail: [], note: '' };
+const DEF = { hero: 'aldric', st: STAGE, spd: .32, hp: 12, castAt: .6, fw: .7, look: 1.2, zoom: .5, pack: PACK, trail: [], note: '' };
 /* the pack with one foe swapped for another (i: index into PACK) */
 const swap = (i, f) => PACK.map((p, j) => j === i ? Object.assign({ at: p.at, off: p.off }, f) : p);
 
@@ -37,10 +37,13 @@ const S = {
     4: { pack: swap(0, LOW(2.6)), only: true, casts: [.6, 2.0], spy: ['hxNova'], probe: 'PVR.ev.hxNova>0', note: 'The marked foe survives the first spark, Hexed. The second spark kills it, and it bursts in a violet nova.' },
     5: { cnt: 2, note: 'This is the 3rd cast, so black lightning strikes two more foes.' } },
   lightbolt: {
-    2: { casts: [.6, 1.8], spy: ['lbBeam'], probe: 'PVR.ev.lbBeam>0', note: 'Two bolts in a row: the second light hit on the marked foe calls down the beam.' },
-    5: { cnt: 3, spy: ['lbSunBurst'], probe: 'PVR.ev.lbSunBurst>0', note: 'This is the 4th bolt: a small sun.' } },
+    /* the Mark of Dawn rings stay 5s after the bolt: the clips end with the action */
+    2: { casts: [.6, 1.8], len: 4.0, spy: ['lbBeam'], probe: 'PVR.ev.lbBeam>0', note: 'Two bolts in a row: the second light hit on the marked foe calls down the beam.' },
+    3: { len: 3.2 }, 4: { len: 3.2 },
+    5: { cnt: 3, len: 3.4, spy: ['lbSunBurst'], probe: 'PVR.ev.lbSunBurst>0', note: 'This is the 4th bolt: a small sun.' } },
   wither: {
-    base: { trail: TRAIL },
+    /* the withering is drawn on the foes, not as effects: hold the clip for its 5 seconds */
+    base: { trail: TRAIL, minLen: 5.6 },
     3: { pack: swap(0, LOW(1.3)), spy: ['wthSpread'], probe: 'PVR.ev.wthSpread>0', note: 'The marked foe withers away, and its wither passes to a foe nearby.' } },
   emberbolt: {
     4: { trail: TRAIL, note: 'Foes behind the pack walk over the burning tile.' },
@@ -63,32 +66,33 @@ const S = {
     5: { pack: swap(2, TOUGH()), spy: ['twInfect'], probe: 'PVR.ev.twInfect>0', note: 'The ram is the toughest foe nearby: the rose whip goes for it.' } },
   /* ---- Uncommon ---- */
   darkpulse: {
-    4: { pack: withFly(-.3), note: 'The wall of dark energy strikes flyers too.' },
-    5: { zoom: .64 } },
-  beam: { 2: { zoom: .62 }, 3: { zoom: .62 }, 4: { zoom: .6 }, 5: { zoom: .64 } },
-  grasp: { 5: { zoom: .62 } },
+    4: { pack: withFly(-.3), note: 'The wall of dark energy strikes flyers too.' } },
+  beam: {},
+  grasp: {},
   lantern: {
     4: { pack: ONES(2), spy: ['slmSoul'], probe: 'PVR.ev.slmSoul>0', note: 'Two foes have 1 HP: the lantern kills them and gathers their souls for a stronger beam.' } },
-  graveburst: { base: { trail: TRAIL }, 5: { zoom: .64 } },
+  graveburst: { base: { trail: TRAIL } },
   rimebloom: {
     base: { trail: TRAIL },
     3: { also: [{ k: 'frostshard', at: 1.9 }], spy: ['rbmShatter'], probe: 'PVR.ev.rbmShatter>0', note: 'A Frost Shard follows the bloom and shatters a Brittle foe.' } },
   balllightning: {},
-  sunflare: { 5: { zoom: .6 } },
+  sunflare: {},
   catchflame: {
     base: { pack: BIG },
     2: { pack: BIG.map((p, j) => j === 0 ? Object.assign({}, p, ONE()) : p), spy: ['cfmBackdraftFx'], probe: 'PVR.ev.cfmBackdraftFx>0', note: 'The marked foe has 1 HP: it dies burning and erupts.' },
     5: { pack: BIG, spy: ['cfmErupt'], probe: 'PVR.ev.cfmErupt>0', note: 'Eleven foes, so the fire can reach its tenth.' } },
   firewall: {
-    base: { trail: TRAIL },
-    4: { spy: ['wofBlast'], probe: 'PVR.ev.wofBlast>0', note: 'Six foes cross the wall, so it releases its blast.' },
-    5: { zoom: .6 } },
+    /* the wall rises ahead of the leading foe: the pack starts further back so it is not on the hero, and walks through it */
+    base: { trail: TRAIL, ahead: 3.0, spd: .5 },
+    4: { spd: .6, trail: [{ t: 'soldier', at: -1.4, off: .1 }, { t: 'peasant', at: -1.7, off: -.15 }, { t: 'soldier', at: -2.0, off: .05 }], spy: ['wofBlast'], probe: 'PVR.ev.wofBlast>0', note: 'Six foes cross the wall, so it releases its blast.' },
+    5: {} },
   bramble: { base: { trail: TRAIL } },
   /* ---- Rare ---- */
-  deflect: { base: { zoom: .64 } },
+  deflect: { base: {} },
   riftfang: { 4: { pack: withFly(-.3), note: 'The blackglass spears hit flyers too.' } },
   stormcloud: {
-    base: { pack: swap(5, TOUGH({ tag: 'Strongest' })), zoom: .62, note: 'One cloud gathers over the leading foe, one over the strongest (the ram).' },
+    /* the clouds hang high over the road: the view leans up to keep them in */
+    base: { pack: swap(5, TOUGH({ tag: 'Strongest' })), cz: -1.5, zk: 1.35, zmax: .95, note: 'One cloud gathers over the leading foe, one over the strongest (the ram).' },
     2: { pack: swap(5, TOUGH({ tag: 'Strongest' })).concat([FLY({ at: .1, off: 0 })]), spy: ['scmFork'], probe: 'PVR.ev.scmFork>0' },
     3: { spy: ['scmClap'], probe: 'PVR.ev.scmClap>0' },
     4: { spy: ['scmLink'], probe: 'PVR.ev.scmLink>0' },
@@ -97,9 +101,9 @@ const S = {
     2: { trail: TRAIL, note: 'Foes behind the pack cross the scar.' },
     5: { pack: withFly(-.2), note: 'The second beam hits flyers too.' } },
   icetomb: { base: { pack: swap(2, TOUGH({ tag: 'Strongest' })), note: 'The ram is the strongest foe: the tomb always takes the strongest.' } },
-  geyser: { base: { zoom: .62, trail: TRAIL } },
+  geyser: { base: { trail: TRAIL } },
   crows: {},
-  firetornado: { base: { zoom: .62 } },
+  firetornado: { base: {} },
   frostwolves: { 5: { pack: swap(2, TOUGH({ tag: 'Strongest' })), note: 'At the end both wolves leap at the strongest foe, the ram.' } },
   roots: {},
 };

@@ -1272,3 +1272,44 @@ Simon: "theres gonna be a rule I have to set for all future and current explosio
 - The walls are see-through, short (at most half a tile) and fade as they grow, so they never cover the road or the foes. `XFX.off=true` turns them off for side-by-side comparisons.
 - Checked in screenshots at normal zoom and close up with a crowd: Thunderclap, Cataclysm, Magma Geyser, Ember Bolt and the comet. Cataclysm's own blast still has big bright shells and leaves a dark purple cloud for about a second; it is in the Epic round (v423), and its base cast is to be brought up to the rule there.
 - Tests: `tests/xfx-test.js` (9, in run-all as 'xfx'): a shockwave raises one wall standing on the ground with height, which races out, sinks and fades and is gone with the wave; a wide wave's wall stays faint; rings of light and fire rise too; `XFX.off` turns the walls off; the frost blast is clouds with body and leaves nothing; a flash is a soft ball of light that fades and is gone; no errors.
+
+## v428: recorded scroll mastery previews
+Simon: "the previes needs to be recorded not happened in realtime when clicked - this reduces the long loading time and we can make a much nicer UI for it aswell", "if a mastery says something like "on kill effect" and it actually may not be strong enaugh to kill an enemy in the preview, we need to spawn one or two enemies and one will be the targeted one that will spawn with 1hp so the ability kills him" and "if a mastery says something like "targets the toughest enemy" you need to spawn a ram or just a tougher enemy so its distinct which one is being targeted".
+
+The live previews (v367, v374) started a second copy of the whole game in a hidden frame on the first hover, which took a few seconds. Every published scroll mastery is now a short recorded clip: 32 scrolls (Common, Uncommon, Rare), each with no mastery and Masteries 1 to 5, so 192 clips.
+
+**How a clip is made** (`node tools/previews/record.js`, needs the dev server and ffmpeg):
+- The real game runs in headless Chromium, stepped frame by frame (its own loop is stopped), with a seeded `Math.random`, so a clip is the same every time.
+- The stage is a straight stretch of road running across the view (map seed 98), with the hero (Aldric) in front of it and a pack of foes walking down it. The scroll is cast when the pack reaches the hero's side.
+- The camera holds still; the clip runs from just before the cast until the scroll's effects are done (at least 3 s, at most 9.5 s).
+- Each clip is encoded as H.264 (`previews/<scroll>-<level>.mp4`, 480x320, 30 fps). `previews/manifest.json` lists them with their captions; `--sheet` writes contact sheets for checking them by eye.
+
+**The stage for each mastery** (`tools/previews/scenarios.js`):
+
+| What the mastery says | The stage |
+|---|---|
+| On a kill or a death (Hexspark 4, Wither 3, Ember Bolt 5, Static Spark 2 and 4, Soul Lantern 4, Catch Flame 2) | the target spawns with 1 HP, or with just enough to survive the first hit when the mastery needs it marked first (Hexspark's Hex, Wither's withering), labelled **1 HP** / **Low HP** |
+| The toughest or strongest foe (Thorn Whip 5, Ice Tomb, Lightning Cloud, Frost Wolves 5) | a ram in the pack, labelled **Toughest** / **Strongest** |
+| Every Nth cast (Hexspark 5, Light Bolt 5, Frost Shard 5) | the cast counter starts one short, so the recorded cast is the special one |
+| A follow-up hit (Light Bolt 2, Rime Bloom 3) | a second cast, or a Frost Shard after the bloom |
+| Flyers (Cinder Scatter 2, Dark Pulse 4, Riftfang 4, Lightning Cloud 2, Piercing Verdict 5) | a raven, labelled **Flying** |
+| A count (Catch Flame 5: ten foes; Wall of Fire 4: six crossings) | a bigger pack, foes still arriving |
+| A chance (Static Spark 3 and 4, Frost Shard 4) | the seed is chosen so it happens on camera |
+
+Every special stage has a check: a spy counts calls of the function that draws the mastery's moment (`hxNova`, `ebMolten`, `sskBurst`, `cfmErupt` and so on). If the moment never happened, the next seed is tried, and a clip that never manages it is reported.
+
+**Where the clips live:** Simon chose to load them from GitHub, so the game file stays small. The clip list is read a few seconds after the game starts: from `previews/` beside the page when it is served from the repository (the dev page, a githack link), else from jsDelivr's copy of the main branch, else from raw GitHub. Opening a scroll's mastery card fetches its clips, so they play at once. Offline the masteries keep the live preview, and so do scrolls without clips (Epic and up, in developer mode).
+
+**The panel** (`PVC`, `pvcShow`): the scroll and the mastery, the clip (looping, with a progress line), tabs for no mastery and Masteries I to V (the ones you may watch are lit), the mastery's text and a line saying what the clip sets up. Hovering a mastery shows it; a click or a tap pins it open; the close button or a second click closes it. `smPvCan` still decides which masteries can be watched outside developer mode.
+
+**Re-recording:** after a change to a published mastery or to the board, run `node tools/previews/record.js <scroll>` (or with no arguments for all, about 30 to 60 minutes) and commit `previews/`. The clips reach the published game once they are on main.
+
+Tests: `tests/pvc-test.js` (in run-all as 'pvc'):
+- every published scroll has its 6 clips and every file exists;
+- a hover plays the clip at once, without the live preview's frame;
+- the panel shows the mastery, its text and its note;
+- the tabs switch clips and pin the panel; pinning and closing work;
+- outside developer mode only reached masteries play;
+- a scroll without clips keeps the live preview;
+- the dev page reads `previews/`, and opening a card pre-fetches its clips;
+- offline it falls back to the live preview.

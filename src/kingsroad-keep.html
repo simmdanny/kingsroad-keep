@@ -28485,9 +28485,12 @@ function pvcShow(k,L,anchor){if(!pvcHas(k,L))return false;const b=pvcBox(),S=SPE
     return`<button data-l="${l}" class="${l===L?'on':''}" ${ok?'':'disabled'} style="--mc:${l?pvcHex(MAST_COL[l-1]):'#c8b89a'}" title="${ok?(l?'Mastery '+l+': '+D[l-1].n:'No mastery'):'Reach Mastery '+l+' to watch it'}">${l?PVC_ROM[l]:'Base'}</button>`;}).join('');
   const v=b.querySelector('video');if(!same){const u=pvcUrl(k,L);if(u&&v.getAttribute('src')!==u){v.setAttribute('src',u);}try{v.currentTime=0;}catch(e){}const p=v.play();if(p&&p.catch)p.catch(()=>{});}
   b.hidden=false;if(anchor!==null)pvcPlace(anchor||PVC.anchor);if(anchor)PVC.anchor=anchor;if(!PVC.raf)PVC.raf=requestAnimationFrame(pvcTick);return true;}
-function pvcPlace(anchor){const b=PVC.el;if(!b)return;const W=Math.min(440,innerWidth-16);b.style.width=W+'px';const bh=b.offsetHeight||W;
-  const r=anchor&&anchor.isConnected?anchor.getBoundingClientRect():{left:innerWidth/2,right:innerWidth/2,top:innerHeight/2,bottom:innerHeight/2,height:0};let x,y;
-  if(innerWidth>=900){const card=anchor&&anchor.closest&&anchor.closest('.mst-panel'),cr=card?card.getBoundingClientRect():r;x=cr.left-W-14;if(x<8)x=cr.right+14;y=r.top+r.height/2-bh/2;}
+function pvcPlace(anchor){const b=PVC.el;if(!b)return;
+  const r=anchor&&anchor.isConnected?anchor.getBoundingClientRect():{left:innerWidth/2,right:innerWidth/2,top:innerHeight/2,bottom:innerHeight/2,height:0};let x,y,W=Math.min(440,innerWidth-16);
+  /* beside the card on a wide screen, on whichever side has more room (as wide as fits there, at least 320) */
+  const card=innerWidth>=900&&anchor&&anchor.closest&&anchor.closest('.mst-panel'),cr=card?card.getBoundingClientRect():r,sl=cr.left-22,sr=innerWidth-cr.right-22;
+  if(innerWidth>=900)W=Math.max(320,Math.min(440,Math.max(sl,sr)));b.style.width=W+'px';const bh=b.offsetHeight||W;
+  if(innerWidth>=900){x=sl>=sr?cr.left-W-14:cr.right+14;y=r.top+r.height/2-bh/2;}
   else{x=(innerWidth-W)/2;y=r.top>innerHeight*.5?Math.max(8,r.top-bh-10):Math.min(innerHeight-bh-8,r.bottom+10);if(y<8||y+bh>innerHeight-8)y=innerHeight-bh-8;}
   b.style.left=Math.max(8,Math.min(innerWidth-W-8,x))+'px';b.style.top=Math.max(8,Math.min(innerHeight-bh-8,y))+'px';}
 function pvcHideSoon(){clearTimeout(PVC.hideT);PVC.hideT=setTimeout(()=>pvcHide(false),220);}
@@ -28505,7 +28508,7 @@ function pvcHide(force){clearTimeout(PVC.hideT);if(!PVC.el||PVC.el.hidden)return
     PVC.pin=true;if(!smPvShow(k,+el.dataset.smpv,el))PVC.pin=false;e.stopImmediatePropagation();},true);}catch(err){console.error(err);}return r;};}
 addEventListener('resize',()=>{if(PVC.el&&!PVC.el.hidden)pvcPlace(PVC.anchor);});
 {const st=document.createElement('style');st.textContent=
-  '#pvc{position:fixed;z-index:72;background:linear-gradient(#2c2119,#140f0b);border-radius:14px;box-shadow:inset 0 0 0 1px var(--gold),0 16px 40px #000d;padding:10px 10px 9px;color:#f2e6cc}'+
+  '#pvc{position:fixed;z-index:72;box-sizing:border-box;background:linear-gradient(#2c2119,#140f0b);border-radius:14px;box-shadow:inset 0 0 0 1px var(--gold),0 16px 40px #000d;padding:10px 10px 9px;color:#f2e6cc}'+
   '.pvc-hd{display:flex;align-items:center;gap:9px;margin-bottom:8px}.pvc-art{width:34px;height:34px;flex:none;display:grid;place-items:center}.pvc-art svg{width:34px;height:34px}'+
   '.pvc-ttl{flex:1;min-width:0}.pvc-ttl small{display:block;font-size:11px;color:var(--rc,var(--muted));letter-spacing:.02em}.pvc-ttl b{display:block;font-size:15px;color:var(--gold);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
   '.pvc-x{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid #6a5238;background:#1d1510;color:var(--gold);font-size:18px;line-height:1;cursor:pointer}.pvc-x:hover{background:#2e2218}'+
