@@ -14134,6 +14134,10 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Piercing Verdict masteries, reworked',d:'28 Oct',v:'v409',li:[
+    'Luminous Afterimage: a point of light hangs where the line pierced each foe; 0.6s later they flare one after another, 20% each. Severance Line: a razor-thin scar of light stays on the road for 2.5s, and a foe that crosses it is pierced by a miniature verdict, 55%.',
+    'Absolute Focus: the spell compresses to a pinprick so bright it looks black and fires as a needle; foes on its narrow first half take 35% more. Consecrated Passage: a glowing seal on each foe pierced, all igniting together as the line fades, 65%.',
+    'The Unerring Verdict: a white point stays at the palm and grows blinding; 0.45s after the shot a second beam tears down the exact same line, 100% to every foe on it. Like every scroll above Uncommon, its masteries are only in developer mode for now.']},
   {t:'Uncommon masteries for everyone',d:'28 Oct',v:'v405',li:[
     'The Uncommon scrolls now earn mastery XP and use their masteries in every game, not only in developer mode. Scrolls above Uncommon come later.',
     'The patch notes start afresh: just the Common and Uncommon mastery reworks, in short.']},
@@ -18371,6 +18375,8 @@ function jvHole(x,y,z,s){const m=new THREE.Mesh(JV.hg||(JV.hg=new THREE.PlaneGeo
 function jvCast(t,P,o,rng,big){
   const hv=jdgHand(t,new THREE.Vector3());const L=big?32:rng+4;
   let aim=jdgAim(hv.x,hv.z,L,rng,t)||{ux:0,uz:-1,tg:null};
+  /* v409: Piercing Verdict's masteries (null at Mastery 0, for echoes, other casters and the Judgment: exactly the cast below) */
+  const V=!big&&typeof pvmStart==='function'?pvmStart(o,t,P/3.75):null;
   const root=new THREE.Group();scene.add(root);const C=new THREE.Group();root.add(C);
   const pg=new THREE.PlaneGeometry(1,1),mats=[],geos=[pg];
   const addM=(c,map,noDepth)=>{const m=new THREE.MeshBasicMaterial({color:c,map:map||null,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:!noDepth,side:THREE.DoubleSide});mats.push(m);return m;};
@@ -18430,12 +18436,13 @@ function jvCast(t,P,o,rng,big){
       moteA+=dt*(big?55:16)*(.35+.65*SMS(T,0,HOLD))*(1+1.2*ck);while(moteA>=1){moteA--;const a2=rnd()*6.28,rr=(big?1.7:.38)*(1-.55*ck)*(.85+.3*rnd());
         tmp.set(Math.cos(a2)*rr,Math.sin(a2)*rr,0).applyQuaternion(C.quaternion);tg2.set(-Math.sin(a2)*rr,Math.cos(a2)*rr,0).applyQuaternion(C.quaternion);
         emit(1,{x:cpV.x+tmp.x,y:cpV.y+tmp.y,z:cpV.z+tmp.z,vx:-tmp.x*3+tg2.x*2.2,vy:-tmp.y*3+tg2.y*2.2,vz:-tmp.z*3+tg2.z*2.2,s:big?.032:.022,s2:0,c:0xffffff,c2:0xa070ff,life:.3,drag:.4});}
-      if(big&&ck>0&&rnd()<dt*30)zap(cpV,{x:cpV.x+(rnd()-.5)*CS*.5*suO,y:cpV.y+(rnd()-.5)*CS*.5*suO,z:cpV.z+(rnd()-.5)*CS*.5*suO},0xe8d8ff,.05);}
+      if(big&&ck>0&&rnd()<dt*30)zap(cpV,{x:cpV.x+(rnd()-.5)*CS*.5*suO,y:cpV.y+(rnd()-.5)*CS*.5*suO,z:cpV.z+(rnd()-.5)*CS*.5*suO},0xe8d8ff,.05);
+      if(V)V.charge(T/COMP,ck,cpV,C.quaternion,dt);}
     else if(T<FIRE){/* the held breath: one tiny white point, a thin streak, the light drawn in */
       LY.forEach(l=>l.p.visible=false);rings.forEach(r=>r.r.visible=false);imp.visible=back.visible=glow.visible=false;const k=(T-COMP)/(FIRE-COMP);
       star.position.copy(cpV);star.quaternion.copy(camera.quaternion);star.scale.setScalar((big?.16:.05)*(1-.5*k));stM.opacity=1;
       streak.position.copy(cpV);streak.quaternion.copy(camera.quaternion);streak.scale.set((big?2.2:.7)*(1+.3*k),big?.05:.025,1);skM.opacity=.8;
-      jvLight(cpV.x,cpV.y,cpV.z,0xa47cff,(big?.42:.2)*(1-.4*k),big?4.5:2.8);}
+      jvLight(cpV.x,cpV.y,cpV.z,0xa47cff,(big?.42:.2)*(1-.4*k),big?4.5:2.8);if(V)V.still(k,cpV,[star,streak]);}
     else{
       if(!fired){fired=true;LY.forEach(l=>l.p.visible=false);rings.forEach(r=>r.r.visible=false);imp.visible=back.visible=glow.visible=false;
         const a2=jdgAim(hv.x,hv.z,L,rng,t);if(a2)aim=a2;dir.set(aim.ux,0,aim.uz);
@@ -18445,9 +18452,10 @@ function jvCast(t,P,o,rng,big){
         searD.position.set(cpG.x,.012,cpG.z);searG.position.set(cpG.x,.016,cpG.z);searD.rotation.y=searG.rotation.y=Math.atan2(dir.x,dir.z);searD.scale.set(big?.34:.1,1,L);searG.scale.set(big?.3:.09,1,L);
         camShake=Math.max(camShake,big?.22:.07);if(big){flashA=Math.max(flashA,.07);flashCol='#efe4ff';flashDecay=3.5;}
         for(const en of enemies){if(en.dead)continue;const px=en.x-cpG.x,pz=en.z-cpG.z,pr=px*dir.x+pz*dir.z;if(pr<-.2||pr>L)continue;const cx=px-dir.x*pr,cz=pz-dir.z*pr,w=(big?.48:.34)+(en.boss?.25:0);if(cx*cx+cz*cz>w*w)continue;
-          const by=hy+slope*Math.max(0,pr);hurt(en,P,'magic',o);
+          const by=hy+slope*Math.max(0,pr);hurt(en,P,'magic',o);if(V)V.hit(en,by,pr,L);
           if(big&&!en.dead&&!en.boss&&en.hp<en.maxHp*.15){en.hp=0;kill(en,o&&o.src);}
-          hq.push({en,by,at:FIRE+EXT*clamp(pr/L,0,1)});}}
+          hq.push({en,by,at:FIRE+EXT*clamp(pr/L,0,1)});}
+        if(V){V.fire(cpG.clone(),dir.clone(),L,hy,slope,[star,streak],bA.clone());if(V.ownBeam)beam.visible=false;}}
       const tb=T-FIRE,e=1-Math.pow(1-clamp(tb/EXT,0,1),2),u=beam.material.uniforms;
       /* the beam: shoots out with a hot tip, thins to a hairline, then dissolves from the hand outward */
       if(beam.visible){const wk=big?SMS(tb,.06,.4):SMS(tb,.05,.26);jvLay(beam,bA,bB,bw0*(1.15-1.03*wk));u.uT.value=T;u.uB.value=e;u.uTip.value=1-SMS(tb,EXT,EXT+(big?.1:.07));
@@ -24557,10 +24565,10 @@ function blmMat(kind){const P=BLM.pool[kind]||(BLM.pool[kind]=[]),m=P.pop()||(ty
 function blmPut(m){if(m&&m.userData&&m.userData.blmK&&BLM.pool[m.userData.blmK])BLM.pool[m.userData.blmK].push(m);}
 function BLM_K(){if(BLM.k)return BLM.k;const plane=new THREE.PlaneGeometry(1,1);plane.rotateX(-Math.PI/2);return BLM.k={plane,sphere:new THREE.IcosahedronGeometry(1,3),shard:new THREE.IcosahedronGeometry(1,0)};}
 /* the shared effects light: each effect asks every frame, the brightest wins (the same manager as Soul Lantern's, in blue-white) */
-const BLML={on:false,I:0,x:0,y:0,z:0,d:4};
-function blmLight(x,y,z,I,d){if(!(I>0))return;if(I>BLML.I){BLML.I=I;BLML.x=x;BLML.y=y;BLML.z=z;BLML.d=d;}
+const BLML={on:false,I:0,x:0,y:0,z:0,d:4,c:0xaad6ff};
+function blmLight(x,y,z,I,d,col){if(!(I>0))return;if(I>BLML.I){BLML.I=I;BLML.x=x;BLML.y=y;BLML.z=z;BLML.d=d;BLML.c=col||0xaad6ff;}
   if(BLML.on&&fx.indexOf(BLML.e)>=0)return;BLML.on=true;let idle=0;
-  BLML.e=addFx(new THREE.Group(),1e4,f=>{if(BLML.I>0){idle=0;if(typeof jvLight==='function')jvLight(BLML.x,BLML.y,BLML.z,0xaad6ff,BLML.I,BLML.d);BLML.I=0;}
+  BLML.e=addFx(new THREE.Group(),1e4,f=>{if(BLML.I>0){idle=0;if(typeof jvLight==='function')jvLight(BLML.x,BLML.y,BLML.z,BLML.c,BLML.I,BLML.d);BLML.I=0;}
     else if(++idle>2||f.life<1){f.life=0;BLML.on=false;BLML.I=0;if(typeof jvLightOff==='function')jvLightOff();}});}
 const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
 /* strips along polylines, two vertices a point: flat ones lie on the road, the others are turned to the camera; u runs along, v across */
@@ -25423,6 +25431,239 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
   const S={t,e,len,dmg,C,P:C.P,L:C.L,a:C.a,o:smO(o),o0:o,hits:[]};C.bem=S;bemLog({ev:'cast',L:C.L});
   if(C.L>=5){bemStar(S);mxLater(BEM.raT0,()=>{if(state==='playing')bemFire(S,true);});}
   else bemFire(S,false);};
+/* ================= Piercing Verdict's masteries, as Simon designed them (v409) ================= */
+/* Simon (abridged; the "why it works" notes left out): "Mastery 1 - Luminous Afterimage: every enemy pierced by Piercing Verdict leaves
+   behind a tiny, suspended point of white light. 0.6 seconds after the shot, all points flash simultaneously, dealing an additional 20% damage
+   to the enemies that were hit. Visual: the beam disappears, but tiny white stars remain suspended along its path; after a brief silence they
+   flare in sequence from the hero toward the end of the line, leaving a trail of violet sparks. / Mastery 2 - Severance Line: the beam leaves
+   behind a hair-thin line of unstable light along its trajectory for 2.5 seconds. Any enemy that crosses this line is pierced by a miniature
+   verdict, taking 55% damage; each enemy can trigger it only once per cast. Visual: the ground retains a razor-thin violet scar; it flickers
+   whenever an enemy crosses it, briefly projecting a matching line of light through the enemy before fading. / Mastery 3 - Absolute Focus:
+   the longer Piercing Verdict charges, the more tightly its magic compresses. At the moment of firing, the beam briefly becomes almost
+   impossibly thin, then expands back to its normal width as it travels; enemies hit by the initial narrow core take an additional 35% damage.
+   Visual: the violet circle contracts faster and faster; at the silent moment the entire spell condenses into a pinprick so bright that it
+   appears black at its centre; the beam fires as an incredibly fine white line, leaving a sharp violet afterimage. / Mastery 4 - Consecrated
+   Passage: every enemy pierced leaves behind a small, glowing seal of light at the point of impact. When the beam reaches the end of its path,
+   all seals ignite simultaneously, dealing an additional 65% damage to their respective enemies. Visual: each impact briefly forms a tiny
+   geometric sigil inside the enemy's silhouette; after the beam fades the sigils remain for a fraction of a second before flashing white and
+   releasing fine violet sparks. / Mastery 5 - The Unerring Verdict: after the original beam hits, a tiny white point remains at the hero's
+   palm for 0.45 seconds. The point flashes, and a second beam fires along the exact same trajectory, dealing 100% damage to every enemy it
+   pierces. It uses the original cast's final firing direction (no chasing, no retargeting), hits each enemy at most once, and hits ground
+   enemies and flyers like the original. Visual: the circle forms and compresses as before; the first thin beam flashes across; the world falls
+   silent, a tiny white point at the palm; it becomes intensely bright and a second beam tears through the exact same line; both shots' scorch
+   marks align into one brilliant white-violet scar before fading." And: no low-effort effects, no bland 2D explosions, each mastery visibly
+   better than the last.
+   Percentages are of the scroll's power (the line itself is 375%). Mastery 0 is the old cast. castJudgment (shared with the Judgment) calls
+   pvmStart for a Verdict and gets V (null at Mastery 0, for echoes, other casters and the Judgment, so they are exactly the old cast):
+   V.charge while the circle compresses, V.still in the silent moment, V.hit for each foe the line pierces (where along the line, at what
+   height) and V.fire at the shot (the palm point, the direction, the length and slope of the line). V.ownBeam hides the old beam (M3 draws
+   its own). Timeline after the shot: the seals ignite at PVM.m4At (0.38s), the second beam fires at PVM.m5At (0.45s), the stars flare from
+   PVM.m1At (0.6s); the scar lives PVM.m2T (2.5s).
+   The looks are 3D and layered: beams are soft shader ribbons turned to the camera (a white core in a violet glow, struck out from the palm by
+   a leader); the stars and flares are hot points with long thin rays; the seals are drawn sigils (two rings, a hexagram, studs) glowing on
+   the foe; the scar is a flickering shader strip on the road (an unstable core, breaks, a pulse running along it, a flash where a foe
+   crosses); bursts are fresnel shells; the effects light the road (the shared light, violet-white).
+   - M1 Luminous Afterimage: a white star hangs where the line pierced each foe, with faint motes of light all along its path. 0.6s after the
+     shot a sweep runs from the palm to the end of the line (PVM.m1Sweep), leaving falling violet sparks; each star it reaches bursts into a
+     flare of rays: 20% to its foe (wherever that foe is now), the motes twinkle out.
+   - M2 Severance Line: a razor-thin violet scar on the road under the line for 2.5s. A foe the line did not pierce that touches or crosses
+     it (within PVM.m2W, more for a boss; flyers too, the line is the beam's) is pierced by a miniature verdict: the scar flares there and a
+     short line of light shoots through the foe along the scar, 55%. Once per foe per cast.
+   - M3 Absolute Focus: while charging, three violet rings collapse into the circle, faster and faster, and motes rush in; in the silent
+     moment the spell is a pinprick so bright its heart looks black (a dark core in a white-hot rim, a violet halo, a thin horizontal flare).
+     The line fires as a needle: a hair-fine white line that flares out to the normal violet beam toward its end, then a sharp violet
+     afterimage that lingers. Foes on the first PVM.m3Core of the line (the narrow core) take 35% more, with a white glint.
+   - M4 Consecrated Passage: each foe pierced gets a glowing sigil inside it (it follows the foe), drawn in as the line passes; 0.38s after the
+     shot all of them flash white at once with a ring of light and fine violet sparks: 65% to each foe.
+   - M5 The Unerring Verdict: the white point stays at the palm and grows blinding over 0.45s, light rushing into it; then a second, heavier
+     beam tears down the exact same line (the first shot's point and direction): 100% once to every foe on it, flyers too, a burst at the
+     palm, a flare at the end. Under it the scorch becomes one brilliant white-violet scar that cools and fades.
+   PVM.dbg (an array) logs the events for the tests. */
+const PVM={dbg:null,pool:{},tex:{},last:null,
+  m1:.2,m1At:.6,m1Sweep:.18,
+  m2:.55,m2T:2.5,m2W:.16,
+  m3:.35,m3Core:.5,
+  m4:.65,m4At:.38,
+  m5:1,m5At:.45,lineW:.34};
+const pvmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='verdict'?c:null;};
+const pvmLog=d=>{if(PVM.dbg){d.t=time;PVM.dbg.push(d);}};
+SM_D.verdict=[
+  {n:'Luminous Afterimage',d:'Every foe the line pierces leaves a tiny point of white light hanging in the air. 0.6s after the shot they flare one after another along the line: {20}% more to each foe hit.'},
+  {n:'Severance Line',d:'The line leaves a razor-thin scar of unstable light on the road for 2.5s. A foe that crosses it is pierced by a miniature verdict for {55}% (once per foe).'},
+  {n:'Absolute Focus',d:'The spell compresses to a pinprick so bright it looks black, and fires as a needle that widens as it travels: foes on its narrow first half take {35}% more.'},
+  {n:'Consecrated Passage',d:'Each foe the line pierces is marked with a glowing seal. As the line fades, all the seals ignite at once: {65}% to each of their foes.'},
+  {n:'The Unerring Verdict',d:'A white point stays at the palm and grows blinding; 0.45s later a second beam tears down the exact same line: {100}% to every foe on it, flyers too.'}];
+SMF.verdict={m:3.75};
+SMA.verdict=[1,1,1,1,1];
+/* Simon's numbers are kept as he gave them (SM.free). They add little to a 375% line, so on their own the masteries fall short of the Rare
+   ladder (tests/sm-ladder.js, 3 runs: 1.03 / 1.03 / 1.09 / 1.20 / 1.52 against 1.09 / 1.23 / 1.35 / 1.52 / 1.74); the hidden factor makes up the rest
+   (5 runs: 1.09 / 1.23 / 1.35 / 1.42-1.75 / 1.77; Mastery 4 sits on a kill threshold in the ladder's fight, so it reads one or the other). */
+SMG.verdict=[1.08,1.28,1.26,1.2,1.04];
+SM.free=SM.free||{};SM.free.verdict='Simon'+String.fromCharCode(8217)+'s own numbers for Piercing Verdict';
+
+/* ---- the kit: textures, a pool of materials (pooled, never disposed), the scar shader ---- */
+function pvmTex(kind){if(PVM.tex[kind])return PVM.tex[kind];const S=256,cv=document.createElement('canvas');cv.width=cv.height=S;const x=cv.getContext('2d'),C=S/2;
+  if(kind==='flare'){/* a hot point with long thin rays: two long, two short on the diagonals, in a violet halo */
+    const g=x.createRadialGradient(C,C,0,C,C,C);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.05,'rgba(255,255,255,.95)');g.addColorStop(.16,'rgba(230,212,255,.5)');
+    g.addColorStop(.42,'rgba(150,100,255,.12)');g.addColorStop(1,'rgba(120,70,255,0)');x.fillStyle=g;x.fillRect(0,0,S,S);x.globalCompositeOperation='lighter';
+    const ray=(a,len,w,al)=>{x.save();x.translate(C,C);x.rotate(a);const l=x.createLinearGradient(-len,0,len,0);l.addColorStop(0,'rgba(255,255,255,0)');l.addColorStop(.5,'rgba(255,255,255,'+al+')');
+      l.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=l;x.beginPath();x.moveTo(-len,0);x.lineTo(0,-w);x.lineTo(len,0);x.lineTo(0,w);x.closePath();x.fill();x.restore();};
+    ray(0,C,3.4,1);ray(Math.PI/2,C*.82,2.8,.92);ray(Math.PI/4,C*.4,1.7,.6);ray(-Math.PI/4,C*.4,1.7,.6);}
+  else if(kind==='sigil'){/* a seal: two rings, a hexagram, a small ring and a dot, six studs, a band of ticks */
+    x.strokeStyle='#fff';x.fillStyle='#fff';x.lineCap='round';x.lineJoin='round';x.shadowColor='rgba(210,180,255,1)';x.shadowBlur=9;
+    const ring=(r,w)=>{x.lineWidth=w;x.beginPath();x.arc(C,C,r,0,6.2832);x.stroke();};
+    const tri=(r,a0,w)=>{x.lineWidth=w;x.beginPath();for(let i=0;i<=3;i++){const a=a0+i/3*6.2832;i?x.lineTo(C+Math.cos(a)*r,C+Math.sin(a)*r):x.moveTo(C+Math.cos(a)*r,C+Math.sin(a)*r);}x.stroke();};
+    ring(112,6);ring(94,2.5);tri(94,-Math.PI/2,4);tri(94,Math.PI/2,4);ring(38,3);
+    for(let i=0;i<6;i++){const a=i/6*6.2832-Math.PI/2;x.beginPath();x.arc(C+Math.cos(a)*112,C+Math.sin(a)*112,7.5,0,6.2832);x.fill();}
+    for(let i=0;i<36;i++){const a=i/36*6.2832,r1=i%3?104:108;x.lineWidth=2;x.beginPath();x.moveTo(C+Math.cos(a)*99,C+Math.sin(a)*99);x.lineTo(C+Math.cos(a)*r1,C+Math.sin(a)*r1);x.stroke();}
+    x.beginPath();x.arc(C,C,9,0,6.2832);x.fill();}
+  else if(kind==='pin'){/* so bright it looks black at the heart: a dark core in a white-hot rim, then a violet halo */
+    const g=x.createRadialGradient(C,C,0,C,C,C);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(.075,'rgba(4,0,10,1)');g.addColorStop(.1,'rgba(255,255,255,1)');g.addColorStop(.18,'rgba(255,248,255,.95)');
+    g.addColorStop(.3,'rgba(205,165,255,.5)');g.addColorStop(.6,'rgba(130,80,255,.12)');g.addColorStop(1,'rgba(100,60,255,0)');x.fillStyle=g;x.fillRect(0,0,S,S);}
+  const T=new THREE.CanvasTexture(cv);PVM.tex[kind]=T;return T;}
+const PVM_SCAR='uniform float uT,uOp,uW,uF,uFT,uLen;uniform vec3 uCol;varying vec2 vUv;'+
+  'void main(){float v=abs(vUv.y-.5)*2.,u=vUv.x*uLen;float core=exp(-v*v*70.),glow=exp(-v*4.5);'+
+  /* unstable: a shimmer along it, breaks that come and go, a pulse running out from the palm, a flash where a foe crossed */
+  'float fl=.55+.45*sin(u*7.+uT*23.)*sin(u*3.1-uT*17.);float br=step(.2,fract(sin(floor(u*9.+uT*7.)*12.9898)*43758.5));'+
+  'float run=exp(-pow(fract(u*.3-uT*1.3)-.5,2.)*110.);float hit=uFT*exp(-pow((u-uF)*1.4,2.));'+
+  'float I=(core*(1.1*fl*mix(1.,br,.5*(1.-uW))+1.3*run+2.6*hit+1.6*uW)+glow*(.34+.8*hit+.55*uW))*uOp;'+
+  'vec3 c=mix(uCol,vec3(1.),clamp(core*(.35+hit)+uW*.8,0.,1.));gl_FragColor=vec4(c,clamp(I,0.,1.));}';
+const PVM_MK={
+  star:()=>new THREE.SpriteMaterial({map:jdgTex('star'),color:0xffffff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false}),
+  flare:()=>new THREE.SpriteMaterial({map:pvmTex('flare'),color:0xffffff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false}),
+  pin:()=>new THREE.SpriteMaterial({map:pvmTex('pin'),color:0xffffff,transparent:true,opacity:1,depthWrite:false,depthTest:false}),
+  sigil:()=>new THREE.MeshBasicMaterial({map:pvmTex('sigil'),color:0xc8a8ff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,side:THREE.DoubleSide}),
+  scar:()=>new THREE.ShaderMaterial({uniforms:{uT:{value:0},uOp:{value:0},uW:{value:0},uF:{value:0},uFT:{value:0},uLen:{value:1},uCol:{value:new THREE.Color(0x9a6aff)}},
+    vertexShader:BLM_VS,fragmentShader:PVM_SCAR,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}),
+  dark:()=>new THREE.MeshBasicMaterial({color:0x1c0a30,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide})};
+function pvmMat(kind){const P=PVM.pool[kind]||(PVM.pool[kind]=[]),m=P.pop()||(typeof asOffRun==='function'?asOffRun(PVM_MK[kind]):PVM_MK[kind]());m.userData.pvmK=kind;return m;}
+function pvmPut(m){if(m&&m.userData&&m.userData.pvmK&&PVM.pool[m.userData.pvmK])PVM.pool[m.userData.pvmK].push(m);}
+const pvmLight=(x,y,z,I,d)=>blmLight(x,y,z,I,d,0xd4bcff);
+function pvmSprite(kind,size,col,op){const m=pvmMat(kind);m.color.setHex(col==null?0xffffff:col);m.opacity=op==null?1:op;m.rotation=0;const s=new THREE.Sprite(m);s.scale.setScalar(size);s.renderOrder=9;return s;}
+/* a straight beam of light from A to B: soft ribbons turned to the camera, each {w0,w1 (its half-width at A and at B), core, glow, op}, struck out from A in rev */
+function pvmBeam(A,B,layers,o){o=o||{};const g=new THREE.Group();scene.add(smTag(g));const n=14,P=[];for(let i=0;i<=n;i++)P.push(A.clone().lerp(B,i/n));const parts=[];
+  for(const ly of layers){const m=blmMat('bolt'),U=m.uniforms;U.uCore.value.setHex(ly.core==null?0xffffff:ly.core);U.uGlow.value.setHex(ly.glow||0xa070ff);U.uOp.value=0;U.uRev.value=0;
+    const geo=blmStrips([{P,w0:ly.w0,w1:ly.w1==null?ly.w0:ly.w1,u0:0,u1:1}]);const me=new THREE.Mesh(geo,m);me.frustumCulled=false;me.renderOrder=8;g.add(me);parts.push({me,m,U,geo,ly});}
+  const rev=o.rev==null?.04:o.rev,hold=o.hold||0,life=o.life||.3,delay=o.delay||0;let t=0;
+  addFx(g,delay+rev+hold+life,(f,dt)=>{t+=dt;const tt=t-delay;for(const p of parts){const s=p.ly.from||0,e=p.ly.to||1e9;let a;
+      if(tt<0||tt<s||tt>e)a=0;else{const k=Math.max(0,tt-rev-hold)/life;a=(p.ly.op==null?1:p.ly.op)*Math.pow(Math.max(0,1-k),p.ly.pow||1.4)*(o.flick&&rnd()<.12?.6:1);}
+      p.U.uOp.value=a;p.U.uRev.value=rev>0?Math.min(1.001,Math.max(0,tt)/rev):1.001;}
+    if(o.light&&tt>0)pvmLight((A.x+B.x)/2,(A.y+B.y)/2+.25,(A.z+B.z)/2,o.light*Math.max(0,1-Math.max(0,tt-rev)/(life*.7)),A.distanceTo(B)*.5+1.2);
+    if(f.life<=0)for(const p of parts){p.geo.dispose();blmPut(p.m);}});
+  return g;}
+/* a thin ring of light (on the ring texture) round c in the plane facing n, swelling to R */
+function pvmRing(c,n,R,dur,col,op){const m=blmMat('rglow');m.color.setHex(col||0xc8a8ff);m.opacity=0;const me=new THREE.Mesh(new THREE.PlaneGeometry(1,1),m);me.position.copy(c);
+  me.quaternion.setFromUnitVectors(V3(0,0,1),n.clone().normalize());me.renderOrder=9;scene.add(smTag(me));let t=0;
+  addFx(me,dur,(f,dt)=>{t+=dt;const k=Math.min(1,t/dur),e=1-Math.pow(1-k,3);me.scale.setScalar(Math.max(.01,R*2*e));m.opacity=(op||1)*(1-k)*(1-k*.3);if(f.life<=0){me.geometry.dispose();blmPut(m);}});return me;}
+/* a flare of rays at p: blooms to size and fades, turning a little */
+function pvmFlare(p,size,dur,col){const s=pvmSprite('flare',.01,col,1);s.position.copy(p);scene.add(smTag(s));const r0=rnd()*.6-.3;let t=0;
+  addFx(s,dur,(f,dt)=>{t+=dt;const k=Math.min(1,t/dur),e=1-Math.pow(1-k,4);s.scale.setScalar(Math.max(.01,size*(.35+.65*e)));s.material.opacity=Math.pow(1-k,1.3);s.material.rotation=r0+k*.25;if(f.life<=0)pvmPut(s.material);});return s;}
+const pvmSparks=(p,n,sp)=>{sprayP(1,p.x,p.y,p.z,n,{c:0xffffff,c2:0x9a6aff,sp:sp||1.6,up:.4,s:.035,s2:0,life:.4,g:2.5,drag:1.2});sprayP(1,p.x,p.y,p.z,Math.ceil(n/2),{c:0xe0ccff,c2:0x6a3ad0,sp:(sp||1.6)*1.5,up:.2,s:.022,s2:0,life:.3,g:2,drag:1});};
+const pvmHurt=(V,e,amt,ev)=>{if(!e||e.dead||state!=='playing')return false;hurt(e,amt,'magic',smO(V.o));pvmLog({ev,e,amt});return true;};
+/* the line's point at distance d from the palm, and its ground point */
+const pvmAt=(V,d)=>V3(V.cp.x+V.dir.x*d,V.hy+V.slope*Math.max(0,d),V.cp.z+V.dir.z*d);
+/* the foes on the line, as the shot tests them (behind the palm a little, a boss a little wider; flyers too) */
+function pvmOnLine(V,e){const px=e.x-V.cp.x,pz=e.z-V.cp.z,pr=px*V.dir.x+pz*V.dir.z;if(pr<-.2||pr>V.len)return-1;const cx=px-V.dir.x*pr,cz=pz-V.dir.z*pr,w=PVM.lineW+(e.boss?.25:0);return cx*cx+cz*cz>w*w?-1:pr;}
+
+/* ---- M3 Absolute Focus: the charge and the pinprick ---- */
+function pvmCharge(V,k,ck,cp,q,dt){if(!V.ch){const g=new THREE.Group();scene.add(smTag(g));const R=[];for(let i=0;i<3;i++){const m=blmMat('rglow');m.color.setHex(i===1?0xffffff:0xb48aff);m.opacity=0;
+      const me=new THREE.Mesh(new THREE.PlaneGeometry(1,1),m);me.renderOrder=9;g.add(me);R.push({me,m});}V.ch={g,R};pvmLog({ev:'charge'});
+    addFx(g,3,f=>{if(V.fired||f.life<=0){for(const r of V.ch.R){r.me.geometry.dispose();blmPut(r.m);}f.life=0;}});}
+  const {g,R}=V.ch;g.position.copy(cp);g.quaternion.copy(q);
+  /* three rings fall into the circle one after another, each faster than the last */
+  R.forEach((r,i)=>{const s=.32+i*.16,u=Math.min(1,Math.max(0,(k-s)/(.5-i*.1)));const e=Math.pow(u,1.7);r.me.scale.setScalar(Math.max(.001,(.95-.12*i)*(1-e)));r.m.opacity=u>0&&u<1?Math.min(1,u*5)*(1-u*.4):0;r.me.rotation.z+=dt*(3+9*u)*(i%2?-1:1);});
+  if(rnd()<.4+1.2*ck){const a=rnd()*6.28,rr=.5*(1-.5*ck),p=V3(Math.cos(a)*rr,Math.sin(a)*rr,0).applyQuaternion(q);emit(1,{x:cp.x+p.x,y:cp.y+p.y,z:cp.z+p.z,vx:-p.x*(5+8*ck),vy:-p.y*(5+8*ck),vz:-p.z*(5+8*ck),s:.025,s2:0,c:0xffffff,c2:0xb48aff,life:.16,drag:.3});}}
+function pvmStill(V,k,cp,stars){for(const q of stars)q.visible=false;if(!V.pin){const g=new THREE.Group();scene.add(smTag(g));const halo=pvmSprite('star',.3,0xb48aff,.8),pin=pvmSprite('pin',.08),streak=pvmSprite('flare',.1,0xffffff,.9);
+    pin.renderOrder=10;g.add(halo,streak,pin);V.pin={g,halo,pin,streak};pvmLog({ev:'pin'});
+    addFx(g,3,f=>{if(V.fired||f.life<=0){for(const s of [halo,pin,streak])pvmPut(s.material);f.life=0;}});}
+  const P=V.pin,fl=.85+.15*Math.sin(time*90);P.g.position.copy(cp);P.halo.scale.setScalar((.46-.14*k)*fl);P.halo.material.opacity=.95;P.pin.scale.setScalar(.12*(1-.25*k)*fl);P.streak.scale.set(.95*(1-.2*k)*fl,.045,1);
+  pvmLight(cp.x,cp.y,cp.z,1.2+.8*k,2.2);}
+/* the needle: a hair-fine white line, the violet beam flaring out from it toward the end, then a sharp violet afterimage */
+function pvmNeedle(V,A,B){pvmBeam(A,B,[{w0:.006,w1:.03,core:0xffffff,glow:0xb48aff,op:.9,pow:2},{w0:.008,w1:.07,core:0xe8dcff,glow:0x6a3ad0,op:.5,pow:1.6},{w0:.0035,w1:.0045,core:0xffffff,glow:0xffffff,op:1,pow:3}],{rev:.035,hold:.04,life:.2,light:1.4});
+  pvmBeam(A,B,[{w0:.009,w1:.009,core:0xd8c0ff,glow:0x8a5aff,op:.85,pow:2.2,from:.1}],{rev:0,hold:.12,life:.38});
+  const cE=A.clone().lerp(B,PVM.m3Core);pvmFlare(A,.5,.22);sprayP(1,cE.x,cE.y,cE.z,6,{c:0xffffff,c2:0xb48aff,sp:.8,s:.03,s2:0,life:.25,drag:2});}
+
+/* ---- M1 Luminous Afterimage: the stars on the line, flaring in sequence ---- */
+function pvmStars(V){const g=new THREE.Group();scene.add(smTag(g));const S=[];pvmLog({ev:'stars',n:V.hits.length});
+  /* each foe's point: a small rayed star round a hot core; motes of light all along the path */
+  for(const h of V.hits){const s=pvmSprite('flare',.3,0xffffff,1),c=pvmSprite('star',.12,0xffffff,1);s.position.set(h.x,h.y,h.z);c.position.copy(s.position);g.add(s,c);S.push({s,c,d:h.pr,h,big:true,ph:rnd()*6});}
+  for(let d=.25;d<V.len;d+=.22+rnd()*.12){const p=pvmAt(V,d);p.x+=(rnd()-.5)*.1;p.y+=(rnd()-.5)*.08;p.z+=(rnd()-.5)*.1;const s=pvmSprite('flare',.1+rnd()*.05,0xe8dcff,.8);s.material.rotation=rnd()*.8;s.position.copy(p);g.add(s);S.push({s,d,ph:rnd()*6});}
+  let t=0,head=-1;const tr=[];
+  addFx(g,PVM.m1At+PVM.m1Sweep+.5,(f,dt)=>{t+=dt;const k=(t-PVM.m1At)/PVM.m1Sweep;
+    if(k<0){for(const q of S)if(!q.done){const tw=.7+.3*Math.sin(t*14+q.ph);q.s.material.opacity=(q.big?1:.75)*tw*Math.min(1,t/.1);if(q.big){q.s.scale.setScalar(.3*(1-.2*Math.min(1,t/.4))*(.9+.1*tw));q.s.material.rotation=q.ph+t*.8;q.c.material.opacity=tw;}}}
+    else{const hd=Math.min(1,k)*V.len;
+      /* the sweep: falling violet sparks in its wake */
+      if(k<=1)for(let d=Math.max(0,head);d<hd;d+=.16){const p=pvmAt(V,d);emit(1,{x:p.x,y:p.y,z:p.z,vx:(rnd()-.5)*.4,vy:-.3-rnd()*.5,vz:(rnd()-.5)*.4,s:.03,s2:0,c:0xd0b8ff,c2:0x6a3ad0,life:.55,drag:.6});}
+      head=hd;if(k<=1){const p=pvmAt(V,hd);pvmLight(p.x,p.y+.2,p.z,.7,1.8);}
+      for(const q of S){if(q.done){continue;}if(q.d>hd)continue;q.done=true;q.s.visible=false;if(q.c)q.c.visible=false;
+        if(q.big){pvmFlare(q.s.position,.85,.38);pvmRing(q.s.position,camera.position.clone().sub(q.s.position),.3,.3,0xd8c4ff,.85);pvmSparks(q.s.position,7,1.3);const e=q.h.e;if(pvmHurt(V,e,V.P*PVM.m1*V.a[0],'flare'))jdgFlashWhite(e,.35);}
+        else pvmFlare(q.s.position,.16,.2,0xd8c4ff);}}
+    if(f.life<=0)for(const q of S){pvmPut(q.s.material);if(q.c)pvmPut(q.c.material);}});}
+
+/* ---- M2 Severance Line: the scar and the miniature verdicts ---- */
+function pvmScar(V){const n=Math.max(8,Math.ceil(V.len*3)),P=[];for(let i=0;i<=n;i++){const d=i/n*V.len,x=V.cp.x+V.dir.x*d,z=V.cp.z+V.dir.z*d;P.push(V3(x,gy(x,z)+.026,z));}
+  const geo=blmStrips([{P,w0:.06,w1:.06,u0:0,u1:1}],true),m=pvmMat('scar'),U=m.uniforms;U.uLen.value=V.len;U.uOp.value=0;U.uW.value=0;U.uFT.value=0;U.uT.value=rnd()*9;U.uCol.value.setHex(0x9a6aff);
+  const me=new THREE.Mesh(geo,m);me.frustumCulled=false;me.renderOrder=6;scene.add(smTag(me));V.scar={U,me};pvmLog({ev:'scar'});
+  const dg=blmStrips([{P:P.map(q=>V3(q.x,q.y-.004,q.z)),w0:.022,w1:.022,u0:0,u1:1}],true),dm=pvmMat('dark'),dk=new THREE.Mesh(dg,dm);dk.frustumCulled=false;dk.renderOrder=5;me.add(dk);
+  const done=new Set(V.hits.map(h=>h.e)),side=new Map();let t=0;const T=PVM.m2T;
+  addFx(me,T+.4,(f,dt)=>{t+=dt;U.uT.value+=dt;U.uFT.value=Math.max(0,U.uFT.value-dt*3.2);U.uOp.value=Math.min(1,t/.08)*(t<T?1:Math.max(0,1-(t-T)/.4))*(.85+.15*Math.sin(t*31));dm.opacity=.42*Math.min(1,t/.1)*(t<T?1:Math.max(0,1-(t-T)/.4));
+    if(t<T&&state==='playing')for(const e of enemies){if(e.dead||e.fake||done.has(e))continue;const px=e.x-V.cp.x,pz=e.z-V.cp.z,pr=px*V.dir.x+pz*V.dir.z;
+      const sd=px*V.dir.z-pz*V.dir.x,was=side.get(e);side.set(e,sd);if(pr<0||pr>V.len)continue;
+      const w=PVM.m2W+(e.boss?.2:0);if(Math.abs(sd)>w&&!(was!==undefined&&was*sd<0))continue;
+      done.add(e);U.uF.value=pr;U.uFT.value=1;pvmMini(V,e);}
+    if(f.life<=0){geo.dispose();dg.dispose();pvmPut(m);pvmPut(dm);}});}
+function pvmMini(V,e){const q=tpos2(e),p=V3(q.x,q.y,q.z),A=p.clone().addScaledVector(V.dir,-.75),B=p.clone().addScaledVector(V.dir,.75);pvmLog({ev:'mini',e});
+  pvmBeam(A,B,[{w0:.028,w1:.028,core:0xffffff,glow:0x9a6aff,op:1},{w0:.006,w1:.006,core:0xffffff,glow:0xffffff,op:1,pow:2.5}],{rev:.05,hold:.03,life:.22,light:.7});
+  pvmFlare(p,.34,.24);pvmSparks(p,6,1.2);pvmHurt(V,e,V.P*PVM.m2*V.a[1],'miniHit');jdgFlashWhite(e,.5);}
+
+/* ---- M4 Consecrated Passage: the seals ---- */
+function pvmSeals(V){const S=[];for(const h of V.hits){if(h.e.dead)continue;const m=pvmMat('sigil');m.color.setHex(0xc8a8ff);m.opacity=0;const me=new THREE.Mesh(new THREE.PlaneGeometry(1,1),m);me.renderOrder=9;
+    scene.add(smTag(me));S.push({me,m,e:h.e,sz:.32*Math.min(1.6,Math.max(.8,h.e.d&&h.e.d.size||1)),r0:rnd()*6.28,dl:Math.max(0,h.pr)*.004});}
+  pvmLog({ev:'seals',n:S.length});if(!S.length)return;let t=0,lit=false;const g=new THREE.Group();scene.add(smTag(g));
+  addFx(g,PVM.m4At+.45,(f,dt)=>{t+=dt;
+    for(const s of S){if(!s.e.dead){const p=tpos2(s.e);s.me.position.copy(p);s.last=p;}s.me.quaternion.copy(camera.quaternion);
+      if(!lit){const a=Math.min(1,Math.max(0,(t-s.dl)/.12)),e=1-Math.pow(1-a,3),pre=Math.max(0,(t-(PVM.m4At-.12))/.12);
+        s.me.scale.setScalar(s.sz*(1.9-.9*e)*(1+.12*pre));s.me.rotateZ(s.r0+t*(1.6+5*pre));s.m.opacity=a*(.85+.15*Math.sin(t*40))*(1+.4*pre);s.m.color.setHex(pre>.5?0xe8dcff:0xc8a8ff);}}
+    if(!lit&&t>=PVM.m4At){lit=true;pvmLog({ev:'ignite'});
+      for(const s of S){const p=s.last||s.me.position;pvmFlare(p,.36,.26);pvmRing(p,camera.position.clone().sub(p),.3,.28,0xd8c4ff,.7);pvmSparks(p,7,1.4);if(pvmHurt(V,s.e,V.P*PVM.m4*V.a[3],'seal'))jdgFlashWhite(s.e,.5);s.m.color.setHex(0xffffff);}
+      const p=S[0].last||S[0].me.position;pvmLight(p.x,p.y,p.z,1.8,3);}
+    if(lit){const k=Math.min(1,(t-PVM.m4At)/.28);for(const s of S){s.me.scale.setScalar(s.sz*(1+.7*k));s.m.opacity=1.3*(1-k);}}
+    if(f.life<=0)for(const s of S){scene.remove(s.me);s.me.geometry.dispose();pvmPut(s.m);}});}
+
+/* ---- M5 The Unerring Verdict: the point at the palm, the second beam and the scar ---- */
+function pvmSecond(V){const A=V.vA.clone(),B=pvmAt(V,V.len),g=new THREE.Group();g.position.copy(A);scene.add(smTag(g));
+  const pt=pvmSprite('flare',.06),gl=pvmSprite('star',.2,0xb48aff,.6),core=pvmSprite('star',.05,0xffffff,1);g.add(gl,pt,core);let t=0,shot=false;pvmLog({ev:'point'});
+  addFx(g,PVM.m5At+.5,(f,dt)=>{t+=dt;const k=Math.min(1,t/PVM.m5At),e=k*k;
+    if(!shot){const fl=.8+.2*Math.sin(t*(30+70*k));pt.scale.setScalar((.06+.5*e)*fl);pt.material.rotation=t*.6;gl.scale.setScalar((.2+.5*e)*fl);gl.material.opacity=.4+.5*e;core.scale.setScalar(.05+.1*e);
+      pvmLight(A.x,A.y,A.z,.6+2.2*e,2+2*e);
+      if(rnd()<.35+e){const a=rnd()*6.28,b=rnd()*3.14,rr=.55*(1-.4*e),p=V3(Math.sin(b)*Math.cos(a)*rr,Math.cos(b)*rr,Math.sin(b)*Math.sin(a)*rr);emit(1,{x:A.x+p.x,y:A.y+p.y,z:A.z+p.z,vx:-p.x*6,vy:-p.y*6,vz:-p.z*6,s:.028,s2:0,c:0xffffff,c2:0xb48aff,life:.14,drag:.2});}
+      if(t>=PVM.m5At){shot=true;pvmFire2(V,A,B);}}
+    else{const k2=Math.min(1,(t-PVM.m5At)/.18);pt.material.opacity=1-k2;gl.material.opacity=.9*(1-k2);core.material.opacity=1-k2;pt.scale.setScalar(.7*(1+k2));}
+    if(f.life<=0)for(const s of [pt,gl,core])pvmPut(s.material);});}
+function pvmFire2(V,A,B){pvmLog({ev:'second'});camShake=Math.max(camShake,.13);flashA=Math.max(flashA,.16);flashCol='#f2eaff';if(typeof sfxBoom==='function')sfxBoom(.25,false);
+  pvmBeam(A,B,[{w0:.16,w1:.13,core:0xd8c0ff,glow:0x6a3ad0,op:.36,pow:1.2},{w0:.085,w1:.07,core:0xffffff,glow:0xa070ff,op:.95,pow:1.5},{w0:.03,w1:.025,core:0xffffff,glow:0xffffff,op:1,pow:2},{w0:.008,w1:.008,core:0xffffff,glow:0xffffff,op:1,pow:3}],
+    {rev:.045,hold:.07,life:.36,light:1.1,flick:true});
+  pvmRing(A,V.dir,.6,.3,0xd8c4ff,.9);pvmRing(A,V.dir,.34,.2,0xffffff,1);pvmRing(A.clone().addScaledVector(V.dir,.35),V.dir,.42,.26,0xb48aff,.8);pvmFlare(A,.7,.28);pvmFlare(B,.4,.28,0xd8c4ff);
+  for(let d=.3;d<V.len;d+=.45){const p=pvmAt(V,d);sprayP(1,p.x,p.y,p.z,2,{c:0xffffff,c2:0x9a6aff,sp:.9,up:.3,s:.03,s2:0,life:.35,g:1.5,drag:1.5});}
+  const hit=new Set();for(const e of enemies.slice()){if(e.dead||e.fake||hit.has(e))continue;const pr=pvmOnLine(V,e);if(pr<0)continue;hit.add(e);const p=pvmAt(V,pr);
+    if(pvmHurt(V,e,V.P*PVM.m5*V.a[4],'second2')){jdgFlashWhite(e,.7);pvmFlare(p,.3,.2);pvmSparks(p,6,1.6);}}
+  /* both scorches become one brilliant scar, then cool */
+  const n=Math.max(8,Math.ceil(V.len*3)),P=[];for(let i=0;i<=n;i++){const d=i/n*V.len,x=V.cp.x+V.dir.x*d,z=V.cp.z+V.dir.z*d;P.push(V3(x,gy(x,z)+.03,z));}
+  const geo=blmStrips([{P,w0:.16,w1:.16,u0:0,u1:1}],true),m=pvmMat('scar'),U=m.uniforms;U.uLen.value=V.len;U.uOp.value=0;U.uW.value=1;U.uFT.value=0;U.uT.value=rnd()*9;U.uCol.value.setHex(0xb48aff);
+  const me=new THREE.Mesh(geo,m);me.frustumCulled=false;me.renderOrder=6;scene.add(smTag(me));let t=0;
+  addFx(me,1.4,(f,dt)=>{t+=dt;U.uT.value+=dt;const k=t/1.4;U.uOp.value=Math.min(1,t/.06)*Math.pow(1-k,1.5);U.uW.value=Math.max(0,1-k*1.6);
+    if(k<.5){const p=pvmAt(V,V.len*(.2+.6*rnd()));pvmLight(p.x,gy(p.x,p.z)+.3,p.z,.9*(1-k*2),3);}if(f.life<=0){geo.dispose();pvmPut(m);}});}
+
+/* ---- the hook: castJudgment calls pvmStart for a Verdict ---- */
+function pvmStart(o,t,pw){const C=pvmC(o);if(!C)return null;const L=C.L,a=C.a;
+  const V={L,a,o:smO(o),C,t,P:C.P!=null?C.P:pw,hits:[],fired:false,ownBeam:L>=3,
+    charge(k,ck,cp,q,dt){if(L>=3)pvmCharge(V,k,ck,cp,q,dt);},
+    still(k,cp,stars){if(L>=3)pvmStill(V,k,cp,stars);},
+    hit(e,by,pr,len){V.hits.push({e,x:e.x,y:by,z:e.z,pr});
+      if(L>=3&&pr<=PVM.m3Core*len&&pvmHurt(V,e,V.P*PVM.m3*a[2],'core')){const p=V3(e.x,by,e.z);pvmFlare(p,.17,.14,0xe0d0ff);}},
+    fire(cp,dir,len,hy,slope,stars,vA){V.fired=true;V.cp=cp;V.dir=dir;V.len=len;V.hy=hy;V.slope=slope;V.vA=vA||cp.clone();for(const q of stars)q.visible=true;pvmLog({ev:'fire',L,n:V.hits.length});
+      if(L>=3)pvmNeedle(V,V.vA,pvmAt(V,len));if(L>=1)pvmStars(V);if(L>=2)pvmScar(V);if(L>=4)pvmSeals(V);if(L>=5)pvmSecond(V);}};
+  PVM.last=V;pvmLog({ev:'cast',L});return V;}
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
