@@ -14148,6 +14148,12 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Spatial Loop masteries, redesigned',d:'28 Oct',v:'v422',li:[
+    'Long Fold: the fold always reaches as far back as it can, and its seam shows as a curtain of folded light.',
+    'Shear: foes the fold sends back are torn by the seam, as space shatters where they go in and come out.',
+    'Groundhog Lap: the loop counts each foe\u2019s laps, and every lap after the first hurts more, with a ring of light for each.',
+    'Displaced: a foe the fold sends back takes more damage from everything for 3 seconds.',
+    'Snapback: when the loop ends, the looped road snaps back in a wave of shattering space that hits harder the more laps a foe walked.']},
   {t:'Rite of the Phoenix masteries, redesigned',d:'28 Oct',v:'v421',li:[
     'Rising Heat: each foe the phoenix strikes feeds its fire, so every later strike hits harder and the bird grows larger and hotter.',
     'Wildfire River: as it climbs away, a front of flame races back along its river of fire and hits every foe on it.',
@@ -28328,6 +28334,118 @@ function phmCast(t,list,P,o,c){const L=c?c.L:0,A5=c?c.a:[1,1,1,1,1];const lead=l
     ()=>{tail.free();nsFree(rune);},{mats:mats.concat(rune.userData.mats),geos:geos.concat(rune.userData.geos)});}
 const PHM_OLD=castPhoenix;
 castPhoenix=function(t,list,P,o){return t?phmCast(t,list||[],P,o,phmC(o)):PHM_OLD.apply(this,arguments);};
+/* ================= Spatial Loop's masteries (v422), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: space itself folds. The road ahead of the foe nearest the keep loops back onto an earlier stretch for 10 seconds, so foes that
+   reach the fold walk out 3 to 8 tiles back and cross ground they already crossed; then space unfolds. It deals no damage: it buys time and
+   gives the towers a second go. Design space: how far back the fold reaches, the seam where the road meets itself, the foes going round the
+   loop again and again, what the towers make of the second pass, and the moment space lets go.
+   - M1 Long Fold (the fold's reach; behaviour change: 'what if it did not leave the distance to chance?'): the fold always reaches as far
+     back as it can, 8 tiles (or as far as the road allows), instead of a random 3 to 8; the seam shows as a curtain of folded light.
+   - M2 Shear (the seam; cosmetic made real: 'what if crossing the seam hurt?'): the seam was only where the picture of the road met
+     itself. Now a foe the fold sends back is sheared by it: 40%, and the folded space tears open in a burst of glass-like shards where it
+     went in and where it came out.
+   - M3 Groundhog Lap (the loop; new rule: 'what if the loop remembered who it had already sent round?'): the fold counts each foe's laps;
+     from its second lap on, each lap deals 50% more for every lap before it (lap 2: +50%, lap 3: +100%, ...), and a ring of folded light
+     closes round the foe for each lap past the first (up to 4).
+   - M4 Displaced (the second pass; interaction: 'what if the second pass was worth more to the towers?'): a foe the fold sends back is
+     out of place for 3s: it takes 15% more from everything (towers, heroes, other scrolls), and splinters of space orbit it.
+   - M5 Snapback (the unfolding; signature payoff: 'what happens when space lets go?'): when the 10 seconds end, the looped stretch of road
+     snaps back like a released spring: a wave of shattering space runs along it from where the foes came out to the fold (0.6s), 120% to
+     every foe on it plus 40% for each lap it walked, and holds them 0.5s (Resolve applies).
+   Percentages are of the scroll's power. Every Spatial Loop cast now runs lpmCast (a castLoop wrapper): the same fold (the same choice of
+   place and warp) but with the mastery hooks; a foldHop wrapper tells the current fold about each foe it sends back. The ladder does not
+   apply: the loop itself deals no damage (v372 kept its factor at 1), so these numbers sit beside the damage of the set they replace.
+   LPM.dbg (an array) logs the events for the tests. */
+const LPM={dbg:null,cur:null,sh:.4,lap:.5,lapN:4,dp:.15,dpT:3,sb:1.2,sbLap:.4,sbT:.6,sbW:.6,sbStun:.5,backMax:8};
+const lpmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='loop'&&c.L?c:null;};
+const lpmLog=d=>{if(LPM.dbg){d.t=time;LPM.dbg.push(d);}};
+SM_D.loop=[
+  {n:'Long Fold',d:'The fold always reaches as far back as it can (8 tiles) instead of a random 3 to 8, and its seam shows as a curtain of folded light.'},
+  {n:'Shear',d:'Foes the fold sends back are sheared by the seam: {40}% each time, as space tears open where they go in and come out.'},
+  {n:'Groundhog Lap',d:'The loop counts each foe\u2019s laps: from the second on, each lap deals {50}% more for every lap before it.'},
+  {n:'Displaced',d:'For 3s after the fold sends a foe back it takes {15}% more from everything: towers, heroes and scrolls.'},
+  {n:'Snapback',d:'When the loop ends the looped road snaps back: {120}% to every foe on it, plus {40}% for each lap it walked, and holds them 0.5s (Resolve applies).'}];
+SMF.loop={m:1};
+SMA.loop=[1,1,1,1,1];
+SMG.loop=[1,1,1,1,1];
+
+/* shared pieces: a shard of folded space (an octahedron stretched long), its material, and a burst of them where space tears */
+function lpmMats(){if(!LPM.mA){LPM.mA=new THREE.MeshBasicMaterial({color:0xdfe6ff,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+    LPM.mB=new THREE.MeshBasicMaterial({color:0x8a8aff,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+    LPM.sg=new THREE.OctahedronGeometry(1,0);{const cv=document.createElement('canvas');cv.width=32;cv.height=64;const x=cv.getContext('2d'),gr=x.createLinearGradient(0,64,0,0);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.35,'rgba(255,255,255,.7)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,32,64);const g2=x.createLinearGradient(0,0,32,0);g2.addColorStop(0,'rgba(0,0,0,.75)');g2.addColorStop(.35,'rgba(0,0,0,0)');g2.addColorStop(.65,'rgba(0,0,0,0)');g2.addColorStop(1,'rgba(0,0,0,.75)');x.globalCompositeOperation='destination-out';x.fillStyle=g2;x.fillRect(0,0,32,64);LPM.gt=new THREE.CanvasTexture(cv);}LPM.pg=new THREE.PlaneGeometry(1,1);LPM.pg.translate(0,.5,0);LPM.tg=new THREE.TorusGeometry(1,.035,6,40);}return LPM;}
+function lpmTear(x,y,z,S){lpmMats();S=S||1;const g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);const sh=[];
+  for(let i=0;i<12;i++){const m=new THREE.Mesh(LPM.sg,i%3?LPM.mA:LPM.mB),a=rnd()*6.28,el=(rnd()-.3)*1.2,sp=(1.2+rnd()*1.6)*S;m.scale.set(.025*S,.09*S*(1+rnd()),.025*S);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);g.add(m);
+    sh.push({m,v:smV(Math.cos(a)*Math.cos(el)*sp,Math.sin(el)*sp+.6,Math.sin(a)*Math.cos(el)*sp),r:smV((rnd()-.5)*14,(rnd()-.5)*14,(rnd()-.5)*14)});}
+  /* a shell of bent light that snaps shut, and a core that flares */
+  const shm=new THREE.MeshBasicMaterial({color:0x8a94ff,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}),shell=new THREE.Mesh(ico(1,2),shm);shell.scale.setScalar(.35*S);g.add(shell);
+  const cm=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false}),core=new THREE.Mesh(ico(.06*S,1),cm);g.add(core);
+  sprayP(1,x,y,z,Math.round(14*S),{c:0xffffff,c2:0x7a7aff,sp:2.2*S,up:.5,s:.04,s2:0,life:.35,drag:1.5});let tt=0;
+  addFx(g,.6,(f,dt)=>{tt+=dt;sh.forEach(s=>{s.v.multiplyScalar(Math.max(0,1-dt*3.5));s.v.y-=2*dt;s.m.position.addScaledVector(s.v,dt);s.m.rotation.x+=s.r.x*dt;s.m.rotation.y+=s.r.y*dt;s.m.rotation.z+=s.r.z*dt;});
+    const k=Math.min(1,tt/.25);shell.scale.setScalar(Math.max(.01,.35*S*(1-k)));shm.opacity=.22*(1-k);core.scale.setScalar(1+2*k*(1-k)*2);cm.opacity=.8*Math.max(0,1-tt/.25);},null,{mats:[shm,cm]});}
+/* the seam: a curtain of tall thin panes of folded light across the road where it meets itself, with glints drifting through it */
+function lpmSeam(F,nrx,nrz){lpmMats();const g=smTag(new THREE.Group()),y=gy(F.Dx,F.Dz);g.position.set(F.Dx,y,F.Dz);scene.add(g);const P=[],n=11,mats=[];
+  for(let i=0;i<n;i++){const u=(i+.5)/n*2-1,l=u*F.Lw*.85,m=new THREE.MeshBasicMaterial({color:i%2?0xcfd8ff:0x9a9aff,map:LPM.gt,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});mats.push(m);
+    const p=new THREE.Mesh(LPM.pg,m),h=.6+rnd()*.55*(1-.4*u*u);p.position.set(nrx*l,0,nrz*l);p.rotation.y=Math.atan2(nrx,nrz)+Math.PI/2+(rnd()-.5)*.5;p.scale.set(.16+rnd()*.12,h*1.3,1);p.renderOrder=6;g.add(p);P.push({p,m,h,ph:rnd()*6,o:.75+rnd()*.25});}
+  const S={g,a:0,gone:false,P};
+  addFx(g,1e4,(f,dt)=>{if(S.gone){S.a=Math.max(0,S.a-dt*2.5);if(S.a<=0){f.life=0;return;}}
+    P.forEach(q=>{q.ph+=dt*(2+q.o*4);q.m.opacity=S.a*q.o*(.65+.35*Math.sin(q.ph));q.p.scale.y=q.h*(.85+.15*Math.sin(q.ph*.7))*Math.max(.05,S.a);});
+    if(S.a>.3&&rnd()<dt*14){const l=(rnd()-.5)*2*F.Lw*.85;emit(1,{x:F.Dx+nrx*l,y:y+.05+rnd()*.7,z:F.Dz+nrz*l,vx:(rnd()-.5)*.2,vy:.2+rnd()*.3,vz:(rnd()-.5)*.2,s:.04,s2:0,c:0xffffff,c2:0x8a8aff,life:.5});}},null,{mats});return S;}
+/* the rings of folded light round a foe that has walked the loop more than once, one a lap past the first */
+function lpmRings(e,S){lpmMats();const g=smTag(new THREE.Group());scene.add(g);const R=[],mats=[];let tt=0;
+  const add=()=>{if(R.length>=LPM.lapN)return;const m=new THREE.MeshBasicMaterial({color:R.length%2?0x7a7aff:0xb0bcff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}),r=new THREE.Mesh(LPM.tg,m);mats.push(m);
+    r.rotation.set(1.1+R.length*.5,R.length*1.3,0);g.add(r);R.push({r,m,born:tt,sp:(R.length%2?-1:1)*(1.6+R.length*.4)});};
+  addFx(g,1e4,(f,dt)=>{tt+=dt;if(e.dead||S.over){g.scale.multiplyScalar(Math.max(0,1-dt*5));if(g.scale.x<.05){f.life=0;return;}}else{const p=tpos2(e);g.position.set(p.x,p.y,p.z);}
+    R.forEach((q,i)=>{const k=Math.min(1,(tt-q.born)/.25);q.r.scale.setScalar(.24+.05*i+.25*(1-k));q.m.opacity=.5*k;q.r.rotation.z+=dt*q.sp;q.r.rotation.x+=dt*.4*(i%2?-1:1);});},null,{mats});return{add};}
+/* splinters of space orbiting a displaced foe for 3s */
+function lpmOrbit(e,T){lpmMats();const g=smTag(new THREE.Group());scene.add(g);const n=5,sh=[];for(let i=0;i<n;i++){const m=new THREE.Mesh(LPM.sg,i%2?LPM.mA:LPM.mB);m.scale.set(.018,.07,.018);g.add(m);sh.push({m,a:i/n*6.28,y:(rnd()-.5)*.3,r:.26+rnd()*.08});}let tt=0;
+  addFx(g,T,(f,dt)=>{tt+=dt;if(e.dead){f.life=0;return;}const p=tpos2(e),k=Math.min(1,tt/.2)*Math.min(1,f.life/.3);g.position.set(p.x,p.y,p.z);g.scale.setScalar(Math.max(.01,k));
+    sh.forEach((s,i)=>{s.a+=dt*(3+i*.3);s.m.position.set(Math.cos(s.a)*s.r,s.y+Math.sin(tt*3+i)*.06,Math.sin(s.a)*s.r);s.m.rotation.set(tt*4+i,s.a,tt*2);});});}
+/* the snapback: panes of space bursting up out of the road and shattering, one cluster at a time along the stretch */
+function lpmPanes(x,z,dir){lpmMats();const y=gy(x,z),g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);const P=[],mats=[];
+  for(let i=0;i<5;i++){const m=new THREE.MeshBasicMaterial({color:i%2?0xb8c4ff:0x6a6aff,map:LPM.gt,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});mats.push(m);
+    const p=new THREE.Mesh(LPM.pg,m),a=rnd()*6.28,r=rnd()*.3;p.position.set(Math.cos(a)*r,0,Math.sin(a)*r);p.rotation.set((rnd()-.5)*.5,dir+(rnd()-.5)*1.2,(rnd()-.5)*.5);p.renderOrder=6;g.add(p);P.push({p,m,h:.6+rnd()*.7,w:.05+rnd()*.06});}
+  if(rnd()<.5)lpmTear(x,y+.35,z,.6);let tt=0;
+  addFx(g,.7,(f,dt)=>{tt+=dt;const up=Math.min(1,tt/.08),k=SMS(tt,.25,.7);P.forEach(q=>{q.p.scale.set(q.w*(1+k*1.5),Math.max(.01,q.h*up*(1-k*.6)),1);q.m.opacity=.6*(1-k);q.p.position.y+=dt*k*1.2;});},null,{mats});}
+
+function lpmCast(t,list,P,o,c){const L=c?c.L:0,A5=c?c.a:[1,1,1,1,1];
+  const alive=enemies.filter(e=>!e.dead);if(!alive.length)return;sdpInit();
+  const lead=alive.reduce((a,b)=>((a.route||ROUTES[0]).len-a.dist)<((b.route||ROUTES[0]).len-b.dist)?a:b),rt=lead.route||ROUTES[0];
+  const dD=Math.min(rt.len-.3,lead.dist+.5+rnd()*.9),opts=[3,3.5,4,5,5.5,6,7,8],pick=opts[Math.floor(rnd()*opts.length)],back=Math.min(L>=1?LPM.backMax:pick,dD-.8);if(back<1.5)return;
+  if(FOLD.on&&FOLD.end)FOLD.end(true);
+  const dB=dD-back,pD=posAt(dD,rt),pD2=posAt(Math.min(rt.len,dD+.25),rt),pB=posAt(dB,rt),pB2=posAt(dB+.25,rt);
+  let tx=pD2[0]-pD[0],tz=pD2[1]-pD[1],tl=Math.hypot(tx,tz)||1;tx/=tl;tz/=tl;let bx=pB2[0]-pB[0],bz=pB2[1]-pB[1],bl=Math.hypot(bx,bz)||1;bx/=bl;bz/=bl;
+  let th=Math.atan2(bz,bx)-Math.atan2(tz,tx);while(th>Math.PI)th-=6.2832;while(th<-Math.PI)th+=6.2832;
+  const F={amt:0,kappa:(rnd()-.5)*.55,Lw:2.1+rnd()*1.0,F:Math.max(1,Math.min(3.1+rnd()*1.4,rt.len-dD-.3)),tw:.28,seed:rnd()*6.28,Dx:pD[0],Dz:pD[1],Bx:pB[0],Bz:pB[1],tx,tz,th};
+  SDP.fold=F;SDP.n++;FOLD.on=true;FOLD.rel=false;FOLD.route=rt;FOLD.dJ=dD;FOLD.back=back;sdSound(false);
+  const FORM=.9,DUR=10,UNF=.8,END=DUR+UNF;let T=0,rel=false,ended=false;const nrx=-tz,nrz=tx;
+  /* the mastery state: the foes it has sent back and their laps */
+  const S={c,laps:new Map(),rings:new Map(),seam:null,over:false,sb:null,rt,dB,dD,back};lpmLog({ev:'fold',back,dD,dB});
+  if(c){S.hop=e=>{if(S.over||e.fake)return;const n=(S.laps.get(e)||0)+1;S.laps.set(e,n);const d={ev:'hop',e,n,sh:false,lap:0,dp:false};
+      if(L>=2){const p=tpos2(e);lpmTear(F.Dx,p.y,F.Dz,1);const q=posAt(Math.max(0,e.dist),rt);lpmTear(q[0],p.y,q[1],.8);hurt(e,P*LPM.sh*A5[1],'magic',smO(o));d.sh=true;}
+      if(L>=3&&n>=2&&!e.dead){d.lap=n-1;hurt(e,P*LPM.lap*A5[2]*(n-1),'magic',smO(o));let R=S.rings.get(e);if(!R){R=lpmRings(e,S);S.rings.set(e,R);}R.add();}
+      if(L>=4&&!e.dead){e.smMk=e.smMk||{};const m=e.smMk['*'],v=LPM.dp*A5[3],until=time+LPM.dpT;if(m&&m.until>time){m.until=Math.max(m.until,until);m.v=Math.max(m.v,v);}else e.smMk['*']={until,v};lpmOrbit(e,LPM.dpT);d.dp=true;}
+      lpmLog(d);};LPM.cur=S;}
+  if(c&&L>=1)S.seam=lpmSeam(F,nrx,nrz);
+  const finish=()=>{if(ended)return;ended=true;if(SDP.fold===F){SDP.fold=null;SDP.n=Math.max(0,SDP.n-1);}FOLD.on=false;FOLD.route=null;SG_ACTIVE.delete(cleanup);
+    S.over=true;if(LPM.cur===S)LPM.cur=null;if(S.seam)S.seam.gone=true;};
+  const cleanup=()=>finish();SG_ACTIVE.add(cleanup);FOLD.end=finish;
+  addFx(new THREE.Group(),END,(f,dt)=>{T+=dt;
+    if(T<FORM)F.amt=SMS(T,0,FORM);else if(T<DUR)F.amt=1;else F.amt=1-SMS(T,DUR,END);if(S.seam&&!S.seam.gone)S.seam.a=F.amt;
+    if(T>=DUR&&!rel){rel=true;FOLD.rel=true;sfxWind&&sfxWind(.7,.12);for(let i=0;i<16;i++){const l=(rnd()-.5)*2*F.Lw*.9;emit(1,{x:F.Dx+nrx*l,y:.1+rnd()*.2,z:F.Dz+nrz*l,vx:tx*(2+rnd()*3),vy:.2,vz:tz*(2+rnd()*3),s:.05,s2:0,c:0xffffff,c2:0x8a9aff,life:.4,drag:1.5});}
+      if(c&&L>=5&&!ended)S.sb={d:dB,hit:new Set(),H:[]};}
+    /* M5: the wave of shattering space running from where they came out up to the fold */
+    if(S.sb&&!S.sb.done){const W=S.sb,nd=Math.min(dD,W.d+(back/LPM.sbT)*dt),pa=posAt(W.d,rt),pb=posAt(nd,rt);
+      for(const e of enemies.slice()){if(e.dead||e.fake||W.hit.has(e))continue;if(phmSegD(e.x,e.z,pa[0],pa[1],pb[0],pb[1])<LPM.sbW){W.hit.add(e);const n=S.laps.get(e)||0;W.H.push({e,n});
+          hurt(e,P*(LPM.sb+LPM.sbLap*n)*A5[4],'magic',smO(o));if(!e.dead)smStun(e,LPM.sbStun);}}
+      W.mk=W.mk==null?W.d:W.mk;while(W.mk<=nd+1e-6){const p=posAt(W.mk,rt),p2=posAt(Math.min(rt.len,W.mk+.2),rt);lpmPanes(p[0],p[1],Math.atan2(p2[0]-p[0],p2[1]-p[1]));W.mk+=.45;}
+      camShake=Math.max(camShake,.06);W.d=nd;if(nd>=dD-1e-6){W.done=true;lpmLog({ev:'snap',L:W.H});}}
+    if(T>FORM&&T<DUR&&rnd()<dt*3){const l=(rnd()-.5)*2*F.Lw*.8;emit(1,{x:F.Dx+nrx*l+tx*rnd()*F.F*.6,y:.08+rnd()*.25,z:F.Dz+nrz*l+tz*rnd()*F.F*.6,vx:0,vy:.15,vz:0,s:.045,s2:0,c:0xeaf6ff,c2:0x9a8aff,life:.35});}
+  },()=>{finish();});
+}
+const LPM_OLD=castLoop;
+castLoop=function(t,list,P,o){return t?lpmCast(t,list||[],P,o,lpmC(o)):LPM_OLD.apply(this,arguments);};
+const LPM_HOP=foldHop;
+foldHop=function(e,d0){const b=e.dist;LPM_HOP(e,d0);if(LPM.cur&&LPM.cur.hop&&e.dist<b-.01)LPM.cur.hop(e);};
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
