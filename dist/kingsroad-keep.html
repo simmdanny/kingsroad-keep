@@ -25455,8 +25455,9 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
    - M1 Molten Shrapnel: 0.1s after the eruption, 3 crusted chunks (gmChunk) are hurled high, 2.2-3.2 tiles out (onto the road where it is at
      least 2 tiles from the crater); halfway
      their crust cracks and flakes away and their cores blaze; they smash down for 85% to foes within 0.55 (flyers too), in a fireball.
-   - M2 Lava Veins: every pool this cast makes is joined by a vein (gmVein) to the two nearest earlier pools within 1.7 tiles: a crusted lava stream that
-     crawls from one pool to the other with small side branches, and lasts as long as the shorter-lived of the two. A ground foe on a vein
+   - M2 Lava Veins: every pool this cast makes is joined by a vein (gmVein) to the two nearest earlier pools within 1.7 tiles: a gentle curve
+     (gmCurve) of scorched ground with a thin molten core showing through a dark crust, feathered at its edges and fading into the pools,
+     that eases out from one pool to the other and lasts as long as the shorter-lived of the two. A ground foe on a vein
      (within 0.15) takes 30% and burns for 20%/s for 2s, at most once every 0.75s from all the veins of the cast.
    - M3 Heart of the Volcano: when the column has sunk (1.75s), the seams dim, then the heart under the crater pulses ever faster and the ground
      bulges (gmBulge); 1.5s later it erupts again: a shorter column, a fireball, 120% to foes within 0.85 and 3 more blobs.
@@ -25526,28 +25527,33 @@ function gmFlake(p,m){const f0=smTag(new THREE.Mesh(gmKit().rock,m));f0.scale.se
   addFx(f0,.7,(f,dt)=>{v.y-=8*dt;f0.position.addScaledVector(v,dt);f0.rotation.x+=dt*9;f0.rotation.y+=dt*7;if(rnd()<.3)emitS(0,{x:f0.position.x,y:f0.position.y,z:f0.position.z,vx:0,vy:.1,vz:0,s:.04,s2:.12,c:0x2a1a12,c2:0x1a1410,a:.4,life:.5});});}
 
 /* ---- M2 Lava Veins: a crusted stream of lava crawling between two pools ---- */
-const GM_VEIN_FS='uniform float uT,uA,uG;varying vec2 vUv;'+S6_NOISE+
-  'void main(){if(vUv.x>uG)discard;float n=fb(vec2(vUv.x*9.-uT*1.6,vUv.y*2.+uT*.3)),pul=.5+.5*sin(vUv.x*22.-uT*7.),e=1.-abs(vUv.y*2.-1.);'+
-  'float h=n*.8+pul*.35*e;vec3 c=mix(vec3(.09,.03,.02),vec3(.75,.16,.02),smoothstep(.35,.6,h));c=mix(c,vec3(1.,.55,.12),smoothstep(.6,.85,h));c=mix(c,vec3(1.,.9,.55),smoothstep(.9,1.05,h)*e);'+
-  'float tip=smoothstep(uG,uG-.04,vUv.x);gl_FragColor=vec4(c,uA*smoothstep(0.,.35,e)*tip);}';
+/* a vein: uK 0 is the scorched ground under it (a soft dark band), uK 1 the lava: a thin molten core showing through cracks in a dark crust,
+   pulsing slowly along; both feather out at the edges and fade into the pools at the ends, so the stream sits in the ground. uG grows it. */
+const GM_VEIN_FS='uniform float uT,uA,uG,uK,uAdd;varying vec2 vUv;'+S6_NOISE+
+  'void main(){if(vUv.x>uG)discard;float e=1.-abs(vUv.y*2.-1.),ends=smoothstep(0.,.14,vUv.x)*smoothstep(1.,.86,vUv.x)*smoothstep(uG,uG-.06,vUv.x);'+
+  'float n=fb(vec2(vUv.x*5.-uT*.5,vUv.y*1.3+uT*.1)),n2=fb(vec2(vUv.x*13.+3.,vUv.y*2.5-uT*.3));'+
+  'if(uK<.5){gl_FragColor=vec4(vec3(.06,.035,.025),uA*.55*smoothstep(0.,.85,e)*ends*(.65+.35*n));return;}'+
+  'float flow=.5+.5*sin(vUv.x*11.-uT*2.4),core=smoothstep(.25,.95,e),crack=smoothstep(.5,.68,n2*.65+n*.55),h=core*(.45+.55*flow)*(.12+1.05*crack);'+
+  'vec3 c=mix(vec3(.22,.04,.01),vec3(.95,.36,.05),smoothstep(.18,.55,h));c=mix(c,vec3(1.,.74,.32),smoothstep(.72,1.,h));'+
+  'float a=uA*smoothstep(.1,.65,e)*ends*(.3+.7*h);if(uAdd>.5){gl_FragColor=vec4(c*h,a*.6);return;}gl_FragColor=vec4(c,a);}';
 const GM_VEIN_VS='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
 /* a strip along a path on the ground, width w (uv.x along it, uv.y across) */
 function gmStrip(pts,w){const pos=[],uv=[],idx=[];let L=0;const ls=[0];for(let i=1;i<pts.length;i++){L+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].z-pts[i-1].z);ls.push(L);}
-  for(let i=0;i<pts.length;i++){const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)],dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz)||1,px=-dz/l,pz=dx/l,ww=w*(.6+.4*Math.sin(Math.PI*Math.min(1,ls[i]/L*1.0001)))*(pts[i].w||1),y=gy(pts[i].x,pts[i].z)+.035;
+  for(let i=0;i<pts.length;i++){const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)],dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz)||1,px=-dz/l,pz=dx/l,ww=w*(pts[i].w||1),y=gy(pts[i].x,pts[i].z)+.035;
     pos.push(pts[i].x+px*ww,y,pts[i].z+pz*ww,pts[i].x-px*ww,y,pts[i].z-pz*ww);uv.push(ls[i]/L,0,ls[i]/L,1);if(i)idx.push(2*i-2,2*i-1,2*i,2*i-1,2*i+1,2*i);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);return g;}
-const gmWiggle=(A,B,n,amp)=>{const dx=B.x-A.x,dz=B.z-A.z,l=Math.hypot(dx,dz)||1,px=-dz/l,pz=dx/l,P=[];let off=0;for(let i=0;i<=n;i++){const k=i/n;if(i&&i<n)off=clamp(off+(rnd()-.5)*amp*1.6,-amp,amp);else off=0;P.push({x:A.x+dx*k+px*off,z:A.z+dz*k+pz*off});}return P;};
-function gmVein(A,B,until){const mats=[],geos=[],path=gmWiggle(A,B,Math.max(5,Math.round(Math.hypot(B.x-A.x,B.z-A.z)*7)),.12),g=smTag(new THREE.Group());scene.add(g);
-  const mk=(pts,w,add)=>{const geo=gmStrip(pts,w),m=new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*10},uA:{value:0},uG:{value:0}},vertexShader:GM_VEIN_VS,fragmentShader:GM_VEIN_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide,
-    blending:add?THREE.AdditiveBlending:THREE.NormalBlending,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});const me=new THREE.Mesh(geo,m);me.renderOrder=add?4:3;g.add(me);mats.push(m);geos.push(geo);return m;};
-  const crust=mk(path,.075,false),glow=mk(path,.16,true);
-  /* small side branches, as if the lava runs round stones */
-  const br=[];for(let i=0;i<2;i++){const j=1+Math.floor(rnd()*(path.length-2)),p=path[j],a=rnd()*6.28,l=.15+rnd()*.2,q={x:p.x+Math.cos(a)*l,z:p.z+Math.sin(a)*l};br.push({m:mk(gmWiggle(p,q,4,.04),.035,false),at:j/(path.length-1)});}
+/* a gentle curve between two points (a quadratic bend, its control point a little to one side), n+1 points */
+const gmCurve=(A,B,n)=>{const dx=B.x-A.x,dz=B.z-A.z,l=Math.hypot(dx,dz)||1,b=(rnd()-.5)*.35*l,mx=(A.x+B.x)/2-dz/l*b,mz=(A.z+B.z)/2+dx/l*b,P=[];
+  for(let i=0;i<=n;i++){const k=i/n,q=1-k;P.push({x:q*q*A.x+2*q*k*mx+k*k*B.x,z:q*q*A.z+2*q*k*mz+k*k*B.z});}return P;};
+function gmVein(A,B,until){const mats=[],geos=[],path=gmCurve(A,B,Math.max(10,Math.round(Math.hypot(B.x-A.x,B.z-A.z)*14))),g=smTag(new THREE.Group());scene.add(g);
+  const mk=(w,k,add,ro)=>{const geo=gmStrip(path,w),m=new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*10},uA:{value:0},uG:{value:0},uK:{value:k},uAdd:{value:add?1:0}},vertexShader:GM_VEIN_VS,fragmentShader:GM_VEIN_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide,
+    blending:add?THREE.AdditiveBlending:THREE.NormalBlending,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});const me=new THREE.Mesh(geo,m);me.renderOrder=ro;g.add(me);mats.push(m);geos.push(geo);return m;};
+  const L=[mk(.19,0,false,2),mk(.085,1,false,3),mk(.13,1,true,4)];
   const V={path,until,dead:false};let tt=0;
-  addFx(g,Math.max(.4,until-time+.3),(f,dt)=>{tt+=dt;const gr=Math.min(1,tt/.4),fade=Math.min(1,Math.max(0,(until-time+.3)/.3));
-    for(const m of [crust,glow])m.uniforms.uT.value+=dt;crust.uniforms.uG.value=glow.uniforms.uG.value=gr*1.04;crust.uniforms.uA.value=.95*fade;glow.uniforms.uA.value=.55*fade*(.75+.25*Math.sin(tt*6));
-    br.forEach(b=>{b.m.uniforms.uT.value+=dt;b.m.uniforms.uG.value=gr>b.at?Math.min(1.04,(gr-b.at)*4):0;b.m.uniforms.uA.value=.9*fade;});
-    if(rnd()<.35*fade){const p=path[Math.floor(rnd()*path.length)];emit(1,{x:p.x,y:gy(p.x,p.z)+.05,z:p.z,vx:0,vy:.3+rnd()*.3,vz:0,s:.06,s2:.01,c:0xffc060,c2:0xa01a00,a:.85,life:.3,turb:.8});}
+  addFx(g,Math.max(.4,until-time+.4),(f,dt)=>{tt+=dt;const gr=SMS(tt,0,.6),fade=Math.min(1,Math.max(0,(until-time+.4)/.4));
+    L.forEach(m=>{m.uniforms.uT.value+=dt;m.uniforms.uG.value=gr*1.08;m.uniforms.uA.value=fade;});
+    if(rnd()<.25*fade*gr){const p=path[Math.floor(rnd()*path.length)];emit(1,{x:p.x,y:gy(p.x,p.z)+.04,z:p.z,vx:0,vy:.25+rnd()*.25,vz:0,s:.045,s2:.01,c:0xffb050,c2:0x8a1400,a:.8,life:.35,turb:.6});}
+    if(rnd()<.1*fade*gr){const p=path[Math.floor(rnd()*path.length)];emitS(0,{x:p.x,y:gy(p.x,p.z)+.06,z:p.z,vx:0,vy:.25,vz:0,s:.08,s2:.3,c:0x4a4038,c2:0x2a2420,a:.18,life:1.2,lift:.15,turb:.4});}
     if(f.life<=0)V.dead=true;},null,{mats,geos});return V;}
 const gmSegD2=(x,z,P)=>{let b=1e9;for(let i=0;i+1<P.length;i++)b=Math.min(b,s6SegD2(x,z,P[i].x,P[i].z,P[i+1].x,P[i+1].z));return b;};
 
@@ -25635,7 +25641,7 @@ function gmCast(t,c0,P,o,cx0){const c=cx0,L=c?c.L:0,A5=c?c.a:[1,1,1,1,1],lv=1+.0
     gmLog({ev:'cascade',dir,vents});
     /* the crack: a glowing strip along the road that races out from the crater */
     const pts=[{x:cx,z:cz}];for(let k=1;k<=12*GMM.fisN;k++){const d=clamp(R0.d+dir*k/12*GMM.fisGap,.2,rt.len-.2),p=posAt(d,rt);pts.push({x:p[0]+(rnd()-.5)*.08,z:p[1]+(rnd()-.5)*.08});}
-    const geo=gmStrip(pts,.05),m=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:1},uG:{value:0}},vertexShader:GM_VEIN_VS,fragmentShader:GM_VEIN_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
+    const geo=gmStrip(pts,.06),m=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:1},uG:{value:0},uK:{value:1},uAdd:{value:1}},vertexShader:GM_VEIN_VS,fragmentShader:GM_VEIN_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
     const cr=smTag(new THREE.Mesh(geo,m));scene.add(cr);const TT=GMM.fisStep*GMM.fisN+1.6;let ct=0;
     addFx(cr,TT,(f,dt)=>{ct+=dt;m.uniforms.uT.value+=dt*2;m.uniforms.uG.value=Math.min(1.04,ct/(GMM.fisStep*GMM.fisN));m.uniforms.uA.value=Math.min(1,f.life/.6);const k=m.uniforms.uG.value,p=pts[Math.min(pts.length-1,Math.floor(k*(pts.length-1)))];
       if(k<1)for(let i=0;i<3;i++)emit(1,{x:p.x,y:gy(p.x,p.z)+.05,z:p.z,vx:(rnd()-.5)*.6,vy:.6+rnd()*.8,vz:(rnd()-.5)*.6,s:.07,s2:.01,c:0xffd070,c2:0xa01a00,life:.35});},null,{geo,mat:m});
