@@ -1,5 +1,5 @@
 (function(){
-/* Entangling Roots' masteries as Simon designed them (v415). Run on the dev page: __kk.ev(await (await fetch('/tests/rtm-test.js')).text())
+/* Entangling Roots' masteries as Simon designed them (v416). Run on the dev page: __kk.ev(await (await fetch('/tests/rtm-test.js')).text())
    returns [name, ok, detail] rows. Foes stand still on the first road near the hero, set apart along it and to its sides (only the effects
    are stepped, updFx, with the game clock moved along); hurt is wrapped to log the amount each hit is called with (the cast's power is 100:
    the roots deal 170 to each prisoner). Puts the account back. */

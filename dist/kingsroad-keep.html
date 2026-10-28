@@ -14132,7 +14132,7 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
-  {t:'Entangling Roots masteries reworked',d:'28 Oct',v:'v415',li:[
+  {t:'Entangling Roots masteries reworked',d:'28 Oct',v:'v416',li:[
     'Entangling Roots (Rare) has five new masteries, for now in developer mode: Thornbound (thorns grow on the roots and stab as they let go: 100% more, 150% to foes already Overgrown), Root Network (roots tunnel between the prisoners and pulse twice: 55% each pulse), Verdant Reclamation (thorny patches for 3s: 35% a second and 25% slower), Earth\'s Reprisal (a great root throws each prisoner: 130%, and 40% to the foes round it) and Heart of the Wildwood (a great rune and ancient roots that burst: 180% more to the prisoners, 100% within 1.5, 3s more Overgrown).']},
   {t:'Uncommon masteries for everyone',d:'28 Oct',v:'v405',li:[
     'The Uncommon scrolls now earn mastery XP and use their masteries in every game, not only in developer mode. Scrolls above Uncommon come later.',
@@ -25423,7 +25423,7 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
   const S={t,e,len,dmg,C,P:C.P,L:C.L,a:C.a,o:smO(o),o0:o,hits:[]};C.bem=S;bemLog({ev:'cast',L:C.L});
   if(C.L>=5){bemStar(S);mxLater(BEM.raT0,()=>{if(state==='playing')bemFire(S,true);});}
   else bemFire(S,false);};
-/* ================= Entangling Roots' masteries, as Simon designed them (v415) ================= */
+/* ================= Entangling Roots' masteries, as Simon designed them (v416) ================= */
 /* Simon (abridged; his "why it works" notes left out): "1. Thornbound: Thorns rapidly grow along the roots while they hold their targets,
    then pierce inward just before the roots retreat. Each affected foe takes an additional 100% damage when the roots retract; 150% instead to
    foes already Overgrown before the cast. / 2. Root Network: After the targets are bound, thick underground roots connect their positions.
