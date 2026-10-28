@@ -8378,24 +8378,31 @@ function castFireTornado(t,list,P,o){const lead=s6Lead(list),R0=s6Route(lead),rt
   const rockM=new THREE.MeshPhongMaterial({color:0x2a1a12,emissive:0x5a1804,emissiveIntensity:.8,flatShading:true});mats.push(rockM);
   const deb=[];for(let i=0;i<12;i++){const m=new THREE.Mesh(dod(.035+rnd()*.04),rockM);g.add(m);deb.push({m,a:rnd()*6.28,y:.15+rnd()*1.6,w:4+rnd()*3,rs:rnd()*6});}
   let tt=0,zt=0,st=0,emp=false,S=1,mult=1,ended=false;const LIFE=4.3;
+  /* a rock's place in its orbit, in the funnel's frame (q draws it in to the heart); the masteries (ftmStart; null at Mastery 0, for echoes and
+     other casters, so they are exactly the old tornado) may spin the funnel the other way (M.spin), draw the rocks in (M.pin), take rocks
+     out of the orbit (b.out while one flies, b.ring once it is in the Ring of Ruin), and add to each fire tick (M.zone), each frame (M.tick,
+     after the funnel is drawn) and the collapse (M.collapse) */
+  const slot=(b,v,q)=>{const r=(.1+b.y*.15)*1.15*(1-q);return v.set(Math.cos(b.a)*r,b.y+(.5-b.y)*q+Math.sin(tt*3+b.rs)*.05,Math.sin(b.a)*r);};
+  const M=typeof ftmStart==='function'?ftmStart(o,{P,g,fg,deb,slot,smoke,inner,glow,mSm,mIn,mGl,rockM,LIFE,rt,dNow:()=>d}):null;
   addFx(g,LIFE+.6,(f,dt)=>{tt+=dt;if(tt<LIFE)d=Math.max(0,d-.72*dt);const q0=posAt(d,rt),c={x:q0[0],z:q0[1],y:gy(q0[0],q0[1])};
     /* Firestorm: it drinks the flames of burning ground it passes over */
     if(!emp&&tt>.3&&tt<LIFE&&s6FireAt(c.x,c.z,.5)){emp=true;mult=1.5;comboFire('firestorm',{x:c.x,z:c.z,y:0,hitY:1});flash(c.x,c.y+.8,c.z,0xffa040,1.2,.3);sprayP(1,c.x,c.y+.3,c.z,50,{c:0xfff0a0,c2:0xff3a00,sp:2.5,up:1.5,s:.08,s2:0,life:.5,g:2});}
     S+=((emp?1.25:1)-S)*Math.min(1,dt*3);
     const form=SMS(tt,0,.45),fade=1-SMS(tt,LIFE-.35,LIFE),k=form*fade;
     g.position.set(c.x+Math.sin(tt*2.1)*.05,c.y,c.z+Math.cos(tt*1.7)*.05);g.scale.set(S*(.3+.7*form),S*(.15+.85*form)*(.4+.6*fade),S*(.3+.7*form));
-    smoke.rotation.y+=dt*5;inner.rotation.y+=dt*9;glow.rotation.y+=dt*7;[mSm,mIn,mGl].forEach(m=>{m.uniforms.uT.value+=dt;});mSm.uniforms.uA.value=.45*k;mIn.uniforms.uA.value=.85*k;mGl.uniforms.uA.value=.3*k;
-    deb.forEach(b=>{b.a+=dt*b.w;const r=(.1+b.y*.15)*1.15;b.m.position.set(Math.cos(b.a)*r,b.y+Math.sin(tt*3+b.rs)*.05,Math.sin(b.a)*r);b.m.rotation.x+=dt*b.rs;b.m.visible=k>.2;});
+    const sp=M?M.spin:1,pq=M?M.pin:0;smoke.rotation.y+=dt*5*sp;inner.rotation.y+=dt*9*sp;glow.rotation.y+=dt*7*sp;[mSm,mIn,mGl].forEach(m=>{m.uniforms.uT.value+=dt;});mSm.uniforms.uA.value=.45*k;mIn.uniforms.uA.value=.85*k;mGl.uniforms.uA.value=.3*k;
+    deb.forEach(b=>{if(b.ring)return;b.a+=dt*b.w*(1+2*pq);slot(b,b.m.position,pq);b.m.rotation.x+=dt*b.rs;b.m.visible=k>.2&&!b.out;});
     if(k>.05){const n=Math.round(8*k*S);for(let i=0;i<n;i++){const a=rnd()*6.28,y=rnd()*1.8*S,r=(.09+y*.15)*S;emit(i%2,{x:c.x+Math.cos(a)*r,y:c.y+y,z:c.z+Math.sin(a)*r,vx:-Math.sin(a)*2.4*S,vy:.8+rnd()*.6,vz:Math.cos(a)*2.4*S,s:.09+rnd()*.07,s2:.01,c:rnd()<.3?0xffe080:0xff8a20,c2:0x8a1400,a:.9,life:.3+rnd()*.25,drag:1.5,turb:.6});}
       if(rnd()<.8*k)emitS(0,{x:c.x+(rnd()-.5)*.5*S,y:c.y+1.9*S,z:c.z+(rnd()-.5)*.5*S,vx:(rnd()-.5)*.6,vy:.7,vz:(rnd()-.5)*.6,s:.35*S,s2:1.2*S,c:0x3a2418,c2:0x1a1210,a:.4,life:2,lift:.3,turb:.5});
       for(let i=0;i<2;i++){const a=rnd()*6.28,r=(.45+rnd()*.45)*S;emitS(0,{x:c.x+Math.cos(a)*r,y:c.y+.06,z:c.z+Math.sin(a)*r,vx:-Math.sin(a)*1.5-Math.cos(a)*.6,vy:.1,vz:Math.cos(a)*1.5-Math.sin(a)*.6,s:.12,s2:.35,c:0x8a7a62,c2:0x5a4a3a,a:.3,life:.6,turb:.3});}
       if(rnd()<.25)emit(1,{x:c.x,y:c.y+.5+rnd()*1.5*S,z:c.z,vx:(rnd()-.5)*3,vy:.5+rnd(),vz:(rnd()-.5)*3,s:.04,s2:0,c:0xffd080,c2:0xff4a00,life:.8,g:1.5});}
     st-=dt;if(st<=0&&k>.3){st=.22;nsDecal(c.x,c.z,.4*S,0x140a06,.4,2.4,{fout:1});}
-    zt-=dt;if(zt<=0&&k>.3){zt=.3;for(const e of enemies){if(e.dead)continue;if((e.x-c.x)**2+(e.z-c.z)**2<(.95*S)**2){hurt(e,P*.3*mult,'magic',o);if(!e.dead)applyBurn(e,P*.3,3,o);}}}
+    zt-=dt;if(zt<=0&&k>.3){zt=.3;for(const e of enemies){if(e.dead)continue;if((e.x-c.x)**2+(e.z-c.z)**2<(.95*S)**2){hurt(e,P*.3*mult,'magic',o);if(!e.dead)applyBurn(e,P*.3,3,o);}}if(M)M.zone(c,S);}
     /* the pull: foes near it stagger towards its heart and slow to a crawl */
     if(k>.3)for(const e of enemies){if(e.dead||e.fly)continue;const dx=c.x-e.x,dz=c.z-e.z;if(dx*dx+dz*dz>(1.45*S)**2)continue;e.slow=Math.max(e.slow||0,.45);e.slowT=Math.max(e.slowT||0,.25);
       if(!e.stunT&&!e.boss){e.ox=clamp((e.ox||0)+dx*2.6*dt,-.35,.35);e.oz=clamp((e.oz||0)+dz*2.6*dt,-.35,.35);}}
-    if(!ended&&tt>=LIFE-.3){ended=true;myFireRing(c.x,c.z,1.3*S,.6);flash(c.x,c.y+.6,c.z,0xffa040,1.2*S,.25);camShake=Math.max(camShake,.08);
+    if(M)M.tick(dt,tt,c,S,k);
+    if(!ended&&tt>=LIFE-.3){ended=true;if(M)M.collapse(c,S);myFireRing(c.x,c.z,1.3*S,.6);flash(c.x,c.y+.6,c.z,0xffa040,1.2*S,.25);camShake=Math.max(camShake,.08);
       sprayP(1,c.x,c.y+.5,c.z,70,{c:0xfff0a0,c2:0xff3a00,sp:3,up:1.2,s:.08,s2:0,life:.55,g:2,drag:.8,r:.4});
       for(let i=0;i<8;i++)emitS(0,{x:c.x+(rnd()-.5)*.5,y:c.y+.3+rnd()*1.2,z:c.z+(rnd()-.5)*.5,vx:(rnd()-.5)*1.5,vy:.5+rnd()*.6,vz:(rnd()-.5)*1.5,s:.35,s2:1.2,c:0x3a2418,c2:0x1a1210,a:.4,life:1.8,lift:.3,turb:.5});
       for(const e of enemies){if(e.dead)continue;if((e.x-c.x)**2+(e.z-c.z)**2<(1.2*S)**2){hurt(e,P*1.2*mult,'magic',o);if(!e.dead)applyBurn(e,P*.3,3,o);}}}},null,{mats,geos});}
@@ -14134,6 +14141,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Fire Tornado masteries, reworked',d:'28 Oct',v:'v414',li:[
+    'Molten Orbit: the twelve molten rocks in the funnel break free one by one and hurl themselves at foes within 2 tiles, 45% each, then fly back in. A foe takes three at most.',
+    'Infernal Vortex: the core becomes a furnace that glows brighter as it burns: 25% more each fire tick to foes at its heart, and a 60% burst when a foe held there 0.6s breaks free. Trail of Ruin: it leaves up to four strips of burning ground, 25% every 0.5s for 2.5s.',
+    'Ring of Ruin: halfway through, its rocks drop into a spinning ring of molten fire, 70% every 0.6s within 1.35 tiles; in the last second it stands upright and is pulled into the collapse for 100% more.',
+    'Eye of the Inferno: at its end the funnel reverses, draws everything into a blazing core and detonates, 180% within 1.5 tiles, 60% more to foes it marked in its pull. Like every scroll above Uncommon, its masteries are only in developer mode for now.']},
   {t:'Uncommon masteries for everyone',d:'28 Oct',v:'v405',li:[
     'The Uncommon scrolls now earn mastery XP and use their masteries in every game, not only in developer mode. Scrolls above Uncommon come later.',
     'The patch notes start afresh: just the Common and Uncommon mastery reworks, in short.']},
@@ -24557,10 +24569,10 @@ function blmMat(kind){const P=BLM.pool[kind]||(BLM.pool[kind]=[]),m=P.pop()||(ty
 function blmPut(m){if(m&&m.userData&&m.userData.blmK&&BLM.pool[m.userData.blmK])BLM.pool[m.userData.blmK].push(m);}
 function BLM_K(){if(BLM.k)return BLM.k;const plane=new THREE.PlaneGeometry(1,1);plane.rotateX(-Math.PI/2);return BLM.k={plane,sphere:new THREE.IcosahedronGeometry(1,3),shard:new THREE.IcosahedronGeometry(1,0)};}
 /* the shared effects light: each effect asks every frame, the brightest wins (the same manager as Soul Lantern's, in blue-white) */
-const BLML={on:false,I:0,x:0,y:0,z:0,d:4};
-function blmLight(x,y,z,I,d){if(!(I>0))return;if(I>BLML.I){BLML.I=I;BLML.x=x;BLML.y=y;BLML.z=z;BLML.d=d;}
+const BLML={on:false,I:0,x:0,y:0,z:0,d:4,c:0xaad6ff};
+function blmLight(x,y,z,I,d,col){if(!(I>0))return;if(I>BLML.I){BLML.I=I;BLML.x=x;BLML.y=y;BLML.z=z;BLML.d=d;BLML.c=col||0xaad6ff;}
   if(BLML.on&&fx.indexOf(BLML.e)>=0)return;BLML.on=true;let idle=0;
-  BLML.e=addFx(new THREE.Group(),1e4,f=>{if(BLML.I>0){idle=0;if(typeof jvLight==='function')jvLight(BLML.x,BLML.y,BLML.z,0xaad6ff,BLML.I,BLML.d);BLML.I=0;}
+  BLML.e=addFx(new THREE.Group(),1e4,f=>{if(BLML.I>0){idle=0;if(typeof jvLight==='function')jvLight(BLML.x,BLML.y,BLML.z,BLML.c,BLML.I,BLML.d);BLML.I=0;}
     else if(++idle>2||f.life<1){f.life=0;BLML.on=false;BLML.I=0;if(typeof jvLightOff==='function')jvLightOff();}});}
 const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
 /* strips along polylines, two vertices a point: flat ones lie on the road, the others are turned to the camera; u runs along, v across */
@@ -25423,6 +25435,307 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
   const S={t,e,len,dmg,C,P:C.P,L:C.L,a:C.a,o:smO(o),o0:o,hits:[]};C.bem=S;bemLog({ev:'cast',L:C.L});
   if(C.L>=5){bemStar(S);mxLater(BEM.raT0,()=>{if(state==='playing')bemFire(S,true);});}
   else bemFire(S,false);};
+/* ================= Fire Tornado's masteries, as Simon designed them (v414) ================= */
+/* Simon (abridged; the "why it works" notes left out): "1. Molten Orbit: the rocks become projectiles. The twelve molten rocks orbiting
+   inside the funnel break free one by one, launching outward at nearby enemies before returning to the vortex; each rock deals 45% on
+   impact; rocks target enemies within 2 tiles of the tornado; each enemy can be hit by at most three rocks per cast; the rocks leave
+   short-lived ember trails as they fly; careful not to overdo it, fairly subtle, not to outshine the tornado or look out of place. /
+   2. Infernal Vortex: the centre becomes a furnace; as the tornado moves its glowing core intensifies; enemies within 0.4 tiles of the core
+   take an additional 25% per normal fire tick; enemies that remain near the core for at least 0.6s receive an additional 60% burst when
+   they escape its immediate range; the core grows brighter as it deals damage. / 3. Trail of Ruin: instead of fading quickly, the scorch
+   marks behind the tornado ignite into narrow strips of burning ground; up to four burning patches along its route; each lasts 2.5s and
+   deals 25% every 0.5s to ground enemies standing on it; a patch hurts a given enemy at most once every 0.5s; they do not pull or block. /
+   4. Ring of Ruin: midway through its life the orbiting rocks drop into a wide horizontal ring around its base that spins independently
+   of the funnel, sweeping through enemies as the tornado drifts on; 70% every 0.6s to enemies within its radius of 1.35 tiles, once per
+   interval; during the final second the ring tilts upright and spins rapidly before being pulled into the final collapse, dealing an
+   additional 100% to nearby foes. / 5. Eye of the Inferno: as the tornado reaches the end of its life its three spinning layers reverse,
+   the funnel compresses inward, drawing its flames and orbiting rocks into the glowing core, and detonates: an additional 180% to foes
+   within 1.5 tiles; enemies caught in the pull zone during the final 0.5s are marked by a brief ring of fire and take an additional 60%
+   from the explosion (a single bonus, not damage over time); a large expanding ring of flame and a stronger camera shake." And: Firestorm
+   (the combo) stays apart from the masteries, so a mastered tornado and one empowered by another fire spell feel different: the masteries
+   leave no burning ground it can drink and its +50% does not touch their damage (only its growth carries their reach with it). No
+   low-effort effects, no bland 2D explosions.
+   Percentages are of the scroll's power. Mastery 0 is the old tornado (it gets no M). castFireTornado calls ftmStart and gets M: M.zone
+   runs on each of its fire ticks (every 0.3s), M.tick every frame after the funnel is drawn, M.collapse at its collapse (0.3s before its
+   end); M.spin and M.pin turn the funnel and draw its rocks in. The cast's effects ride in M.W, which follows the funnel.
+   The looks are 3D, built from the fire kit of the Fire Bolt and the Ember Titan (noise fireballs, flame sheets, rings of fire, lava):
+   - M1 Molten Orbit: from 0.55s, every FTM.rockGap a rock (the one nearest its foe) breaks out of the orbit, a glowing coal with a short
+     trail of embers and fire puffs, curves into a foe within FTM.rockR (the foe with the fewest rocks so far; flyers too) for 45% with a
+     small burst of fire, and flies back into its place in the orbit (or the ring). Twelve a cast, at most FTM.rockMax on one foe; none
+     leave after FTM.rockEnd, so all are home before the end.
+   - M2 Infernal Vortex: a furnace at the funnel's heart: a white-hot fireball inside a fast twisting column of fire, glowing through the
+     flames and lighting the road. On each fire tick, foes within FTM.coreR (times the tornado's size) take 25% more, flaring white where
+     it scorches them, and each such hit heats the core (FTM.heat), which brightens and cools slowly. A foe held there FTM.coreT (0.6s)
+     takes a 60% burst (a fireball and a ring of fire) when it breaks free, or when the tornado collapses with it still inside.
+   - M3 Trail of Ruin: at FTM.trailFirst and every FTM.trailGap after (four at most) the stretch of road it has just crossed ignites: a
+     narrow strip of molten, burning ground with glowing cracks, flames along it, embers and smoke, lit from the tornado's side outward.
+     Each burns FTM.trailT (2.5s): 25% every 0.5s to ground foes on it. They are not burning ground for Firestorm.
+   - M4 Ring of Ruin: at FTM.ringAt (halfway) the rocks fall out of the funnel into a ring round its base, FTM.ringR (1.35) wide: a band of
+     flowing lava with the rocks set in it and flames trailing from it, spinning on its own over a ring of fire on the road. Every
+     FTM.ringTick (0.6s) it flares: 70% to each foe within it. In the last second it tilts upright, rises round the funnel and spins
+     faster, a wheel of fire, then shrinks into the heart; at the collapse it is gone with a ring of fire racing out: 100% to foes within
+     FTM.ringR, and the rocks are flung out burning.
+   - M5 Eye of the Inferno: FTM.markT (0.5s) before the collapse the funnel's layers spin the other way, it narrows and shudders, flames,
+     smoke and a ring of fire on the road rush inward and the core swells into a blazing eye; each ground foe in the pull (1.45) is
+     marked by a ring of fire at its feet. Then it detonates: a great fireball, a ring of flame racing far out, a shockwave, glowing
+     cracks, sparks, smoke and a heavy shake: 180% to all within FTM.eyeR (1.5), and each marked foe's ring erupts for 60% more.
+   FTM.dbg (an array) logs the events with their times for the tests. */
+const FTM={dbg:null,last:null,k:null,
+  rock:.45,rockR:2,rockMax:3,rockN:12,rockGap:.22,rockFirst:.55,rockEnd:3,rockBack:.36,
+  core:.25,coreR:.4,coreT:.6,flare:.6,heat:.2,
+  trail:.25,trailN:4,trailT:2.5,trailTick:.5,trailW:.19,trailFirst:.9,trailGap:.8,
+  ring:.7,ringR:1.35,ringTick:.6,ringAt:2.15,ringIn:1,
+  eye:1.8,eyeR:1.5,mark:.6,markT:.5,pullR:1.45};
+const ftmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='firetornado'?c:null;};
+const ftmLog=d=>{if(FTM.dbg){d.t=time;FTM.dbg.push(d);}};
+SM_D.firetornado=[
+  {n:'Molten Orbit',d:'The twelve molten rocks in the funnel break free one by one and hurl themselves at foes within 2 tiles, {45}% each, then fly back into the vortex. A foe is hit by three at most.'},
+  {n:'Infernal Vortex',d:'Its core becomes a furnace that glows brighter as it burns: foes within 0.4 tiles of it take {25}% more each fire tick, and a foe held there for 0.6s takes a {60}% burst when it breaks free.'},
+  {n:'Trail of Ruin',d:'Its scorch marks ignite: up to four strips of burning ground along its path, each burning for 2.5s and dealing {25}% every 0.5s to foes on it.'},
+  {n:'Ring of Ruin',d:'Halfway through, its rocks drop into a spinning ring of molten fire round its base: {70}% every 0.6s to foes within 1.35 tiles. In its last second the ring stands upright, spins faster and is pulled into the collapse for {100}% more.'},
+  {n:'Eye of the Inferno',d:'At its end the funnel reverses, draws its flames and rocks into a blazing core and detonates: {180}% to foes within 1.5 tiles. Foes in its pull in the last 0.5s are marked by a ring of fire and take {60}% more from the blast.'}];
+SMF.firetornado={m:1};
+SMA.firetornado=[1,1,1,1,1];
+/* power with Simon's numbers (tests/sm-ladder.js, 5 runs): 1.13 / 1.42 / 1.55 / 2.09 / 2.46 against the Rare ladder 1.09 / 1.23 / 1.35 / 1.52 / 1.74.
+   Every level is above the ladder, so no hidden factor; the Ring of Ruin is the big step (70% three times and 100% to all within 1.35).
+   Simon was told; his numbers are kept (SM.free) until he decides. */
+SMG.firetornado=[1,1,1,1,1];
+SM.free=SM.free||{};SM.free.firetornado='Simon'+String.fromCharCode(8217)+'s own numbers for Fire Tornado';
+
+/* ---- the kit ---- */
+/* a band of flowing lava (on a torus: uv.x runs round the ring, uv.y round the tube; the noise is blended with itself one turn back so the
+   seam does not show); uH heats it */
+const FTM_BAND_FS='uniform float uT,uA,uH;varying vec2 vUv;'+S6_NOISE+'float FL(vec2 p){float n=fb(p+vec2(-uT*2.6,uT*.4));return fb(p*1.9+vec2(uT*1.5,0.)+n*1.4);}'+
+  'void main(){vec2 p=vec2(vUv.x*40.,vUv.y*3.);float m=mix(FL(p),FL(p-vec2(40.,0.)),vUv.x);float h=clamp(.3+.95*(m-.3)+uH,0.,1.);'+
+  'vec3 c=mix(vec3(.16,.05,.03),vec3(.9,.24,.04),smoothstep(.18,.42,h));c=mix(c,vec3(1.,.6,.14),smoothstep(.45,.7,h));c=mix(c,vec3(1.,.95,.76),smoothstep(.8,1.,h));gl_FragColor=vec4(c,uA);}';
+/* a soft glow round a surface: brightest where it faces the eye */
+const FTM_NV_VS='varying vec3 vN,vV;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalMatrix*normal;vV=-mv.xyz;gl_Position=projectionMatrix*mv;}';
+const FTM_GLOW_FS='uniform vec3 uC;uniform float uA;varying vec3 vN,vV;void main(){float f=abs(dot(normalize(vN),normalize(vV)));gl_FragColor=vec4(uC,uA*pow(f,1.6));}';
+/* a strip of burning ground (uv.x along the road, uv.y across): charred earth split by a molten seam down its middle and a web of glowing
+   veins, tapering to points at its ends; uI is how far along it the fire has run, uC cools it to char, uL its length for the noise */
+const FTM_STRIP_FS='uniform float uT,uA,uI,uC,uL;varying vec2 vUv;'+S6_NOISE+'void main(){float x=vUv.x,y=vUv.y*2.-1.;vec2 p=vec2(x*uL*5.,y*1.3);'+
+  'float n=fb(p*.8+vec2(3.1,0.)),w=fb(p*1.7+vec2(-uT*.25,uT*.15)),tap=smoothstep(.22,0.,x)+smoothstep(.78,1.,x);'+
+  'float ed=abs(y)*(1.+.8*(n-.5))+tap*.75+(w-.5)*.25,ig=1.-smoothstep(uI-.12,uI,x),ins=smoothstep(1.,.72,ed)*ig;if(ins<.01)discard;'+
+  'float r=1.-abs(fb(p*2.3+vec2(-uT*.6,uT*.3)+w)*2.-1.),vein=pow(r,7.),core=smoothstep(.42,.05,abs(y+(n-.5)*.5)+tap*.5),fl=.85+.15*sin(uT*9.+x*20.);'+
+  'float heat=clamp(max(vein*.95,core*(.75+.35*w))*fl-uC*.9,0.,1.)*ins;vec3 ch=vec3(.07,.045,.035)+vec3(.06,.03,.02)*n;'+
+  'vec3 c=mix(vec3(.55,.06,.01),vec3(1.,.42,.06),smoothstep(.2,.55,heat));c=mix(c,vec3(1.,.88,.55),smoothstep(.7,.95,heat));c=mix(ch,c,smoothstep(.06,.3,heat));'+
+  'gl_FragColor=vec4(c,uA*ins*(.72+.28*smoothstep(.1,.4,heat)));}';
+function ftmKit(){if(FTM.k)return FTM.k;const mk=()=>{const t=new THREE.TorusGeometry(1,.05,8,96),tg=new THREE.TorusGeometry(1,.13,8,96);t.rotateX(Math.PI/2);tg.rotateX(Math.PI/2);
+    return{torus:t,torusG:tg,hot:new THREE.MeshPhongMaterial({color:0x5a2a10,emissive:0xff7a20,emissiveIntensity:1.5,flatShading:true,shininess:40})};};
+  FTM.k=typeof asOffRun==='function'?asOffRun(mk):mk();FTM.k.E=ebKit();return FTM.k;}
+/* a ring of fire on the road (the Fire Bolt's shader), its radius uR and width uW in the disc's units */
+function ftmRingMat(R,W){const P=EB_PP.o,v=a=>new THREE.Vector3(a[0],a[1],a[2]);return new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*20},uA:{value:0},uR:{value:R},uW:{value:W},uC0:{value:v(P[0])},uC1:{value:v(P[1])},uC2:{value:v(P[2])}},
+  vertexShader:EB_Q_VS,fragmentShader:EB_RING_FS,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});}
+const ftmHurt=(S,e,amt,ev,x)=>{if(!e||e.dead||state!=='playing')return false;hurt(e,amt,'magic',S.o);ftmLog(Object.assign({ev,e,amt},x||{}));return true;};
+const ftmD2=(e,c)=>(e.x-c.x)**2+(e.z-c.z)**2;
+/* a ring of fire rushing in over the road (the Eye drawing everything in): a ragged line of fire with flames standing on it, leaning in */
+function ftmInRing(x,z,R,dur){const K=ftmKit(),E=K.E,m=ftmRingMat(.95,.05),me=new THREE.Mesh(E.disc,m),y=gy(x,z),g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);me.position.y=.06;me.scale.setScalar(R);me.renderOrder=4;g.add(me);
+  const fS=ebFlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.6,sp:3.6,h:.5,w:.14}),fG=ebFlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.5,sp:3,h:.6,w:.14,add:true}),F=[],up=V3(0,1,0);
+  for(let i=0;i<20;i++){const a=i/20*6.283+rnd()*.2,q=new THREE.Quaternion().setFromUnitVectors(up,V3(-Math.cos(a)*.75,.66,-Math.sin(a)*.75).normalize()),f1=new THREE.Mesh(E.tuft,fS),f2=new THREE.Mesh(E.tuft,fG);
+    f1.quaternion.copy(q);f2.quaternion.copy(q);f1.renderOrder=5;f2.renderOrder=6;g.add(f1,f2);F.push({f1,f2,a,h:.24+rnd()*.14,ph:rnd()*6});}
+  let t=0;addFx(g,dur,(f,dt)=>{t+=dt;const k=Math.min(1,t/dur),e=k*k,rr=.95-.88*e,A=Math.min(1,t/.08)*(1-SMS(k,.85,1));m.uniforms.uT.value+=dt*1.5;m.uniforms.uR.value=rr;m.uniforms.uW.value=.05+.1*k;m.uniforms.uA.value=A*.9;
+    fS.uniforms.uT.value+=dt;fG.uniforms.uT.value+=dt;fS.uniforms.uA.value=.95*A;fG.uniforms.uA.value=.5*A;
+    for(const q of F){const r=R*rr,h=(q.h*(.5+.5*rr)*(1+.2*Math.sin(t*14+q.ph))+.001)*A;q.f1.position.set(Math.cos(q.a)*r,0,Math.sin(q.a)*r);q.f2.position.copy(q.f1.position);q.f1.scale.set(.08,h,.08);q.f2.scale.set(.11,h*1.2,.11);}
+    if(rnd()<dt*50){const a=rnd()*6.28,r=R*rr;emit(1,{x:x+Math.cos(a)*r,y:y+.06,z:z+Math.sin(a)*r,vx:-Math.cos(a)*r*2,vy:.5+rnd()*.5,vz:-Math.sin(a)*r*2,s:.07+rnd()*.05,s2:.01,c:0xfff0a0,c2:0xc03000,life:.25+rnd()*.15,turb:.8});}},null,{mats:[m,fS,fG]});}
+
+/* ---- the cast ---- */
+function ftmStart(o,K){const c=ftmC(o);if(!c)return null;const L=c.L,a=c.a,W=smTag(new THREE.Group());scene.add(W);
+  const S={L,a,c,K,o:smO(o),P:K.P,W,mats:[],spin:1,pin:0,TC:K.LIFE-.3,heat:0,k:0,done:false,gone:false,
+    rk:{n:0,next:FTM.rockFirst,per:new Map()},dw:new Map(),pn:0,pD:K.dNow(),pNext:FTM.trailFirst,marks:new Map(),
+    zone(cc,Sz){if(S.done)return;if(L>=2)ftmCoreHit(S,cc,Sz);},
+    tick(dt,tt,cc,Sz,k){S.k=k;W.position.copy(K.g.position);if(S.gone){K.g.visible=false;return;}if(S.done)return;
+      if(L>=1)ftmRocks(S,tt,cc,Sz);if(L>=2)ftmCoreTick(S,dt,tt,cc,Sz,k);if(L>=3)ftmTrailTick(S,tt);
+      if(L>=4){if(!S.ring&&tt>=FTM.ringAt)S.ring=ftmRing(S,tt);if(S.ring)S.ring.tick(dt,tt,cc,Sz);}
+      if(L>=5)ftmEyeTick(S,dt,tt,cc,Sz,k);},
+    collapse(cc,Sz){if(S.done)return;S.done=true;ftmLog({ev:'collapse'});
+      if(L>=2)for(const [e,t] of S.dw)if(t>=FTM.coreT)ftmFlare(S,e,t);S.dw.clear();
+      if(L>=4&&S.ring)S.ring.implode(cc,Sz);
+      if(L>=5)ftmEye(S,cc,Sz);
+      if(L>=4)ftmFling(S,Sz);
+      if(S.core)S.core.out(L>=5);}};
+  addFx(W,K.LIFE+.6,null,null,{mats:S.mats});
+  FTM.last=S;ftmLog({ev:'tornado',L});return S;}
+
+/* ---- M1 Molten Orbit ---- */
+function ftmRocks(S,tt,c,Sz){const R=S.rk;if(R.n>=FTM.rockN||tt<R.next||tt>FTM.rockEnd||S.k<.6)return;const D=S.K.deb,rr=FTM.rockR*Sz;
+  const foes=smNear(c.x,c.z,rr,null,99,true).filter(e=>(R.per.get(e)||0)<FTM.rockMax);if(!foes.length)return;
+  /* the foe with the fewest rocks so far (then the nearest); the rock nearest it breaks out */
+  const e=foes.reduce((p,q)=>(R.per.get(q)||0)<(R.per.get(p)||0)?q:p,foes[0]),free=D.filter(b=>!b.out&&b.m.visible&&!(b.ring&&b.ft>tt));if(!free.length)return;
+  const v=new THREE.Vector3(),b=free.reduce((p,q)=>{const dq=q.m.getWorldPosition(v).distanceToSquared(V3(e.x,v.y,e.z)),dp=p.m.getWorldPosition(v).distanceToSquared(V3(e.x,v.y,e.z));return dq<dp?q:p;},free[0]);
+  R.n++;R.per.set(e,(R.per.get(e)||0)+1);R.next=tt+FTM.rockGap;ftmLog({ev:'launch',e,d:Math.sqrt(ftmD2(e,c))});ftmRockFly(S,b,e);}
+function ftmRockFly(S,b,e){const K=ftmKit(),E=K.E,A=b.m.getWorldPosition(new THREE.Vector3()),ws=new THREE.Vector3();b.m.getWorldScale(ws);b.out=true;b.m.visible=false;
+  const g=smTag(new THREE.Group());g.position.copy(A);scene.add(g);const rs=Math.max(.6,ws.x)*1.25,me=new THREE.Mesh(b.m.geometry,K.hot);me.scale.setScalar(rs);g.add(me);
+  const gm=ebAdd(0xff6a14,.85,E.soft),gl=new THREE.Mesh(E.pg,gm);gl.renderOrder=7;g.add(gl);const wm=ebAdd(0xfff0c0,.8,E.soft),wl=new THREE.Mesh(E.pg,wm);wl.renderOrder=8;g.add(wl);
+  let ph=0,t=0,pf=0,last=tpos2(e);const T1=.26+Math.hypot(last.x-A.x,last.z-A.z)*.05,arc=.22+rnd()*.18,side=(rnd()-.5)*.9,B=new THREE.Vector3(),H=new THREE.Vector3(),P=A.clone(),vy={v:0};
+  addFx(g,T1+FTM.rockBack+1.2,(f,dt)=>{t+=dt;
+    if(ph===0){if(!e.dead)last=tpos2(e);const k=Math.min(1,t/T1),sn=Math.sin(k*Math.PI),dx=last.x-A.x,dz=last.z-A.z;
+      P.set(A.x+dx*k-dz*side*sn*.5,A.y+(last.y-A.y)*k+sn*arc,A.z+dz*k+dx*side*sn*.5);
+      if(k>=1){ph=1;t=0;B.copy(P);ftmRockHit(S,e,P);}}
+    else if(ph===1){/* home: its place in the orbit (or the ring) moves on, so it homes in on it; if the tornado has collapsed it falls */
+      if(S.done){ph=2;vy.v=1.2;}else{b.m.getWorldPosition(H);const k=Math.min(1,t/FTM.rockBack),e2=k*k*(3-2*k);P.set(B.x+(H.x-B.x)*e2,B.y+(H.y-B.y)*e2+Math.sin(k*Math.PI)*.28,B.z+(H.z-B.z)*e2);
+        if(k>=1){b.out=false;if(b.ring)b.m.visible=true;f.life=0;ftmLog({ev:'home'});for(let i=0;i<4;i++)emit(1,{x:H.x,y:H.y,z:H.z,vx:(rnd()-.5)*.8,vy:.3+rnd()*.4,vz:(rnd()-.5)*.8,s:.06,s2:0,c:0xfff0a0,c2:0xff4a00,life:.25});}}}
+    else{vy.v-=9*dt;P.y+=vy.v*dt;const fl=gy(P.x,P.z);if(P.y<fl+.03){P.y=fl+.03;if(f.life>.35)f.life=.35;}me.scale.setScalar(Math.max(.01,rs*Math.min(1,f.life/.35)));}
+    g.position.copy(P);me.rotation.x+=dt*14;me.rotation.z+=dt*9;gl.quaternion.copy(camera.quaternion);gl.scale.setScalar((ph===2?.14:.26)+.03*Math.sin(t*40));wl.quaternion.copy(camera.quaternion);wl.scale.setScalar(ph===2?.04:.09);
+    /* a short trail: fire puffs and embers that die quickly */
+    if(ph<2){pf-=dt;if(pf<=0){pf=.04;ebPuff(P.x,P.y,P.z,false,ph===0?.12:.085);}emit(1,{x:P.x,y:P.y,z:P.z,vx:(rnd()-.5)*.2,vy:.15+rnd()*.2,vz:(rnd()-.5)*.2,s:.05+rnd()*.03,s2:.01,c:rnd()<.4?0xfff0a0:0xff8a20,c2:0xa01a00,a:.9,life:.18+rnd()*.12,turb:.8});}},
+    null,{mats:[gm,wm]});}
+function ftmRockHit(S,e,P){if(ftmHurt(S,e,S.P*FTM.rock*S.a[0],'rock'))S.rk.hit=(S.rk.hit||0)+1;
+  ebBall(P.x,P.y,P.z,.15,.36);flash(P.x,P.y,P.z,0xffa040,.26,.1);sprayP(1,P.x,P.y,P.z,12,{c:0xfff0a0,c2:0xff3a00,sp:1.5,up:.6,s:.05,s2:0,life:.38,g:3,drag:.8});
+  for(let i=0;i<2;i++)ember(P.x,P.y,P.z);}
+
+/* ---- M2 Infernal Vortex ---- */
+function ftmCore(S){const K=ftmKit(),E=K.E,m=S.mats,g=new THREE.Group();g.position.y=.5;S.W.add(g);
+  /* drawn before the funnel's shells, so they veil it and it glows out through their gaps; the soft glows are drawn over them */
+  const cm=s6FlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:2.2,sp:4.4,tw:3,h:.22,w:.06,add:true}),col=new THREE.Mesh(S.K.fg,cm);col.position.y=-.5;col.renderOrder=3;
+  const om=ebFire(false),orb=new THREE.Mesh(E.ball,om);orb.renderOrder=3;orb.scale.set(.15,.2,.15);
+  const hm=ebAdd(0xff7a20,0,E.soft),halo=new THREE.Mesh(E.pg,hm);halo.renderOrder=8;const wm=ebAdd(0xfff0c8,0,E.soft),white=new THREE.Mesh(E.pg,wm);white.renderOrder=8;
+  m.push(cm,om,hm,wm);g.add(col,orb,halo,white);
+  return{g,cm,col,om,orb,hm,halo,wm,white,out(eye){g.visible=false;if(!eye){const p=g.getWorldPosition(new THREE.Vector3());flash(p.x,p.y,p.z,0xffc060,.5,.18);}}};}
+function ftmCoreTick(S,dt,tt,c,Sz,k){const C=S.core||(S.core=ftmCore(S)),K=S.K,TC=S.TC,R=FTM.coreR*Sz;
+  S.heat=Math.max(0,S.heat-dt*.3);const ce=S.L>=5?ease(SMS(tt,TC-FTM.markT,TC)):0,h=S.heat;
+  C.cm.uniforms.uT.value+=dt;C.cm.uniforms.uA.value=k*(.2+.45*h)+.45*ce;C.col.scale.set(.3*Sz*(1-.45*ce),.92*Sz*(1-.15*ce),.3*Sz*(1-.45*ce));C.col.rotation.y+=dt*(11-26*ce);
+  C.om.uniforms.uT.value+=dt*(1.6+2*h+3*ce);C.om.uniforms.uH.value=-.05+.32*h+.55*ce;C.om.uniforms.uA.value=Math.min(1,k*1.4);
+  const os=Sz*(.13+.06*h+.32*ce)*(.6+.4*k);C.orb.scale.set(os,os*(1.35-.3*ce),os);C.orb.rotation.y+=dt*3;
+  C.halo.quaternion.copy(camera.quaternion);C.white.quaternion.copy(camera.quaternion);C.hm.opacity=k*(.2+.4*h)+.35*ce;C.halo.scale.setScalar(Sz*(.9+.6*h+.8*ce));
+  C.wm.opacity=k*(.15+.45*h)+.5*ce;C.white.scale.setScalar(Sz*(.3+.2*h+.45*ce)*(1+.08*Math.sin(tt*31)));
+  K.mGl.uniforms.uA.value=.3*k*(1+1.3*h);
+  blmLight(c.x,c.y+.6,c.z,k*(.3+.7*h)+.9*ce,2.6+.8*ce,0xff8a30);
+  if(rnd()<k*(.4+1.4*h))emit(1,{x:c.x+(rnd()-.5)*.1,y:c.y+.35+rnd()*.4,z:c.z+(rnd()-.5)*.1,vx:(rnd()-.5)*1.4,vy:.6+rnd()*.8,vz:(rnd()-.5)*1.4,s:.04,s2:0,c:0xfff4c0,c2:0xffa030,life:.4,g:1});
+  /* who is held at the heart, and for how long (a little slack to leave, so a foe on the edge is not counted in and out) */
+  for(const e of enemies){if(e.fake)continue;if(e.dead){S.dw.delete(e);continue;}const d2=ftmD2(e,c),was=S.dw.has(e),r=was?R+.06:R;
+    if(d2<r*r)S.dw.set(e,(S.dw.get(e)||0)+dt);else if(was){const t=S.dw.get(e);S.dw.delete(e);if(t>=FTM.coreT)ftmFlare(S,e,t);}}}
+function ftmCoreHit(S,c,Sz){const R=FTM.coreR*Sz;for(const e of enemies){if(e.dead||e.fake||ftmD2(e,c)>=R*R)continue;
+  if(ftmHurt(S,e,S.P*FTM.core*S.a[1],'core')){S.heat=Math.min(1,S.heat+FTM.heat);const p=tpos2(e);ebPuff(p.x,p.y,p.z,false,.15);flash(p.x,p.y,p.z,0xfff0c0,.16,.07);
+    for(let i=0;i<4;i++)emit(1,{x:p.x,y:p.y,z:p.z,vx:(rnd()-.5)*1.6,vy:.4+rnd()*.8,vz:(rnd()-.5)*1.6,s:.04,s2:0,c:0xfff4c0,c2:0xff8a20,life:.3,g:2});}}}
+/* a foe breaks free of the furnace: the heat it soaked up bursts out of it */
+function ftmFlare(S,e,t){if(!ftmHurt(S,e,S.P*FTM.flare*S.a[1],'flare',{held:t}))return;const p=tpos2(e);
+  ebBall(p.x,p.y,p.z,.3,.55);flash(p.x,p.y,p.z,0xfff4d0,.3,.07);flash(p.x,p.y,p.z,0xff8a20,.55,.2);ebFireRing(e.x,e.z,.7,.45);camShake=Math.max(camShake,.035);
+  for(let i=0;i<5;i++){const a=i/5*6.28+rnd()*.6;ebPuff(p.x+Math.cos(a)*.15,p.y-.05,p.z+Math.sin(a)*.15,false,.2);}
+  sprayP(1,p.x,p.y,p.z,24,{c:0xfff0c0,c2:0xff5a10,sp:2.6,up:.8,s:.06,s2:0,life:.45,drag:2});}
+
+/* ---- M3 Trail of Ruin ---- */
+function ftmTrailTick(S,tt){if(S.pn>=FTM.trailN||tt<S.pNext||S.k<.5)return;const d=S.K.dNow(),rt=S.K.rt;
+  let dA=Math.min(rt.len-.05,d+.12),dB=Math.min(rt.len,Math.max(S.pD+.05,dA+.4));if(dB-dA<.35)dA=Math.max(0,dB-.4);
+  ftmPatch(S,dA,dB,S.pn);S.pn++;S.pD=dA;S.pNext=tt+FTM.trailGap;}
+function ftmPatch(S,dA,dB,i){const K=ftmKit(),E=K.E,rt=S.K.rt,T=FTM.trailT,HW=FTM.trailW,mats=[],geos=[],pts=[],len=dB-dA,n=Math.max(3,Math.ceil(len/.08));
+  for(let j=0;j<=n;j++){const q=posAt(dA+len*j/n,rt);pts.push({x:q[0],z:q[1],a:q[2],y:gy(q[0],q[1])});}
+  /* the molten seam: a ribbon down the road */
+  const Pp=[],U=[],I=[];for(let j=0;j<=n;j++){const p=pts[j],ux=Math.cos(p.a),uz=-Math.sin(p.a);for(const s of [-1,1]){Pp.push(p.x+ux*HW*s,p.y+.045,p.z+uz*HW*s);U.push(j/n,s<0?0:1);}if(j<n)I.push(j*2,j*2+1,j*2+2,j*2+1,j*2+3,j*2+2);}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(Pp,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));geo.setIndex(I);geos.push(geo);
+  const sm=new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*20},uA:{value:1},uI:{value:0},uC:{value:0},uL:{value:len}},vertexShader:EB_Q_VS,fragmentShader:FTM_STRIP_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide,
+    polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});mats.push(sm);
+  const root=smTag(new THREE.Group());scene.add(root);const strip=new THREE.Mesh(geo,sm);strip.renderOrder=3.5;root.add(strip);
+  /* glowing cracks round it, a warm glow on the road, and flames standing along it */
+  const sea=myRoadSeams(rt,dA,dB,0xff7a20,0x1a0804,mats,geos,.045);sea.grow(0);sea.op(0,0);
+  const gl=[];for(let j=0;j<3;j++){const p=pts[Math.round((j+.5)/3*n)],m=ebAdd(0xff5a10,0,E.soft),me=new THREE.Mesh(E.disc,m);me.position.set(p.x,p.y+.06,p.z);me.scale.setScalar(.42);me.renderOrder=4;root.add(me);mats.push(m);gl.push(m);}
+  const fS=ebFlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.6,sp:3,h:.5,w:.12}),fG=ebFlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.5,sp:2.6,h:.6,w:.12,add:true});mats.push(fS,fG);
+  const F=[],nf=Math.max(4,Math.round(len/.085));for(let j=0;j<nf;j++){const u=(j+.2+rnd()*.6)/nf,p=pts[Math.round(u*n)],ux=Math.cos(p.a),uz=-Math.sin(p.a),s=(rnd()-.5)*.14,tp=1-Math.abs(u*2-1)*.55;
+    const a=new THREE.Mesh(E.tuft,fS),b=new THREE.Mesh(E.tuft,fG);a.position.set(p.x+ux*s,p.y,p.z+uz*s);b.position.copy(a.position);a.renderOrder=5;b.renderOrder=6;root.add(a,b);
+    F.push({a,b,u,h:(.34+rnd()*.24)*tp,w:(.08+rnd()*.04)*(.6+.4*tp),ph:rnd()*6});}
+  let tt=0,tk=.12;const hit=e=>{if(!ftmHurt(S,e,S.P*FTM.trail*S.a[2],'trail',{i}))return;const y=gy(e.x,e.z);ebPuff(e.x,y+.16,e.z,false,.15);
+    for(let j=0;j<5;j++){const a=rnd()*6.28;emit(1,{x:e.x+Math.cos(a)*.1,y:y+.05,z:e.z+Math.sin(a)*.1,vx:Math.cos(a)*.2,vy:.8+rnd()*.6,vz:Math.sin(a)*.2,s:.08,s2:.01,c:0xfff0a0,c2:0xc03000,life:.3,turb:1});}};
+  ftmLog({ev:'patch',i,dA,dB});
+  addFx(root,T,(f,dt)=>{tt+=dt;const ig=Math.min(1,tt/.3),out=Math.min(1,f.life/.6),cool=1-out;sm.uniforms.uT.value+=dt;sm.uniforms.uI.value=ig*1.15;sm.uniforms.uC.value=cool*.9;sm.uniforms.uA.value=Math.min(1,out*1.6);
+    sea.grow(ig);sea.op(.7*out,(.75+.25*rnd())*out);gl.forEach((m,j)=>{m.opacity=.2*out*SMS(ig,j/3,j/3+.3)*(1+.15*Math.sin(tt*9+j));});fS.uniforms.uT.value+=dt;fG.uniforms.uT.value+=dt;fS.uniforms.uA.value=.95*out;fG.uniforms.uA.value=.5*out;
+    for(const q of F){const gk=SMS(ig*1.15,q.u-.05,q.u+.12),fl=1+.22*Math.sin(tt*11+q.ph)+.1*Math.sin(tt*23+q.ph),hh=q.h*fl*gk*(.25+.75*out)+.001;q.a.scale.set(q.w,hh,q.w);q.b.scale.set(q.w*1.35,hh*1.18,q.w*1.35);}
+    let ne=dt*55*out*(1-.6*cool);while(ne>0){if(ne<1&&rnd()>ne)break;ne--;const p=pts[Math.floor(rnd()*Math.min(n+1,Math.ceil(ig*(n+1))))];emit(rnd()<.6?1:0,{x:p.x+(rnd()-.5)*.18,y:p.y+.06+rnd()*.15,z:p.z+(rnd()-.5)*.18,vx:(rnd()-.5)*.12,vy:.7+rnd()*.7,vz:(rnd()-.5)*.12,s:.1+rnd()*.07,s2:.02,c:rnd()<.35?0xffe080:0xff8a20,c2:0x9a1400,a:.85,life:.3+rnd()*.25,turb:1.1});}
+    if(rnd()<dt*7*out){const p=pts[Math.floor(rnd()*(n+1))];emit(1,{x:p.x,y:p.y+.4+rnd()*.3,z:p.z,vx:(rnd()-.5)*.4,vy:.6+rnd()*.5,vz:(rnd()-.5)*.4,s:.035,s2:0,c:0xffd080,c2:0xff4a00,life:.8,turb:.6});}
+    if(rnd()<dt*4*out){const p=pts[Math.floor(rnd()*(n+1))];emitS(0,{x:p.x,y:p.y+.15,z:p.z,vy:.35,s:.14,s2:.5,c:0x3a2a20,c2:0x2a2420,a:.26,life:1.5,lift:.15,turb:.4});}
+    if(rnd()<dt*2*out){const p=pts[Math.floor(rnd()*(n+1))];spark(p.x,p.y+.06,p.z,0xffc060,1);}
+    tk-=dt;if(tk<=1e-6&&f.life>.25){tk+=FTM.trailTick;for(const e of enemies){if(e.dead||e.fake||e.fly)continue;if(s6PolyD2(e.x,e.z,pts)<(HW+.07)**2)hit(e);}}},
+    ()=>sea.free(),{mats,geos});
+  return root;}
+
+/* ---- M4 Ring of Ruin ---- */
+function ftmRing(S,t0){const K=ftmKit(),E=K.E,m=S.mats,D=S.K.deb,R=new THREE.Group(),T=new THREE.Group(),Sp=new THREE.Group();S.W.add(R);R.add(T);T.add(Sp);R.position.y=.12;
+  const bm=new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*9},uA:{value:0},uH:{value:0}},vertexShader:EB_Q_VS,fragmentShader:FTM_BAND_FS,transparent:true,depthWrite:false});
+  const gm=new THREE.ShaderMaterial({uniforms:{uA:{value:0},uC:{value:new THREE.Color(0xff6a14)}},vertexShader:FTM_NV_VS,fragmentShader:FTM_GLOW_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+  const band=new THREE.Mesh(K.torus,bm),glo=new THREE.Mesh(K.torusG,gm);band.renderOrder=5;glo.renderOrder=7;Sp.add(band,glo);
+  /* flames streaming back from the band as it turns (it turns so that a point at angle th moves towards (sin th, 0, -cos th)) */
+  const fS=ebFlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.6,sp:3.4,h:.5,w:.1}),fG=ebFlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.5,sp:2.8,h:.6,w:.1,add:true}),F=[],up=V3(0,1,0);
+  for(let i=0;i<16;i++){const th=i/16*6.283+rnd()*.2,ax=V3(-Math.sin(th)*.9,.42,Math.cos(th)*.9).normalize(),q=new THREE.Quaternion().setFromUnitVectors(up,ax);
+    const a=new THREE.Mesh(E.tuft,fS),b=new THREE.Mesh(E.tuft,fG);a.quaternion.copy(q);b.quaternion.copy(q);a.renderOrder=5;b.renderOrder=6;Sp.add(a,b);F.push({a,b,th,h:.26+rnd()*.14,w:.075+rnd()*.03,ph:rnd()*6});}
+  const gr=ftmRingMat(.93,.09),gd=new THREE.Mesh(E.disc,gr);gd.position.y=.04;gd.renderOrder=4;S.W.add(gd);m.push(bm,gm,fS,fG,gr);
+  /* the rocks leave the funnel for the ring (each keeps where it is in the world, then falls out to its place) */
+  const rocks=D.map((b,i)=>{Sp.attach(b.m);b.ring=true;b.ft=t0+.4+i*.012;return{b,p0:b.m.position.clone(),th:i/D.length*6.283+.13,t0:t0+i*.012};});
+  let spin=0,pulse=0,next=t0+.3,landed=false,tl=0;ftmLog({ev:'ring'});
+  const hitAll=(c,Sz)=>{pulse=1;let n=0;for(const e of smNear(c.x,c.z,FTM.ringR*Sz,null,99,true)){if(!ftmHurt(S,e,S.P*FTM.ring*S.a[3],'ringHit'))continue;n++;const p=tpos2(e);
+      ebPuff(p.x,p.y,p.z,false,.17);flash(p.x,p.y,p.z,0xffa040,.22,.09);sprayP(1,p.x,p.y,p.z,8,{c:0xfff0a0,c2:0xff3a00,sp:1.6,up:.5,s:.05,s2:0,life:.35,g:3});}
+    ftmLog({ev:'ringTick',n,x:c.x,z:c.z});};
+  const tick=(dt,tt,c,Sz)=>{const TC=S.TC,tk=ease(SMS(tt,TC-1,TC-.6)),ck=SMS(tt,TC-.45,TC),R0=FTM.ringR*Sz,r=Math.max(.05,R0*(1-.3*tk)*(1-.94*Math.pow(ck,1.4)));
+    const om=3+11*tk+16*ck;spin+=dt*om;Sp.rotation.y=spin;T.rotation.x=tk*Math.PI/2;R.rotation.y+=dt*(2.5+4*tk)*tk;R.position.y=.12+(Math.max(.55,r+.1)-.12)*tk;
+    pulse=Math.max(0,pulse-dt*3.5);const on=SMS(tt,t0+.12,t0+.4);
+    bm.uniforms.uT.value+=dt;bm.uniforms.uA.value=on;bm.uniforms.uH.value=.12+.45*pulse+.35*ck;band.scale.setScalar(r);glo.scale.setScalar(r);gm.uniforms.uA.value=on*(.45+.5*pulse+.4*ck);
+    gr.uniforms.uT.value+=dt*1.4;gr.uniforms.uA.value=.85*on*(1-tk)*(.85+.15*Math.sin(tt*9));gd.scale.setScalar(r*1.02);gd.rotation.y=-spin*.5;
+    fS.uniforms.uT.value+=dt;fG.uniforms.uT.value+=dt;fS.uniforms.uA.value=.95*on;fG.uniforms.uA.value=.55*on;
+    for(const q of F){const fl=1+.2*Math.sin(tt*12+q.ph)+.35*pulse,hh=(q.h*(1+.15*tk)*fl+.001)*on*(1-.6*ck);q.a.position.set(Math.cos(q.th)*r,0,Math.sin(q.th)*r);q.b.position.copy(q.a.position);
+      q.a.scale.set(q.w,hh,q.w);q.b.scale.set(q.w*1.35,hh*1.2,q.w*1.35);}
+    /* the rocks: falling out to the ring, then riding it */
+    for(const q of rocks){const b=q.b,k=SMS(tt,q.t0,q.t0+.36),x=Math.cos(q.th)*r,z=Math.sin(q.th)*r;
+      if(k<1){const hk=1-(1-k)*(1-k),vk=k*k;b.m.position.set(q.p0.x+(x-q.p0.x)*hk,q.p0.y*(1-vk)+Math.sin(k*Math.PI)*.12,q.p0.z+(z-q.p0.z)*hk);
+        if(!b.out&&rnd()<.5){const w=b.m.getWorldPosition(new THREE.Vector3());emit(1,{x:w.x,y:w.y,z:w.z,vx:0,vy:.2,vz:0,s:.07,s2:0,c:0xffc060,c2:0xb01a00,life:.25});}}
+      else b.m.position.set(x,0,z);b.m.rotation.x+=dt*6;b.m.visible=!b.out;}
+    if(!landed&&tt>=t0+.38){landed=true;tl=tt;camShake=Math.max(camShake,.04);for(let i=0;i<12;i++){const a=i/12*6.283;sprayP(1,c.x+Math.cos(a)*r,c.y+.08,c.z+Math.sin(a)*r,4,{c:0xfff0a0,c2:0xff3a00,sp:1,up:1.2,s:.05,s2:0,life:.35,g:3});}}
+    /* fire thrown off the band as it turns (along the ground while it lies flat) */
+    if(on>.5){const n=Math.round(5+8*ck),wp=new THREE.Vector3();for(let i=0;i<n;i++){const th=rnd()*6.283;wp.set(Math.cos(th)*r,0,Math.sin(th)*r);Sp.localToWorld(wp);
+      emit(1,{x:wp.x,y:wp.y,z:wp.z,vx:(rnd()-.5)*.3,vy:.5+rnd()*.7,vz:(rnd()-.5)*.3,s:.08+rnd()*.06,s2:.01,c:rnd()<.3?0xffe080:0xff8a20,c2:0x8a1400,a:.85,life:.25+rnd()*.2,turb:.8});}}
+    if(tt>=next&&tt<TC-.2){next+=FTM.ringTick;hitAll(c,Sz);
+      if(tk<.5)for(let i=0;i<24;i++){const a=rnd()*6.283;emit(1,{x:c.x+Math.cos(a)*r,y:c.y+.1,z:c.z+Math.sin(a)*r,vx:Math.cos(a)*.4,vy:1+rnd()*.9,vz:Math.sin(a)*.4,s:.1,s2:.01,c:0xfff0a0,c2:0xc03000,life:.35,turb:1});}}};
+  const implode=(c,Sz)=>{R.visible=false;gd.visible=false;const y=c.y+.55;flash(c.x,y,c.z,0xfff4d0,.5,.1);ebFireRing(c.x,c.z,FTM.ringR*Sz*1.25,.55);camShake=Math.max(camShake,.1);
+    sprayP(1,c.x,y,c.z,50,{c:0xfff0b0,c2:0xff3a00,sp:3.2,up:.9,s:.07,s2:0,life:.5,drag:1.6});
+    for(const e of smNear(c.x,c.z,FTM.ringR*Sz,null,99,true))ftmHurt(S,e,S.P*FTM.ringIn*S.a[3],'ringIn');};
+  return{tick,implode,R,Sp,rocks};}
+/* the rocks flung out of the collapse, burning, splashing fire where they land */
+function ftmFling(S,Sz){const K=ftmKit(),v0=new THREE.Vector3();for(const b of S.K.deb){if(b.out)continue;const A=b.m.getWorldPosition(new THREE.Vector3());b.m.getWorldScale(v0);b.out=true;b.m.visible=false;
+  const s0=Math.max(.6,v0.x)*1.5,me=new THREE.Mesh(b.m.geometry,K.hot);me.position.copy(A);me.scale.setScalar(s0);scene.add(smTag(me));
+  const a=rnd()*6.283,h=(1.1+rnd()*1.4)*Sz,v=V3(Math.cos(a)*h,2.2+rnd()*1.6,Math.sin(a)*h),rs=(rnd()-.5)*14;let down=false;
+  addFx(me,1.9,(f,dt)=>{if(!down){v.y-=9.5*dt;me.position.addScaledVector(v,dt);me.rotation.x+=rs*dt;me.rotation.z+=rs*.7*dt;const p=me.position;
+      emit(1,{x:p.x,y:p.y,z:p.z,vx:0,vy:.3,vz:0,s:.11,s2:0,c:0xffc060,c2:0xb01a00,life:.3});if(rnd()<.35)emitS(0,{x:p.x,y:p.y,z:p.z,vx:0,vy:.4,vz:0,s:.12,s2:.45,c:0x3a1a0c,c2:0x100806,a:.4,life:.8,turb:.3});
+      const fl=gy(p.x,p.z);if(p.y<fl+.04&&v.y<0){p.y=fl+.04;down=true;sprayP(1,p.x,fl+.05,p.z,10,{c:0xfff0a0,c2:0xff3a00,sp:1.2,up:1.4,s:.06,s2:0,life:.4,g:4});ebPuff(p.x,fl+.12,p.z,false,.16);nsDecal(p.x,p.z,.17,0x140804,.7,2.5,{fout:1});}}
+    if(f.life<.5)me.scale.setScalar(Math.max(.01,s0*f.life/.5));});}}
+
+/* ---- M5 Eye of the Inferno ---- */
+function ftmEyeTick(S,dt,tt,c,Sz,k){const TC=S.TC,t0=TC-FTM.markT;if(tt<t0)return;const G=S.K.g,K=S.K;
+  if(!S.inhale){S.inhale=true;ftmInRing(c.x,c.z,1.9*Sz,FTM.markT+.04);ftmLog({ev:'inhale'});}
+  const e1=SMS(tt,t0,t0+.14),ce=ease(SMS(tt,t0,TC));S.spin=1-3.4*e1-2.2*SMS(tt,TC-.2,TC);S.pin=SMS(tt,t0,TC-.05);
+  G.scale.x*=1-.6*ce;G.scale.z*=1-.6*ce;G.scale.y*=1-.22*ce;G.position.x+=(rnd()-.5)*.05*ce;G.position.z+=(rnd()-.5)*.05*ce;
+  K.mIn.uniforms.uA.value=Math.min(1,.85*k+.3*ce);K.mGl.uniforms.uA.value=.3*k+.6*ce;K.mSm.uniforms.uA.value=.45*k*(1-.4*ce);
+  /* flames and smoke rush in to the heart */
+  const cy=c.y+.55;for(let i=0;i<10;i++){const a=rnd()*6.283,r=(1+rnd()*1)*Sz,y=c.y+.08+rnd()*1.5,L=.24+rnd()*.14,x=c.x+Math.cos(a)*r,z=c.z+Math.sin(a)*r;
+    emit(1,{x,y,z,vx:(c.x-x)/L,vy:(cy-y)/L,vz:(c.z-z)/L,s:.1+rnd()*.06,s2:.03,c:rnd()<.4?0xfff0a0:0xff8a20,c2:0xff4a00,a:.9,life:L});}
+  if(rnd()<.7){const a=rnd()*6.283,r=1.3*Sz,x=c.x+Math.cos(a)*r,z=c.z+Math.sin(a)*r;emitS(0,{x,y:c.y+.4+rnd()*.8,z,vx:(c.x-x)*2.2,vy:.3,vz:(c.z-z)*2.2,s:.3,s2:.12,c:0x3a2418,c2:0x1a1210,a:.4,life:.45,drag:0,turb:.2});}
+  /* the pull marks its foes */
+  const PR=FTM.pullR*Sz;for(const e of enemies){if(e.dead||e.fake||e.fly||S.marks.has(e))continue;if(ftmD2(e,c)<PR*PR){S.marks.set(e,ftmMark(S,e));ftmLog({ev:'mark',e});}}}
+/* a ring of fire at a marked foe's feet; when the eye bursts it erupts */
+function ftmMark(S,e){const K=ftmKit(),E=K.E,g=smTag(new THREE.Group());scene.add(g);const rm=ftmRingMat(.78,.16),me=new THREE.Mesh(E.disc,rm);me.position.y=.05;me.scale.setScalar(.34);me.renderOrder=4;g.add(me);
+  const fM=S.fM||(S.fM=[ebFlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.6,sp:3.2,h:.5,w:.12}),ebFlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.5,sp:2.6,h:.6,w:.12,add:true})]);if(S.mats.indexOf(fM[0])<0)S.mats.push(fM[0],fM[1]);
+  const F=[];for(let i=0;i<6;i++){const a=i/6*6.283,x=Math.cos(a)*.27,z=Math.sin(a)*.27,f1=new THREE.Mesh(E.tuft,fM[0]),f2=new THREE.Mesh(E.tuft,fM[1]);f1.position.set(x,0,z);f2.position.set(x,0,z);f1.renderOrder=5;f2.renderOrder=6;g.add(f1,f2);F.push({f1,f2,ph:rnd()*6});}
+  /* it erupts with the eye (ex counts from then); if the eye never comes for it (its foe died first) it gutters out (fd) */
+  let t=0,ex=-1,fd=-1,lx=e.x,lz=e.z;const M={erupt(){ex=0;}};
+  addFx(g,3,(f,dt)=>{t+=dt;if(!e.dead){lx=e.x;lz=e.z;}g.position.set(lx,gy(lx,lz),lz);rm.uniforms.uT.value+=dt*1.6;fM[0].uniforms.uT.value+=dt*.5;fM[1].uniforms.uT.value+=dt*.5;
+    const on=SMS(t,0,.15);let H=.2,A=on;if(ex>=0){ex+=dt;H=.2+1.1*SMS(ex,0,.12)*(1-SMS(ex,.18,.5));A=on*(1-SMS(ex,.3,.55));if(ex>.56)f.life=0;}
+    else if(S.done||e.dead){fd=fd<0?0:fd+dt;A=on*Math.max(0,1-fd/.25);if(fd>=.25)f.life=0;}
+    rm.uniforms.uA.value=A;rm.uniforms.uR.value=.4+.38*on+.15*(ex>=0?SMS(ex,0,.3):0);fM[0].uniforms.uA.value=.95;fM[1].uniforms.uA.value=.55;
+    for(const q of F){const h=H*(1+.25*Math.sin(t*13+q.ph))*A+.001;q.f1.scale.set(.06,h,.06);q.f2.scale.set(.08,h*1.15,.08);}},null,{mat:rm});
+  return M;}
+/* the eye bursts */
+function ftmEye(S,c,Sz){const x=c.x,z=c.z,y=c.y,K=S.K;S.gone=true;K.g.visible=false;ftmLog({ev:'eye'});
+  for(const e of smNear(x,z,FTM.eyeR*Sz,null,99,true))ftmHurt(S,e,S.P*FTM.eye*S.a[4],'eyeHit');
+  for(const [e,mk] of S.marks){mk.erupt();if(e.dead)continue;const p=tpos2(e);if(ftmHurt(S,e,S.P*FTM.mark*S.a[4],'markHit')){ebBall(p.x,p.y+.1,p.z,.28,.55);sprayP(1,p.x,p.y,p.z,14,{c:0xfff0a0,c2:0xff3a00,sp:1.2,up:2,s:.06,s2:0,life:.45,g:3});}}
+  flash(x,y+.7,z,0xffffff,.6,.1);flash(x,y+.6,z,0xff8a30,1.3,.3);camShake=Math.max(camShake,.2);
+  myFireball(x,y+.6,z,.95*Sz,1.6,1);for(let i=0;i<4;i++){const a=i/4*6.283+rnd()*.8,r=.6*Sz;myFireball(x+Math.cos(a)*r,y+.3,z+Math.sin(a)*r,(.4+rnd()*.12)*Sz,1.1+rnd()*.4,1.3);}
+  myFireRing(x,z,2.9*Sz,.95);ebFireRing(x,z,2.3*Sz,.75);shockwave(x,z,2.4*Sz,0xff6a20,.8,0x1a0602);
+  nsSeamFx(x,z,1.9*Sz,16,0xff7a20,0x2a0802,.08,5);nsDecal(x,z,1.15*Sz,0x120604,.85,6);
+  sprayP(1,x,y+.5,z,120,{c:0xfff0b0,c2:0xff3a00,sp:5,up:4,s:.09,s2:.01,life:1,g:5,drag:.4,r:.4});
+  for(let i=0;i<22;i++){const a=rnd()*6.283,r=rnd()*.5;emitS(0,{x:x+Math.cos(a)*r,y:y+.6+rnd()*1.4,z:z+Math.sin(a)*r,vx:Math.cos(a)*.9,vy:1.2+rnd()*2.2,vz:Math.sin(a)*.9,s:.8,s2:2.6,c:0x4a2414,c2:0x0e0806,a:.55,life:2.8+rnd()*1.2,lift:.5,drag:.9,turb:.5});}
+  for(let i=0;i<16;i++){const a=rnd()*6.283;emitS(1,{x:x+Math.cos(a)*.3,y:y+.4+rnd()*.8,z:z+Math.sin(a)*.3,vx:Math.cos(a)*(2+rnd()*3),vy:1+rnd()*2.5,vz:Math.sin(a)*(2+rnd()*3),s:.55,s2:1.6,c:0xffe090,c2:0xff3000,a:.85,life:.55+rnd()*.35,drag:2.4,turb:.6});}
+  /* the eye erupts upward: a column of fire bursting out of where the funnel stood, flaring wide at its crown and burning away */
+  const pg=s6FunnelGeo(),pS=s6FlameMat({vs:S6_TWIST_VS,e:0,sx:5,sy:2,sp:5,tw:3,h:.3,w:.14}),pG=s6FlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.6,sp:4,tw:2,h:.45,w:.14,add:true}),pc=smTag(new THREE.Group());
+  const p1=new THREE.Mesh(pg,pS),p2=new THREE.Mesh(pg,pG);p1.renderOrder=5;p2.renderOrder=6;p2.scale.set(1.25,1.05,1.25);pc.add(p1,p2);pc.position.set(x,y,z);scene.add(pc);
+  let lt=0;addFx(pc,.85,(f,dt)=>{lt+=dt;const g1=1-Math.pow(1-Math.min(1,lt/.3),3),out=1-SMS(lt,.35,.85);blmLight(x,y+.9,z,1.8*Math.max(0,1-lt/.6),4.5,0xff8a30);
+    pc.scale.set(Sz*(.5+1.1*g1)*(1+.4*SMS(lt,.3,.85)),Sz*(.4+1.5*g1)*(1-.35*SMS(lt,.4,.85)),Sz*(.5+1.1*g1)*(1+.4*SMS(lt,.3,.85)));pc.rotation.y-=dt*7;
+    pS.uniforms.uT.value+=dt*1.5;pG.uniforms.uT.value+=dt*1.5;pS.uniforms.uA.value=.95*out;pG.uniforms.uA.value=.6*out;},null,{mats:[pS,pG],geos:[pg]});}
+
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
