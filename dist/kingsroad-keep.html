@@ -14146,6 +14146,13 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Cataclysm masteries, redesigned',d:'28 Oct',v:'v423',li:[
+    'Drawn Down: a pillar rises right under the toughest foe inside the rune.',
+    'Falling Sky: while the rune charges, shards break off it and fall as obsidian meteors onto the foes below.',
+    'Obsidian Chains: a rising pillar chains the foes next to it until the collapse, which then hits them at full strength.',
+    'Sundered: foes the collapse hits take more from physical, piercing and siege hits for 5 seconds.',
+    'World Breaker: the collapse tears the pillars out of the ground; they spin into the sky and slam down on the toughest foes.',
+    'The pillars and the collapse now burst in 3D instead of flat flashes, and the collapse no longer hides the whole field.']},
   {t:'Spatial Loop masteries, redesigned',d:'28 Oct',v:'v422',li:[
     'Long Fold: the fold always reaches as far back as it can, and its seam shows as a curtain of folded light.',
     'Shear: foes the fold sends back are torn by the seam, as space shatters where they go in and come out.',
@@ -28444,6 +28451,179 @@ const LPM_OLD=castLoop;
 castLoop=function(t,list,P,o){return t?lpmCast(t,list||[],P,o,lpmC(o)):LPM_OLD.apply(this,arguments);};
 const LPM_HOP=foldHop;
 foldHop=function(e,d0){const b=e.dist;LPM_HOP(e,d0);if(LPM.cur&&LPM.cur.hop&&e.dist<b-.01)LPM.cur.hop(e);};
+/* ================= Cataclysm's masteries (v423), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: the sky breaks the earth. A rune opens in the sky over the thickest knot of foes, the ground cracks under it, black obsidian
+   pillars erupt, and then the sky rune falls into the ground in one battlefield-shaking collapse that hurls the foes into the air. Design
+   space: the sky rune and its charge (2.2s of warning), the pillars (where they rise, what they do while they stand, what becomes of them),
+   the collapse and the foes it throws.
+   - M1 Drawn Down (the pillars; behaviour change: 'what if a pillar rose where the foe stands?'): the first of the outer pillars rises
+     right under the toughest foe inside the rune (where it is when the pillar rises) instead of at a random spot.
+   - M2 Falling Sky (the charge; new phase: 'what if the sky started breaking before the rune fell?'): while the rune charges, four shards
+     break off it and fall as obsidian meteors onto different foes inside the rune (0.35s apart): 70% within 0.5 tiles each, a 3D void burst.
+   - M3 Obsidian Chains (the standing pillars; cosmetic made real: 'what if the pillars held them?'): the pillars only stood there until the
+     collapse. Now a pillar that rises chains every ground foe within 0.9 tiles of it with links of black glass: held until the collapse
+     (Resolve applies; bosses 40%), and the collapse hits a chained foe as if it stood at the centre (no falloff).
+   - M4 Sundered (after the collapse; interaction: 'what if the towers could finish what the collapse broke?'): foes the collapse hits are
+     Sundered for 5s, shards of obsidian sticking out of them: physical, piercing and siege hits (archers, ballistas, cannons, soldiers)
+     deal 25% more to them.
+   - M5 World Breaker (the finale; signature payoff: 'what if the pillars came back down?'): the collapse tears the pillars out of the
+     ground instead of shattering them; they spin up into the sky, hang, and slam down one after another (0.12s apart) onto the toughest
+     foes within 4.5 tiles, a different foe each while there are enough: 35% within 0.75 tiles each, a 3D void explosion.
+   Percentages are of the scroll's power (pillars 200% each, the cracked ground 100%, the collapse 300% falling to half at the edge).
+   Every Cataclysm cast now runs ccmCast/ccmExplode (copies of castCataclysm/cataExplode with the mastery hooks); even at Mastery 0 the
+   pillars and the collapse burst in 3D (cfmBoom, void) instead of flat flashes and a camera-facing ring. Power on the Epic ladder
+   (tests/sm-ladder.js, 5 runs) with the hidden factors below: 1.10 / 1.22 / 1.37 / 1.49 / 1.74
+   against 1.094 / 1.234 / 1.35 / 1.522 / 1.742. CCM.dbg logs the events. */
+const CCM={dbg:null,dd:1,fs:.7,fsN:4,fsR:.5,ch:.9,su:.25,suT:5,wb:.35,wbR:.75,wbReach:4.5};
+const ccmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='cataclysm'&&c.L?c:null;};
+const ccmLog=d=>{if(CCM.dbg){d.t=time;CCM.dbg.push(d);}};
+SM_D.cataclysm=[
+  {n:'Drawn Down',d:'A pillar rises right under the toughest foe inside the rune instead of at a random spot.'},
+  {n:'Falling Sky',d:'While the rune charges, 4 shards break off it and fall as obsidian meteors onto foes inside: {70}% each.'},
+  {n:'Obsidian Chains',d:'A rising pillar chains the ground foes next to it until the collapse (Resolve applies), and the collapse hits them at full strength.'},
+  {n:'Sundered',d:'Foes the collapse hits are Sundered for 5s: physical, piercing and siege hits deal {25}% more to them.'},
+  {n:'World Breaker',d:'The collapse tears the pillars out of the ground; they spin into the sky and slam down on the toughest foes nearby: {35}% each.'}];
+SMF.cataclysm={m:1.5};
+SMA.cataclysm=[1,1,1,1,1];
+SMG.cataclysm=[1,1,1.06,1.19,1.15];
+{const h0=hurt;hurt=function(e,amt,kind,o){if(e&&e.ccmSu>time&&!e.dead&&(kind==='phys'||kind==='pierce'||kind==='siege'))amt*=1+CCM.su*(e.ccmSuA||1);return h0.call(this,e,amt,kind,o);};}
+const ccmToughest=(L,n)=>L.slice().sort((a,b)=>b.hp-a.hp).slice(0,n);
+/* an obsidian pillar or shard: a jagged black column with a glowing crown */
+function ccmRock(h,rad,mats,geos){const g=new THREE.Group(),g1=jitterGeo(new THREE.CylinderGeometry(rad*.55,rad,h,6,3),rad*.6),g2=jitterGeo(new THREE.ConeGeometry(rad*.7,rad*1.6,5),rad*.4);geos.push(g1,g2);
+  const m1=M(0x0c0a10,{emissive:0x2a0a40,emissiveIntensity:.5}),m2=M(0x120a1c,{emissive:0x9a40ff,emissiveIntensity:1});mats.push(m1,m2);const a=new THREE.Mesh(g1,m1),b=new THREE.Mesh(g2,m2);b.position.y=h/2+rad*.6;g.add(a,b);
+  const gl=new THREE.MeshBasicMaterial({color:0x8a30ff,transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(gl);const gm=new THREE.Mesh(ico(1,1),gl);gm.scale.set(rad*1.6,h*.62,rad*1.6);g.add(gm);return g;}
+/* M2: a shard of the sky rune falling as an obsidian meteor onto e */
+function ccmShard(from,e,fn){const mats=[],geos=[],g=smTag(ccmRock(.34,.07,mats,geos));g.position.copy(from);scene.add(g);const to=new THREE.Vector3(),prev=new THREE.Vector3();let tt=0,done=false;const T=.42;
+  addFx(g,T+.05,(f,dt)=>{tt+=dt;if(done)return;if(!e.dead){to.set(e.x,gy(e.x,e.z)+.1,e.z);}const k=Math.min(1,tt/T),ke=k*k;prev.copy(g.position);g.position.lerpVectors(from,to,ke);g.rotation.x+=dt*9;g.rotation.z+=dt*6;
+    for(let i=0;i<5;i++)emit(1,{x:g.position.x+(rnd()-.5)*.1,y:g.position.y+(rnd()-.5)*.1,z:g.position.z+(rnd()-.5)*.1,vx:(prev.x-g.position.x)*4,vy:(prev.y-g.position.y)*4,vz:(prev.z-g.position.z)*4,s:.08+rnd()*.06,s2:.01,c:rnd()<.3?0xffffff:0xc070ff,c2:0x3a0a6a,a:.9,life:.3,turb:.5});
+    emitS(0,{x:g.position.x,y:g.position.y,z:g.position.z,vy:.2,s:.1,s2:.3,c:0x2a1a3a,c2:0x140c18,a:.5,life:.6,turb:.4});
+    if(k>=1){done=true;g.visible=false;const x=to.x,z=to.z;cfmBoom(x,gy(x,z)+.2,z,.32,{pal:'void',lobes:4,skirt:3,T:.7,shake:.05});debris(x,z,6);fn(x,z);}},null,{mats,geos});}
+/* M3: a chain of black glass links from a pillar to a foe, until the collapse (or the foe dies) */
+function ccmChain(pl,e,S){const g=smTag(new THREE.Group());scene.add(g);const n=7,mats=[],G=new THREE.TorusGeometry(.05,.016,5,10),m=M(0x0c0a10,{emissive:0x7a2aff,emissiveIntensity:.8});mats.push(m);const links=[];
+  for(let i=0;i<n;i++){const l=new THREE.Mesh(G,m);g.add(l);links.push(l);}const a=new THREE.Vector3(),b=new THREE.Vector3(),d=new THREE.Vector3();let tt=0;
+  addFx(g,4,(f,dt)=>{tt+=dt;if(S.collapsed||e.dead){f.life=Math.min(f.life,.01);if(S.collapsed&&!e.dead){const p=tpos2(e);sprayP(1,p.x,p.y,p.z,8,{c:0xe0b0ff,c2:0x5a10b0,sp:1.6,s:.04,s2:0,life:.35});}g.visible=false;return;}
+    const pp=pl.g.position;a.set(pp.x,pp.y+pl.h*.55,pp.z);const p=tpos2(e);b.set(p.x,p.y,p.z);d.subVectors(b,a);const k=Math.min(1,tt/.15);
+    links.forEach((l,i)=>{const u=(i+.5)/n*k;l.position.copy(a).addScaledVector(d,u);l.position.y-=Math.sin(u*Math.PI)*.12;l.lookAt(b);l.rotateX(Math.PI/2);l.rotation.z+=(i%2)*1.57;});
+    if(rnd()<.3){const u=rnd();emit(1,{x:a.x+d.x*u,y:a.y+d.y*u,z:a.z+d.z*u,vy:.2,s:.04,s2:0,c:0xc080ff,c2:0x3a0a6a,life:.3});}},null,{mats,geos:[G]});}
+/* M4: shards of obsidian stuck in a sundered foe for 5s */
+function ccmSunder(e){const g=smTag(new THREE.Group());scene.add(g);const mats=[],m=M(0x0c0a10,{emissive:0x9a40ff,emissiveIntensity:.9});mats.push(m);const sh=[];
+  for(let i=0;i<4;i++){const s=new THREE.Mesh(cone(.035,.16,4),m);const a=i/4*6.28+rnd()*.5;s.position.set(Math.cos(a)*.13,(rnd()-.3)*.18,Math.sin(a)*.13);s.rotation.set(Math.sin(a)*1.2,0,-Math.cos(a)*1.2);g.add(s);sh.push(s);}
+  addFx(g,CCM.suT,(f,dt)=>{if(e.dead||!(e.ccmSu>time)){f.life=0;return;}const p=tpos2(e);g.position.set(p.x,p.y,p.z);g.rotation.y+=dt*.6;const k=Math.min(1,f.life/.4);g.scale.setScalar(Math.max(.01,k));
+    if(rnd()<.15)emit(1,{x:p.x+(rnd()-.5)*.2,y:p.y,z:p.z+(rnd()-.5)*.2,vy:.3,s:.04,s2:0,c:0xc080ff,c2:0x3a0a6a,life:.35});},null,{mats});}
+/* M5: the pillars torn out of the ground, thrown up spinning, and slammed down on foes one after another */
+function ccmWorldBreaker(cx,cz,pillars,P,o,A,S){const up=pillars.filter(pl=>pl.up&&!pl.gone);if(!up.length)return;
+  const pool=ccmToughest(enemies.filter(e=>!e.dead&&!e.fake&&Math.hypot(e.x-cx,e.z-cz)<CCM.wbReach),up.length);const mats=[],geos=[];
+  up.forEach((pl,i)=>{pl.gone=true;pl.g.visible=false;const pp=pl.g.position.clone(),h=pl.h,g=smTag(ccmRock(h,.18,mats,geos));g.position.set(pp.x,Math.max(.1,pp.y+h/2),pp.z);scene.add(g);
+    const tg=pool.length?pool[i%pool.length]:null,top=new THREE.Vector3(pp.x+(pp.x-cx)*.3,3.2+rnd()*1.2,pp.z+(pp.z-cz)*.3),from=g.position.clone(),spin=smV((rnd()-.5)*8,(rnd()-.5)*6,(rnd()-.5)*8);
+    const tHang=.55+.2,tFall=tHang+i*.12,T2=tFall+.22;let tt=0,hit=false;const aim=new THREE.Vector3(),fall0=new THREE.Vector3();
+    debris(pp.x,pp.z,8);sprayP(0,pp.x,.15,pp.z,14,{c:0x6a5a48,c2:0x2e2620,sp:1.3,up:.6,flat:true,r:.3,s:.2,s2:.5,a:.55,life:1,turb:.8});
+    addFx(g,T2+.1,(f,dt)=>{tt+=dt;if(hit)return;
+      if(tt<.55){const k=SMS(tt,0,.55);g.position.lerpVectors(from,top,k);g.rotation.x+=spin.x*dt;g.rotation.y+=spin.y*dt;g.rotation.z+=spin.z*dt;if(rnd()<.5)emit(1,{x:g.position.x,y:g.position.y-h*.3,z:g.position.z,vy:-.3,s:.07,s2:0,c:0xc070ff,c2:0x3a0a6a,life:.4});}
+      else if(tt<tFall){g.position.y=top.y+Math.sin(tt*6+i)*.05;g.rotation.y+=dt*1.5;g.rotation.x*=.9;g.rotation.z*=.9;if(tg&&!tg.dead)aim.set(tg.x,0,tg.z);else if(!aim.lengthSq())aim.set(cx+(rnd()-.5)*2,0,cz+(rnd()-.5)*2);fall0.copy(g.position);}
+      else{if(tg&&!tg.dead)aim.set(tg.x,0,tg.z);const k=Math.min(1,(tt-tFall)/.22),k2=k*k;g.position.set(fall0.x+(aim.x-fall0.x)*k2,fall0.y+(gy(aim.x,aim.z)+h*.35-fall0.y)*k2,fall0.z+(aim.z-fall0.z)*k2);g.rotation.set(0,g.rotation.y,0);
+        for(let j=0;j<4;j++)emit(1,{x:g.position.x+(rnd()-.5)*.2,y:g.position.y+h*.3,z:g.position.z+(rnd()-.5)*.2,vy:2,s:.09,s2:.01,c:0xe0b0ff,c2:0x5a10b0,life:.3});
+        if(k>=1){hit=true;g.visible=false;const x=aim.x,z=aim.z,y=gy(x,z);cfmBoom(x,y+.25,z,.55,{pal:'void',lobes:5,skirt:5,T:.95,shake:.12});debris(x,z,14);sprayP(1,x,y+.3,z,40,{c:0xffffff,c2:0x8a30ff,sp:3.5,up:1,s:.06,s2:0,life:.6,g:3,drag:.8});
+          const H=[];for(const q of enemies.slice()){if(q.dead||q.fake)continue;if((q.x-x)**2+(q.z-z)**2<CCM.wbR*CCM.wbR){hurt(q,P*CCM.wb*A[4],'magic',smO(o));H.push(q);}}ccmLog({ev:'wb',i,e:tg,x,z,L:H});}}},null,{});});
+  addFx(new THREE.Group(),3,()=>{},null,{mats,geos});}
+
+function ccmCast(t,c,P,o,C){const L=C?C.L:0,A=C?C.a:[1,1,1,1,1],S={chained:new Set(),collapsed:false,shot:0,fsUsed:new Set()};ccmLog({ev:'cast',x:c.x,z:c.z});
+  const cx=c.x,cz=c.z,Rr=1.9,root=new THREE.Group();scene.add(root);cineLock=Math.max(cineLock,2.4);vigTarget=Math.max(vigTarget,.35);darkTarget=Math.max(darkTarget,.35);
+  sprayP(1,t.x,t.topY+.3,t.z,24,{c:0xe0b0ff,c2:0x6a10c0,sp:1.5,s:.05,s2:0,life:.4});
+  const cp=camera.position,SY=3.6,kT=(cp.y-SY)/cp.y,SX=cp.x+(cx-cp.x)*kT,SZ=cp.z+(cz-cp.z)*kT,sS=1-kT;
+  const sky=makeRune(Rr*1.25*sS,0xb060ff,{star:8,step:3,glyphs:42}),sky2=makeRune(Rr*.62*sS,0xff90ff,{star:5,step:2,glyphs:18});
+  const gRune=makeRune(Rr*1.05,0xa050ff,{star:8,step:3,glyphs:36,fill:.18,fillCol:0x2a0a40,fillNormal:true});gRune.position.set(cx,.045,cz);gRune.scale.setScalar(.01);root.add(gRune);
+  sky.position.set(SX,SY,SZ);sky2.position.set(SX,SY-.02,SZ);root.add(sky,sky2);sky.scale.setScalar(.01);sky2.scale.setScalar(.01);
+  const colG=new THREE.CylinderGeometry(.02,.05,1,6,1,true);colG.translate(0,.5,0);const colM=new THREE.MeshBasicMaterial({color:0xd090ff,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false});
+  const col=new THREE.Mesh(colG,colM);col.position.set(t.x,t.topY,t.z);const cdv=new THREE.Vector3(SX-t.x,SY-t.topY,SZ-t.z);col.scale.set(1,cdv.length(),1);col.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),cdv.normalize());root.add(col);
+  const cracks=crackNet(cx,cz,Rr,10,0xd070ff);cracks.geometry.setDrawRange(0,0);root.add(cracks);
+  const gdG=new THREE.CircleGeometry(Rr,48);gdG.rotateX(-Math.PI/2);const gdM=new THREE.MeshBasicMaterial({color:0x7a28d0,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});
+  const gd=new THREE.Mesh(gdG,gdM);gd.position.set(cx,.03,cz);root.add(gd);
+  const pgeos=[],pillars=[];for(let i=0;i<8;i++){const a=i/8*6.28+rnd()*.5,r=i===0?0:Rr*(.3+rnd()*.55),h=1.1+rnd()*1,rad=.14+rnd()*.12,pg=new THREE.Group();
+    {const g1=jitterGeo(new THREE.CylinderGeometry(rad*(.45+rnd()*.3),rad,h,5+Math.floor(rnd()*3),4),rad*.7),g2=jitterGeo(new THREE.ConeGeometry(rad*(.5+rnd()*.3),rad*(.9+rnd()*.9),5),rad*.5);pgeos.push(g1,g2);
+      const m1=new THREE.Mesh(g1,M(0x0c0a10,{emissive:0x2a0a40,emissiveIntensity:.45}));m1.position.y=h/2;m1.castShadow=true;pg.add(m1);const m2=new THREE.Mesh(g2,M(0x0c0a10,{emissive:0x9a40ff,emissiveIntensity:.9}));m2.position.set((rnd()-.5)*rad*.4,h+rad*.5,(rnd()-.5)*rad*.4);m2.rotation.set((rnd()-.5)*.5,rnd()*6,(rnd()-.5)*.5);pg.add(m2);}
+    for(let k=0;k<3;k++)add(pg,box(rad*1.3,.02,rad*1.3),M(0x9a40ff,{emissive:0x9a40ff,emissiveIntensity:1}),0,h*(.3+k*.22),0,false).rotation.y=k;
+    pg.position.set(cx+Math.cos(a)*r,-h-.4,cz+Math.sin(a)*r);pg.rotation.set((rnd()-.5)*.3,rnd()*6,(rnd()-.5)*.3);pg.visible=false;root.add(pg);pillars.push({g:pg,h,delay:1.1+i*.06,up:false,t:0,i});}
+  if(L>=1){const tg=ccmToughest(enemies.filter(e=>!e.dead&&!e.fake&&Math.hypot(e.x-cx,e.z-cz)<Rr),CCM.dd);tg.forEach((e,i)=>{pillars[i+1].tg=e;});}
+  let tt=0,area=false,waved=false;
+  addFx(root,3.4,(f,dt)=>{tt+=dt;
+    const fk=ease(clamp(tt/.7,0,1));if(!waved){sky.scale.setScalar(.01+fk);sky2.scale.setScalar(.01+fk);}sky.rotation.y+=dt*(.7+.4*Math.sin(tt*1.7)+(tt>1.85&&!waved?6*(tt-1.85):0));
+    if(tt>1.8&&!waved){for(let i=0;i<9;i++){const a=rnd()*6.28,r=(.8+rnd()*1.6)*sS*2.2;emit(1,{x:SX+Math.cos(a)*r,y:SY+(rnd()-.5)*.8,z:SZ+Math.sin(a)*r,vx:-Math.cos(a)*r*4.5,vy:0,vz:-Math.sin(a)*r*4.5,s:.06+rnd()*.05,s2:.01,c:rnd()<.4?0xffffff:0xc080ff,c2:0x6a10c0,life:.22});}if(rnd()<.7)zap({x:SX,y:SY,z:SZ},{x:SX+(rnd()-.5)*1.6*sS*2,y:SY+(rnd()-.5)*.6,z:SZ+(rnd()-.5)*1.6*sS*2},0xe8d0ff,.07);}sky2.rotation.y-=dt*(1.5+.6*Math.sin(tt*2.3));sky.position.y=SY+Math.sin(tt*2.1)*.05;gRune.scale.setScalar(.01+ease(clamp((tt-.2)/.7,0,1)));gRune.rotation.y-=dt*.5;gRune.userData.fade(tt<2.4?1:Math.max(0,1-(tt-2.4)/.8));
+    if(!waved&&fk>.4)for(let i=0;i<4;i++){const a=rnd()*6.28,r=Rr*1.25*(.8+rnd()*.25)*fk;emit(1,{x:SX+Math.cos(a)*r*sS,y:SY,z:SZ+Math.sin(a)*r*sS,vx:(rnd()-.5)*.1,vy:-.5-rnd()*.9,vz:(rnd()-.5)*.1,s:.06+rnd()*.04,s2:0,c:0xe0a0ff,c2:0x5a10b0,life:1.1+rnd()*.6,turb:.4});}
+    colM.opacity=tt<1.1?.7*(.6+.4*Math.sin(tt*30)):Math.max(0,.7-(tt-1.1)*3);
+    const ck=clamp((tt-.35)/.75,0,1);cracks.geometry.setDrawRange(0,Math.floor(cracks.userData.count*ck/2)*2);cracks.material.opacity=(.55+.45*Math.sin(tt*28))*(tt<2.4?1:Math.max(0,1-(tt-2.4)/.8));
+    gdM.opacity=ck*.3*(.7+.3*Math.sin(tt*18))*(tt<2.2?1:Math.max(0,1-(tt-2.2)/.8));
+    if(ck>0&&tt<2.3)for(let i=0;i<6;i++){const a=rnd()*6.28,r=rnd()*Rr*1.05;emit(1,{x:cx+Math.cos(a)*r,y:.04,z:cz+Math.sin(a)*r,vx:(rnd()-.5)*.2,vy:.4+rnd()*1.1,vz:(rnd()-.5)*.2,s:.05+rnd()*.05,s2:0,c:0xe090ff,c2:0x5a10b0,life:.6+rnd()*.5,turb:.6});if(rnd()<.3)emit(0,{x:cx+Math.cos(a)*r,y:.05,z:cz+Math.sin(a)*r,vy:.2+rnd()*.3,s:.12,s2:.3,c:0x2a1a30,c2:0x140c18,a:.45,life:1,turb:.6});}
+    pillars.forEach(pl=>{if(tt<pl.delay||pl.gone)return;const pp=pl.g.position;
+      if(!pl.up){if(pl.tg&&!pl.tg.dead&&Math.hypot(pl.tg.x-cx,pl.tg.z-cz)<Rr*1.15){pp.x=pl.tg.x;pp.z=pl.tg.z;}pl.up=true;pl.g.visible=true;debris(pp.x,pp.z,9);sprayP(0,pp.x,.15,pp.z,18,{c:0x6a5a48,c2:0x2e2620,sp:1.3,up:.5,flat:true,r:.3,s:.2,s2:.5,a:.55,life:1.2,turb:.8});sprayP(1,pp.x,.2,pp.z,16,{c:0xe0a0ff,c2:0x6a10c0,sp:1.8,up:1.2,s:.06,s2:0,life:.7,g:2});for(let i=0;i<5;i++)darkMote(pp.x,.2,pp.z);cfmBoom(pp.x,.25,pp.z,.22,{pal:'void',lobes:3,T:.5});camShake+=.025;
+        const H=[];for(const en of enemies){if(!en.dead&&(en.x-pp.x)**2+(en.z-pp.z)**2<.35){hurt(en,P*2,'magic',o);H.push(en);}}
+        const ch=[];if(L>=3&&!S.collapsed)for(const en of enemies){if(en.dead||en.fake||en.fly||S.chained.has(en)||(en.x-pp.x)**2+(en.z-pp.z)**2>=CCM.ch*CCM.ch)continue;S.chained.add(en);ch.push(en);smStun(en,Math.max(.1,2.27-tt+.05));ccmChain(pl,en,S);}
+        ccmLog({ev:'pillar',i:pl.i,x:pp.x,z:pp.z,tg:pl.tg||null,L:H,ch});}
+      pl.t+=dt;if(tt<2.45)pp.y=-pl.h-.4+(pl.h+.4)*ease(clamp(pl.t/.13,0,1));else{const q=clamp((tt-2.45)/.8,0,1);pp.y=-q*(pl.h+.5);if(rnd()<.15)debris(pp.x,pp.z,1);}});
+    if(L>=2&&S.shot<CCM.fsN&&tt>=.6+S.shot*.35){S.shot++;const pool=enemies.filter(e=>!e.dead&&!e.fake&&Math.hypot(e.x-cx,e.z-cz)<Rr+.3&&!S.fsUsed.has(e)),e=pool.length?pool[Math.floor(rnd()*pool.length)]:null;
+      if(e){S.fsUsed.add(e);ccmShard(new THREE.Vector3(SX+(rnd()-.5)*.6,SY,SZ+(rnd()-.5)*.6),e,(x,z)=>{const H=[];for(const q of enemies.slice()){if(q.dead||q.fake)continue;if((q.x-x)**2+(q.z-z)**2<CCM.fsR*CCM.fsR){hurt(q,P*CCM.fs*A[1],'magic',smO(o));H.push(q);}}ccmLog({ev:'shard',e,x,z,L:H});});}}
+    if(tt>1.6&&!area){area=true;for(const en of enemies)if(!en.dead&&(en.x-cx)**2+(en.z-cz)**2<Rr*Rr)hurt(en,P,'magic',o);}
+    if(tt>2.15){const q=clamp((tt-2.15)/.12,0,1);sky.scale.setScalar(Math.max(.01,1-q)*(1+q*.3));sky2.scale.setScalar(Math.max(.01,1-q));
+      if(!waved&&q>=1){waved=true;sprayP(1,SX,SY,SZ,40,{c:0xffffff,c2:0xa040ff,sp:3*sS,s:.06,s2:0,life:.4,drag:1});ccmExplode(cx,cz,SX,SY,SZ,P,o,pillars,Rr,L,A,S);vigTarget=0;darkTarget=0;}}},
+    null,{mats:[...gRune.userData.mats,...sky.userData.mats,...sky2.userData.mats,cracks.material,gdM,colM],geos:[...gRune.userData.geos,...sky.userData.geos,...sky2.userData.geos,cracks.geometry,gdG,colG,...pgeos]});
+}
+
+function ccmExplode(cx,cz,SX,SY,SZ,P,o,pillars,Rr,LV,AM,S){S.collapsed=true;if(LV>=5)ccmWorldBreaker(cx,cz,pillars,P,o,AM,S);cfmBoom(cx,.3,cz,.8,{pal:'void',mush:true,skirt:8,lobes:6,T:1.1});
+  const root=new THREE.Group();scene.add(root);const geos=[],mats=[],ADD=THREE.AdditiveBlending,A=eclAssets();
+  worldSlow=.22;slowT=.32;flashA=.8;flashCol='#ecd0ff';flashDecay=2.1;camShake=.55;
+  // energy column from the rune into the ground
+  const colG=new THREE.CylinderGeometry(1,1,1,18,1,true);colG.translate(0,-.5,0);
+  const colM=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:1},uCore:{value:0},uC:{value:new THREE.Color(0xb060ff)}},vertexShader:VS_UV,fragmentShader:BEAM_FS,transparent:true,depthWrite:false,blending:ADD,side:THREE.DoubleSide}),colM2=colM.clone();colM2.uniforms.uCore.value=1;
+  const col=new THREE.Group();col.position.set(SX,SY,SZ);const cv=new THREE.Vector3(cx-SX,-SY,cz-SZ),L=cv.length();col.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),cv.normalize());
+  const c1=new THREE.Mesh(colG,colM),c2=new THREE.Mesh(colG,colM2);col.add(c1,c2);root.add(col);
+  // fireball: violet plasma shell, white-hot core, dark after-blast
+  const fbG=jitterGeo(new THREE.IcosahedronGeometry(1,3),.12),dkG=new THREE.IcosahedronGeometry(1,3),fbM=new THREE.MeshBasicMaterial({color:0xc070ff,transparent:true,opacity:.4,blending:ADD,depthWrite:false}),fcM=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:1,blending:ADD,depthWrite:false}),dkM=new THREE.MeshBasicMaterial({color:0x12061c,transparent:true,opacity:0,depthWrite:false});
+  const fb=new THREE.Mesh(fbG,fbM),fc=new THREE.Mesh(fbG,fcM),dk=new THREE.Mesh(dkG,dkM);[fb,fc,dk].forEach(m=>{m.position.set(cx,.25,cz);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);root.add(m);});
+  // shock rings: one flat rising, one facing the camera
+  const tG=new THREE.TorusGeometry(1,.055,6,48),tM=new THREE.MeshBasicMaterial({color:0xe6c0ff,transparent:true,opacity:.9,blending:ADD,depthWrite:false}),tM2=tM.clone();
+  const tor=new THREE.Mesh(tG,tM);tor.rotation.x=Math.PI/2;tor.position.set(cx,.3,cz);root.add(tor);const tor2=new THREE.Mesh(tG,tM2);tor2.position.set(cx,.7,cz);root.add(tor2);
+  // crater: glowing cracks + scorch
+  const dG=new THREE.PlaneGeometry(1,1);dG.rotateX(-Math.PI/2);const crM=new THREE.MeshBasicMaterial({map:pick(A.cracks),color:0xc060ff,transparent:true,opacity:1,blending:ADD,depthWrite:false}),cr=new THREE.Mesh(dG,crM);cr.position.set(cx,.062,cz);cr.rotation.y=rnd()*6.28;cr.scale.setScalar(Rr*2.8);root.add(cr);
+  const crM2=crM.clone();crM2.map=pick(A.cracks);crM2.color=new THREE.Color(0xffc0ff);const cr2=new THREE.Mesh(dG,crM2);cr2.position.set(cx,.064,cz);cr2.rotation.y=rnd()*6.28;cr2.scale.setScalar(Rr*1.6);root.add(cr2);
+  const scG=jitterGeo(new THREE.CircleGeometry(1,40),.08);scG.rotateX(-Math.PI/2);const scM=new THREE.MeshBasicMaterial({color:0x080410,transparent:true,opacity:.6,depthWrite:false}),sc=new THREE.Mesh(scG,scM);sc.position.set(cx,.052,cz);sc.scale.setScalar(Rr*1.35);root.add(sc);
+  geos.push(colG,fbG,dkG,tG,dG,scG);mats.push(colM,colM2,fbM,fcM,dkM,tM,tM2,crM,crM2,scM);
+  // pillars shatter into glowing chunks
+  pillars.forEach(pl=>{if(!pl.up||pl.gone)return;pl.gone=true;pl.g.visible=false;const pp=pl.g.position,h=pl.h,dx=pp.x-cx,dz=pp.z-cz,dl=Math.hypot(dx,dz)||1;
+    cfmBoom(pp.x,Math.max(.3,pp.y+h*.5),pp.z,.22,{pal:'void',lobes:3,T:.45,ground:false});
+    for(let i=0;i<7;i++){const m=new THREE.Mesh(dod(.05+rnd()*.07),M(rnd()<.5?0x0c0a10:0x1a1024,{emissive:0x5a18a0,emissiveIntensity:.55}));m.position.set(pp.x+(rnd()-.5)*.2,Math.max(.12,pp.y+rnd()*h),pp.z+(rnd()-.5)*.2);m.scale.set(1,1+rnd()*1.6,1);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);scene.add(m);
+      const vel=new THREE.Vector3(dx/dl*(2+rnd()*3.5)+(rnd()-.5)*2,2.2+rnd()*3.8,dz/dl*(2+rnd()*3.5)+(rnd()-.5)*2),rs=4+rnd()*12;
+      addFx(m,1.5+rnd()*.7,(e,dt)=>{vel.y-=9*dt;m.position.addScaledVector(vel,dt);m.rotation.x+=dt*rs;m.rotation.z+=dt*rs*.7;if(m.position.y<.04){m.position.y=.04;vel.multiplyScalar(.35);vel.y=Math.abs(vel.y)*.45;}
+        if(rnd()<.35)emit(1,{x:m.position.x,y:m.position.y,z:m.position.z,s:.05,s2:0,c:0xb060ff,c2:0x3a0a6a,life:.35});if(rnd()<.15)emitS(0,{x:m.position.x,y:m.position.y,z:m.position.z,s:.12,s2:.35,c:0x3a2a40,c2:0x1a1420,a:.45,life:.9,turb:.4});
+        if(e.life/e.max<.3)m.scale.multiplyScalar(.95);});}});
+  // immediate bursts
+  sprayP(1,cx,.4,cz,240,{c:0xffffff,c2:0x8a30ff,sp:7.5,r:.6,up:1.2,s:.08,s2:0,life:1.3,g:3,drag:.8});
+  sprayP(1,cx,.25,cz,90,{c:0xffd0ff,c2:0xa040ff,sp:3.5,flat:true,s:.12,s2:0,life:.9,drag:1.5});
+  sprayP(1,cx,.3,cz,40,{c:0xffe0a0,c2:0xa04000,sp:3,up:2,s:.05,s2:0,life:1.6,g:5});
+  debris(cx,cz,36);sprayP(0,cx,.2,cz,40,{c:0x6a5a48,c2:0x2e2620,sp:3.5,flat:true,r:.5,s:.3,s2:.8,a:.6,life:1.6,turb:.6});
+  for(let i=0;i<34;i++){const a=rnd()*6.28,v=2.2+rnd()*3.2;emitS(0,{x:cx+Math.cos(a)*.4,y:.2,z:cz+Math.sin(a)*.4,vx:Math.cos(a)*v,vy:.25+rnd()*.5,vz:Math.sin(a)*v,s:.5,s2:1.5,c:0x5a4a50,c2:0x2a2030,a:.55,life:1.9,drag:1.6,turb:.5});}
+  for(let i=0;i<10;i++)emitS(1,{x:cx+(rnd()-.5)*.6,y:.3+rnd()*.6,z:cz+(rnd()-.5)*.6,vx:(rnd()-.5)*1.5,vy:.5+rnd(),vz:(rnd()-.5)*1.5,s:.5,s2:1.3,c:0x8a40d0,c2:0x14041e,a:.6,life:.8,drag:1.5});
+  // damage, knockback, launch
+  const CL=[];for(const en of enemies){if(en.dead)continue;const d=Math.hypot(en.x-cx,en.z-cz);if(d<Rr+1.5){const full=S.chained.has(en);hurt(en,P*3*(full?1:1-d/(Rr+2)*.5),'magic',o);CL.push({e:en,full});if(LV>=4&&!en.dead){en.ccmSu=time+CCM.suT;en.ccmSuA=AM[3];ccmSunder(en);}
+    if(!en.dead){pushE(en,en.boss?.1:.45);if(stunE(en,en.boss?.4:1)>0){en.liftT=1.6;en.liftH=en.boss?.2:.6;}orbitFrags(en,1.2);}}}ccmLog({ev:'collapse',L:CL});
+  let tt=0;
+  addFx(root,3.4,(f,dt)=>{tt+=dt;colM.uniforms.uT.value=tt;colM2.uniforms.uT.value=tt;
+    const ck=clamp(tt/.5,0,1),w=(1-ck)*.95+.02;c1.scale.set(w,L,w);c2.scale.set(w*.35,L,w*.35);colM.uniforms.uA.value=1-ck;colM2.uniforms.uA.value=1-ck;
+    const fk=ease(clamp(tt/.55,0,1));fb.scale.set(.2+fk*Rr*1.45,(.2+fk*Rr*1.45)*.72,.2+fk*Rr*1.45);fb.rotation.y+=dt*1.5;fbM.opacity=.4*(1-clamp((tt-.12)/.6,0,1));
+    fc.scale.setScalar(.1+fk*Rr*.75);fcM.opacity=1-clamp(tt/.32,0,1);
+    const dkk=ease(clamp((tt-.1)/1.1,0,1));dk.scale.set(.3+dkk*Rr*.95,(.3+dkk*Rr*.95)*.55,.3+dkk*Rr*.95);dkM.opacity=tt<.18?0:.32*(1-clamp((tt-.3)/1,0,1));
+    tor.scale.setScalar(.3+ease(clamp(tt/.65,0,1))*Rr*2.3);tor.position.y=.3+tt*1.6;tM.opacity=.9*(1-clamp(tt/.7,0,1));
+    tor2.visible=false;
+    crM.opacity=(1-clamp((tt-.5)/.8,0,1))*(.7+.3*Math.sin(tt*18));crM2.opacity=(1-clamp((tt-.4)/.7,0,1))*(.6+.4*Math.sin(tt*23+1));scM.opacity=.6*(1-clamp((tt-.6)/.8,0,1));
+    if(!f.s1&&tt>.06){f.s1=1;shockwave(cx,cz,9.5,0xb060ff,1.15,0x000000);}
+    if(!f.s2&&tt>.18){f.s2=1;shockwave(cx,cz,5.5,0xffd8ff,.7);}
+    if(!f.s3&&tt>.34){f.s3=1;shockwave(cx,cz,3.5,0x8a30ff,.6);camShake=Math.max(camShake,.2);}
+    if(tt<1.25){for(let i=0;i<5;i++){const a=rnd()*6.28,r=rnd()*.6;emitS(0,{x:cx+Math.cos(a)*r,y:.3+tt*2,z:cz+Math.sin(a)*r,vx:Math.cos(a)*.6,vy:1.4+rnd()*1.2,vz:Math.sin(a)*.6,s:.5,s2:1.7,c:0x4a2c60,c2:0x1a1024,a:.6,life:2.3,drag:1.2,turb:.6});}
+      if(tt>.3)for(let i=0;i<4;i++){const a=rnd()*6.28;emitS(0,{x:cx+Math.cos(a)*.6,y:1.6+tt*1.3,z:cz+Math.sin(a)*.6,vx:Math.cos(a)*1.7,vy:.2,vz:Math.sin(a)*1.7,s:.6,s2:1.9,c:0x5a3470,c2:0x1a1024,a:.5,life:2.1,drag:1,turb:.5});}
+      if(tt<.6)emitS(1,{x:cx,y:.4+tt*2,z:cz,vy:1.5,s:.7,s2:1.6,c:0xc070ff,c2:0x1a0428,a:.5,life:.9,drag:1});}
+    if(tt<1.3)for(let i=0;i<5;i++){const a=rnd()*6.28,r=rnd()*Rr*.95;emit(1,{x:cx+Math.cos(a)*r,y:.06,z:cz+Math.sin(a)*r,vx:(rnd()-.5)*.2,vy:.6+rnd()*1.3,vz:(rnd()-.5)*.2,s:.1+rnd()*.1,s2:0,c:rnd()<.3?0xffffff:0xc070ff,c2:0x3a0a6a,life:.6+rnd()*.5,turb:1.2});}
+    if(tt<1&&rnd()<.7){const a=rnd()*6.28,r1=rnd()*.5,r2=1+rnd()*Rr*1.6;zap({x:cx+Math.cos(a)*r1,y:.08,z:cz+Math.sin(a)*r1},{x:cx+Math.cos(a+(rnd()-.5)*.4)*r2,y:.08,z:cz+Math.sin(a+(rnd()-.5)*.4)*r2},0xe8c8ff,.12);}},null,{mats,geos});
+}
+const CCM_OLD=castCataclysm;
+castCataclysm=function(t,c,P,o){return t&&c?ccmCast(t,c,P,o,ccmC(o)):CCM_OLD.apply(this,arguments);};
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
