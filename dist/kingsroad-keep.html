@@ -25576,10 +25576,13 @@ function pvmStill(V,k,cp,stars){for(const q of stars)q.visible=false;if(!V.pin){
     addFx(g,3,f=>{if(V.fired||f.life<=0){for(const s of [halo,pin,streak])pvmPut(s.material);f.life=0;}});}
   const P=V.pin,fl=.85+.15*Math.sin(time*90);P.g.position.copy(cp);P.halo.scale.setScalar((.46-.14*k)*fl);P.halo.material.opacity=.95;P.pin.scale.setScalar(.12*(1-.25*k)*fl);P.streak.scale.set(.95*(1-.2*k)*fl,.045,1);
   pvmLight(cp.x,cp.y,cp.z,1.2+.8*k,2.2);}
-/* the needle: a hair-fine white line, the violet beam flaring out from it toward the end, then a sharp violet afterimage */
-function pvmNeedle(V,A,B){pvmBeam(A,B,[{w0:.006,w1:.03,core:0xffffff,glow:0xb48aff,op:.9,pow:2},{w0:.008,w1:.07,core:0xe8dcff,glow:0x6a3ad0,op:.5,pow:1.6},{w0:.0035,w1:.0045,core:0xffffff,glow:0xffffff,op:1,pow:3}],{rev:.035,hold:.04,life:.2,light:1.4});
-  pvmBeam(A,B,[{w0:.009,w1:.009,core:0xd8c0ff,glow:0x8a5aff,op:.85,pow:2.2,from:.1}],{rev:0,hold:.12,life:.38});
-  const cE=A.clone().lerp(B,PVM.m3Core);pvmFlare(A,.5,.22);sprayP(1,cE.x,cE.y,cE.z,6,{c:0xffffff,c2:0xb48aff,sp:.8,s:.03,s2:0,life:.25,drag:2});}
+/* the needle: a fine white-hot line, the violet beam flaring out from it toward the end; the narrow first half burns brightest; then a
+   sharp violet afterimage that lingers, sparks shed all along it */
+function pvmNeedle(V,A,B){const len=A.distanceTo(B),cE=A.clone().lerp(B,PVM.m3Core);
+  pvmBeam(A,B,[{w0:.016,w1:.07,core:0xffffff,glow:0xb48aff,op:1,pow:1.6},{w0:.03,w1:.14,core:0xe8dcff,glow:0x7a4ae0,op:.6,pow:1.4},{w0:.007,w1:.009,core:0xffffff,glow:0xffffff,op:1,pow:2.4}],{rev:.035,hold:.09,life:.3,light:1.8});
+  pvmBeam(A,cE,[{w0:.012,w1:.014,core:0xffffff,glow:0xffffff,op:1,pow:2},{w0:.03,w1:.034,core:0xffffff,glow:0xd8c4ff,op:.7,pow:1.8}],{rev:.02,hold:.07,life:.24});
+  pvmBeam(A,B,[{w0:.016,w1:.016,core:0xe0ccff,glow:0x9a6aff,op:1,pow:2,from:.12},{w0:.04,w1:.04,core:0xb48aff,glow:0x6a3ad0,op:.35,pow:2,from:.12}],{rev:0,hold:.18,life:.45});
+  pvmFlare(A,.6,.25);for(let d=.2;d<len;d+=.35){const p=A.clone().lerp(B,d/len);sprayP(1,p.x,p.y,p.z,1,{c:0xffffff,c2:0xb48aff,sp:.5,up:.2,s:.03,s2:0,life:.35,drag:2});}}
 
 /* ---- M1 Luminous Afterimage: the stars on the line, flaring in sequence ---- */
 function pvmStars(V){const g=new THREE.Group();scene.add(smTag(g));const S=[];pvmLog({ev:'stars',n:V.hits.length});
