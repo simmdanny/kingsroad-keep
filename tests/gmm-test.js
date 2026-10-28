@@ -37,11 +37,16 @@ try{
     ok('M1: nothing else (no veins, heart, fissures or caldera)',!ev('vein').length&&!ev('heart').length&&!ev('cascade').length&&!ev('caldera').length);}
   /* ---- M2 Lava Veins ---- */
   {play();GMM.dbg=[];log=[];const F=row(9,.35),T=F[4],Fl=foe(spotD()+.2,.1);Fl.fly=true;wrapHurt();const c0=SM.id;try{cast(T,2);run(6);}finally{hurt=H0;setL(0);}const c=SM.ctx.get(c0+1),S=c&&c.gm;
-    ok('M2: the pools are joined by veins, each new pool to at most two earlier ones within 1.7',S&&S.veins.length>0&&S.veins.length<=2*S.pools.length&&S.veins.every(v=>{const a=v.path[0],b=v.path[v.path.length-1];return Math.hypot(a.x-b.x,a.z-b.z)<=GMM.vMax+1e-6;}),S&&(S.veins.length+' veins, '+S.pools.length+' pools'));
-    ok('M2: a vein lasts as long as the shorter-lived of its two pools',S.veins.every(v=>{const a=S.pools.find(p=>p.x===v.path[0].x&&p.z===v.path[0].z),b=S.pools.find(p=>p.x===v.path[v.path.length-1].x&&p.z===v.path[v.path.length-1].z);return a&&b&&near(v.until,Math.min(a.until,b.until));}));
+    const er=ev('erupt')[0],R0=nsRouteNear(er.x,er.z),onRoad=q=>{let b=1e9;for(let d=0;d<R0.rt.len;d+=.05){const p=posAt(d,R0.rt);b=Math.min(b,Math.hypot(p[0]-q.x,p[1]-q.z));}return b;};
+    ok('M2: three streams of lava well out of the crater just after the eruption',S&&S.veins.length===3&&ev('vein').every(d=>near(d.t-er.t,GMM.vStart,.06))&&S.veins.every(v=>Math.hypot(v.path[0].x-er.x,v.path[0].z-er.z)<1e-6)&&new Set(ev('vein').map(d=>d.dir)).size===2,S&&S.veins.length);
+    ok('M2: they flow only along the road (never more than 0.32 off its middle), at most 2.2 long',S.veins.every(v=>v.path.slice(Math.ceil(.4/.06)).every(q=>onRoad(q)<=GMM.vSide+.03)&&v.len<=GMM.vLen*1.6),S.veins.map(v=>Math.max(...v.path.slice(7).map(onRoad)).toFixed(2)+'/'+v.len.toFixed(2)).join(' '));
+    ok('M2: in their own meandering patterns, not straight lines',S.veins.every(v=>v.path.slice(7).some(q=>onRoad(q)>.08)));
     const vh=ev('veinHit');ok('M2: ground foes crossing a vein take 30% and burn for 20% a second',vh.length>0&&vh.every(d=>hits(d.e,30,true).length>=1)&&!vh.some(d=>d.e===Fl),vh.length);
     const byE=new Map();vh.forEach(d=>{const a=byE.get(d.e)||[];a.push(d.t);byE.set(d.e,a);});
     ok('M2: at most once every 0.75s for each foe',[...byE.values()].every(a=>a.every((t,i)=>!i||t-a[i-1]>=GMM.vCd-1e-6)),[...byE.values()].map(a=>a.length).join(','));}
+  {play();GMM.dbg=[];const T=foe(spotD());const c0=SM.id;cast(T,2);run(GMM.ER+GMM.vStart+.5);const S=SM.ctx.get(c0+1).gm,fr=()=>S.veins.map(v=>v.path.slice(0,v.rev+1).reduce((a,q,i,P)=>a+(i?Math.hypot(q.x-P[i-1].x,q.z-P[i-1].z):0),0));
+    const a1=fr();run(1);const a2=fr();run(3);const a3=fr();setL(0);
+    ok('M2: the lava creeps on slowly (about 0.7 tiles a second) until the stream is full length',a1.every((x,i)=>x<.6&&a2[i]>x+.4&&a2[i]<x+1)&&a3.every((x,i)=>near(x,S.veins[i].len,.02)),a1.map(x=>x.toFixed(2))+' / '+a2.map(x=>x.toFixed(2))+' / '+a3.map(x=>x.toFixed(2)));}
   {play();GMM.dbg=[];const F=row(9,.35),T=F[4];cast(T,1);run(5);setL(0);ok('M2 needs Mastery 2',!ev('vein').length&&!ev('veinHit').length);}
   /* ---- M3 Heart of the Volcano ---- */
   {play();GMM.dbg=[];log=[];const F=row(7,.3),T=F[3];wrapHurt();try{cast(T,3);run(5);}finally{hurt=H0;setL(0);}const sk=ev('sunk')[0],h=ev('heart')[0],er=ev('erupt')[0];

@@ -14133,7 +14133,7 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
   {t:'Magma Geyser masteries, reworked',d:'28 Oct',v:'v410',li:[
-    'Molten Shrapnel: three crusted chunks of molten rock, 85%. Lava Veins: streams join the pools, 30% and a burn to foes crossing them.',
+    'Molten Shrapnel: three crusted chunks of molten rock, 85%. Lava Veins: lava flows slowly out of the crater along the road, 30% and a burn to foes crossing it.',
     'Heart of the Volcano: a second eruption 1.5s later, 120%. Fissure Cascade: three geysers burst along the road, 100% each.',
     'Caldera: a churning crater that surges every second for 45%, then caves in and explodes for 150%.',
     'Every Magma Geyser eruption and splash is now a 3D fireball.']},
@@ -25455,10 +25455,10 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
    - M1 Molten Shrapnel: 0.1s after the eruption, 3 crusted chunks (gmChunk) are hurled high, 2.2-3.2 tiles out (onto the road where it is at
      least 2 tiles from the crater); halfway
      their crust cracks and flakes away and their cores blaze; they smash down for 85% to foes within 0.55 (flyers too), in a fireball.
-   - M2 Lava Veins: every pool this cast makes is joined by a vein (gmVein) to the two nearest earlier pools within 1.7 tiles: a gentle curve
-     (gmCurve) of scorched ground with a thin molten core showing through a dark crust, feathered at its edges and fading into the pools,
-     that eases out from one pool to the other and lasts as long as the shorter-lived of the two. A ground foe on a vein
-     (within 0.15) takes 30% and burns for 20%/s for 2s, at most once every 0.75s from all the veins of the cast.
+   - M2 Lava Veins: 0.2s after the eruption lava wells out of the crater in three streams (gmFlow): along the road both ways, and a third
+     braiding beside one of them. Each meanders in its own pattern but stays within 0.32 of the road's middle (on the road), and its molten
+     front creeps on at 0.7 tiles a second until it is 2.2 long; they cool and fade 4.6s after the eruption. A ground foe within 0.15 of the
+     part that has flowed takes 30% and burns for 20%/s for 2s, at most once every 0.75s from all the streams.
    - M3 Heart of the Volcano: when the column has sunk (1.75s), the seams dim, then the heart under the crater pulses ever faster and the ground
      bulges (gmBulge); 1.5s later it erupts again: a shorter column, a fireball, 120% to foes within 0.85 and 3 more blobs.
    - M4 Fissure Cascade: 0.25s after the eruption a glowing crack races along the road from the crater, toward the side with more foes (or
@@ -25469,13 +25469,13 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
      surge every second (at 0.5, 1.5 and 2.5s) hits ground foes within 1.25 for 45%, and boulders tumble in; then it caves in on itself and explodes outward: a ring of
      fireballs and fire, molten stones, 150% to foes within 1.7.
    GMM.dbg (an array) logs the events for the tests. */
-const GMM={dbg:null,sh:.85,shN:3,shR:.55,vein:.3,vBurn:.2,vBurnT:2,vCd:.75,vMax:1.7,vLink:2,vW:.15,heart:1.2,heartR:.85,heartWait:1.5,heartBlobs:3,fis:1,fisR:.6,fisN:3,fisGap:1,fisStep:.35,fisBlobs:2,
+const GMM={dbg:null,sh:.85,shN:3,shR:.55,vein:.3,vBurn:.2,vBurnT:2,vCd:.75,vW:.15,vLen:2.2,vSpd:.7,vSide:.32,vStart:.2,vLife:4.6,heart:1.2,heartR:.85,heartWait:1.5,heartBlobs:3,fis:1,fisR:.6,fisN:3,fisGap:1,fisStep:.35,fisBlobs:2,
   cal:1,calR:1,calPulse:.45,calPulseR:1.25,calT:3,calEnd:1.5,calEndR:1.7,ER:.62,EE:1.75};
 const gmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='geyser'&&c.L?c:null;};
 const gmLog=d=>{if(GMM.dbg){d.t=time;GMM.dbg.push(d);}};
 SM_D.geyser=[
   {n:'Molten Shrapnel',d:'The eruption also hurls three great chunks of molten rock, farther than the blobs: {85}% each where they smash down.'},
-  {n:'Lava Veins',d:'Streams of lava join the pools into a network. Foes crossing a stream take {30}% and burn for {20}% a second for 2s (at most once every 0.75s).'},
+  {n:'Lava Veins',d:'Lava wells out of the crater and flows slowly along the road. Foes crossing a stream take {30}% and burn for {20}% a second for 2s (at most once every 0.75s).'},
   {n:'Heart of the Volcano',d:'1.5s after the column sinks, the magma heart below erupts again: {120}% to foes within 0.85 tiles, and three more blobs.'},
   {n:'Fissure Cascade',d:'A crack races along the road from the crater and three smaller geysers burst on it one after another: {100}% each, with blobs of their own.'},
   {n:'Caldera',d:'The eruption blasts the middle for {100}% more and leaves a caldera that churns for 3s, surging every second for {45}% to foes in it, then caves in and explodes outward for {150}%.'}];
@@ -25534,7 +25534,7 @@ const GM_VEIN_FS='uniform float uT,uA,uG,uK,uAdd;varying vec2 vUv;'+S6_NOISE+
   'float n=fb(vec2(vUv.x*5.-uT*.5,vUv.y*1.3+uT*.1)),n2=fb(vec2(vUv.x*13.+3.,vUv.y*2.5-uT*.3));'+
   'if(uK<.5){gl_FragColor=vec4(vec3(.06,.035,.025),uA*.55*smoothstep(0.,.85,e)*ends*(.65+.35*n));return;}'+
   'float flow=.5+.5*sin(vUv.x*11.-uT*2.4),core=smoothstep(.25,.95,e),crack=smoothstep(.5,.68,n2*.65+n*.55),h=core*(.45+.55*flow)*(.12+1.05*crack);'+
-  'vec3 c=mix(vec3(.22,.04,.01),vec3(.95,.36,.05),smoothstep(.18,.55,h));c=mix(c,vec3(1.,.74,.32),smoothstep(.72,1.,h));'+
+  'h+=core*.8*smoothstep(uG-.09,uG-.015,vUv.x)*step(uG,.999);vec3 c=mix(vec3(.22,.04,.01),vec3(.95,.36,.05),smoothstep(.18,.55,h));c=mix(c,vec3(1.,.74,.32),smoothstep(.72,1.,h));'+
   'float a=uA*smoothstep(.1,.65,e)*ends*(.3+.7*h);if(uAdd>.5){gl_FragColor=vec4(c*h,a*.6);return;}gl_FragColor=vec4(c,a);}';
 const GM_VEIN_VS='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
 /* a strip along a path on the ground, width w (uv.x along it, uv.y across) */
@@ -25542,18 +25542,23 @@ function gmStrip(pts,w){const pos=[],uv=[],idx=[];let L=0;const ls=[0];for(let i
   for(let i=0;i<pts.length;i++){const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)],dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz)||1,px=-dz/l,pz=dx/l,ww=w*(pts[i].w||1),y=gy(pts[i].x,pts[i].z)+.035;
     pos.push(pts[i].x+px*ww,y,pts[i].z+pz*ww,pts[i].x-px*ww,y,pts[i].z-pz*ww);uv.push(ls[i]/L,0,ls[i]/L,1);if(i)idx.push(2*i-2,2*i-1,2*i,2*i-1,2*i+1,2*i);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);return g;}
-/* a gentle curve between two points (a quadratic bend, its control point a little to one side), n+1 points */
-const gmCurve=(A,B,n)=>{const dx=B.x-A.x,dz=B.z-A.z,l=Math.hypot(dx,dz)||1,b=(rnd()-.5)*.35*l,mx=(A.x+B.x)/2-dz/l*b,mz=(A.z+B.z)/2+dx/l*b,P=[];
-  for(let i=0;i<=n;i++){const k=i/n,q=1-k;P.push({x:q*q*A.x+2*q*k*mx+k*k*B.x,z:q*q*A.z+2*q*k*mz+k*k*B.z});}return P;};
-function gmVein(A,B,until){const mats=[],geos=[],path=gmCurve(A,B,Math.max(10,Math.round(Math.hypot(B.x-A.x,B.z-A.z)*14))),g=smTag(new THREE.Group());scene.add(g);
-  const mk=(w,k,add,ro)=>{const geo=gmStrip(path,w),m=new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*10},uA:{value:0},uG:{value:0},uK:{value:k},uAdd:{value:add?1:0}},vertexShader:GM_VEIN_VS,fragmentShader:GM_VEIN_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide,
+/* a stream of lava flowing out of the crater along the road: it starts at the crater, then follows the road one way (dir), meandering
+   from side to side in its own pattern (two waves and a slow random drift, ph its phase) but never more than GMM.vSide off the middle, so it
+   stays on the road; it stops at the road's end. Its molten front creeps forward at GMM.vSpd tiles a second until it is GMM.vLen long. */
+function gmFlow(cx,cz,rt,d0,dir,ph,until){const P=[{x:cx,z:cz}],st=.06;let drift=0;const p0=posAt(d0,rt);
+  for(let s=st;s<=GMM.vLen+1e-6;s+=st){const d=d0+dir*s;if(d<.05||d>rt.len-.05)break;const q=posAt(d,rt),ax=Math.cos(q[2]),az=-Math.sin(q[2]);drift=clamp(drift+(rnd()-.5)*.05,-.12,.12);
+    const k=Math.min(1,s/.35),off=clamp((.17*Math.sin(s*2.3+ph)+.08*Math.sin(s*5.1+ph*1.7)+drift)*k,-GMM.vSide,GMM.vSide);
+    const bx=p0[0]+(q[0]-p0[0]),bz=p0[1]+(q[1]-p0[1]);P.push({x:bx+ax*off+(cx-p0[0])*(1-k),z:bz+az*off+(cz-p0[1])*(1-k)});}
+  const mats=[],geos=[],g=smTag(new THREE.Group());scene.add(g);let len=0;for(let i=1;i<P.length;i++)len+=Math.hypot(P[i].x-P[i-1].x,P[i].z-P[i-1].z);
+  const mk=(w,k,add,ro)=>{const geo=gmStrip(P,w),m=new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*10},uA:{value:0},uG:{value:0},uK:{value:k},uAdd:{value:add?1:0}},vertexShader:GM_VEIN_VS,fragmentShader:GM_VEIN_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide,
     blending:add?THREE.AdditiveBlending:THREE.NormalBlending,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});const me=new THREE.Mesh(geo,m);me.renderOrder=ro;g.add(me);mats.push(m);geos.push(geo);return m;};
-  const L=[mk(.19,0,false,2),mk(.085,1,false,3),mk(.13,1,true,4)];
-  const V={path,until,dead:false};let tt=0;
-  addFx(g,Math.max(.4,until-time+.4),(f,dt)=>{tt+=dt;const gr=SMS(tt,0,.6),fade=Math.min(1,Math.max(0,(until-time+.4)/.4));
-    L.forEach(m=>{m.uniforms.uT.value+=dt;m.uniforms.uG.value=gr*1.08;m.uniforms.uA.value=fade;});
-    if(rnd()<.25*fade*gr){const p=path[Math.floor(rnd()*path.length)];emit(1,{x:p.x,y:gy(p.x,p.z)+.04,z:p.z,vx:0,vy:.25+rnd()*.25,vz:0,s:.045,s2:.01,c:0xffb050,c2:0x8a1400,a:.8,life:.35,turb:.6});}
-    if(rnd()<.1*fade*gr){const p=path[Math.floor(rnd()*path.length)];emitS(0,{x:p.x,y:gy(p.x,p.z)+.06,z:p.z,vx:0,vy:.25,vz:0,s:.08,s2:.3,c:0x4a4038,c2:0x2a2420,a:.18,life:1.2,lift:.15,turb:.4});}
+  const L=P.length>1?[mk(.2,0,false,2),mk(.09,1,false,3),mk(.14,1,true,4)]:[];
+  const V={path:P,until,dead:false,rev:0,len};let tt=0;
+  addFx(g,Math.max(.4,until-time+.5),(f,dt)=>{tt+=dt;const fr=len>0?Math.min(1,tt*GMM.vSpd/len):1,fade=Math.min(1,Math.max(0,(until-time+.5)/.5));V.rev=Math.floor(fr*(P.length-1));
+    L.forEach(m=>{m.uniforms.uT.value+=dt;m.uniforms.uG.value=fr;m.uniforms.uA.value=fade*Math.min(1,tt*4);});
+    /* the molten front spits and smokes as it creeps on */
+    const h=P[V.rev];if(fr<1&&h){if(rnd()<.6)emit(1,{x:h.x,y:gy(h.x,h.z)+.05,z:h.z,vx:(rnd()-.5)*.3,vy:.4+rnd()*.4,vz:(rnd()-.5)*.3,s:.06,s2:.01,c:0xffd070,c2:0xa01a00,a:.9,life:.35,turb:.6});if(rnd()<.25)emitS(0,{x:h.x,y:gy(h.x,h.z)+.08,z:h.z,vx:0,vy:.3,vz:0,s:.1,s2:.35,c:0x4a4038,c2:0x2a2420,a:.25,life:1.2,lift:.2,turb:.4});}
+    if(rnd()<.2*fade&&V.rev>0){const p=P[Math.floor(rnd()*V.rev)];emit(1,{x:p.x,y:gy(p.x,p.z)+.04,z:p.z,vx:0,vy:.25+rnd()*.25,vz:0,s:.045,s2:.01,c:0xffb050,c2:0x8a1400,a:.8,life:.35,turb:.6});}
     if(f.life<=0)V.dead=true;},null,{mats,geos});return V;}
 const gmSegD2=(x,z,P)=>{let b=1e9;for(let i=0;i+1<P.length;i++)b=Math.min(b,s6SegD2(x,z,P[i].x,P[i].z,P[i+1].x,P[i+1].z));return b;};
 
@@ -25601,7 +25606,7 @@ function gmCast(t,c0,P,o,cx0){const c=cx0,L=c?c.L:0,A5=c?c.a:[1,1,1,1,1],lv=1+.0
   const under=nsDecal(cx,cz,1.1*(L>=5?1.4:1),0x7a1804,0,3.9,{manual:true});nsDecal(cx,cz,1.25*(L>=5?1.4:1),0x140806,.55,5,{fin:.5,fout:1.5});
   const S={pools:[],veins:[],vcd:new Map(),chunks:0};if(c)c.gm=S;
   /* M2: every pool is joined to the earlier ones within reach */
-  const pool=(x,z,r)=>{const p={x,z,until:time+3.2};gmLog({ev:'pool',x,z});if(L>=2)for(const q of S.pools.filter(q=>q.until>time&&Math.hypot(q.x-x,q.z-z)<=GMM.vMax).sort((a,b)=>Math.hypot(a.x-x,a.z-z)-Math.hypot(b.x-x,b.z-z)).slice(0,GMM.vLink)){S.veins.push(gmVein(q,p,Math.min(q.until,p.until)));gmLog({ev:'vein'});}S.pools.push(p);};
+  const pool=(x,z,r)=>{const p={x,z,until:time+3.2};gmLog({ev:'pool',x,z});S.pools.push(p);};
   const blob=(x0,y0,z0,q,dur)=>gmBlob(x0,y0,z0,q.x,q.z,P,o,dur,pool);
   const blast=(x,z,R,dmg,tag)=>{const H=[];for(const e of enemies.slice()){if(e.dead||e.fake||(e.x-x)**2+(e.z-z)**2>R*R)continue;hurt(e,dmg,'magic',smO(o));H.push(e);}gmLog({ev:tag,x,z,L:H});return H;};
   let tt=0,erupt=false,blobs=false,sunk=false,vtick=0;
@@ -25617,7 +25622,10 @@ function gmCast(t,c0,P,o,cx0){const c=cx0,L=c?c.L:0,A5=c?c.a:[1,1,1,1,1],lv=1+.0
       if(L>=1)mxLater(.1,()=>{if(state!=='playing')return;for(let i=0;i<GMM.shN;i++){const a=i/GMM.shN*6.283+rnd()*.8,d=2.2+rnd()*1;let q={x:cx+Math.cos(a)*d,z:cz+Math.sin(a)*d};const rn=roadNear(q.x,q.z);if(rn&&rnd()<.7&&Math.hypot(rn.x-cx,rn.z-cz)>=2)q={x:rn.x+(rnd()-.5)*.6,z:rn.z+(rnd()-.5)*.6};
         gmChunk(cx,cy+1.6*lv,cz,q.x,q.z,1+rnd()*.25,(x,z)=>{const y=gy(x,z);cfmBoom(x,y+.1,z,.32,{lobes:4,shake:.05});sprayP(1,x,y+.1,z,40,{c:0xfff0a0,c2:0xff4a00,sp:2.2,up:1.6,s:.06,s2:0,life:.6,g:4,drag:.5});
           nsDecal(x,z,.45,0x120804,.6,3,{fout:1});blast(x,z,GMM.shR,P*GMM.sh*A5[0],'shrapnel');});}});
-      if(L>=4)mxLater(.25,()=>{if(state!=='playing')return;cascade();});}
+      if(L>=4)mxLater(.25,()=>{if(state!=='playing')return;cascade();});
+      /* M2: lava wells out of the crater and flows slowly along the road both ways, a third stream braiding beside one of them */
+      if(L>=2)mxLater(GMM.vStart,()=>{if(state!=='playing')return;const R0=nsRouteNear(cx,cz),un=time+GMM.vLife-GMM.vStart,ph=rnd()*6.28;
+        for(const [dir,pp] of [[1,ph],[-1,ph+2.1],[rnd()<.5?1:-1,ph+3.6]]){S.veins.push(gmFlow(cx,cz,R0.rt,R0.d,dir,pp,un));gmLog({ev:'vein',dir});}});}
     else if(tt<GMM.EE){seam.op(.8,.85+rnd()*.15);under.material.opacity=.42+rnd()*.1;
       if(!blobs&&tt>GMM.ER+.12){blobs=true;for(let i=0;i<6;i++)blob(cx,cy+1.4+rnd()*.8,cz,gmSpot(cx,cz,1.8),.55+rnd()*.35+i*.04);}}
     else{if(!sunk){sunk=true;gmLog({ev:'sunk'});if(L>=5)caldera();if(L>=3)heart();}
@@ -25625,7 +25633,7 @@ function gmCast(t,c0,P,o,cx0){const c=cx0,L=c?c.L:0,A5=c?c.a:[1,1,1,1,1],lv=1+.0
       if(rnd()<.3)emitS(0,{x:cx+(rnd()-.5)*1,y:cy+.08,z:cz+(rnd()-.5)*1,vy:.35,s:.2,s2:.8,c:0x9a9a9a,c2:0x5a5a5a,a:.2,life:2,lift:.3,turb:.4});}
     /* M2: the veins burn the ground foes crossing them */
     if(S.veins.length){vtick-=dt;if(vtick<=0){vtick=.1;for(const V of S.veins){if(V.dead||V.until<time)continue;for(const e of enemies){if(e.dead||e.fake||e.fly)continue;const cd=S.vcd.get(e);if(cd&&cd>time)continue;
-          if(gmSegD2(e.x,e.z,V.path)<GMM.vW*GMM.vW){S.vcd.set(e,time+GMM.vCd);hurt(e,P*GMM.vein*A5[1],'magic',smO(o));if(!e.dead)applyBurn(e,P*GMM.vBurn*A5[1],GMM.vBurnT,smO(o,{dot:true}));gmLog({ev:'veinHit',e});
+          if(V.rev>0&&gmSegD2(e.x,e.z,V.path.slice(0,V.rev+1))<GMM.vW*GMM.vW){S.vcd.set(e,time+GMM.vCd);hurt(e,P*GMM.vein*A5[1],'magic',smO(o));if(!e.dead)applyBurn(e,P*GMM.vBurn*A5[1],GMM.vBurnT,smO(o,{dot:true}));gmLog({ev:'veinHit',e});
             const p=tpos2(e);sprayP(1,p.x,gy(e.x,e.z)+.05,p.z,8,{c:0xfff0a0,c2:0xff4a00,sp:.8,up:1,s:.05,s2:0,life:.3,g:3});}}}}}
     if(f.life<=0){seam.free();if(ring)ring.free();}},null,{mats,geos});
   /* M3: the heart pulses and bulges, then erupts again */
