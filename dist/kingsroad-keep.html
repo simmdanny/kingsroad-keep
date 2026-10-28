@@ -28719,7 +28719,8 @@ foldHop=function(e,d0){const b=e.dist;LPM_HOP(e,d0);if(LPM.cur&&LPM.cur.hop&&e.d
      foes within 4.5 tiles, a different foe each while there are enough: 35% within 0.75 tiles each, a 3D void explosion.
    Percentages are of the scroll's power (pillars 200% each, the cracked ground 100%, the collapse 300% falling to half at the edge).
    Every Cataclysm cast now runs ccmCast/ccmExplode (copies of castCataclysm/cataExplode with the mastery hooks); even at Mastery 0 the
-   pillars and the collapse burst in 3D (cfmBoom, void) instead of flat flashes and a camera-facing ring. Power on the Epic ladder
+   pillars and the collapse burst in 3D (cfmBoom, void) instead of flat flashes and a camera-facing ring, and the collapse is brief and
+   see-through: a softer screen flash, a smaller core, and light violet smoke that thins out in about a second. Power on the Epic ladder
    (tests/sm-ladder.js, 5 runs) with the hidden factors below: 1.10 / 1.22 / 1.37 / 1.49 / 1.74
    against 1.094 / 1.234 / 1.35 / 1.522 / 1.742. CCM.dbg logs the events. */
 const CCM={dbg:null,dd:1,fs:.7,fsN:4,fsR:.5,ch:.9,su:.25,suT:5,wb:.35,wbR:.75,wbReach:4.5};
@@ -28815,16 +28816,16 @@ function ccmCast(t,c,P,o,C){const L=C?C.L:0,A=C?C.a:[1,1,1,1,1],S={chained:new S
     null,{mats:[...gRune.userData.mats,...sky.userData.mats,...sky2.userData.mats,cracks.material,gdM,colM],geos:[...gRune.userData.geos,...sky.userData.geos,...sky2.userData.geos,cracks.geometry,gdG,colG,...pgeos]});
 }
 
-function ccmExplode(cx,cz,SX,SY,SZ,P,o,pillars,Rr,LV,AM,S){S.collapsed=true;if(LV>=5)ccmWorldBreaker(cx,cz,pillars,P,o,AM,S);cfmBoom(cx,.3,cz,.8,{pal:'void',mush:true,skirt:8,lobes:6,T:1.1});
+function ccmExplode(cx,cz,SX,SY,SZ,P,o,pillars,Rr,LV,AM,S){S.collapsed=true;if(LV>=5)ccmWorldBreaker(cx,cz,pillars,P,o,AM,S);cfmBoom(cx,.3,cz,.72,{pal:'void',skirt:8,lobes:6,T:.75});
   const root=new THREE.Group();scene.add(root);const geos=[],mats=[],ADD=THREE.AdditiveBlending,A=eclAssets();
-  worldSlow=.22;slowT=.32;flashA=.8;flashCol='#ecd0ff';flashDecay=2.1;camShake=.55;
+  worldSlow=.22;slowT=.32;flashA=.3;flashCol='#ecd0ff';flashDecay=3.5;camShake=.55;
   // energy column from the rune into the ground
   const colG=new THREE.CylinderGeometry(1,1,1,18,1,true);colG.translate(0,-.5,0);
   const colM=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:1},uCore:{value:0},uC:{value:new THREE.Color(0xb060ff)}},vertexShader:VS_UV,fragmentShader:BEAM_FS,transparent:true,depthWrite:false,blending:ADD,side:THREE.DoubleSide}),colM2=colM.clone();colM2.uniforms.uCore.value=1;
   const col=new THREE.Group();col.position.set(SX,SY,SZ);const cv=new THREE.Vector3(cx-SX,-SY,cz-SZ),L=cv.length();col.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),cv.normalize());
   const c1=new THREE.Mesh(colG,colM),c2=new THREE.Mesh(colG,colM2);col.add(c1,c2);root.add(col);
   // fireball: violet plasma shell, white-hot core, dark after-blast
-  const fbG=jitterGeo(new THREE.IcosahedronGeometry(1,3),.12),dkG=new THREE.IcosahedronGeometry(1,3),fbM=new THREE.MeshBasicMaterial({color:0xc070ff,transparent:true,opacity:.4,blending:ADD,depthWrite:false}),fcM=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:1,blending:ADD,depthWrite:false}),dkM=new THREE.MeshBasicMaterial({color:0x12061c,transparent:true,opacity:0,depthWrite:false});
+  const fbG=jitterGeo(new THREE.IcosahedronGeometry(1,3),.12),dkG=new THREE.IcosahedronGeometry(1,3),fbM=new THREE.MeshBasicMaterial({color:0xc070ff,transparent:true,opacity:.4,blending:ADD,depthWrite:false}),fcM=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:1,blending:ADD,depthWrite:false}),dkM=new THREE.MeshBasicMaterial({color:0x4a2a6a,transparent:true,opacity:0,depthWrite:false});
   const fb=new THREE.Mesh(fbG,fbM),fc=new THREE.Mesh(fbG,fcM),dk=new THREE.Mesh(dkG,dkM);[fb,fc,dk].forEach(m=>{m.position.set(cx,.25,cz);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);root.add(m);});
   // shock rings: one flat rising, one facing the camera
   const tG=new THREE.TorusGeometry(1,.055,6,48),tM=new THREE.MeshBasicMaterial({color:0xe6c0ff,transparent:true,opacity:.9,blending:ADD,depthWrite:false}),tM2=tM.clone();
@@ -28843,11 +28844,11 @@ function ccmExplode(cx,cz,SX,SY,SZ,P,o,pillars,Rr,LV,AM,S){S.collapsed=true;if(L
         if(rnd()<.35)emit(1,{x:m.position.x,y:m.position.y,z:m.position.z,s:.05,s2:0,c:0xb060ff,c2:0x3a0a6a,life:.35});if(rnd()<.15)emitS(0,{x:m.position.x,y:m.position.y,z:m.position.z,s:.12,s2:.35,c:0x3a2a40,c2:0x1a1420,a:.45,life:.9,turb:.4});
         if(e.life/e.max<.3)m.scale.multiplyScalar(.95);});}});
   // immediate bursts
-  sprayP(1,cx,.4,cz,240,{c:0xffffff,c2:0x8a30ff,sp:7.5,r:.6,up:1.2,s:.08,s2:0,life:1.3,g:3,drag:.8});
+  sprayP(1,cx,.4,cz,130,{c:0xffffff,c2:0x8a30ff,sp:7.5,r:.6,up:1.2,s:.07,s2:0,life:.9,g:3,drag:.8});
   sprayP(1,cx,.25,cz,90,{c:0xffd0ff,c2:0xa040ff,sp:3.5,flat:true,s:.12,s2:0,life:.9,drag:1.5});
   sprayP(1,cx,.3,cz,40,{c:0xffe0a0,c2:0xa04000,sp:3,up:2,s:.05,s2:0,life:1.6,g:5});
-  debris(cx,cz,36);sprayP(0,cx,.2,cz,40,{c:0x6a5a48,c2:0x2e2620,sp:3.5,flat:true,r:.5,s:.3,s2:.8,a:.6,life:1.6,turb:.6});
-  for(let i=0;i<34;i++){const a=rnd()*6.28,v=2.2+rnd()*3.2;emitS(0,{x:cx+Math.cos(a)*.4,y:.2,z:cz+Math.sin(a)*.4,vx:Math.cos(a)*v,vy:.25+rnd()*.5,vz:Math.sin(a)*v,s:.5,s2:1.5,c:0x5a4a50,c2:0x2a2030,a:.55,life:1.9,drag:1.6,turb:.5});}
+  debris(cx,cz,36);sprayP(0,cx,.2,cz,30,{c:0x8a7a68,c2:0x5a5048,sp:3.5,flat:true,r:.5,s:.3,s2:.7,a:.4,life:1,turb:.6});
+  for(let i=0;i<34;i++){const a=rnd()*6.28,v=2.2+rnd()*3.2;emitS(0,{x:cx+Math.cos(a)*.4,y:.2,z:cz+Math.sin(a)*.4,vx:Math.cos(a)*v,vy:.25+rnd()*.5,vz:Math.sin(a)*v,s:.4,s2:1.1,c:0x9a8aa0,c2:0x6a5a78,a:.3,life:1.1,drag:1.6,turb:.5});}
   for(let i=0;i<10;i++)emitS(1,{x:cx+(rnd()-.5)*.6,y:.3+rnd()*.6,z:cz+(rnd()-.5)*.6,vx:(rnd()-.5)*1.5,vy:.5+rnd(),vz:(rnd()-.5)*1.5,s:.5,s2:1.3,c:0x8a40d0,c2:0x14041e,a:.6,life:.8,drag:1.5});
   // damage, knockback, launch
   const CL=[];for(const en of enemies){if(en.dead)continue;const d=Math.hypot(en.x-cx,en.z-cz);if(d<Rr+1.5){const full=S.chained.has(en);hurt(en,P*3*(full?1:1-d/(Rr+2)*.5),'magic',o);CL.push({e:en,full});if(LV>=4&&!en.dead){en.ccmSu=time+CCM.suT;en.ccmSuA=AM[3];ccmSunder(en);}
@@ -28856,16 +28857,16 @@ function ccmExplode(cx,cz,SX,SY,SZ,P,o,pillars,Rr,LV,AM,S){S.collapsed=true;if(L
   addFx(root,3.4,(f,dt)=>{tt+=dt;colM.uniforms.uT.value=tt;colM2.uniforms.uT.value=tt;
     const ck=clamp(tt/.5,0,1),w=(1-ck)*.95+.02;c1.scale.set(w,L,w);c2.scale.set(w*.35,L,w*.35);colM.uniforms.uA.value=1-ck;colM2.uniforms.uA.value=1-ck;
     const fk=ease(clamp(tt/.55,0,1));fb.scale.set(.2+fk*Rr*1.45,(.2+fk*Rr*1.45)*.72,.2+fk*Rr*1.45);fb.rotation.y+=dt*1.5;fbM.opacity=.4*(1-clamp((tt-.12)/.6,0,1));
-    fc.scale.setScalar(.1+fk*Rr*.75);fcM.opacity=1-clamp(tt/.32,0,1);
-    const dkk=ease(clamp((tt-.1)/1.1,0,1));dk.scale.set(.3+dkk*Rr*.95,(.3+dkk*Rr*.95)*.55,.3+dkk*Rr*.95);dkM.opacity=tt<.18?0:.32*(1-clamp((tt-.3)/1,0,1));
-    tor.scale.setScalar(.3+ease(clamp(tt/.65,0,1))*Rr*2.3);tor.position.y=.3+tt*1.6;tM.opacity=.9*(1-clamp(tt/.7,0,1));
+    fc.scale.setScalar(.1+fk*Rr*.4);fcM.opacity=.7*(1-clamp(tt/.22,0,1));
+    const dkk=ease(clamp((tt-.1)/1.1,0,1));dk.scale.set(.3+dkk*Rr*.95,(.3+dkk*Rr*.95)*.55,.3+dkk*Rr*.95);dkM.opacity=tt<.18?0:.14*(1-clamp((tt-.25)/.5,0,1));
+    tor.scale.setScalar(.3+ease(clamp(tt/.65,0,1))*Rr*2.3);tor.position.y=.3+tt*1.6;tM.opacity=.45*(1-clamp(tt/.5,0,1));
     tor2.visible=false;
     crM.opacity=(1-clamp((tt-.5)/.8,0,1))*(.7+.3*Math.sin(tt*18));crM2.opacity=(1-clamp((tt-.4)/.7,0,1))*(.6+.4*Math.sin(tt*23+1));scM.opacity=.6*(1-clamp((tt-.6)/.8,0,1));
     if(!f.s1&&tt>.06){f.s1=1;shockwave(cx,cz,9.5,0xb060ff,1.15,0x000000);}
     if(!f.s2&&tt>.18){f.s2=1;shockwave(cx,cz,5.5,0xffd8ff,.7);}
     if(!f.s3&&tt>.34){f.s3=1;shockwave(cx,cz,3.5,0x8a30ff,.6);camShake=Math.max(camShake,.2);}
-    if(tt<1.25){for(let i=0;i<5;i++){const a=rnd()*6.28,r=rnd()*.6;emitS(0,{x:cx+Math.cos(a)*r,y:.3+tt*2,z:cz+Math.sin(a)*r,vx:Math.cos(a)*.6,vy:1.4+rnd()*1.2,vz:Math.sin(a)*.6,s:.5,s2:1.7,c:0x4a2c60,c2:0x1a1024,a:.6,life:2.3,drag:1.2,turb:.6});}
-      if(tt>.3)for(let i=0;i<4;i++){const a=rnd()*6.28;emitS(0,{x:cx+Math.cos(a)*.6,y:1.6+tt*1.3,z:cz+Math.sin(a)*.6,vx:Math.cos(a)*1.7,vy:.2,vz:Math.sin(a)*1.7,s:.6,s2:1.9,c:0x5a3470,c2:0x1a1024,a:.5,life:2.1,drag:1,turb:.5});}
+    if(tt<1.25){for(let i=0;i<5;i++){const a=rnd()*6.28,r=rnd()*.6;emitS(0,{x:cx+Math.cos(a)*r,y:.3+tt*2,z:cz+Math.sin(a)*r,vx:Math.cos(a)*.6,vy:1.4+rnd()*1.2,vz:Math.sin(a)*.6,s:.4,s2:1.2,c:0x9a70c8,c2:0x5a4a78,a:.3,life:1,drag:1.2,turb:.6});}
+      if(tt>.3)for(let i=0;i<4;i++){const a=rnd()*6.28;emitS(0,{x:cx+Math.cos(a)*.6,y:1.6+tt*1.3,z:cz+Math.sin(a)*.6,vx:Math.cos(a)*1.7,vy:.2,vz:Math.sin(a)*1.7,s:.45,s2:1.3,c:0xa080d0,c2:0x6a5a88,a:.26,life:.9,drag:1,turb:.5});}
       if(tt<.6)emitS(1,{x:cx,y:.4+tt*2,z:cz,vy:1.5,s:.7,s2:1.6,c:0xc070ff,c2:0x1a0428,a:.5,life:.9,drag:1});}
     if(tt<1.3)for(let i=0;i<5;i++){const a=rnd()*6.28,r=rnd()*Rr*.95;emit(1,{x:cx+Math.cos(a)*r,y:.06,z:cz+Math.sin(a)*r,vx:(rnd()-.5)*.2,vy:.6+rnd()*1.3,vz:(rnd()-.5)*.2,s:.1+rnd()*.1,s2:0,c:rnd()<.3?0xffffff:0xc070ff,c2:0x3a0a6a,life:.6+rnd()*.5,turb:1.2});}
     if(tt<1&&rnd()<.7){const a=rnd()*6.28,r1=rnd()*.5,r2=1+rnd()*Rr*1.6;zap({x:cx+Math.cos(a)*r1,y:.08,z:cz+Math.sin(a)*r1},{x:cx+Math.cos(a+(rnd()-.5)*.4)*r2,y:.08,z:cz+Math.sin(a+(rnd()-.5)*.4)*r2},0xe8c8ff,.12);}},null,{mats,geos});
