@@ -8472,7 +8472,9 @@ function s6PrismGeo(){const g=new THREE.CylinderGeometry(.42,.42,1.1,3,1).toNonI
   for(let i=0;i<ps.count;i+=3){const ax=(ps.getX(i)+ps.getX(i+1)+ps.getX(i+2))/3,ay=(ps.getY(i)+ps.getY(i+1)+ps.getY(i+2))/3,az=(ps.getZ(i)+ps.getZ(i+1)+ps.getZ(i+2))/3;
     const idx=Math.abs(ay)>.5?(ay>0?2:5):(Math.floor((Math.atan2(az,ax)+Math.PI)/(2*Math.PI)*3)%3)*2;c.setHex(S6_DAWN[idx]).lerp(wh,.45);for(let j=0;j<3;j++){cl[(i+j)*3]=c.r;cl[(i+j)*3+1]=c.g;cl[(i+j)*3+2]=c.b;}}
   g.setAttribute('color',new THREE.BufferAttribute(cl,3));g.computeVertexNormals();return g;}
-function castPrism(t,c0,P,o){const c=nsLead(c0,1.1),cx=c.x,cz=c.z,cy=gy(cx,cz),mats=[],geos=[],R=2.4,PY=1.6,COLS=S6_DAWN,NB=6;
+function castPrism(t,c0,P,o){const c=nsLead(c0,1.1),mats=[],geos=[],R=2.4,PY=1.6,COLS=S6_DAWN,NB=6;let cx=c.x,cz=c.z,cy=gy(cx,cz);
+  /* the masteries (prmStart; null at Mastery 0, for echoes and other casters: the old prism) */
+  const PM=typeof prmStart==='function'?prmStart(o,{P,R,COLS}):null;
   const pr=new THREE.Group();pr.position.set(cx,cy+PY,cz);pr.scale.setScalar(.01);nsOwn(pr);
   const pg=s6PrismGeo();geos.push(pg);const glass=new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x4a5a80,emissiveIntensity:.4,specular:0xffffff,shininess:150,flatShading:true,transparent:true,opacity:.75,depthWrite:false,side:THREE.DoubleSide});mats.push(glass);
   const body=new THREE.Mesh(pg,glass);body.rotation.z=Math.PI/2;pr.add(body);   /* lying on its side, like a real prism */
@@ -8502,7 +8504,7 @@ function castPrism(t,c0,P,o){const c=nsLead(c0,1.1),cx=c.x,cz=c.z,cy=gy(cx,cz),m
     sG.attributes.position.needsUpdate=true;sG.attributes.color.needsUpdate=true;rG.attributes.position.needsUpdate=true;rG.attributes.color.needsUpdate=true;};
   const hide=()=>{sM.opacity=0;rM.opacity=0;shafts.forEach(m=>{m.material.opacity=0;});tips.forEach(m=>{m.visible=false;});};
   const last=new Map();let tt=0,ang=rnd()*6.28,om=1.4,len=0,fin=false,shat=false;const T1=1.1,T2=4,T3=4.4;
-  addFx(new THREE.Group(),5.4,(f,dt)=>{tt+=dt;rune.userData.fade(Math.min(.85,tt/.5)*(tt>T3?Math.max(0,1-(tt-T3)/.7):1));rune.rotation.y+=dt*.5;
+  addFx(new THREE.Group(),5.4,(f,dt)=>{tt+=dt;if(PM&&tt>T1&&tt<T3){const d=PM.drift(dt,cx,cz,len);if(d){cx=d.x;cz=d.z;cy=gy(cx,cz);pr.position.x=cx;pr.position.z=cz;rune.position.set(cx,cy+.03,cz);sun.position.x=cx;sun.position.z=cz;}}if(PM)PM.frame(tt,dt,cx,cz);rune.userData.fade(Math.min(.85,tt/.5)*(tt>T3?Math.max(0,1-(tt-T3)/.7):1));rune.rotation.y+=dt*.5;
     /* gathering: coloured motes spiral in and six shards lock together */
     if(tt<.9){const k=tt/.9;for(let i=0;i<NB;i++){const a=i/NB*6.283+tt*3,r=.35+1.3*(1-k);emit(1,{x:cx+Math.cos(a)*r,y:cy+PY+(rnd()-.5)*.4,z:cz+Math.sin(a)*r,vx:-Math.sin(a)*1.2-Math.cos(a)*1.4,vy:0,vz:Math.cos(a)*1.2-Math.sin(a)*1.4,s:.06,s2:.02,c:COLS[i],c2:0xffffff,life:.4});}
       shards.forEach(m=>{const u=m.userData,r=1.5*(1-ease(k)),a=u.a+tt*4;m.position.set(cx+Math.cos(a)*r,cy+PY+u.y*(1-k),cz+Math.sin(a)*r);m.rotation.x+=dt*6;m.rotation.y+=dt*5;});}
@@ -8519,18 +8521,18 @@ function castPrism(t,c0,P,o){const c=nsLead(c0,1.1),cx=c.x,cz=c.z,cy=gy(cx,cz),m
       /* foes a spoke sweeps over */
       if(len>.5)for(const e of enemies){if(e.dead)continue;const dx=e.x-cx,dz=e.z-cz,r=Math.hypot(dx,dz);if(r>len+.15||r<.12)continue;const ea=Math.atan2(dz,dx);
         for(let i=0;i<NB;i++){let da=ea-(ang+i/NB*6.283);da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.cos(da)<0||Math.abs(Math.sin(da))*r>.22)continue;
-          if(time-(last.get(e)||-9)<.22)break;last.set(e,time);hurt(e,P*.45,'magic',o);const q=tpos2(e);flash(q.x,q.y,q.z,COLS[i],.3,.1);sprayP(1,q.x,q.y,q.z,8,{c:0xffffff,c2:COLS[i],sp:1.2,s:.045,s2:0,life:.3,g:1});glow.scale.multiplyScalar(1.15);break;}}}
+          if(time-(last.get(e)||-9)<.22)break;last.set(e,time);hurt(e,P*.45,'magic',o);if(PM)PM.hit(e,i,fin);const q=tpos2(e);flash(q.x,q.y,q.z,COLS[i],.3,.1);sprayP(1,q.x,q.y,q.z,8,{c:0xffffff,c2:COLS[i],sp:1.2,s:.045,s2:0,life:.3,g:1});glow.scale.multiplyScalar(1.15);break;}}}
     /* the finale: every colour folds into one lance of light that strikes straight down, and the prism bursts */
-    if(tt>=T3&&!shat){shat=true;hide();s6PrismLance(cx,cz,cy,pr.position.y,P,o,COLS,pr,mats,geos);}
+    if(tt>=T3&&!shat){shat=true;hide();s6PrismLance(cx,cz,cy,pr.position.y,P,o,COLS,pr,mats,geos);if(PM)PM.lance(cx,cz);}
     if(shat)sbm.opacity=Math.max(0,sbm.opacity-dt*1.4);},
     ()=>{nsFree(pr);nsFree(sun);nsFree(sheet);nsFree(ray);nsFree(rune);shafts.forEach(m=>{nsFree(m);m.geometry.dispose();});tips.forEach(m=>nsFree(m));shards.forEach(m=>{if(m.parent)nsFree(m);});},{mats:mats.concat(rune.userData.mats),geos:geos.concat(rune.userData.geos)});}
 function s6PrismLance(cx,cz,cy,y,P,o,COLS,pr){
   const lg=new THREE.CylinderGeometry(.16,.3,1,16,1,true);lg.translate(0,-.5,0);const lm=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
   const lance=new THREE.Mesh(lg,lm);lance.position.set(cx,y,cz);lance.scale.set(1,y-cy,1);lance.renderOrder=8;scene.add(lance);
   addFx(lance,.45,(f)=>{const k=f.life/f.max;lm.opacity=.95*k;lance.scale.x=lance.scale.z=1+(1-k)*1.6;},null,{mats:[lm],geos:[lg]});
-  pr.visible=false;flash(cx,cy+.3,cz,0xffffff,1.6,.2);flash(cx,cy+.5,cz,0xffe0a0,2.4,.45);flashA=Math.max(flashA,.2);flashCol='#fff8ec';camShake=Math.max(camShake,.14);worldSlow=.5;slowT=.12;
+  pr.visible=false;flash(cx,cy+.3,cz,0xffffff,.9,.16);flashA=Math.max(flashA,.14);flashCol='#fff8ec';camShake=Math.max(camShake,.14);worldSlow=.5;slowT=.12;
   /* a rainbow nova: one ring of each colour, racing out one after another */
-  COLS.forEach((cc,i)=>addFx(new THREE.Group(),.02+i*.05,null,()=>shockwave(cx,cz,.9+i*.22,cc,.45+i*.04)));
+  prmNova(cx,cz,cy,COLS,1);
   for(let i=0;i<COLS.length;i++)sprayP(1,cx,cy+.3,cz,18,{c:0xffffff,c2:COLS[i],sp:3.2,up:.9,s:.06,s2:0,life:.65,g:1.5,drag:.7,r:.2});
   for(let i=0;i<18&&fx.length<285;i++){const cc=COLS[i%6],m=new THREE.Mesh(tet(.05+rnd()*.06),M(cc,{transparent:true,opacity:.8,emissive:cc,emissiveIntensity:.5,shininess:90}));m.position.set(cx,y,cz);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);scene.add(m);
     const a=rnd()*6.28,v=new THREE.Vector3(Math.cos(a)*(1+rnd()*2.2),.6+rnd()*2.2,Math.sin(a)*(1+rnd()*2.2)),rs=(rnd()-.5)*12;
@@ -14148,6 +14150,9 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Prism of Dawn masteries, redesigned',d:'28 Oct',v:'v425',li:[
+    'Prism of Dawn (Epic) has five new masteries, for now in developer mode: Spectrum (the warm beams set foes alight and the cool beams flare the burn), Sun-Tracking (the prism drifts after the foes), Blinding Fold (the folding beams blind the foes for the lance), Full Spectrum (a foe swept by all six colours bursts with them) and Sunrise (the folded light rises and a pillar of dawn comes down).',
+    'Its rainbow now bursts in 3D: a ring of coloured crystal racing out with height and rays of colour, instead of six flat rings.']},
   {t:'Thunder Wyrm masteries, redesigned',d:'28 Oct',v:'v424',li:[
     'Thunder Wyrm (Epic) has five new masteries, for now in developer mode: Crackling Coils (the arcs between its coils strike foes near its body), Hunter\u2019s Weave (it lingers in packs, darts across empty road and sways toward its prey), Constrict (it coils round the toughest foe near its head, holds and squeezes it), Grounding Strike (every lash marks its foe and the strike grounds through them all) and Thunderhead (it rears high, winds into a crown of lightning and falls as a column of it).',
     'Its dive and its strike now burst in 3D: a churning shell of plasma, forks of lightning thrown up and out, rock flung in arcs and dust climbing, instead of flat shockwaves.']},
@@ -28302,6 +28307,108 @@ function wymThunderhead(x,z,dIn,dOut,O){const y=gy(x,z);wymLog({ev:'thunderhead'
   sprayP(1,x,y+.3,z,140,{c:0xffffff,c2:0x4a7aff,sp:4.5,up:1.3,s:.06,s2:0,life:.65,g:3,drag:.7});
   for(let i=0;i<22;i++){const b=i/22*6.28,v=1.5+rnd()*1.6;emitS(0,{x:x+Math.cos(b)*.4,y:y+.1,z:z+Math.sin(b)*.4,vx:Math.cos(b)*v,vy:.5+rnd()*.8,vz:Math.sin(b)*v,s:.25,s2:.9,c:0x8a8a94,c2:0x44464e,a:.3,life:1.5,drag:1.6,lift:.3,turb:.4});}
   if(state!=='playing')return;for(const e of enemies){if(e.dead||e.fake)continue;const d2=(e.x-x)**2+(e.z-z)**2;if(d2<WYM.thIn*WYM.thIn){hurt(e,dIn,'magic',O);wymLog({ev:'thIn',e});}else if(d2<WYM.thOut*WYM.thOut){hurt(e,dOut,'magic',O);wymLog({ev:'thOut',e});}if(!e.dead&&d2<WYM.thOut*WYM.thOut)e.zapT=Math.max(e.zapT||0,4);}}
+
+/* ================= Prism of Dawn's masteries (v425), designed with Simon's framework (MASTERY_DESIGN.md) ================= */
+/* Identity: a crystal that splits the dawn into a wheel of six coloured beams sweeping the ground, faster and faster, then folds them back
+   into one lance. Design space: the six colours (only looks so far), where the prism hangs (it never moves), the sweeps over each foe, the
+   fold, the lance and its rainbow. Roster: no lances raining on the strongest (Lance of the Seraph), no split beams or mirrors (Basic Beam's
+   Prism Split and Lightbound Mirrors), no sunlit weakening ground (Sunflare): every mastery grows out of the wheel of colour itself.
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Spectrum | what if each colour did what it looks like? | the six colours (only looks before) | cosmetic made real |
+   | 2 | Sun-Tracking | what if it followed the foes? | where the prism hangs | behaviour change |
+   | 3 | Blinding Fold | what if the fold dazzled them for the lance? | the fold | control / sets up the finale |
+   | 4 | Full Spectrum | what if catching every colour mattered? | the sweeps over one foe | build-up payoff |
+   | 5 | Sunrise | what if the lance were the dawn itself? | the lance | signature payoff |
+   - M1 Spectrum: the warm beams (red, orange, gold) set the foes they sweep alight: PRM.burn over 2s (Burning, fire); the cool beams (green,
+     blue, violet) are light, so the next one over a burning foe sets off the Flare combo that is already in the game (the burn is spent at
+     once for 150% of what was left). The wheel feeds itself, and Burning sets up the fire scrolls.
+   - M2 Sun-Tracking: while the wheel turns, the prism drifts after the foes (toward the middle of the foes within reach of its beams, 0.7
+     tiles a second, up to 1.6 tiles from where it formed), its rune and its sunbeam with it. No damage of its own: it mends the spell's
+     weakness, a fixed wheel the pack walks out of.
+   - M3 Blinding Fold: as the beams fold back in, each foe they cross is dazzled: blinded (held) for 0.5s, Resolve applies, then 30% slower
+     for 1.5s, so it is still under the prism when the lance falls. A ring of light flares round its head.
+   - M4 Full Spectrum: a foe swept by all six colours in one cast is overwhelmed: the colours it caught (motes circling it, one per colour)
+     burst out of it in a 3D splash of coloured crystal and rays: PRM.full, once per foe.
+   - M5 Sunrise: the folded light shoots up into the sky, and the dawn comes down: a broad pillar of sunrise (gold and rose, see-through,
+     coloured crystal spiralling up through it) stands 1.2s over the lance's spot: PRM.sun more within 1.8 as it lands, then PRM.sunT every
+     0.3s to the foes inside 1.5.
+   The base cast's rainbow nova follows the explosion rule (every cast): instead of six flat rings, a ring of coloured crystal shards races
+   out with height and tumbles down, and rays of colour burst up and outward (prmNova). PRM.dbg (an array) logs the events for the tests. */
+const PRM={dbg:null,burn:.2,burnCd:1.2,drift:.7,driftMax:1.6,blind:.5,blindSlow:.3,full:1.2,sun:1.4,sunT:.15,sunR:1.5,sunN:4};
+const prmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='prism'?c:null;};
+const prmLog=d=>{if(PRM.dbg){d.time=time;PRM.dbg.push(d);}};
+SM_D.prism=[
+  {n:'Spectrum',d:'The warm beams set foes alight ({20}% over 2s, a foe at most every 1.2s); the cool beams are light, so the next one over a burning foe flares the burn.'},
+  {n:'Sun-Tracking',d:'While its beams turn, the prism drifts after the foes (up to 1.6 tiles), its rune and sunbeam with it.'},
+  {n:'Blinding Fold',d:'As the beams fold back in, each foe they cross is blinded for 0.5s (Resolve applies), then 30% slower for 1.5s.'},
+  {n:'Full Spectrum',d:'A foe swept by all six colours in one cast bursts with them for {120}%.'},
+  {n:'Sunrise',d:'The folded light rises and the dawn comes down: a pillar of sunrise for 1.2s, {140}% more as it lands, then {15}% every 0.3s inside it.'}];
+SMF.prism={m:1};
+SMA.prism=[1,1,1,1,1];
+/* the ladder (tests/sm-ladder.js): the masteries alone come to about 1.27 / 1.37 / 1.4 / 1.55 / 2.06 (Spectrum leans on the Flare combo already in the
+   game, which pays well on a pack; Sun-Tracking adds nothing where the ladder's foes stand still); these bring it onto 1.09 / 1.23 / 1.35 / 1.52 / 1.74 */
+SMG.prism=[.87,.89,.96,.98,.84];
+
+/* ---- the 3D rainbow: crystal shards racing out in a ring with height, and rays of colour bursting up and out ---- */
+const PRMQ={};PRMQ.tet=()=>PRMQ._t||(PRMQ._t=(()=>{const g=new THREE.TetrahedronGeometry(1,0);g.scale(.6,1.4,.6);return g;})());
+PRMQ.ray=()=>PRMQ._r||(PRMQ._r=(()=>{const g=new THREE.ConeGeometry(.05,1,5,1,true);g.translate(0,.5,0);return g;})());
+PRMQ.mat=c=>(PRMQ.m||(PRMQ.m={}))[c]||(PRMQ.m[c]=(typeof asOffRun==='function'?asOffRun:f=>f())(()=>new THREE.MeshPhongMaterial({color:c,emissive:c,emissiveIntensity:.55,specular:0xffffff,shininess:110,flatShading:true,transparent:true,opacity:.9})));
+const PRMO=new THREE.Object3D();
+function prmNova(x,z,y,COLS,S){prmLog({ev:'nova',S});const g=new THREE.Group();g.position.set(x,y,z);scene.add(smTag(g));const N=8,ims=COLS.map(c=>{const im=new THREE.InstancedMesh(PRMQ.tet(),PRMQ.mat(c),N);im.frustumCulled=false;g.add(im);return im;});const F=[];
+  for(let i=0;i<COLS.length;i++)for(let j=0;j<N;j++){const a=(i*N+j)/(COLS.length*N)*6.28+rnd()*.15;F.push({im:ims[i],k:j,a,R:S*(1.7+rnd()*.7),h:.15+rnd()*.45*S,del:i*.03+rnd()*.04,r:rnd()*6,w:(rnd()-.5)*12,s:(.05+rnd()*.05)*(.7+.3*S)});}
+  const rays=[],rg=new THREE.Group();g.add(rg);const rm=[];for(let i=0;i<14;i++){const c=COLS[i%COLS.length],m=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false});rm.push(m);
+    const me=new THREE.Mesh(PRMQ.ray(),m);const a=i/14*6.28+rnd()*.3,el=.25+rnd()*.95;me.lookAt(Math.cos(a)*Math.cos(el),Math.sin(el),Math.sin(a)*Math.cos(el));me.rotateX(Math.PI/2);me.scale.set(.001,.001,.001);rg.add(me);rays.push({me,l:(.9+rnd()*.8)*S,w:1+rnd()});}
+  let t=0;addFx(g,1,(f,dt)=>{t+=dt;for(const q of F){const lt=t-q.del;let sc=0,r=0,yy=0;if(lt>0){const k=Math.min(1,lt/.55);r=.2+q.R*(1-Math.pow(1-k,2.2));yy=q.h*Math.sin(Math.min(1,k*1.3)*Math.PI)+.05;sc=q.s*(lt<.05?lt/.05:1)*Math.min(1,(1-t)/.3+.0001);q.r+=q.w*dt;}
+      PRMO.position.set(Math.cos(q.a)*r,yy,Math.sin(q.a)*r);PRMO.rotation.set(q.r,q.a,q.r*.6);PRMO.scale.setScalar(Math.max(.0001,sc));PRMO.updateMatrix();q.im.setMatrixAt(q.k,PRMO.matrix);}for(const im of ims)im.instanceMatrix.needsUpdate=true;
+    const rk=Math.min(1,t/.12),rf=Math.max(0,1-t/.45);for(const q of rays){q.me.scale.set(q.w*rf+.001,q.l*rk+.001,q.w*rf+.001);}for(const m of rm)m.opacity=.8*rf;},null,{mats:rm});
+  sprayP(1,x,y+.3,z,Math.round(40*S),{c:0xffffff,c2:COLS[Math.floor(rnd()*COLS.length)],sp:2.6*S,up:1.2,s:.05,s2:0,life:.55,g:1.5,drag:.7});}
+
+/* ---- the masteries ---- */
+function prmStart(o,K){const C=prmC(o);if(!C)return null;const L=C.L,a=C.a,P=K.P,O=smO(o),COLS=K.COLS;prmLog({ev:'cast',L});
+  const seen=new Map(),burst=new Set(),blind=new Set(),ign=new Map();let ox=null,oz=null,moved=0;
+  const fireO=smO(o,{el:'fire'});
+  return{
+    hit(e,i,fin){if(e.fake||e.dead)return;
+      /* M1: the warm beams set foes alight; the cool beams (light) flare the burn through the Flare combo */
+      if(L>=1&&i<3&&!((ign.get(e)||-9)>time-PRM.burnCd)){ign.set(e,time);applyBurn(e,P*PRM.burn*a[0]/2,2,fireO);prmLog({ev:'burn',e,i});const p=tpos2(e);sprayP(1,p.x,p.y,p.z,6,{c:0xffd070,c2:COLS[i],sp:.9,up:.8,s:.04,s2:0,life:.35,g:-.5});}
+      /* M3: the folding beams blind */
+      if(L>=3&&fin&&!blind.has(e)){blind.add(e);if(state==='playing'){smStun(e,PRM.blind);smSlow(e,PRM.blindSlow,PRM.blind+1.5);}prmLog({ev:'blind',e});prmHalo(e);}
+      /* M4: every colour once */
+      if(L>=4&&!burst.has(e)){const s=(seen.get(e)||0)|(1<<i);seen.set(e,s);if(s===63){burst.add(e);mxLater(.05,()=>prmFull(e,P*PRM.full*a[3],O,COLS));}}},
+    /* M2: drift after the foes */
+    drift(dt,cx,cz,len){if(L<2)return null;if(ox===null){ox=cx;oz=cz;}let sx=0,sz=0,n=0;const R=Math.max(1.2,len)+.8;for(const e of enemies){if(e.dead||e.fake)continue;const d2=(e.x-cx)**2+(e.z-cz)**2;if(d2>R*R)continue;sx+=e.x;sz+=e.z;n++;}
+      if(!n)return null;let tx=sx/n,tz=sz/n;const dx=tx-cx,dz=tz-cz,dl=Math.hypot(dx,dz);if(dl<.05)return null;const st=Math.min(dl,PRM.drift*dt);let nx=cx+dx/dl*st,nz=cz+dz/dl*st;
+      const fx=nx-ox,fz=nz-oz,fl=Math.hypot(fx,fz);if(fl>PRM.driftMax){nx=ox+fx/fl*PRM.driftMax;nz=oz+fz/fl*PRM.driftMax;}moved=Math.hypot(nx-ox,nz-oz);if(PRM.dbg)PRM.last={moved};
+      if(rnd()<.5)emit(1,{x:nx+(rnd()-.5)*.3,y:gy(nx,nz)+.1,z:nz+(rnd()-.5)*.3,vx:dx/dl*.5,vy:.3,vz:dz/dl*.5,s:.05,s2:0,c:0xfff0c0,c2:0xffb040,life:.4});return{x:nx,z:nz};},
+    lance(cx,cz){if(L>=5)prmSunrise(cx,cz,P,a,O,COLS);},
+    frame(tt,dt){/* M4: the colours each foe has caught, circling it */if(L<4)return;for(const [e,s] of seen){if(e.dead||burst.has(e))continue;if(rnd()<.6){const p=tpos2(e);let k=Math.floor(rnd()*6);if(!(s&(1<<k)))continue;const b=time*5+k*1.047;emit(1,{x:p.x+Math.cos(b)*.25,y:p.y+.1,z:p.z+Math.sin(b)*.25,vx:0,vy:0,vz:0,s:.05,s2:0,c:COLS[k],c2:0xffffff,life:.15});}}}};}
+/* a ring of light flaring round a blinded foe's head */
+function prmHalo(e){const p=tpos2(e),g=new THREE.TorusGeometry(.2,.025,6,24),m=new THREE.MeshBasicMaterial({color:0xfff2c0,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false}),me=new THREE.Mesh(g,m);me.rotation.x=Math.PI/2;me.position.set(p.x,p.y+.18,p.z);scene.add(smTag(me));
+  addFx(me,.6,(f,dt)=>{const k=1-f.life/f.max;me.position.set(e.x,(e.y||0)+tpos2(e).y+.18,e.z);me.scale.setScalar(1+k*.6);m.opacity=.9*(1-k);me.rotation.z+=dt*4;},null,{mat:m,geo:g});
+  for(let i=0;i<4;i++){const b=i/4*6.28;emit(1,{x:p.x+Math.cos(b)*.2,y:p.y+.18,z:p.z+Math.sin(b)*.2,vx:Math.cos(b)*.6,vy:.4,vz:Math.sin(b)*.6,s:.06,s2:0,c:0xffffff,c2:0xffd060,life:.3});}}
+/* M4: the six colours burst out of a foe */
+function prmFull(e,dmg,O,COLS){if(e.dead||state!=='playing')return;const p=tpos2(e);hurt(e,dmg,'magic',O);prmLog({ev:'full',e});prmNova(p.x,p.z,p.y-.25,COLS,.35);flash(p.x,p.y,p.z,0xffffff,.25,.1);}
+/* M5: the light rises, and a pillar of sunrise comes down */
+function prmSunrise(x,z,P,a,O,COLS){const y=gy(x,z);prmLog({ev:'sunrise0'});
+  /* the folded light shoots up */
+  const ug=new THREE.CylinderGeometry(.1,.25,1,12,1,true);ug.translate(0,.5,0);const um=new THREE.MeshBasicMaterial({color:0xfff4d8,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}),up=new THREE.Mesh(ug,um);up.position.set(x,y+1.6,z);up.scale.set(1,.01,1);scene.add(smTag(up));
+  let t0=0;addFx(up,.4,(f,dt)=>{t0+=dt;up.scale.set(1-t0,Math.min(9,t0*40),1-t0);up.position.y=y+1.6+Math.max(0,t0-.15)*30;um.opacity=.9*(1-t0/.4);},null,{mat:um,geo:ug});
+  mxLater(.35,()=>{prmLog({ev:'sunrise'});const R=PRM.sunR,H=4.5;
+    const pg=new THREE.CylinderGeometry(R*.8,R*.95,H,28,6,true);pg.translate(0,H/2,0);
+    const pm=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:0},uD:{value:0}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
+      vertexShader:'varying vec2 vU;varying vec3 vNo,vVi;void main(){vU=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vNo=normalize(normalMatrix*normal);vVi=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
+      fragmentShader:'uniform float uT,uA,uD;varying vec2 vU;varying vec3 vNo,vVi;void main(){if(vU.y>uD)discard;float f=abs(dot(vNo,vVi));float st=sin(vU.x*60.+vU.y*20.-uT*6.)*.5+.5;float edge=pow(1.-f,1.5);'+
+        'vec3 c=mix(vec3(1.,.72,.42),vec3(1.,.92,.6),vU.y);c=mix(c,vec3(1.,1.,.92),edge*.7+st*.3);float a=(edge*.5+st*pow(edge,.5)*.25+.03)*smoothstep(1.,.35,vU.y)*smoothstep(0.,.04,uD-vU.y+.04)*uA;gl_FragColor=vec4(c,clamp(a,0.,.5));}'});
+    const pil=new THREE.Mesh(pg,pm);pil.position.set(x,y,z);pil.renderOrder=7;scene.add(smTag(pil));
+    /* crystal spiralling up inside it */
+    const N=36,ims=COLS.map(c=>{const im=new THREE.InstancedMesh(PRMQ.tet(),PRMQ.mat(c),N/6);im.frustumCulled=false;pil.add(im);return im;});const S=[];for(let i=0;i<N;i++)S.push({im:ims[i%6],k:Math.floor(i/6),a:rnd()*6.28,h:rnd()*H*.7,r:R*(.3+rnd()*.6),sp:1.5+rnd()*1.5,s:.05+rnd()*.05});
+    let t=0,ticks=0,landed=false;const T=1.2;
+    addFx(pil,T+.4,(f,dt)=>{t+=dt;const d=Math.min(1,t/.18);pm.uniforms.uD.value=1-(1-d)*1;pm.uniforms.uT.value+=dt;pm.uniforms.uA.value=Math.min(1,t/.1)*Math.max(0,Math.min(1,(T+.4-t)/.5));pil.position.y=y+(1-d)*H*.9;
+      for(const q of S){q.a+=dt*q.sp;q.h=(q.h+dt*1.6)%(H*.75);PRMO.position.set(Math.cos(q.a)*q.r,q.h,Math.sin(q.a)*q.r);PRMO.rotation.set(q.a*2,q.a,0);PRMO.scale.setScalar(q.s*Math.min(1,t/.3)*Math.max(0,Math.min(1,(T+.4-t)/.4)));PRMO.updateMatrix();q.im.setMatrixAt(q.k,PRMO.matrix);}for(const im of ims)im.instanceMatrix.needsUpdate=true;
+      if(!landed&&d>=1){landed=true;camShake=Math.max(camShake,.16);prmNova(x,z,y,COLS,1.3);sprayP(1,x,y+.3,z,60,{c:0xffffff,c2:0xffc060,sp:3,up:1.2,s:.06,s2:0,life:.6,g:1,drag:.7});
+        if(state==='playing')for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-x)**2+(e.z-z)**2<1.8*1.8){hurt(e,P*PRM.sun*a[4],'magic',O);prmLog({ev:'sunHit',e});}}}
+      if(landed&&ticks<PRM.sunN&&t>=.18+(ticks+1)*.3){ticks++;if(state==='playing')for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-x)**2+(e.z-z)**2<R*R){hurt(e,P*PRM.sunT*a[4],'magic',O);prmLog({ev:'sunTick',e});const p=tpos2(e);emit(1,{x:p.x,y:p.y,z:p.z,vx:0,vy:1,vz:0,s:.07,s2:0,c:0xffffff,c2:0xffc060,life:.35});}}}
+      if(rnd()<.8){const b=rnd()*6.28,r=rnd()*R;emit(1,{x:x+Math.cos(b)*r,y:y+.05,z:z+Math.sin(b)*r,vx:0,vy:1.2+rnd(),vz:0,s:.05,s2:0,c:0xfff6d8,c2:COLS[Math.floor(rnd()*6)],life:.7});}},null,{mats:[pm],geos:[pg]});});}
 
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
