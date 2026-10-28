@@ -14148,6 +14148,13 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Rite of the Phoenix masteries, redesigned',d:'28 Oct',v:'v421',li:[
+    'Rising Heat: each foe the phoenix strikes feeds its fire, so every later strike hits harder and the bird grows larger and hotter.',
+    'Wildfire River: as it climbs away, a front of flame races back along its river of fire and hits every foe on it.',
+    'Burning Plumage: the feathers it bursts into are real now and dart at the foes it struck, toughest first.',
+    'Pyre: a foe its fire hits while already burning erupts in a burst of flame that hits the foes around it.',
+    'Rebirth: its heart falls as an ember, the phoenix is reborn golden from a pyre on the road, skims through the enemy again and dives into a great explosion.',
+    'Its strikes, its birth and its death burst are now 3D fireballs instead of flat flashes.']},
   {t:'Rare masteries for everyone',d:'28 Oct',v:'v417',li:[
     'The ten Rare scrolls now earn mastery XP and use their new masteries in every game, not only in developer mode. Scrolls above Rare come later.']},
   {t:'Entangling Roots masteries reworked',d:'28 Oct',v:'v416',li:[
@@ -28173,6 +28180,154 @@ function rtmRun(S,F){const L=S.L,a=S.a,T=F.map(f=>f.e);let t=0;const done={};
 const RTM_CAST0=castRoots;
 castRoots=function(t,list,P,o){const C=rtmC(o);if(!C)return RTM_CAST0.apply(this,arguments);return rtmCast(C,t,list,P,o);};
 
+/* ================= Rite of the Phoenix's masteries (v421), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: a phoenix is born from fire, skims the road through the enemy leaving a river of fire, and dies in a burst of burning feathers;
+   and a phoenix is the bird that comes back from its own ashes. Design space: its birth (the rune), the dive (where it lands), the skim (each
+   foe it passes), the river of fire, its climb and death burst (the feathers), and rebirth.
+   - M1 Rising Heat (the skim; behaviour change: 'what does the phoenix gain from the crowd?'): each foe it strikes feeds it. Every strike
+     deals 7% more for each foe it struck before, up to 5 (so from the 6th foe on, 35% more), and the bird grows (8% a foe), its body runs
+     white-gold and it sheds more embers.
+   - M2 Wildfire River (the river of fire; new phase: 'what does the road remember?'): 0.25s after it climbs away, a front of flame races
+     back along the whole river from where the skim began to where it ended (10 tiles a second), throwing up flame tongues and fire
+     bursts: 60% to every ground foe the front passes (within 0.45 tiles), who burn again (40% a second for 2s).
+   - M3 Burning Plumage (the death burst; cosmetic made real): the feathers it bursts into were only for show. Now 8 real feathers flutter
+     out of the burst and dart down at the foes it struck that still stand, toughest first (with fewer than 8, some take two; with none,
+     the nearest foes within 6 tiles): 50% each and burning for 2s.
+   - M4 Pyre (the strikes, the river and the feathers; interaction: 'what does it do with fire that is already burning?'): when its fire
+     (a strike, the flaring river, a feather) hits a foe that was already burning, from any source, the foe erupts in a 3D fire burst: 10%
+     to every foe within 0.75 tiles. Each foe erupts at most once a cast. Alone, its strikes set the foes burning for its river and
+     feathers to erupt; cast after other fire, it erupts from the very first strike.
+   - M5 Rebirth (the whole spell; signature payoff: 'what comes back from the ashes?'): after the burst its heart falls as an ember to the
+     road just behind the rearmost foe it struck, a pyre burns there for 0.6s, and the phoenix is reborn from it, a third bigger and golden.
+     It skims toward the keep through the enemy (7 tiles a second, up to 1.2s, until it passes the foremost foe): 15% to each foe it passes
+     (Rising Heat goes on counting, Pyre goes on erupting); then it climbs and dives where the foes it passed are thickest: a mushroom
+     explosion of 50% within 1.3 tiles.
+   Percentages are of the scroll's power (each strike 350%, burning 40% a second for 4s). Every Rite of the Phoenix cast now runs phmCast (a
+   castPhoenix wrapper): the same birth, aim, dive, skim, river and climb, but its strikes, its birth and its death burst are 3D fireballs
+   (cfmBoom) instead of flat flashes. Power on the Epic ladder (tests/sm-ladder.js, 3 runs) with the hidden factors below:
+   1.10 / 1.24 / 1.35 / 1.51 / 1.75 against 1.094 / 1.234 / 1.35 / 1.522 / 1.742. PHM.dbg (an array) logs the events for the tests. */
+const PHM={dbg:null,strike:3.5,burn:.4,burnT:4,R:.75,spd:6,heat:.07,heatN:5,grow:.08,rv:.6,rvR:.45,rvSpd:10,rvDelay:.25,ft:.5,ftN:8,ftR:6,
+  py:.1,pyR:.75,rb:.15,rbSpd:7,rbT:1.2,rbBoom:.5,rbR:1.3,rbScale:1.35};
+const phmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='phoenix'&&c.L?c:null;};
+const phmLog=d=>{if(PHM.dbg){d.t=time;PHM.dbg.push(d);}};
+SM_D.phoenix=[
+  {n:'Rising Heat',d:'Each foe it strikes feeds its fire: every strike deals {7}% more for each foe it struck before (up to 5), and the phoenix grows larger and hotter.'},
+  {n:'Wildfire River',d:'As it climbs away, a front of flame races back along its river of fire: {60}% to every foe on it, who burn again.'},
+  {n:'Burning Plumage',d:'Its death burst becomes a rain of real feathers: 8 burning feathers dart at the foes it struck, toughest first, for {50}% each.'},
+  {n:'Pyre',d:'When its fire (a strike, the flaring river, a feather) hits a foe that is already burning, the foe erupts: {10}% to foes within 0.75 tiles (once per foe each cast).'},
+  {n:'Rebirth',d:'Its heart falls as an ember and the phoenix is reborn from a pyre on the road, larger and golden: it skims toward the keep for {15}% to each foe, then dives where they are thickest, exploding for {50}% within 1.3 tiles.'}];
+SMF.phoenix={m:1};
+SMA.phoenix=[1,1,1,1,1];
+SMG.phoenix=[1.025,1.021,1.016,1.015,1.01];
+
+/* a tongue of flame bursting out of the ground and dying down (h tall, T seconds) */
+function phmTongue(x,z,h,T){const y=gy(x,z),g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);if(!PHM.tg)PHM.tg=s6TuftGeo();T=T||.7;
+  const m1=s6FlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.5,sp:3,h:.5,w:.1}),m2=s6FlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.5,sp:2.6,h:.6,w:.1,add:true});
+  const a=new THREE.Mesh(PHM.tg,m1),b=new THREE.Mesh(PHM.tg,m2);a.renderOrder=5;b.renderOrder=6;b.scale.set(1.3,1.15,1.3);a.rotation.y=rnd()*6.28;g.add(a,b);const w=.5+rnd()*.25;let tt=0;
+  addFx(g,T,(f,dt)=>{tt+=dt;const k=SMS(tt,0,.1)*(1-SMS(tt,T*.5,T)),up=tt<.14?tt/.14*1.15:1.15-.15*SMS(tt,.14,.3);g.scale.set(w*(.6+.4*k),Math.max(.02,h*up*(.35+.65*k)),w*(.6+.4*k));
+    m1.uniforms.uT.value+=dt;m2.uniforms.uT.value+=dt;m1.uniforms.uA.value=.95*k;m2.uniforms.uA.value=.35*k;},null,{mats:[m1,m2]});return g;}
+/* a real burning feather: it flutters out of the burst, then darts down at its foe (fn(e) on arrival, fn(null) if the foe is gone) */
+function phmFeather(b,e,wait,fn){if(!PHM.fg){PHM.fg=nsFeatherGeo(.5,.14,.3);PHM.fm=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.98,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+    PHM.fgm=new THREE.MeshBasicMaterial({color:0xff6a10,transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});}
+  const g=smTag(new THREE.Group()),m=new THREE.Mesh(PHM.fg,PHM.fm),gl=new THREE.Mesh(PHM.fg,PHM.fgm);m.rotation.y=Math.PI/2;gl.rotation.y=Math.PI/2;gl.scale.set(1.25,1,1.8);g.add(m,gl);g.scale.setScalar(1.6);
+  g.position.copy(b);scene.add(g);const a=rnd()*6.28,v=smV(Math.cos(a)*(1+rnd()),.6+rnd()*.8,Math.sin(a)*(1+rnd())),p0=new THREE.Vector3(),c=new THREE.Vector3(),q=new THREE.Vector3(),prev=new THREE.Vector3();
+  let tt=0,go=false,done=false;const FLY=.45+rnd()*.15;
+  addFx(g,wait+FLY+.1,(f,dt)=>{tt+=dt;if(done)return;prev.copy(g.position);
+    if(tt<wait){v.multiplyScalar(Math.max(0,1-dt*3));v.y-=.6*dt;g.position.addScaledVector(v,dt);g.rotation.z+=dt*4;}
+    else{if(!go){go=true;p0.copy(g.position);}const k=Math.min(1,(tt-wait)/FLY),ke=k*k;const tp=e&&!e.dead?tpos2(e):q;if(e&&!e.dead)q.copy(tp);
+      c.set((p0.x+q.x)/2,Math.max(p0.y,q.y)+1.4,(p0.z+q.z)/2);g.position.set((1-ke)*(1-ke)*p0.x+2*(1-ke)*ke*c.x+ke*ke*q.x,(1-ke)*(1-ke)*p0.y+2*(1-ke)*ke*c.y+ke*ke*q.y,(1-ke)*(1-ke)*p0.z+2*(1-ke)*ke*c.z+ke*ke*q.z);
+      if(g.position.distanceTo(prev)>1e-4)g.lookAt(c.copy(g.position).multiplyScalar(2).sub(prev));
+      if(k>=1){done=true;g.visible=false;const ok=e&&!e.dead;cfmBoom(q.x,q.y,q.z,.22,{lobes:3,T:.45,ground:false});sprayP(1,q.x,q.y,q.z,18,{c:0xfff0a0,c2:0xff3a00,sp:1.6,up:.6,s:.05,s2:0,life:.35,g:2});fn(ok?e:null);return;}}
+    for(let i=0;i<6;i++)emit(1,{x:g.position.x+(rnd()-.5)*.08,y:g.position.y,z:g.position.z+(rnd()-.5)*.08,vx:(rnd()-.5)*.3,vy:.2,vz:(rnd()-.5)*.3,s:.09+rnd()*.06,s2:.01,c:rnd()<.4?0xfff2b0:0xffa030,c2:0xb01a00,a:.9,life:.25+rnd()*.15,turb:.8});});
+  if(e)q.copy(tpos2(e));}
+const phmSegD=(px,pz,ax,az,bx,bz)=>{const vx=bx-ax,vz=bz-az,l=vx*vx+vz*vz,u=l?clamp(((px-ax)*vx+(pz-az)*vz)/l,0,1):0;return Math.hypot(px-ax-vx*u,pz-az-vz*u);};
+
+function phmCast(t,list,P,o,c){const L=c?c.L:0,A5=c?c.a:[1,1,1,1,1];const lead=list.find(q=>!q.fake&&!q.dead)||list[0];if(!lead)return;let rt,d0;
+  if(!lead.fake&&lead.dist!=null){rt=lead.route||ROUTES[0];d0=Math.min(rt.len-.5,lead.dist+1.2);}else{const q=nsRouteNear(lead.x,lead.z);rt=q.rt;d0=q.d;}
+  const mats=[],geos=[],PH=nsPhoenixModel(mats,geos),PM=mats.slice(0,5),pg=PH.g;scene.add(pg);pg.scale.setScalar(.01);
+  const hx=t.x,hz=t.z,hy=gy(hx,hz),Hp=new THREE.Vector3(hx,hy+1.85,hz);pg.position.copy(Hp);
+  const rune=makeRune(.95,0xff7a2a,{star:7,step:3,glyphs:22,fill:.32,fillCol:0x3a0a02,fillNormal:true});rune.position.set(hx,hy+.03,hz);nsOwn(rune);rune.userData.fade(0);
+  const tail=nsTrail(mats,[[0xff4a10,.3,.16],[0xffa030,.6,.07],[0xfff0b0,.85,.025]]);
+  const D0=posAt(d0,rt),dive0=new THREE.Vector3(D0[0],gy(D0[0],D0[1])+.55,D0[1]);let d=d0,tt=0,burst=false,dropT=0,aimed=false;
+  const last=new THREE.Vector3(),hit=new Set(),tmp=new THREE.Vector3(),fwd=new THREE.Vector3(),from=new THREE.Vector3(),cB=new THREE.Color(0xffa030),cW=new THREE.Color(0xfff0b0);
+  const S={n:0,pyred:new Set(),fl:null,dE:null,b:null,ph:0,hit2:new Set(),E:null,dR:0,pyreT:0,slam:null};const TB=4.15,TE=L>=5?TB+3.1+1.2:7;
+  const heatK=()=>L>=1?Math.min(S.n,PHM.heatN):0,sc=()=>(1+PHM.grow*heatK())*(S.ph>=3?PHM.rbScale:1);
+  const flapW=(amp,spd,spread)=>{PH.wings.forEach(w=>{w.piv.rotation.z=w.side*Math.sin(tt*spd)*amp;w.piv.scale.set(w.side*spread,1,.6+.4*spread);w.fs.forEach(m=>{m.rotation.y=m.userData.a*(.35+.65*spread);});});};
+  /* M4: a foe that was already burning erupts (once a cast) */
+  const pyre=e=>{if(S.pyred.has(e))return;S.pyred.add(e);const ex=e.x,ez=e.z,p=tpos2(e),y=Math.max(p.y,gy(ex,ez)+.25);
+    cfmBoom(ex,y,ez,.34,{lobes:4,skirt:4,T:.75,shake:.04});phmTongue(ex,ez,.55,.6);const H=[];
+    for(const q of enemies.slice()){if(q.dead||q.fake)continue;if((q.x-ex)**2+(q.z-ez)**2<PHM.pyR*PHM.pyR){hurt(q,P*PHM.py*A5[3],'magic',smO(o));H.push(q);}}phmLog({ev:'pyre',e,L:H});};
+  const burning=e=>!!(e.burn&&e.burn.t>0);
+  const strike=(e,dm,pass)=>{const wb=burning(e),k=heatK(),oo=pass>1?smO(o):o;S.n++;hurt(e,P*dm,'magic',oo);if(k&&!e.dead)hurt(e,P*dm*PHM.heat*k*A5[0],'magic',smO(o));
+    if(!e.dead&&pass===1)applyBurn(e,P*PHM.burn,PHM.burnT,o);const ep=tpos2(e);cfmBoom(ep.x,ep.y,ep.z,.15+.025*k+(pass>1?.08:0),{lobes:2,T:.38,ground:false});
+    sprayP(1,ep.x,ep.y,ep.z,16+3*k,{c:0xfff0a0,c2:0xc02800,sp:1.8,up:.6,s:.06,s2:0,life:.4,g:2});phmLog({ev:'strike',e,k,pass,wb});
+    if(k&&L>=1&&pass===1){PM[1].color.copy(cB).lerp(cW,k/PHM.heatN*.75);PM[2].opacity=.3+.06*k;}if(L>=4&&wb)pyre(e);};
+  /* M2: the front of flame racing back along the river */
+  const flare=dt=>{const F=S.fl,nd=Math.max(S.dE,F.d-PHM.rvSpd*dt),A=posAt(F.d,rt),B=posAt(nd,rt);
+    for(const e of enemies.slice()){if(e.dead||e.fake||e.fly||F.hit.has(e))continue;if(phmSegD(e.x,e.z,A[0],A[1],B[0],B[1])<PHM.rvR){F.hit.add(e);F.H.push(e);const wb=burning(e);
+        hurt(e,P*PHM.rv*A5[1],'magic',smO(o));if(!e.dead)applyBurn(e,P*PHM.burn,2,smO(o));if(L>=4&&wb)pyre(e);}}
+    while(F.mk>=nd-1e-6&&F.mk>=S.dE-.2){const p=posAt(Math.max(0,F.mk),rt),y=gy(p[0],p[1]);phmTongue(p[0]+(rnd()-.5)*.12,p[1]+(rnd()-.5)*.12,.5+rnd()*.35,.8);cfmBoom(p[0],y+.14,p[1],.2,{lobes:2,T:.5,ground:false});F.mk-=.45;}
+    const by=gy(B[0],B[1]);for(let i=0;i<6;i++)emit(1,{x:B[0]+(rnd()-.5)*.3,y:by+.1,z:B[1]+(rnd()-.5)*.3,vx:(rnd()-.5)*.6,vy:1+rnd()*1.4,vz:(rnd()-.5)*.6,s:.1+rnd()*.06,s2:.01,c:rnd()<.4?0xfff0a0:0xff8a20,c2:0xa01a00,a:.9,life:.35+rnd()*.2,turb:1});
+    F.d=nd;if(nd<=S.dE+1e-6){F.done=true;phmLog({ev:'flare',L:F.H});}};
+  /* M5: the heart falls, a pyre burns, the phoenix is reborn, skims toward the keep and dives into the road */
+  const rebirth=dt=>{const s=tt-TB,E=S.E,ey=gy(E[0],E[1]);
+    if(S.ph===1){if(!S.heart){const h=smTag(new THREE.Group()),hm=[];h.add(new THREE.Mesh(ico(.07,1),nsAM(hm,0xffffff,.95)),new THREE.Mesh(ico(.15,1),nsAM(hm,0xffb040,.45)),new THREE.Mesh(ico(.26,1),nsAM(hm,0xff5a10,.2)));
+        h.position.copy(S.b);scene.add(h);S.heart=h;addFx(h,.62,(f2,dt2)=>{h.children[1].scale.setScalar(.85+rnd()*.3);h.children[2].scale.setScalar(.85+rnd()*.3);},null,{mats:hm});}
+      const k=Math.min(1,s/.55),ke=k*k;S.heart.position.set(S.b.x+(E[0]-S.b.x)*k,S.b.y+(ey+.15-S.b.y)*ke,S.b.z+(E[1]-S.b.z)*k);const hp=S.heart.position;
+      for(let i=0;i<5;i++)emit(1,{x:hp.x+(rnd()-.5)*.1,y:hp.y,z:hp.z+(rnd()-.5)*.1,vx:(rnd()-.5)*.4,vy:.4+rnd()*.4,vz:(rnd()-.5)*.4,s:.08,s2:.01,c:0xfff0a0,c2:0xff3a00,life:.35,turb:.6});
+      for(let i=0;i<3;i++)emitS(0,{x:hp.x+(rnd()-.5)*.5,y:hp.y+.2+rnd()*.4,z:hp.z+(rnd()-.5)*.5,vx:(rnd()-.5)*.2,vy:-.5-rnd()*.5,vz:(rnd()-.5)*.2,s:.06,s2:.03,c:0x5a5048,c2:0x2a2420,a:.7,life:.8,turb:.4});
+      if(s>=.55){S.ph=2;S.pyreT=0;camShake=Math.max(camShake,.05);const r2=makeRune(.6,0xffc040,{star:5,step:2,glyphs:14,fill:.3,fillCol:0x3a1a02,fillNormal:true});r2.position.set(E[0],ey+.035,E[1]);nsOwn(r2);r2.userData.fade(0);
+        let rt2=0;addFx(new THREE.Group(),1.5,(f2,dt2)=>{rt2+=dt2;r2.rotation.y+=dt2*2.4;r2.userData.fade(Math.min(1,rt2/.15)*Math.max(0,Math.min(1,(1.5-rt2)/.4)));},()=>nsFree(r2),{mats:r2.userData.mats,geos:r2.userData.geos});
+        for(let i=0;i<6;i++){const a=i/6*6.28;phmTongue(E[0]+Math.cos(a)*.3,E[1]+Math.sin(a)*.3,.55+rnd()*.25,.95);}phmTongue(E[0],E[1],.95,1);nsDecal(E[0],E[1],.55,0x120804,.6,4,{fout:1.5});phmLog({ev:'pyreRise'});}}
+    else if(S.ph===2){S.pyreT+=dt;for(let i=0;i<5;i++){const a=rnd()*6.28,r=.15+rnd()*.35;emit(1,{x:E[0]+Math.cos(a)*r,y:ey+.05+rnd()*.3,z:E[1]+Math.sin(a)*r,vx:-Math.sin(a)*1.4-Math.cos(a)*.3,vy:.9+rnd()*1.2,vz:Math.cos(a)*1.4-Math.sin(a)*.3,s:.08+rnd()*.05,s2:.01,c:0xfff2b0,c2:0xff4a00,a:.9,life:.4+rnd()*.25,turb:.6});}
+      if(S.pyreT>=.6){S.ph=3;S.rt0=tt;cfmBoom(E[0],ey+.2,E[1],.55,{lobes:5,skirt:6,T:1,shake:.12});sprayP(1,E[0],ey+.3,E[1],60,{c:0xfff6c8,c2:0xffa020,sp:3,up:1.4,s:.07,s2:0,life:.6,g:2,drag:1});
+        pg.visible=true;tail.hist.length=0;PM[0].color.setHex(0xffffff);PM[1].color.setHex(0xffe890);PM[2].color.setHex(0xff8a20);PM[2].opacity=.34;PM[4].color.setHex(0xffb030);tail.meshes[0].material.color.setHex(0xffa020);tail.meshes[1].material.color.setHex(0xffd060);
+        fwd.set(0,0,0);const a2=posAt(Math.min(rt.len,S.dR+.5),rt);fwd.set(a2[0]-E[0],0,a2[1]-E[1]).normalize();phmLog({ev:'reborn'});}}
+    else if(S.ph===3){const k=Math.min(1,(tt-S.rt0)/.35),s2=sc();pg.scale.setScalar(Math.max(.01,s2*SMS(k,0,.8)*(1+.15*Math.sin(k*3.14))));pg.position.set(E[0],ey+.2+.5*k+Math.sin(tt*6)*.03,E[1]);flapW(.9,10,1);pg.lookAt(tmp.copy(pg.position).add(fwd));
+      if(k>=1){S.ph=4;d=S.dR;}}
+    else if(S.ph===4){d=Math.min(rt.len-.3,d+PHM.rbSpd*dt);const p=posAt(d,rt),q=posAt(Math.min(rt.len,d+.4),rt),gy0=gy(p[0],p[1]);pg.scale.setScalar(sc());pg.position.set(p[0],gy0+.6+Math.sin(tt*7)*.05,p[1]);pg.lookAt(tmp.set(q[0],gy0+.55,q[1]));pg.rotateZ(Math.sin(tt*3.1)*.12);flapW(.25,8,1);
+      for(const e of enemies.slice()){if(e.dead||S.hit2.has(e))continue;if((e.x-p[0])**2+(e.z-p[1])**2<PHM.R*PHM.R){S.hit2.add(e);strike(e,PHM.rb*A5[4],2);}}
+      from.copy(pg.position);fwd.set(q[0]-p[0],0,q[1]-p[1]).normalize();const front=enemies.reduce((m,e)=>!e.dead&&!e.fake&&e.route===rt&&e.dist!=null?Math.max(m,e.dist):m,-1);
+      if(tt>=S.rt0+.35+PHM.rbT||d>=rt.len-.3||d>front+.5){S.ph=5;S.st=tt;const al=[...S.hit2].filter(e=>!e.dead&&!e.fake),dn=al.length?densest(al):null,g2=dn?[dn.x,dn.z]:posAt(Math.min(rt.len-.3,d+.9),rt);S.slam={x:g2[0],z:g2[1],y:gy(g2[0],g2[1])};phmLog({ev:'slam',e:dn});}}
+    else if(S.ph===5){const k=Math.min(1,(tt-S.st)/.45),Z=S.slam;if(k<.55){const u=k/.55;pg.position.set(from.x+(Z.x-from.x)*u*.5,from.y+Math.sin(u*1.57)*1.3,from.z+(Z.z-from.z)*u*.5);flapW(.9,11,1);pg.lookAt(tmp.set(Z.x,pg.position.y+1,Z.z));}
+      else{const u=(k-.55)/.45,u2=u*u,sx=from.x+(Z.x-from.x)*.5,sz=from.z+(Z.z-from.z)*.5,sy=from.y+1.3;last.copy(pg.position);pg.position.set(sx+(Z.x-sx)*u2,sy+(Z.y+.2-sy)*u2,sz+(Z.z-sz)*u2);flapW(.15,4,.7);pg.lookAt(tmp.copy(pg.position).multiplyScalar(2).sub(last));}
+      if(k>=1){S.ph=6;pg.visible=false;const x=Z.x,z=Z.z,y=Z.y;cfmBoom(x,y+.3,z,1.05,{mush:true,skirt:8,lobes:7,T:1.5,shake:.22});sprayP(1,x,y+.3,z,110,{c:0xfff6c8,c2:0xff6a10,sp:4.5,up:1.3,s:.07,s2:0,life:.7,g:2.5,drag:.8,r:.4});
+        flashA=Math.max(flashA,.22);flashCol='#ffc070';for(let i=0;i<14;i++)nsBurnFeather(x,y+.8,z);for(let i=0;i<7;i++){const a=i/7*6.28;phmTongue(x+Math.cos(a)*.75,z+Math.sin(a)*.75,.6+rnd()*.3,1.1);}
+        const H=[];for(const q of enemies.slice()){if(q.dead||q.fake)continue;if((q.x-x)**2+(q.z-z)**2<PHM.rbR*PHM.rbR){hurt(q,P*PHM.rbBoom*A5[4],'magic',smO(o));H.push(q);}}phmLog({ev:'boom',L:H});}}};
+  addFx(pg,TE,(f,dt)=>{tt+=dt;const gk=(1+.08*heatK())*(S.ph>=3?.8:1);PH.glow.scale.set((.8+rnd()*.12)*gk,(.6+rnd()*.1)*gk,(1.1+rnd()*.12)*gk);
+    if(tt<1.15){const k=tt/1.15;rune.userData.fade(Math.min(1,tt/.25));rune.rotation.y+=dt*1.6;
+      for(let i=0;i<5;i++){const a=rnd()*6.28,r=.95*(.95+rnd()*.1);emit(1,{x:hx+Math.cos(a)*r,y:hy+.05,z:hz+Math.sin(a)*r,vx:0,vy:.6+rnd()*.8,vz:0,s:.09+rnd()*.06,s2:.01,c:0xffc060,c2:0xb02000,a:.9,life:.4+rnd()*.3,turb:1});}
+      for(let i=0;i<6;i++){const a=rnd()*6.28,r=.8+rnd()*.7,y=hy+.3+rnd()*1.2;emit(1,{x:Hp.x+Math.cos(a)*r,y,z:Hp.z+Math.sin(a)*r,vx:(Hp.x-(Hp.x+Math.cos(a)*r))*2.2-Math.sin(a)*1.2,vy:(Hp.y-y)*2.2,vz:(Hp.z-(Hp.z+Math.sin(a)*r))*2.2+Math.cos(a)*1.2,s:.06,s2:.02,c:0xfff0a0,c2:0xff6a10,life:.45,drag:.5});}
+      const s=SMS(k,.35,.9);pg.scale.setScalar(Math.max(.01,s));pg.position.set(Hp.x,Hp.y+Math.sin(tt*3)*.03,Hp.z);flapW(.15,4,SMS(k,.55,1));
+      fwd.set(dive0.x-Hp.x,0,dive0.z-Hp.z).normalize();pg.lookAt(tmp.copy(pg.position).add(fwd));
+      if(tt>.9&&tt-dt<=.9){cfmBoom(Hp.x,Hp.y,Hp.z,.32,{lobes:4,T:.55,ground:false});sprayP(1,Hp.x,Hp.y,Hp.z,60,{c:0xfff0a0,c2:0xff3a00,sp:2.6,s:.07,s2:0,life:.5,drag:1.2});camShake=Math.max(camShake,.05);flashA=Math.max(flashA,.12);flashCol='#ffb060';phmLog({ev:'born'});}}
+    else if(tt<1.65){rune.userData.fade(Math.max(0,1-(tt-1.15)/.4));pg.scale.setScalar(1);pg.position.set(Hp.x,Hp.y+(tt-1.15)*.5+Math.sin(tt*6)*.04,Hp.z);flapW(.75,9,1);pg.lookAt(tmp.copy(pg.position).add(fwd));from.copy(pg.position);}
+    else if(tt<2.05){if(!aimed){aimed=true;const L2=nsDiveLead(lead);if(L2){rt=L2.route||ROUTES[0];d0=Math.min(rt.len-.5,L2.dist+(L2.spd||0)*.45+1.1);d=d0;const q2=posAt(d0,rt);dive0.set(q2[0],gy(q2[0],q2[1])+.55,q2[1]);}}const k=(tt-1.65)/.4,ke=k*k*(3-2*k),cc=new THREE.Vector3((from.x+dive0.x)/2,Math.max(from.y,dive0.y)+.9,(from.z+dive0.z)/2);
+      tmp.set((1-ke)*(1-ke)*from.x+2*(1-ke)*ke*cc.x+ke*ke*dive0.x,(1-ke)*(1-ke)*from.y+2*(1-ke)*ke*cc.y+ke*ke*dive0.y,(1-ke)*(1-ke)*from.z+2*(1-ke)*ke*cc.z+ke*ke*dive0.z);last.copy(pg.position);pg.position.copy(tmp);flapW(.25,5,1);
+      if(pg.position.distanceTo(last)>1e-4)pg.lookAt(tmp.copy(pg.position).multiplyScalar(2).sub(last));}
+    else if(tt<3.55){d=Math.max(0,d-PHM.spd*dt);const p=posAt(d,rt),q=posAt(Math.max(0,d-.4),rt),gy0=gy(p[0],p[1]);pg.scale.setScalar(sc());pg.position.set(p[0],gy0+.55+Math.sin(tt*7)*.05,p[1]);pg.lookAt(tmp.set(q[0],gy0+.5,q[1]));pg.rotateZ(Math.sin(tt*3.1)*.12);flapW(.22,7,1);
+      dropT-=dt;if(dropT<=0){dropT=.085;nsFireTrail(p[0],p[1],P,o);}
+      for(const e of enemies.slice()){if(e.dead||hit.has(e))continue;if((e.x-p[0])**2+(e.z-p[1])**2<PHM.R*PHM.R){hit.add(e);strike(e,PHM.strike,1);}}
+      from.copy(pg.position);fwd.set(q[0]-p[0],0,q[1]-p[1]).normalize();}
+    else if(tt<TB){if(S.dE==null)S.dE=d;const k=(tt-3.55)/.6;pg.position.set(from.x+fwd.x*k*1.6,from.y+k*k*4.6,from.z+fwd.z*k*1.6);tmp.set(pg.position.x+fwd.x,pg.position.y+1.6,pg.position.z+fwd.z);pg.lookAt(tmp);flapW(.85,10,1);}
+    else if(!burst){burst=true;if(S.dE==null)S.dE=d;const b=pg.position.clone();S.b=b;pg.visible=false;cfmBoom(b.x,b.y,b.z,.6,{lobes:6,T:1,ground:false,shake:.06});
+      sprayP(1,b.x,b.y,b.z,90,{c:0xfff0a0,c2:0xff3a00,sp:3.4,s:.08,s2:0,life:.65,g:1.5,drag:1});
+      for(let i=0;i<10;i++)emitS(1,{x:b.x+(rnd()-.5)*.4,y:b.y+(rnd()-.5)*.4,z:b.z+(rnd()-.5)*.4,vx:(rnd()-.5)*2,vy:(rnd()-.5)*1.2,vz:(rnd()-.5)*2,s:.3,s2:1.1,c:0xffa040,c2:0x8a2a08,a:.3,life:1.2,lift:.2,turb:.5});
+      for(let i=0;i<(L>=3?14:22);i++)nsBurnFeather(b.x,b.y,b.z);phmLog({ev:'burst'});
+      if(L>=3){let T1=[...hit].filter(q=>!q.dead&&!q.fake).sort((a,b2)=>b2.hp-a.hp);if(!T1.length)T1=enemies.filter(q=>!q.dead&&!q.fake&&Math.hypot(q.x-b.x,q.z-b.z)<PHM.ftR).sort((a,b2)=>Math.hypot(a.x-b.x,a.z-b.z)-Math.hypot(b2.x-b.x,b2.z-b.z));
+        const T2=[];for(let i=0;i<PHM.ftN&&T1.length&&i<2*T1.length;i++)T2.push(T1[i%T1.length]);T2.forEach((q,i)=>phmFeather(b,q,.18+i*.05,e=>{phmLog({ev:'feather',e:e||q,hit:!!e});if(!e)return;const wb=burning(e);hurt(e,P*PHM.ft*A5[2],'magic',smO(o));if(!e.dead)applyBurn(e,P*PHM.burn,2,smO(o));if(L>=4&&wb)pyre(e);}));}
+      if(L>=5){S.ph=1;const st=[...hit].filter(q=>!q.dead&&q.dist!=null&&q.route===rt);S.dR=st.length?Math.max(0,Math.min(...st.map(q=>q.dist))-.6):Math.max(0,S.dE-.8);S.E=posAt(S.dR,rt);}}
+    if(L>=2&&!S.fl&&tt>=3.55+PHM.rvDelay&&S.dE!=null){S.fl={d:d0,mk:d0,H:[],hit:new Set()};phmLog({ev:'flareStart'});}
+    if(S.fl&&!S.fl.done)flare(dt);
+    if(burst&&S.ph>=1&&S.ph<6)rebirth(dt);
+    if(pg.visible&&tt>.5){const s=pg.scale.x,gold=S.ph>=3,k=heatK(),n=14+3*k;for(let i=0;i<n;i++){const side=rnd()<.5?1:-1;tmp.set(side*(.15+rnd()*.75)*s,(rnd()-.3)*.08,(-.05-rnd()*.35)*s);pg.localToWorld(tmp);
+        emit(1,{x:tmp.x,y:tmp.y,z:tmp.z,vx:(rnd()-.5)*.3,vy:.35+rnd()*.5,vz:(rnd()-.5)*.3,s:.1+rnd()*.09,s2:.01,c:rnd()<.35+.08*k||gold?0xfff2b0:0xffa030,c2:gold?0xff8a10:0xb01a00,a:.9,life:.3+rnd()*.3,turb:1.2});}
+      for(let i=0;i<3;i++){tmp.set((rnd()-.5)*.1,0,-.15);pg.localToWorld(tmp);emit(1,{x:tmp.x,y:tmp.y,z:tmp.z,vx:(rnd()-.5)*.6,vy:-.2,vz:(rnd()-.5)*.6,s:.05,s2:0,c:0xffd080,c2:0xff4a00,life:.5,g:2.5});}
+      tmp.set(0,.02,-.2*s);pg.localToWorld(tmp);if(!tail.hist.length||tail.hist[0].distanceTo(tmp)>.04)tail.push(tmp,18);tail.draw(Math.max(.2,s));tail.fade(1);}
+    else if(!pg.visible){tail.hist.pop();if(tail.hist.length>2){tail.draw(1);tail.fade(Math.max(0,Math.min(1,f.life/3)));}else tail.fade(0);}},
+    ()=>{tail.free();nsFree(rune);},{mats:mats.concat(rune.userData.mats),geos:geos.concat(rune.userData.geos)});}
+const PHM_OLD=castPhoenix;
+castPhoenix=function(t,list,P,o){return t?phmCast(t,list||[],P,o,phmC(o)):PHM_OLD.apply(this,arguments);};
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
