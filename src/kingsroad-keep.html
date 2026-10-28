@@ -798,10 +798,10 @@ function buildMap(seed){let m=genMap(seed);if(!m){m=genMap(12345);}MAP=m;
   const m4=new THREE.Matrix4(),col=new THREE.Color();let i=0;
   for(let r=0;r<H;r++)for(let c=0;c<W;c++){const isPath=grid[r][c]===1,p=tw(c,r);m4.makeTranslation(p.x,isPath?-.2:-.15,p.z);tiles.setMatrixAt(i,m4);
     col.set(isPath?0xa4845a:((r+c)%2?0x6f9e44:0x67963f));col.offsetHSL((R()-.5)*.02,0,(R()-.5)*.05);tiles.setColorAt(i,col);i++;}
-  lead.forEach(([c,r])=>{const p=tw(c,r);m4.makeTranslation(p.x,-.2,p.z);tiles.setMatrixAt(i,m4);col.set(0xa4845a);tiles.setColorAt(i,col);i++;add(T,box(1.02,1.3,1.02),0x6e4b2d,p.x,-.95,p.z,false);});
+  lead.forEach(([c,r])=>{const p=tw(c,r);m4.makeTranslation(p.x,-.2,p.z);tiles.setMatrixAt(i,m4);col.set(0xa4845a);tiles.setColorAt(i,col);i++;add(T,box(1.02,1.3,1.02),0x6e4b2d,p.x,-.95,p.z,false).userData.glBase=1;});
   tiles.receiveShadow=true;T.add(tiles);TILES=tiles;
   const zTop=tw(0,0).z-.55,zBot=tw(0,H-1).z+.55;
-  add(T,box(W+.2,1.3,zBot-zTop),0x6e4b2d,0,-.95,(zTop+zBot)/2,false);add(T,box(W+.3,.14,zBot-zTop+.1),0x5f8a3c,0,-.36,(zTop+zBot)/2,false);
+  add(T,box(W+.2,1.3,zBot-zTop),0x6e4b2d,0,-.95,(zTop+zBot)/2,false).userData.glBase=1;add(T,box(W+.3,.14,zBot-zTop+.1),0x5f8a3c,0,-.36,(zTop+zBot)/2,false).userData.glBase=1;
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(420,420),M(0x4f6e36));ground.rotation.x=-Math.PI/2;ground.position.y=-1.6;ground.receiveShadow=true;T.add(ground);
   for(let r=0;r<H;r++)for(let c=0;c<W;c++)if(grid[r][c]===1&&R()<.45){const p=tw(c,r);add(T,dod(.04+R()*.03),0x8c8274,p.x+(R()-.5)*.7,-.04,p.z+(R()-.5)*.7,false).userData.voidKeep=1;}
   for(let r=0;r<H;r++)for(let c=0;c<W;c++)if(grid[r][c]===0&&R()<.08){const p=tw(c,r);for(let k=0;k<3;k++)add(T,cone(.025,.08,4),pick([0x5a8a34,0x6a9a3c,0x4a7a2c]),p.x+(R()-.5)*.8,0,p.z+(R()-.5)*.8,false);}
@@ -12742,7 +12742,7 @@ function tundraAtmos(dt){tunHeroBlob();if(ARENA_BUILT!=='tundra'){if(TUND.pst)tu
   const pl=state==='playing',tgt=pl&&GUST.on>0?1:pl&&GUST.warned?.78:.3;TUNW.g+=(tgt-TUNW.g)*Math.min(1,dt*(tgt>TUNW.g?2.6:1.4));TUNW.clk+=dt*(1+TUNW.g*1.5);TUNU.uWClk.value=TUNW.clk;TUNU.uWG.value=TUNW.g;
   const k=wxK('tundra');if(!k||CAM.gal)return;const gw=Math.max(0,TUNW.g-.3);TUNW.acc+=Math.min(dt,.1)*10*k*(1+gw*2);if(TUNW.acc<1)return;const vc=viewCenter(),zs=Math.max(.3,Math.min(2.6,CAM.zoom||1));
   while(TUNW.acc>=1){TUNW.acc-=1;const sd=rnd()<.5?-1:1,c=TUN_LEAF[Math.floor(rnd()*TUN_LEAF.length)];
-    emit(0,{x:sd*(TUN_XE+1+rnd()*5),y:-1.35+rnd()*2.4,z:vc.z+(rnd()-.5)*22*zs,vx:sd*(.03+rnd()*.06),vy:-.05-rnd()*.08,vz:.22+rnd()*.2+gw*1.5,s:.05+rnd()*.03,s2:.04,c,c2:c,a:.6,a2:0,life:3.5+rnd()*2,turb:.6});}}
+    emit(0,{x:sd*(TUN_XE+1+rnd()*5),y:-1.35+GLY+rnd()*2.4,z:vc.z+(rnd()-.5)*22*zs,vx:sd*(.03+rnd()*.06),vy:-.05-rnd()*.08,vz:.22+rnd()*.2+gw*1.5,s:.05+rnd()*.03,s2:.04,c,c2:c,a:.6,a2:0,life:3.5+rnd()*2,turb:.6});}}
 {const sa=sfAtmos;sfAtmos=function(dt){sa.apply(this,arguments);tundraAtmos(dt);};}
 
 /* ---- tundra foes: a little more colour and a cool rim light so they stand off the gravel and the red moss, and a shaggy fur mantle ---- */
@@ -14049,7 +14049,7 @@ function castFirstTree(t,PW,o){
   for(let z=zT+FOOT+.2;z<=zB-FOOT-.6;z+=.5)for(let x=-W/2+FOOT+.3;x<=W/2-FOOT-.3;x+=.5){if(!okSpot(x,z))continue;const inView=Math.abs(x-V.c.x)<V.hw-1.2&&z>V.top+.6&&z<V.bot-1;
     const s2=Math.abs(x-V.c.x)*.15+Math.abs(z-(V.top+2.4))*.3+(inView?0:40);if(s2<best){best=s2;P=new THREE.Vector3(x,0,z);}}
   /* no free spot on the whole board: it grows beside the board, on the low ground */
-  if(!P)P=new THREE.Vector3(V.c.x>0?W/2+3:-W/2-3,-1.6,clamp(V.top+2.4,zT+2,zB-3));
+  if(!P)P=new THREE.Vector3(V.c.x>0?W/2+3:-W/2-3,-1.6+GLY,clamp(V.top+2.4,zT+2,zB-3));
   /* ---- the trunk: twisted, ridged, its foot flaring into buttresses, mossy low down ---- */
   const TH=18,tree=new THREE.Group();tree.position.set(P.x,P.y-TH-1,P.z);root.add(tree);
   const trR=(a,y)=>(1.3-y*.011)*(1+.75*Math.exp(-y*.9)*(.6+.4*Math.pow(Math.abs(Math.sin(a*3+.5)),3)));
@@ -14148,6 +14148,8 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Boards at ground level',d:'28 Oct',v:'v419',li:[
+    'Every board now sits on the ground instead of floating on its slab, in every land. The land around it is part of the map: it wears the same colours and texture as the tiles (heather, moss, snow, autumn grass), without the grid, and everything that grew or stood down on the low ground stands beside the board now. The tundra keeps its sea.']},
   {t:'The Stormcrag Highlands',d:'28 Oct',v:'v418',li:[
     'Arena 6, the last land: the Stormcrag Highlands, high moor of heather and granite beyond the Greywind Tundra. Win wave 200 in the Deep Taiga to open it (an account that already has opens it now).',
     'Tougher: troops have 35% more health and run 5% faster, bosses 60% more health. Gems pay 2.5 times and rare scrolls come a little more often. Lightning spells deal 20% more on the storm-charged crags. Three gates.',
@@ -15857,7 +15859,7 @@ function wwHeroBlob(){const on=ARENA_BUILT==='whitewaste'&&state==='playing'&&he
 var WWB={acc:0};
 function wwAtmos(dt){wwHeroBlob();wwPillSync();if(ARENA_BUILT!=='whitewaste'||!(dt>0)||CAM.gal)return;const k=wxK('whitewaste');if(!k)return;WWB.acc+=Math.min(dt,.1)*14*k;if(WWB.acc<1)return;
   const vc=viewCenter(),zs=Math.max(.3,Math.min(2.6,CAM.zoom||1)),xE=W/2+.2;
-  while(WWB.acc>=1){WWB.acc-=1;const sd=rnd()<.5?-1:1;emit(0,{x:sd*(xE+.8+rnd()*6),y:-1.5+rnd()*1.2,z:vc.z+(rnd()-.5)*22*zs,vx:.9+rnd()*.6,vy:.02,vz:.35+rnd()*.25,s:.06+rnd()*.05,s2:.16,c:0xffffff,c2:0xe6f0f6,a:.5,a2:0,life:1.6+rnd(),turb:.4});}}
+  while(WWB.acc>=1){WWB.acc-=1;const sd=rnd()<.5?-1:1;emit(0,{x:sd*(xE+.8+rnd()*6),y:-1.5+GLY+rnd()*1.2,z:vc.z+(rnd()-.5)*22*zs,vx:.9+rnd()*.6,vy:.02,vz:.35+rnd()*.25,s:.06+rnd()*.05,s2:.16,c:0xffffff,c2:0xe6f0f6,a:.5,a2:0,life:1.6+rnd(),turb:.4});}}
 {const sa=sfAtmos;sfAtmos=function(dt){sa.apply(this,arguments);wwAtmos(dt);};}
 
 /* ---- the foes of the waste: rime-pale with a cold rim light (they stand out on the dark ice road), shards of ice grown on their shoulders ---- */
@@ -17884,7 +17886,7 @@ function packAt(rt,d,n,o){o=o||{};const out=[];
   return out;}
 /* the warning: eyes open in the dark under the trees, and a ring of churned needles marks where they will land */
 function packFxOn(sp){packFxOff();const g=new THREE.Group();scene.add(g);const em=new THREE.MeshBasicMaterial({color:0xffcf4a,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
-  const eyes=[],n=packCount()+1,y0=-1.6;for(let i=0;i<n;i++){const e2=new THREE.Group();let x,z;if(sp.side){x=sp.ex+sp.side*(.1+rnd()*.6);z=sp.ez+(rnd()-.5)*2.6;}else{x=sp.ex+(rnd()-.5)*2.6;z=sp.ez-.1-rnd()*.6;}
+  const eyes=[],n=packCount()+1,y0=-1.6+GLY;for(let i=0;i<n;i++){const e2=new THREE.Group();let x,z;if(sp.side){x=sp.ex+sp.side*(.1+rnd()*.6);z=sp.ez+(rnd()-.5)*2.6;}else{x=sp.ex+(rnd()-.5)*2.6;z=sp.ez-.1-rnd()*.6;}
     e2.position.set(x,y0+1.15+rnd()*.55,z);/* at board height among the first spruce, where the camera sees them */e2.rotation.y=Math.atan2(sp.x-x,sp.z-z);for(const sd of[-1,1]){const m=new THREE.Mesh(gget('tgEyeG2',()=>new THREE.SphereGeometry(.036,6,4)),em);m.position.x=sd*.055;e2.add(m);}
     e2.userData.ph=rnd()*6;e2.userData.bl=0;eyes.push(e2);g.add(e2);}
   const ring=new THREE.Mesh(new THREE.RingGeometry(.34,.5,24),new THREE.MeshBasicMaterial({color:0xffb648,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
@@ -17893,7 +17895,7 @@ function packFxOff(){const F=TGP.fx;if(!F)return;scene.remove(F.g);F.em.dispose(
 function packFxTick(dt){const F=TGP.fx;if(!F)return;F.t+=dt;const k=Math.min(1,F.t/TG.warn);F.em.opacity=Math.min(1,.15+k*1.1);
   for(const e2 of F.eyes){e2.userData.bl-=dt;if(e2.userData.bl<=0&&rnd()<dt*.8)e2.userData.bl=.14;e2.scale.y=e2.userData.bl>0?.15:1;e2.visible=F.t>e2.userData.ph*.25;}
   F.ring.material.opacity=(.12+.45*k)*(.7+.3*Math.sin(F.t*11));F.ring.scale.setScalar(1+.12*Math.sin(F.t*6));
-  if(rnd()<dt*8){const sp=F.sp;emit(0,{x:sp.ex+(rnd()-.5)*1.4,y:-1.6+.4+rnd()*.8,z:sp.ez+(rnd()-.5)*1.4,vx:(rnd()-.5)*.3,vy:-.2,vz:(rnd()-.5)*.3,s:.04,s2:.04,c:0x4a6a3a,c2:0x2e4426,a:.8,a2:0,life:.9});}}
+  if(rnd()<dt*8){const sp=F.sp;emit(0,{x:sp.ex+(rnd()-.5)*1.4,y:-1.6+GLY+.4+rnd()*.8,z:sp.ez+(rnd()-.5)*1.4,vx:(rnd()-.5)*.3,vy:-.2,vz:(rnd()-.5)*.3,s:.04,s2:.04,c:0x4a6a3a,c2:0x2e4426,a:.8,a2:0,life:.9});}}
 function packTick(dt){if(!(dt>0)||state!=='playing'||ARENA_BUILT!=='taiga'||OW.on)return;packFxTick(dt);
   if(TGP.calm>0||(!enemies.length&&!spawners.length))return;
   TGP.t-=dt;if(!TGP.warned&&TGP.t<=TG.warn){const sp=packSpot();if(!sp){TGP.t=6;return;}TGP.warned=true;TGP.spot=sp;packFxOn(sp);sfxHowl();}
@@ -18049,7 +18051,7 @@ function tgMistTick(dt){TGB.t+=dt;const night=typeof DAYC!=='undefined'&&DAYC.e<
 function tgAtmos(dt){tgPillSync();if(ARENA_BUILT!=='taiga'||!(dt>0)||CAM.gal)return;tgMistTick(dt);const k=wxK('taiga');if(!k)return;
   const night=typeof DAYC!=='undefined'&&DAYC.e<.08,vc=viewCenter(),zs=Math.max(.3,Math.min(2.6,CAM.zoom||1)),xE=W/2+.2;TGB.acc+=Math.min(dt,.1)*(night?5:3.5)*k;
   while(TGB.acc>=1){TGB.acc-=1;const sd=rnd()<.5?-1:1;
-    if(night)emit(1,{x:sd*(xE+.4+rnd()*5),y:-1.35+rnd()*1.5,z:vc.z+(rnd()-.5)*18*zs,vx:(rnd()-.5)*.2,vy:(rnd()-.5)*.1,vz:(rnd()-.5)*.2,s:.05,s2:.05,c:0xd8ff78,c2:0x8ccc40,a:.95,a2:0,life:2+rnd()*2,turb:.6});
+    if(night)emit(1,{x:sd*(xE+.4+rnd()*5),y:-1.35+GLY+rnd()*1.5,z:vc.z+(rnd()-.5)*18*zs,vx:(rnd()-.5)*.2,vy:(rnd()-.5)*.1,vz:(rnd()-.5)*.2,s:.05,s2:.05,c:0xd8ff78,c2:0x8ccc40,a:.95,a2:0,life:2+rnd()*2,turb:.6});
     else emit(0,{x:sd*(xE+.3+rnd()*4),y:-.2+rnd()*1.4,z:vc.z+(rnd()-.5)*18*zs,vx:.12+rnd()*.18,vy:-.25,vz:.05,s:.03,s2:.03,c:0x8a7a40,c2:0x6a5a30,a:.85,a2:0,life:3,turb:.5});}}
 {const sa=sfAtmos;sfAtmos=function(dt){sa.apply(this,arguments);tgAtmos(dt);};}
 
@@ -29184,6 +29186,47 @@ MK_CHEST.highlands={0x8a5226:0x5a3e2a,0x5a3416:0x3a281a,0x4a4a52:0x6a6e74,0xf0c0
   for(let i=0;i<5;i++){const h=new THREE.Mesh(ico(.025,0),M(i%2?0x8a4a72:0xb05a90));h.position.set(.16+(i%3-1)*.03,.4,.08+(i%2)*.03);m.g.add(h);}const sp=new THREE.Mesh(cyl(.004,.004,.12,4),M(0x3a4a2a));sp.position.set(.16,.4,.08);sp.rotation.z=1.4;m.g.add(sp);
   m.g.userData.land='highlands';return m;};}
 /* ---- end of the Stormcrag Highlands (v418) ---- */
+/* ================= Boards at ground level (v419) =================
+   Simon: "make it so that EVERY map will sit on the bottom ... the background becomes part of the map, that means the background needs to match
+   texturewise the texture of the tiles so its not that distinct yet not be tiles". The board used to hover on an earthen slab 1.6 above the land.
+   Now, in every land, the land around it comes up to the board: the low ground plane is replaced by one at the board's surface with a hole
+   cut where the board's tiles and the lead-in roads are (so the tiles keep their seams and the road its lower bed), everything that stood on the
+   low ground (trees, tors, mist, beasts, walls...) is lifted by GLY, and the new ground wears the tiles' own colours and the land's own board
+   shader (heather, moss, snow glint, gold grass), with soft patches the size of a tile instead of tile edges. The tundra keeps its sea. */
+var GLY=1.598,GLD={ground:null};
+/* the outline of the board's cells and the lead-in road cells (one loop, shape coordinates X=x, Y=-z) */
+function glHoleLoop(){const set=new Set();for(let r=0;r<H;r++)for(let c=0;c<W;c++)set.add(c+','+r);for(const[c,r]of(MAP.lead||[]))set.add(c+','+r);
+  const has=(c,r)=>set.has(c+','+r),next=new Map(),k=(x,y)=>x.toFixed(2)+','+y.toFixed(2);
+  for(const key of set){const[c,r]=key.split(',').map(Number),x0=c-OX-.5,x1=c-OX+.5,y0=-(r-OZ)-.5,y1=-(r-OZ)+.5;
+    if(!has(c,r+1))next.set(k(x0,y0),[x1,y0]);if(!has(c+1,r))next.set(k(x1,y0),[x1,y1]);if(!has(c,r-1))next.set(k(x1,y1),[x0,y1]);if(!has(c-1,r))next.set(k(x0,y1),[x0,y0]);}
+  const s0=next.keys().next().value,pts=[];let cur=s0;for(let i=0;i<10000;i++){const[x,y]=cur.split(',').map(Number);pts.push([x,y]);const n=next.get(cur);if(!n)break;cur=k(n[0],n[1]);if(cur===s0)break;}
+  return pts.filter((p,i)=>{const a=pts[(i+pts.length-1)%pts.length],b=pts[(i+1)%pts.length];return !((a[0]===p[0]&&p[0]===b[0])||(a[1]===p[1]&&p[1]===b[1]));});}
+const GL_GLSL='float glH(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\n'+
+  'float glN(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(glH(i),glH(i+vec2(1.,0.)),f.x),mix(glH(i+vec2(0.,1.)),glH(i+vec2(1.,1.)),f.x),f.y);}\n';
+/* the ground's material: the tiles' mean colour, tile-sized soft patches as varied as the tiles themselves, then the land's own board shader */
+function glGroundMat(){const c=new THREE.Color(),sum=new THREE.Color(0,0,0);let n=0,l2=0,l1=0;
+  for(let r=0;r<H;r++)for(let q=0;q<W;q++){if(grid[r][q]===1)continue;TILES.getColorAt(r*W+q,c);sum.r+=c.r;sum.g+=c.g;sum.b+=c.b;const L=c.r*.3+c.g*.59+c.b*.11;l1+=L;l2+=L*L;n++;}
+  sum.multiplyScalar(1/Math.max(1,n));const mean=l1/Math.max(1,n),sd=Math.sqrt(Math.max(0,l2/Math.max(1,n)-mean*mean)),K=Math.min(.22,Math.max(.05,sd/Math.max(.05,mean)*2.6)).toFixed(3);
+  const tm=TILES.material,land=tm.onBeforeCompile,lk=tm.customProgramCacheKey?tm.customProgramCacheKey():'',m=new THREE.MeshPhongMaterial({color:sum.getHex(),flatShading:true,shininess:3}),tun=ARENA_BUILT==='tundra';
+  m.onBeforeCompile=sh=>{if(typeof land==='function'&&land!==THREE.Material.prototype.onBeforeCompile)land(sh);
+    sh.vertexShader='varying vec3 vGlW;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n  vGlW=(modelMatrix*vec4(transformed,1.)).xyz;');
+    let f='varying vec3 vGlW;\n'+GL_GLSL+sh.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\n  {vec2 p=vGlW.xz;float v=glN(p*.92+3.7)*.62+glN(p*2.3+11.1)*.38;diffuseColor.rgb*=1.+(v-.5)*'+K+'*1.6;diffuseColor.rgb*=1.+(glN(p*.21+5.)-.5)*.06;}');
+    if(tun)f=f.replace('#include <emissivemap_fragment>','  {vec2 p=vGlW.xz;float d=p.x-('+TUN_SHORE_GLSL+');diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.31,.3,.29),smoothstep(1.1,.1,d)*.85);\n'+
+      '   vec3 sea=vec3(.31,.486,.604)*(.88+.12*glN(p*.25+uWClk*.04))*mix(1.,.8,smoothstep(0.,9.,-d));float wv=sin(p.x*1.7+p.y*.6+uWClk*.8)*sin(p.y*1.3-uWClk*.6);sea+=vec3(.04,.06,.07)*smoothstep(.6,1.,wv);\n'+
+      '   sea=mix(sea,vec3(.82,.88,.9),smoothstep(.35,0.,-d)*.65);if(d<0.)diffuseColor.rgb=sea;}\n#include <emissivemap_fragment>');
+    sh.fragmentShader=f;};
+  m.customProgramCacheKey=()=>'kkgl1'+ARENA_BUILT+lk;m.userData.gl=1;return m;}
+/* raise everything that stood on the low ground; lay the new ground */
+function glLevel(){const T=TERRAIN;if(!T||!TILES)return;const m4=new THREE.Matrix4(),p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3();
+  for(const o of T.children.slice()){if(o===TILES||o.userData.glBase||o.userData.gl)continue;
+    if(o.isMesh&&o.geometry&&o.geometry.type==='PlaneGeometry'&&o.geometry.parameters&&o.geometry.parameters.width>=400){o.visible=false;o.userData.glOld=1;continue;}
+    if(o.isInstancedMesh){let ch=false;for(let i=0;i<o.count;i++){o.getMatrixAt(i,m4);m4.decompose(p,q,s);if(p.y<-.6&&s.x>0){p.y+=GLY;m4.compose(p,q,s);o.setMatrixAt(i,m4);ch=true;}}if(ch){o.instanceMatrix.needsUpdate=true;o.computeBoundingSphere&&o.computeBoundingSphere();}continue;}
+    const u=o.userData;if(o.position.y<-.6||u.tg==='mist'||u.hl==='mist'||u.glOuter)o.position.y+=GLY;}
+  const sh=new THREE.Shape([new THREE.Vector2(-210,-210),new THREE.Vector2(210,-210),new THREE.Vector2(210,210),new THREE.Vector2(-210,210)]);
+  sh.holes.push(new THREE.Path(glHoleLoop().map(([x,y])=>new THREE.Vector2(x,y))));
+  const g=new THREE.Mesh(new THREE.ShapeGeometry(sh),glGroundMat());g.rotation.x=-Math.PI/2;g.position.y=-.002;g.receiveShadow=true;g.userData.gl=1;g.userData.keep=1;g.userData.voidKeep=1;T.add(g);GLD.ground=g;}
+{const bm=buildMap;buildMap=function(){const out=bm.apply(this,arguments);try{glLevel();}catch(e){console.error(e);}return out;};}
+/* ---- end of boards at ground level (v419) ---- */
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
