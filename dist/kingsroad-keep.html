@@ -29260,7 +29260,9 @@ SM_D.stormcaller=[
   {n:'Last Thunder',d:'At its end its clouds draw into one thunderhead over the thickest pack: a ring of bolts closes in ({30}% each), then a colossal bolt: {180}% within 1.4, {70}% out to 2.6, stunned 0.6s.'}];
 SMF.stormcaller={m:1};
 SMA.stormcaller=[1,1,1,1,1];
-SMG.stormcaller=[.88,1.04,.87,.95,.8];
+/* the ladder (tests/sm-ladder.js, 2-3 runs; its bolts fall at random, so one run swings by 10-15%): the masteries alone come to about 1.25 / 1.3 /
+   1.7 / 1.75 / 2.3 (Seeking Bolts, Rolling Thunder and Last Thunder land well on the ladder's one knot of foes); these bring it onto 1.09 / 1.23 / 1.35 / 1.52 / 1.74 */
+SMG.stormcaller=[.83,.92,.78,.87,.75];
 
 /* a sigil of crackling light on the road: where a seeking bolt will fall */
 function stcSigil(x,z,T){const y=gy(x,z),g=new THREE.Group();g.position.set(x,y+.05,z);scene.add(smTag(g));const m=new THREE.MeshBasicMaterial({color:0xbfe0ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
