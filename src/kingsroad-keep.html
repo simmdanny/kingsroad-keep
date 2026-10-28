@@ -3815,16 +3815,10 @@ function castChronostasis(t,c,P,o){
     /* TEMPORAL COLLAPSE */
     if(!collapsed&&T>=COL){collapsed=true;CHRONO.on=false;CHRONO.freeze=false;CHRONO.k=1;
       for(const e of enemies){if(e.dead)continue;if((e.x-cx)**2+(e.z-cz)**2<=R*R)hurt(e,P*5,'magic',{src:o.src,spell:o.spell,anc:false});}
-      camShake=Math.max(camShake,.4);flashA=Math.max(flashA,.45);flashCol='#fff1d0';flashDecay=3;if(typeof sfxBoom==='function')sfxBoom(.55,false);
+      camShake=Math.max(camShake,.4);flashA=Math.max(flashA,.3);flashCol='#fff1d0';flashDecay=3;if(typeof sfxBoom==='function')sfxBoom(.55,false);
       shockwave(cx,cz,R*1.6,0xfff0c0,.6);shockwave(cx,cz,R*1.1,0x9fd0ff,.5);
       if(typeof vfWave==='function'){vfWave(cx,cz,R*2.6,1.1,1.1,[[1,.86,.5],[.06,.1,.2],[1,1,.95],[.5,.75,1]]);addFx(new THREE.Group(),.15,null,()=>vfWave(cx,cz,R*3.6,1.5,1.4,[[.7,.85,1],[.05,.08,.16],[1,1,1],[1,.8,.4]]));}
-      /* the field shatters into glass made of time */
-      const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(new Float32Array([0,.07,0,-.06,-.04,0,.06,-.05,0]),3));const sm=new THREE.MeshBasicMaterial({color:0xcfe6ff,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
-      const sh2=sm.clone();sh2.color.setHex(0xffe2a0);
-      for(let i=0;i<110;i++){const a=rnd()*6.28,h=rnd()*2.6,onWall=rnd()<.65,r=onWall?R:rnd()*R;const m=new THREE.Mesh(sg,rnd()<.6?sm:sh2);m.position.set(cx+Math.cos(a)*r,(onWall?h:.1+rnd()*.3)+gYc,cz+Math.sin(a)*r);m.scale.setScalar(.8+rnd()*2.2);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);scene.add(m);
-        const v=new THREE.Vector3(Math.cos(a)*(1+rnd()*2.5),.6+rnd()*1.8,Math.sin(a)*(1+rnd()*2.5)),rv=new THREE.Vector3(rnd()*6,rnd()*6,rnd()*6),life=.9+rnd()*.9;
-        addFx(m,life,(f2,dt2)=>{v.y-=1.6*dt2;v.multiplyScalar(1-dt2*.8);m.position.addScaledVector(v,dt2);m.rotation.x+=rv.x*dt2;m.rotation.y+=rv.y*dt2;m.scale.multiplyScalar(1-dt2*.35);if(m.position.y<gYc+.15)f2.life=Math.min(f2.life,.1);},null,{});}
-      addFx(new THREE.Group(),2.2,null,()=>{sg.dispose();sm.dispose();sh2.dispose();});
+      /* the field shatters into glass made of time: real 3D shards and a pale blast, thrown by ctmStart (v433) */
       for(let i=0;i<30;i++){const a=rnd()*6.28;emit(1,{x:cx,y:.5,z:cz,vx:Math.cos(a)*5,vy:rnd()*2,vz:Math.sin(a)*5,s:.06,s2:0,c:0xffffff,c2:0x9fd0ff,life:.6,drag:1.5});}}
   },endC,{mats,geos});}
 
@@ -14164,6 +14158,20 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Chronostasis masteries, redesigned',d:'28 Oct',v:'v433',li:[
+    'Rewind: as time breaks, every foe inside is wound back along the road.',
+    'Sweeping Hand: a great golden clock hand sweeps the field every 2 seconds and cuts the foes it passes.',
+    'Echoes: each second inside leaves an echo of the foe; when time catches up they rush back into it.',
+    'Stolen Time: while the field holds, towers that can reach into it attack faster.',
+    'Second Collapse: a ghost of the field returns and collapses a second time.',
+    'Its collapse now shatters into real 3D glass with a pale blast and a softer flash. (Legendary masteries are still in developer mode.)']},
+  {t:'Spatial Compression masteries, redesigned',d:'28 Oct',v:'v432',li:[
+    'Gathering Pull: foes inside are drawn toward the middle of the squeeze.',
+    'Contraction Bands: the bands of contraction rolling through the squeezed space crush the foes they pass.',
+    'Satellite Snaps: its two smaller squeezes snap just before the main release.',
+    'Implosion: at the snap the packed foes are thrown into each other.',
+    'Pressed Star: the pressure gathers into a star of pressed light that bursts after the snap.',
+    'Its release now bursts in 3D on top of the warp. (Legendary masteries are still in developer mode.)']},
   {t:'Oakheart Treant masteries, redesigned',d:'28 Oct',v:'v426',li:[
     'Oakheart Treant (Epic) has five new masteries, for now in developer mode: Heavy Tread (its steps shake the road), Bark Bulwark (ground foes cannot get past it), Uprooted Boulder (every third slam it hurls a boulder at foes further off), Sap Harvest (it drains Overgrown foes and grows) and Timber! (at the end it topples forward along the road like a felled oak).',
     'Its slams now burst in 3D: clods and turf thrown in arcs and dust billowing up, instead of a flat ring.',
@@ -29218,6 +29226,175 @@ function trmTimber(g,yaw,sz,dmg,O){const x0=g.position.x,z0=g.position.z,dx=-Mat
   if(typeof rtmSplinters==='function')rtmSplinters(pts,x0,z0,90,1.6);const K=natKit(),F=nfxKit();nfxLeaves(x0+dx*len*.7,gy(x0,z0)+.6,z0+dz*len*.7,18,[K.leaf,K.leaf2,K.crown[1],F.leafD],null,1.2);
   if(state!=='playing')return;for(const e of enemies){if(e.dead||e.fake)continue;const px=e.x-x0,pz=e.z-z0,u=px*dx+pz*dz,v=Math.abs(px*dz-pz*dx);if(u<-.2||u>len+.2||v>W2)continue;hurt(e,dmg,'magic',O);if(!e.dead)ovgApply(e,3);trmLog({ev:'crush',e});}}
 
+/* ================= Spatial Compression's masteries (v432), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: space is squeezed. For 8 seconds a large stretch of the field is drawn tighter and tighter (a world-space warp; foes keep their
+   size, slow to a crawl and take pressure ticks), it holds one unnaturally still moment, then snaps back to its true size in a violent release
+   that strikes everything inside for 500%. Design space: the squeeze (how foes sit in it), the contraction bands that run through it, its two
+   smaller satellite squeezes, the held moment, the snap and where all that pressure goes.
+   - M1 Gathering Pull (the squeeze; behaviour change: 'what if the squeeze drew the foes together?'): foes inside drift toward the point of
+     the road nearest the centre, up to 0.3 tiles a second (deeper in, stronger; bosses half), so the snap and every area attack find them
+     packed. Strands of pressed light run from them to the centre.
+   - M2 Contraction Bands (the bands; cosmetic made real: 'what if the ripples carried weight?'): the three bands of contraction that travel
+     through the squeezed space were only a picture. Now a band crushes each foe it rolls over: 100%, at most once a second per foe, with a
+     burst of space shards.
+   - M3 Satellite Snaps (the satellites; new phase: 'what if the smaller knots of squeezed space let go first?'): the two satellite squeezes
+     snap 0.6s before the main release, each in its own 3D burst: 200% to foes within its own reach.
+   - M4 Implosion (the crowd; interaction: 'what if the foes it packed together hit each other?'): at the snap the packed foes are thrown into
+     one another: each takes 50% for every other foe within 0.5 tiles (up to 3), with a crack of shards between them.
+   - M5 Pressed Star (the release; signature payoff: 'where does all that pressure go?'): during the held moment the pressure gathers into a
+     star of pressed light at the centre; 0.45s after the snap it bursts: 200% within 1.6 tiles, a 3D blast of pale light and shards.
+   Percentages are of the scroll's power. Every cast runs cpmStart beside castCompress (a wrapper): it reads the squeeze (SDP.cmp: its centre,
+   shape, bands and satellites) and runs on the same clock. Even at Mastery 0 the release now bursts in 3D (a pale fireball, ice palette, and
+   shards of space along the region) on top of the warp. Power on the Legendary ladder (tests/sm-ladder.js, 6 runs) with the hidden factors below: 1.10 / 1.24 / 1.32 / 1.56 / 1.70
+   against 1.094 / 1.234 / 1.35 / 1.522 / 1.742 (it swings about 0.05 run to run with the region's random shape). CPM.dbg logs the events. */
+const CPM={dbg:null,pull:.3,bd:1,bdCd:1,sat:2,satR:1.1,im:.5,imR:.5,imN:3,st:2,stR:1.6,DUR:8,HOLD:.3};
+const cpmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='compress'&&c.L?c:null;};
+const cpmLog=d=>{if(CPM.dbg){d.t=time;CPM.dbg.push(d);}};
+SM_D.compress=[
+  {n:'Gathering Pull',d:'Foes inside are drawn toward the middle of the squeeze, so the snap and every area attack find them packed.'},
+  {n:'Contraction Bands',d:'The bands of contraction rolling through the squeezed space crush each foe they pass: {100}% (at most once a second).'},
+  {n:'Satellite Snaps',d:'Its two smaller squeezes snap 0.6s before the main release: {200}% to the foes in each.'},
+  {n:'Implosion',d:'At the snap the packed foes are thrown into each other: {50}% for every other foe within 0.5 tiles (up to 3).'},
+  {n:'Pressed Star',d:'The pressure gathers into a star of pressed light that bursts after the snap: {200}% within 1.6 tiles.'}];
+SMF.compress={m:1};
+SMA.compress=[1,1,1,1,1];
+SMG.compress=[1.13,1.21,1.09,1.18,1.08];
+/* the shader's local frame: u (0 at the centre, 1 at the irregular edge) for a world point */
+const cpmLoc=(C,x,z)=>{const qx=x-C.x,qz=z-C.z,X=qx*C.ex+qz*C.ez,Y0=-qx*C.ez+qz*C.ex,Y=Y0-C.curv*(X/C.a)*(X/C.a)*C.b,sx=X/C.a,sy=Y/C.b,r=Math.hypot(sx,sy),an=Math.atan2(sy,sx);
+  const Rr=1+.16*Math.sin(an*3+C.seed)+.1*Math.sin(an*5-C.seed*1.7)+.07*Math.sin(an*2+C.seed*.6);return r/Rr;};
+/* a 3D release of pale light: a fireball in the ice palette, a burst of space shards, glints */
+function cpmBurst(x,z,S){const y=gy(x,z);cfmBoom(x,y+.25*S+.1,z,.5*S,{pal:'ice',lobes:Math.round(3+3*S),skirt:Math.round(3+3*S),T:.55+.35*S,ground:false});lpmTear(x,y+.35,z,.8+.5*S);}
+/* strands of pressed light from a foe to the centre (M1), redrawn each frame */
+function cpmStrand(e,C){lpmMats();const g=smTag(new THREE.Group());scene.add(g);const n=6,sh=[];for(let i=0;i<n;i++){const m=new THREE.Mesh(LPM.sg,i%2?LPM.mA:LPM.mB);m.scale.set(.012,.05,.012);g.add(m);sh.push(m);}let ph=rnd();
+  return{g,draw(k){if(e.dead||k<=0){g.visible=false;return;}g.visible=true;const p=tpos2(e);ph+=.03;sh.forEach((m,i)=>{const u=((i/n+ph)%1);m.position.set(p.x+(C.x-p.x)*u*.6,p.y*(1-u*.6)+.05,p.z+(C.z-p.z)*u*.6);m.scale.set(.012*k,.05*k,.012*k);m.rotation.set(u*9,u*6,0);});}};}
+/* the pressed star (M5): a white core in spiky halos that grows through the held moment, then bursts */
+function cpmStar(x,z,dmg,o,P0){const y=gy(x,z)+.7,g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);const mats=[],core=new THREE.Mesh(ico(.09,2),nsAM(mats,0xffffff,1)),h1=new THREE.Mesh(ico(.22,1),nsAM(mats,0xcfdcff,.45)),h2=new THREE.Mesh(ico(.4,1),nsAM(mats,0x7a8aff,.18));g.add(core,h1,h2);
+  lpmMats();const spikes=[];for(let i=0;i<10;i++){const m=new THREE.Mesh(LPM.sg,i%2?LPM.mA:LPM.mB);const a=rnd()*6.28,b=(rnd()-.5)*2.4;m.position.set(0,0,0);m.rotation.set(b,a,0);m.userData.L=.25+rnd()*.25;g.add(m);spikes.push(m);}
+  let tt=0,done=false;const GROW=CPM.HOLD+.08+.45;
+  addFx(g,GROW+.1,(f,dt)=>{tt+=dt;if(done)return;const k=Math.min(1,tt/GROW);g.scale.setScalar(.4+1.1*k*k);g.rotation.y+=dt*(2+8*k);h1.scale.setScalar(.9+rnd()*.25);h2.scale.setScalar(.85+rnd()*.3*k);
+    spikes.forEach(m=>{const L=m.userData.L*(.5+k);m.scale.set(.02,L,.02);});
+    for(let i=0;i<3;i++){const a=rnd()*6.28,r=1.2;emit(1,{x:x+Math.cos(a)*r,y:y+(rnd()-.5)*.6,z:z+Math.sin(a)*r,vx:-Math.cos(a)*3,vy:0,vz:-Math.sin(a)*3,s:.04,s2:0,c:0xffffff,c2:0x8a9aff,life:.35});}
+    if(tt>=GROW){done=true;g.visible=false;cfmBoom(x,y-.2,z,.95,{pal:'ice',lobes:7,skirt:7,T:1,shake:.14,ground:true});lpmTear(x,y,z,1.6);for(let i=0;i<3;i++){const a=i/3*6.28+rnd();lpmTear(x+Math.cos(a)*.8,y-.3,z+Math.sin(a)*.8,1);}
+      const H=[];for(const q of enemies.slice()){if(q.dead||q.fake)continue;if((q.x-x)**2+(q.z-z)**2<CPM.stR*CPM.stR){hurt(q,dmg,'magic',smO(o));H.push(q);}}cpmLog({ev:'star',x,z,L:H});}},null,{mats});}
+
+function cpmStart(C,t,P,o,c){const L=c?c.L:0,A=c?c.a:[1,1,1,1,1],S={bd:new Map(),strands:new Map(),satDone:false,rel:false,star:false};let T=0;const REL=CPM.DUR+CPM.HOLD+.08;
+  addFx(new THREE.Group(),REL+1.4,(f,dt)=>{T+=dt;const live=SDP.cmp===C;if(!live&&T<REL){S.strands.forEach(s=>s.draw(0));if(!S.gone){S.gone=true;f.life=0;}return;}
+    if(T<CPM.DUR){const k=Math.min(1,T/1.5);
+      /* M1: the squeeze draws them in */
+      if(L>=1)for(const e of enemies){if(e.dead||e.fake||e.dist==null)continue;const u=cpmLoc(C,e.x,e.z);let s=S.strands.get(e);if(u>=1){if(s)s.draw(0);continue;}
+        if(!S.cd){const rt=e.route||ROUTES[0],q=nsRouteNear(C.x,C.z);S.cd={rt:q.rt,d:q.d};}
+        if((e.route||ROUTES[0])===S.cd.rt){const dd=S.cd.d-e.dist,w=Math.pow(1-u,.6),v=CPM.pull*w*k*(e.boss?.5:1)*dt;if(Math.abs(dd)>.05){if(dd<0)pushE(e,Math.min(v,-dd));else e.dist+=Math.min(v,dd);moveEnemy(e,0);}}
+        if(!s){s=cpmStrand(e,C);S.strands.set(e,s);}s.draw(k*(1-u));}
+      /* M2: the contraction bands crush what they roll over */
+      if(L>=2)C.wv.forEach((W,bi)=>{if(!W.d||W.d[2]===99||!(W.amp>0))return;for(const e of enemies){if(e.dead||e.fake)continue;if(cpmLoc(C,e.x,e.z)>=1)continue;const pr=(e.x-C.x)*W.d[0]+(e.z-C.z)*W.d[1];if(Math.abs(pr-W.d[2])>W.d[3]*.6)continue;
+          const nx=S.bd.get(e)||0;if(time<nx)continue;S.bd.set(e,time+CPM.bdCd);hurt(e,P*CPM.bd*A[1],'magic',smO(o));const p=tpos2(e);lpmTear(p.x,p.y,p.z,.7);cpmLog({ev:'band',e,b:bi});}});}
+    /* M3: the satellites let go first */
+    if(L>=3&&!S.satDone&&T>=REL-.6){S.satDone=true;(C.sat||[]).forEach((Q,i)=>{cpmBurst(Q.x,Q.z,.7);spaceQuake(Q.x,Q.z,Q.a*.8,.6);const R=Math.max(CPM.satR,Math.min(Q.a,Q.b)),H=[];
+        for(const q of enemies.slice()){if(q.dead||q.fake)continue;if((q.x-Q.x)**2+(q.z-Q.z)**2<R*R){hurt(q,P*CPM.sat*A[2],'magic',smO(o));H.push(q);}}cpmLog({ev:'sat',i,x:Q.x,z:Q.z,R,L:H});});}
+    /* M5: the star gathers through the held moment */
+    if(L>=5&&!S.star&&T>=CPM.DUR){S.star=true;cpmStar(C.x,C.z,P*CPM.st*A[4],o,P);}
+    /* the snap: the 3D release for every cast, and M4 */
+    if(!S.rel&&T>=REL){S.rel=true;S.strands.forEach(s=>s.draw(0));cpmBurst(C.x,C.z,1.1);for(let i=0;i<4;i++){const xs=(rnd()-.5)*1.3,ys=(rnd()-.5)*1.1;lpmTear(C.ex*xs*C.a-C.ez*ys*C.b+C.x,.4,C.ez*xs*C.a+C.ex*ys*C.b+C.z,1.1);}cpmLog({ev:'snap'});
+      if(L>=4){const In=enemies.filter(e=>!e.dead&&!e.fake&&cpmLoc(C,e.x,e.z)<=1.08),H=[];
+        for(const e of In){const nb=In.filter(q=>q!==e&&(q.x-e.x)**2+(q.z-e.z)**2<CPM.imR*CPM.imR).slice(0,CPM.imN);if(!nb.length)continue;hurt(e,P*CPM.im*A[3]*nb.length,'magic',smO(o));H.push({e,n:nb.length});
+          const p=tpos2(e);nb.forEach(q=>{if(In.indexOf(q)>In.indexOf(e)){const p2=tpos2(q);lpmTear((p.x+p2.x)/2,(p.y+p2.y)/2,(p.z+p2.z)/2,.6);}});}cpmLog({ev:'implode',L:H});}}
+    if(T>=REL+.2&&S.strands.size){S.strands.forEach(s=>scene.remove(s.g));S.strands.clear();}},
+    ()=>{S.strands.forEach(s=>scene.remove(s.g));S.strands.clear();});}
+const CPM_OLD=castCompress;
+castCompress=function(t,c,P,o){const r=CPM_OLD.apply(this,arguments);if(t&&c&&SDP.cmp)cpmStart(SDP.cmp,t,P,o,cpmC(o));return r;};
+/* ================= Chronostasis's masteries (v433), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: time breaks. Over a stretch of road (2.6 tiles) everything crawls for 10 seconds: foes move at a fifth of their speed, their
+   arrows hang in the air, afterimages flicker where time cannot decide where they are, the stopped time slowly suffocates them (2.5% of their
+   health a second), the last quarter second stands still, and then time catches up all at once in a Temporal Collapse (500%) as the field
+   shatters like glass. A great clock turns behind the hero and a clock face hangs over the field. Design space: the moment time breaks, the
+   clock and its hands, the afterimages, what the stolen time is worth to the defenders, and the collapse.
+   - M1 Rewind (the moment time breaks; behaviour change: 'what if time ran backward first?'): as the field forms, every foe inside is
+     wound back 0.8 tiles along the road (Resolve applies) and takes 180%, leaving a golden trail and a small burst where it stood.
+   - M2 Sweeping Hand (the clock; cosmetic made real: 'what if the clock's hand cut?'): a great golden hand of light sweeps the field once
+     every 2s (it stops when time stands still): 35% to each foe it passes over, once a turn.
+   - M3 Echoes (the afterimages; new rule: 'what if the afterimages were real?'): every second a foe spends inside leaves an echo of it, a
+     golden ghost trailing behind it (up to 6). When time catches up, the echoes rush back into it: 40% each.
+   - M4 Stolen Time (the defenders; interaction: 'what if the time taken from the foes went somewhere?'): while the field holds, towers that
+     can reach into it attack 30% faster, golden clock rings turning round them.
+   - M5 Second Collapse (the collapse; signature payoff: 'what if the moment happened again?'): 1.2s after the Temporal Collapse a golden
+     ghost of the field flickers back and collapses again: 140% to every foe within it and frozen 0.5s (Resolve applies).
+   Percentages are of the scroll's power. Every cast runs ctmStart beside castChronostasis (a wrapper) on the same clock. Even at Mastery 0
+   the collapse is now 3D: its glass of time is real shards (stretched crystals, not flat triangles), a pale 3D blast (ice palette) bursts at
+   the centre, and the screen flash is softer (.3 instead of .45). Power on the Legendary ladder
+   (tests/sm-ladder.js, 6 runs) with the hidden factors below: 1.09 / 1.22 / 1.34 / 1.50 / 1.75 against 1.094 / 1.234 / 1.35 / 1.522 / 1.742.
+   Its suffocation (a share of each foe's health, not of the scroll's power) is most of its strength, so the factors move it little.
+   CTM.dbg logs the events. */
+const CTM={dbg:null,rw:.8,rwD:1.8,hd:.35,hdT:2,ec:.4,ecN:6,hs:.3,sc:1.4,scT:1.2,scStun:.5,R:2.6,CAST:.6,ACT:1.15,COL:11.15,FRZ:.25};
+const ctmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='chronostasis'&&c.L?c:null;};
+const ctmLog=d=>{if(CTM.dbg){d.t=time;CTM.dbg.push(d);}};
+SM_D.chronostasis=[
+  {n:'Rewind',d:'As time breaks, every foe inside is wound back 0.8 tiles along the road (Resolve applies) and takes {180}%.'},
+  {n:'Sweeping Hand',d:'A great golden clock hand sweeps the field every 2 seconds: {35}% to each foe it passes.'},
+  {n:'Echoes',d:'Each second inside leaves an echo of the foe (up to 6). When time catches up they rush back into it: {40}% each.'},
+  {n:'Stolen Time',d:'While the field holds, towers that can reach into it attack {30}% faster.'},
+  {n:'Second Collapse',d:'1.2s after the collapse a ghost of the field returns and collapses again: {140}% and frozen 0.5s (Resolve applies).'}];
+SMF.chronostasis={m:1};
+SMA.chronostasis=[1,1,1,1,1];
+SMG.chronostasis=[1.05,1.05,1.05,1.07,1.1];
+/* M4: towers in reach of a mastered field get the time it steals */
+CTM.haste=null;
+{const tu0=towerUpdate;towerUpdate=function(t,dt){const H=CTM.haste;if(H&&H.on&&H.tw.has(t))t.cd-=dt*H.v;return tu0.apply(this,arguments);};}
+const ctmMat=(c,o)=>new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+/* M2: the hand, a tapering blade of golden light lying over the field, with a brighter edge and a glow */
+function ctmHand(cx,cy,cz,R){const g=smTag(new THREE.Group());g.position.set(cx,cy,cz);scene.add(g);const mats=[ctmMat(0xffc860,.75),ctmMat(0xfff2c8,.95),ctmMat(0xff9a20,.25)],geos=[];
+  const sh=new THREE.Shape();sh.moveTo(0,-.09);sh.lineTo(R*.95,-.02);sh.lineTo(R*1.02,0);sh.lineTo(R*.95,.02);sh.lineTo(0,.09);sh.lineTo(-.15,0);sh.lineTo(0,-.09);
+  const bg=new THREE.ExtrudeGeometry(sh,{depth:.05,bevelEnabled:false});bg.rotateX(-Math.PI/2);geos.push(bg);const b=new THREE.Mesh(bg,mats[0]);b.position.y=.18;g.add(b);
+  const eg=new THREE.BoxGeometry(R,.04,.02);eg.translate(R/2,0,0);geos.push(eg);const ed=new THREE.Mesh(eg,mats[1]);ed.position.y=.24;g.add(ed);
+  const wg=new THREE.BoxGeometry(R,.35,.01);wg.translate(R/2,.175,0);geos.push(wg);const w=new THREE.Mesh(wg,mats[2]);w.position.y=.06;g.add(w);
+  const hub=new THREE.Mesh(ico(.12,1),mats[1]);hub.position.y=.22;g.add(hub);return{g,mats,geos};}
+/* M3: a golden ghost of a foe */
+const CTM_GH=[.13,.08].map(o=>new THREE.MeshBasicMaterial({color:0xffa83a,transparent:true,opacity:o,depthWrite:false,blending:THREE.AdditiveBlending}));
+function ctmGhost(e){const gh=smTag(new THREE.Group());if(!e.b)return null;const cl=e.b.clone();cl.traverse(q=>{if(q.isMesh)q.material=CTM_GH[0];else if(q.isLine||q.isPoints)q.visible=false;});gh.add(cl);gh.rotation.y=e.g?e.g.rotation.y:0;gh.position.copy(e.g?e.g.position:smV(e.x,0,e.z));scene.add(gh);return gh;}
+/* M4: golden clock rings turning round a hastened tower */
+function ctmRings(tw,life){const g=smTag(new THREE.Group());scene.add(g);const mats=[ctmMat(0xffd27a,.6),ctmMat(0xfff0c0,.45)],geos=[new THREE.TorusGeometry(.32,.012,4,48),new THREE.TorusGeometry(.24,.01,4,48)];
+  const r1=new THREE.Mesh(geos[0],mats[0]),r2=new THREE.Mesh(geos[1],mats[1]);g.add(r1,r2);for(let i=0;i<8;i++){const b=new THREE.Mesh(box(.05,.012,.012),mats[0]);const a=i/8*6.28;b.position.set(Math.cos(a)*.32,Math.sin(a)*.32,0);b.rotation.z=a;r1.add(b);}
+  let tt=0;addFx(g,life,(f,dt)=>{tt+=dt;g.position.set(tw.x,(tw.topY||1)+.25,tw.z);const k=Math.min(1,tt/.3)*Math.min(1,f.life/.3);g.scale.setScalar(Math.max(.01,k));r1.rotation.set(Math.PI/2+.3*Math.sin(tt),0,tt*2.5);r2.rotation.set(Math.PI/2-.4,tt*1.5,-tt*4);
+    if(rnd()<dt*6)emit(1,{x:tw.x+(rnd()-.5)*.5,y:(tw.topY||1)+rnd()*.4,z:tw.z+(rnd()-.5)*.5,vy:.4,s:.035,s2:0,c:0xffe08a,c2:0xffa020,life:.6});},null,{mats,geos});}
+/* shards of glass made of time: stretched crystals that burst out and tumble (the base collapse and M5) */
+function ctmShards(cx,cy,cz,R,n,gold){lpmMats();for(let i=0;i<n;i++){const a=rnd()*6.28,onWall=rnd()<.6,r=onWall?R:rnd()*R,h=onWall?rnd()*2.4:.15+rnd()*.4,m=new THREE.Mesh(LPM.sg,gold&&rnd()<.6?CTM.gm||(CTM.gm=ctmMat(0xffd890,.8)):(rnd()<.5?LPM.mA:LPM.mB));
+    const s=.03+rnd()*.05;m.scale.set(s,s*(2.5+rnd()*2),s*.6);m.position.set(cx+Math.cos(a)*r,cy+h,cz+Math.sin(a)*r);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);scene.add(smTag(m));
+    const v=smV(Math.cos(a)*(1+rnd()*2.5),.6+rnd()*1.8,Math.sin(a)*(1+rnd()*2.5)),rv=smV(rnd()*8,rnd()*8,rnd()*8);
+    addFx(m,.9+rnd()*.9,(f,dt)=>{v.y-=2*dt;v.multiplyScalar(1-dt*.8);m.position.addScaledVector(v,dt);m.rotation.x+=rv.x*dt;m.rotation.y+=rv.y*dt;if(f.life<.3)m.scale.multiplyScalar(1-dt*3);if(m.position.y<cy+.05)f.life=Math.min(f.life,.1);});}}
+
+function ctmStart(t,cx,cz,P,o,c){const L=c?c.L:0,A=c?c.a:[1,1,1,1,1],R=CTM.R,cy=(typeof OW!=='undefined'&&OW.on)?owH(cx,cz):gy(cx,cz);let T=0;
+  const S={rw:false,hand:null,ang:0,turn:0,hit:new Map(),ec:new Map(),tw:null,col:false,sc:false};const inF=e=>(e.x-cx)**2+(e.z-cz)**2<=R*R;
+  const ours=()=>CHRONO.on&&Math.abs(CHRONO.x-cx)<1e-6&&Math.abs(CHRONO.z-cz)<1e-6;
+  addFx(new THREE.Group(),CTM.COL+CTM.scT+1.5,(f,dt)=>{T+=dt;const active=T>=CTM.ACT&&T<CTM.COL&&ours(),still=CHRONO.freeze;
+    if(T>=CTM.CAST+.05&&T<CTM.COL&&!ours()&&!S.col){S.col=true;S.lost=true;}   /* another field replaced this one */
+    /* M1: the moment time breaks, it runs backward */
+    if(L>=1&&!S.rw&&T>=CTM.CAST){S.rw=true;const H=[];for(const e of enemies.slice()){if(e.dead||e.fake||!inF(e))continue;const p0=tpos2(e),d0=e.dist,u=pushE(e,CTM.rw);moveEnemy(e,0);hurt(e,P*CTM.rwD*A[0],'magic',smO(o));H.push({e,u});const p1=tpos2(e);
+        for(let i=0;i<10;i++){const k=i/9;emit(1,{x:p0.x+(p1.x-p0.x)*k,y:p0.y,z:p0.z+(p1.z-p0.z)*k,vx:0,vy:.3,vz:0,s:.06,s2:0,c:0xffe8a0,c2:0xffa020,life:.6});}cfmBoom(p0.x,p0.y,p0.z,.16,{lobes:2,T:.4,ground:false});}ctmLog({ev:'rewind',L:H});}
+    /* M2: the sweeping hand */
+    if(L>=2&&active){if(!S.hand){S.hand=ctmHand(cx,cy,cz,R*.97);S.hk=0;}S.hk=Math.min(1,S.hk+dt*3);if(!still){const a0=S.ang;S.ang+=dt*6.2832/CTM.hdT;if(Math.floor(S.ang/6.2832)!==Math.floor(a0/6.2832))S.turn++;
+        for(const e of enemies){if(e.dead||e.fake||!inF(e))continue;let ea=Math.atan2(-(e.z-cz),e.x-cx);ea=((ea%6.2832)+6.2832)%6.2832;const lo=((a0%6.2832)+6.2832)%6.2832,da=((ea-lo)%6.2832+6.2832)%6.2832;
+          if(da<=S.ang-a0+1e-9){const turn=Math.floor((a0+da)/6.2832);if(S.hit.get(e)===turn)continue;S.hit.set(e,turn);hurt(e,P*CTM.hd*A[1],'magic',smO(o));const p=tpos2(e);sprayP(1,p.x,p.y,p.z,10,{c:0xfff0c0,c2:0xffa020,sp:1.5,s:.04,s2:0,life:.35});ctmLog({ev:'hand',e,turn});}}}
+      S.hand.g.rotation.y=S.ang;S.hand.mats[0].opacity=.75*S.hk;S.hand.mats[1].opacity=.95*S.hk;S.hand.mats[2].opacity=.25*S.hk;
+      if(!still&&rnd()<dt*30){const r=rnd()*R*.95;emit(1,{x:cx+Math.cos(S.ang)*r,y:cy+.25,z:cz-Math.sin(S.ang)*r,vx:0,vy:.25,vz:0,s:.05,s2:0,c:0xffe08a,c2:0xff9a20,life:.5});}}
+    else if(S.hand){S.hk-=dt*3;S.hand.mats.forEach((m,i)=>m.opacity=Math.max(0,[.75,.95,.25][i]*S.hk));if(S.hk<=0){scene.remove(S.hand.g);S.hand.mats.forEach(m=>m.dispose());S.hand.geos.forEach(g=>g.dispose());S.hand=null;}}
+    /* M3: echoes gather */
+    if(L>=3&&active)for(const e of enemies){if(e.dead||e.fake||!inF(e))continue;let q=S.ec.get(e);if(!q){q={n:0,acc:0,gh:[],hist:[]};S.ec.set(e,q);}q.acc+=dt;q.hist.unshift(smV(e.g?e.g.position.x:e.x,e.g?e.g.position.y:0,e.g?e.g.position.z:e.z));if(q.hist.length>40)q.hist.pop();
+      if(q.acc>=1&&q.n<CTM.ecN){q.acc-=1;q.n++;if(q.gh.length<3){const gh=ctmGhost(e);if(gh)q.gh.push(gh);}}q.gh.forEach((gh,i)=>{const h=q.hist[Math.min(q.hist.length-1,(i+1)*5)];if(h)gh.position.copy(h);gh.rotation.y=e.g?e.g.rotation.y:0;});}
+    /* M4: the stolen time goes to the towers */
+    if(L>=4&&active&&!S.tw){S.tw=new Set(towers.filter(tw=>{const s=tStats(tw);return s&&s.range&&Math.hypot(tw.x-cx,tw.z-cz)<s.range+R*.5;}));CTM.haste={on:true,tw:S.tw,v:CTM.hs*A[3]};S.tw.forEach(tw=>ctmRings(tw,CTM.COL-T));ctmLog({ev:'haste',L:[...S.tw]});}
+    if(S.tw&&CTM.haste&&CTM.haste.tw===S.tw&&(T>=CTM.COL||!ours()&&T>CTM.ACT))CTM.haste.on=false;
+    /* the Temporal Collapse */
+    if(!S.col&&T>=CTM.COL){S.col=true;ctmShards(cx,cy,cz,R,40,false);cfmBoom(cx,cy+.4,cz,.75,{pal:'ice',lobes:6,skirt:6,T:.8,ground:false});ctmLog({ev:'collapse'});
+      if(L>=3){const H=[];S.ec.forEach((q,e)=>{if(!q.n||e.dead){q.gh.forEach(g=>scene.remove(g));return;}const n=q.n,gs=q.gh.slice(),p=tpos2(e);H.push({e,n});let tt=0;const st=gs.map(g=>g.position.clone());
+          addFx(new THREE.Group(),.3,(f2,dt2)=>{tt+=dt2;const k=Math.min(1,tt/.25);gs.forEach((g,i)=>{const tp=e.g?e.g.position:smV(e.x,0,e.z);g.position.lerpVectors(st[i],tp,k*k);g.scale.setScalar(1-.3*k);});},()=>{gs.forEach(g=>scene.remove(g));});
+          mxLater(.25,()=>{if(e.dead)return;hurt(e,P*CTM.ec*A[2]*n,'magic',smO(o));const p2=tpos2(e);cfmBoom(p2.x,p2.y,p2.z,.12+.03*n,{lobes:2,T:.4,ground:false});});});S.ec.clear();ctmLog({ev:'echo',L:H});}}
+    /* M5: the moment happens again */
+    if(L>=5&&S.col&&!S.lost&&!S.sc&&T>=CTM.COL+CTM.scT){S.sc=true;const gm=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:0}},vertexShader:VS_UV,fragmentShader:chWallFS(),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}),wg=new THREE.CylinderGeometry(R,R,2.4,64,1,true);wg.translate(0,1.2,0);const w=new THREE.Mesh(wg,gm);w.position.set(cx,cy,cz);scene.add(smTag(w));let tt=0;
+      addFx(w,.5,(f2,dt2)=>{tt+=dt2;gm.uniforms.uT.value=tt*3;gm.uniforms.uA.value=1.3*Math.sin(Math.min(1,tt/.45)*Math.PI)*(.75+.25*Math.sin(tt*60));w.scale.set(1-.15*tt,1,1-.15*tt);},null,{mats:[gm],geos:[wg]});
+      mxLater(.45,()=>{if(state!=='playing')return;ctmShards(cx,cy,cz,R,50,true);cfmBoom(cx,cy+.4,cz,.85,{pal:'ice',lobes:6,skirt:7,T:.9,shake:.18,ground:true});const H=[];
+        for(const q of enemies.slice()){if(q.dead||q.fake||!inF(q))continue;hurt(q,P*CTM.sc*A[4],'magic',smO(o));H.push(q);if(!q.dead)smStun(q,CTM.scStun);}ctmLog({ev:'second',L:H});});}
+  },()=>{S.ec.forEach(q=>q.gh.forEach(g=>scene.remove(g)));if(S.hand){scene.remove(S.hand.g);}if(CTM.haste&&CTM.haste.tw===S.tw)CTM.haste=null;});}
+const CTM_OLD=castChronostasis;
+castChronostasis=function(t,c,P,o){const r=CTM_OLD.apply(this,arguments);if(t&&c)ctmStart(t,c.x,c.z,P,o,ctmC(o));return r;};
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
