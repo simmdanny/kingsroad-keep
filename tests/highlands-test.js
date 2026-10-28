@@ -35,6 +35,8 @@ try{
    TERRAIN.children.forEach(o=>{if(!o.isInstancedMesh||!['tor','pine','ben','wall','cairn'].includes(o.userData.hl))return;for(let i=0;i<o.count;i++){o.getMatrixAt(i,m);p.setFromMatrixPosition(m);if(Math.abs(p.x)<xE+.3&&p.z>zTop-.3&&p.z<zBot+.3)bad++;if(p.z>zBot+.4&&o.userData.hl!=='wall')bad++;}});
    ok('nothing tall on the board or in front of it',!bad,bad);}
   ok('the land has its own light, preview and terrain names',arenaPV()===HL_PV&&terPal()===TERP.highlands&&TERP.highlands.n.m==='Peat hag');
+  {let err=null,props=new Set();try{for(let sd=1;sd<=12;sd++){clearWorld();buildMap(sd*97);for(const L of LORE)props.add(L.k);for(let i=0;i<3;i++){anim(.05,i*.05);loreAnim(.05);lmAnim(.05,i*.05);}}}catch(e){err=e.message;}go('highlands',31);
+   ok('twelve boards build and animate without an error, props and landmarks included',!err&&props.size>=4,err||[...props].join(','));}
   ok('peat hags can form on the board',terMarshLand());
   ok('lightning spells +20% here; ice spells and slows unchanged',landEl()&&landEl().lightning===1.2&&landEl().ice===1&&landEl().slow===1&&landSlow(.7)===.7);
   ok('gems pay 2.5 times, rare scrolls a little more often than in the taiga',ARENA_REWARD.highlands.gem===2.5&&arenaReward().gem===2.5&&ARENA_REWARD.highlands.rar>ARENA_REWARD.taiga.rar);

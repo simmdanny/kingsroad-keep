@@ -28239,7 +28239,7 @@ function hlHeatherGeo(){return gget('hlHeather',()=>{const Rn=mulberry(613),gs=[
   const g=tunMerge(gs),lo=new THREE.Color(0x2e2422),mid=new THREE.Color(0x4a3240),tip=new THREE.Color(0x7a4466);
   return hlVC(g,(c,x,y,z,ny)=>{c.copy(y<.04?lo:ny>.55&&y>.07?tip:mid);});});}
 /* bracken: rust-brown fronds arching out */
-function hlBrackenGeo(){return gget('hlBracken',()=>{const gs=[],Rn=mulberry(5151);for(let i=0;i<7;i++){const L=.36+Rn()*.18,g=new THREE.ConeGeometry(.06,L,3).toNonIndexed();g.scale(1,1,.18);g.translate(0,L/2,0);g.rotateX(.95+Rn()*.4);g.rotateY(i/7*6.28+Rn()*.4);gs.push(g);}
+function hlBrackenGeo(){return gget('hlBracken',()=>{const gs=[],Rn=mulberry(5151);for(let i=0;i<12;i++){const up=i>=8,L=(up?.2:.3)+Rn()*.12,g=new THREE.ConeGeometry(.045,L,3).toNonIndexed();g.scale(1,1,.16);g.translate(0,L/2,0);const P=g.attributes.position;for(let k=0;k<P.count;k++){const y=P.getY(k);P.setZ(k,P.getZ(k)+y*y*.9);}g.rotateX(up?.35+Rn()*.3:.75+Rn()*.35);g.rotateY(i/(up?4:8)*6.28+Rn()*.5);gs.push(g);}
   const g=tunMerge(gs),a=new THREE.Color(0x8a4e24),b=new THREE.Color(0xa8662e);return hlVC(g,(c,x,y)=>{c.copy(y>.12?b:a);});});}
 /* gorse: a dark spiky bush starred with yellow flowers */
 function hlGorseGeo(){return gget('hlGorse',()=>{const Rn=mulberry(2727),gs=[];for(let i=0;i<4;i++){const a=Rn()*6.28,r=Rn()*.12,s=.13+Rn()*.06,g=jitterGeo(new THREE.IcosahedronGeometry(s,1),s*.35).toNonIndexed();g.translate(Math.cos(a)*r,s*.8,Math.sin(a)*r);gs.push(g);}
@@ -28791,7 +28791,9 @@ const HL_VARS={
     {n:'Cairn Ram',d:'Slate on the roof, painted targes hung on its sides and a granite boulder lashed to the end of the log.'},
     {n:'Gem Ram',special:'gem',d:'A golden cradle on its sheepskin roof holding a stolen gem.'},
     {n:'Scroll Ram',special:'scroll',d:'A banner pole over the heather thatch flying an unrolled glowing spell scroll.'}]};
-{const gv=galVarUI;galVarUI=function(){gv.apply(this,arguments);if(!GV||GAL_BIO!=='highlands')return;const L=HL_VARS[GV.type];if(!L||!L[GV.idx]||!dexHas(GV.type,GV.idx))return;const v=L[GV.idx];
+{const gv=galVarUI;galVarUI=function(){gv.apply(this,arguments);if(!GV||GAL_BIO!=='highlands'||!dexHas(GV.type,GV.idx))return;const L=HL_VARS[GV.type];
+  if((!L||!L[GV.idx])&&EN[GV.type]&&EN[GV.type].boss&&!HL_OWN.has(GV.type)){const d=$('#gvDesc');if(d&&!/Withered/.test(d.innerHTML))d.innerHTML='<b class="gv-hl">Withered in the Highlands.</b> '+d.innerHTML;return;}
+  if(!L||!L[GV.idx])return;const v=L[GV.idx];
   $('#gvName').innerHTML=v.n;$('#gvDesc').innerHTML='<b class="gv-hl">Highland variant.</b> '+v.d+'<br><small style="display:block;margin-top:4px;line-height:1.35">'+resHtml(GV.type,GV.idx)+'</small>';};}
 /* ================= The Stormcrag Highlands' milestone bosses (v418): both withered by the winters of the hills =================
    Wave 100, the Grey Man (Am Fear Liath Mor of the old stories): a gaunt grey giant who walks in the mist on the high tops, stooped, his skin
@@ -29067,7 +29069,7 @@ function hlPropModel(k,seed,q){const g=new THREE.Group(),Rr=mulberry(seed||1),J=
   else if(k==='claymore'){A(jitterGeo(new THREE.DodecahedronGeometry(.18,0),.03),ST,-.06,.1,0,0,0,0,1.1,.7,1);A(jitterGeo(new THREE.DodecahedronGeometry(.16,0),.03),ST2,.08,.09,.02,0,1,0,1,.65,1);
     A(box(.03,.42,.008),0x8a5a3a,0,.38,0,0,0,J(.08));A(box(.02,.4,.009),0x9a6a4a,0,.38,0,0,0,J(.08));A(box(.2,.016,.016),0x6a4a3a,0,.6,0,0,0,0);for(const sd of[-1,1]){A(box(.05,.012,.012),0x6a4a3a,sd*.11,.585,0,0,0,sd*.6);A(ico(.012,0),0x6a4a3a,sd*.13,.56,0);}
     A(cyl(.013,.013,.12,6),0x3a2a1e,0,.67,0);for(let i=0;i<3;i++)A(cyl(.0145,.0145,.014,6),[0xb02a24,0x2e4a36,0xe8b84a][i],0,.63+i*.03,0);A(ico(.02,0),0x6a4a3a,0,.74,0);
-    const fl=A(box(.012,.1,.004),0xb02a24,.02,.66,.012,0,0,.3);g.userData.flaps.push(fl);heather(-.22,.15,1);}
+    const fl=A(box(.012,.1,.004),0xb02a24,.02,.66,.012,0,0,.3);g.userData.flaps.push({m:fl,ax:'z',r0:fl.rotation.z,sp:2.6,ph:Rr()*6,amp:.3});heather(-.22,.15,1);}
   else if(k==='stagskull'){A(ico(.07,1),0xe8e4d8,0,.06,0,0,0,0,1,.85,1.4);A(box(.05,.04,.1),0xe8e4d8,0,.05,.09);A(box(.022,.018,.01),0x2a2420,-.03,.075,.07);A(box(.022,.018,.01),0x2a2420,.03,.075,.07);
     for(const sd of[-1,1]){const an=new THREE.Group();an.position.set(sd*.05,.09,-.02);an.rotation.set(-.5,0,sd*-.9);g.add(an);S(an,cyl(.012,.018,.4,5),0xd8d0c0,0,.2,0);
       for(let i=0;i<5;i++){const t=S(an,cyl(.007,.011,.12,4),0xd8d0c0,0,.08+i*.07,0,0,0,sd*(i%2?-.9:.7));t.position.y+=.05;}}
@@ -29120,8 +29122,8 @@ function hlMarkModel(k,P){const g=P.g,A=(geo,c,x,y,z,rx,ry,rz,sx,sy,sz)=>{const 
     A(cyl(.06,.07,.18,8),ST2,.38,.09,.15);P.seeing=S();P.seeing.position.set(.38,.24,.15);As(P.seeing,new THREE.TorusGeometry(.05,.022,6,12),ST,0,0,0);P.eye=S(P.seeing);As(P.eye,ico(.03,1),GLOW(0xa0d8ff),0,0,0);As(P.eye,ico(.07,1),haloMat(0xa0d8ff),0,0,0);P.eye.visible=false;
     P.charm=S();for(let i=0;i<3;i++)As(P.charm,box(.03,.06,.006),[0xb02a24,0x2e4a36,0xe8b84a][i],-.12+i*.04,.2,.272);P.charm.visible=false;heather(-.4,.25,1);}
   else if(k==='clootie'){A(cyl(.05,.08,.5,6),0x3a2e24,.05,.25,-.05,0,0,-.15);const br=[[.2,.55,.1,.9],[-.15,.6,-.05,-.8],[.05,.7,.15,.2],[.25,.45,-.15,1.2]];for(const[x,y,z,r]of br)A(cyl(.015,.03,.36,5),0x3a2e24,x,y,z,r*.4,0,-r);
-    P.rags=S();const cols=[0xb02a24,0xe8e0cc,0x2e4a36,0xe8b84a,0x3a5a8a,0xd87a9a,0xffffff];for(let i=0;i<34;i++){const a=Rr()*6.28,r=.08+Rr()*.3,y=.42+Rr()*.38;const m=As(P.rags,box(.022,.07,.004),cols[i%cols.length],Math.cos(a)*r,y,Math.sin(a)*r,0,a,(Rr()-.5)*.4);g.userData.flaps=g.userData.flaps||[];}
-    for(let i=0;i<12;i++)A(ico(.05,0),0x2e4a26,(Rr()-.5)*.6,.7+Rr()*.25,(Rr()-.5)*.4);for(let i=0;i<8;i++)A(ico(.012,0),0xb02a24,(Rr()-.5)*.6,.72+Rr()*.25,(Rr()-.5)*.4);
+    P.rags=S();const cols=[0xb02a24,0xe8e0cc,0x2e4a36,0xe8b84a,0x3a5a8a,0xd87a9a,0xffffff];for(let i=0;i<34;i++){const a=Rr()*6.28,r=.06+Rr()*.26,y=.6+Rr()*.12;As(P.rags,box(.022,.07,.004),cols[i%cols.length],Math.cos(a)*r,y,Math.sin(a)*r,0,a,(Rr()-.5)*.4);}
+    for(let i=0;i<16;i++){const a=Rr()*6.28,r=Rr()*.3;A(jitterGeo(new THREE.IcosahedronGeometry(.075,1),.015),i%3?0x2e4a26:0x3a5a2e,Math.cos(a)*r,.74+Rr()*.12,Math.sin(a)*r*.8,0,Rr()*3,0,1.5,.6,1.4);}for(let i=0;i<14;i++){const a=Rr()*6.28,r=Rr()*.34;A(ico(.012,0),0xb02a24,Math.cos(a)*r,.8+Rr()*.1,Math.sin(a)*r*.8);}
     for(let i=0;i<10;i++){const a=i/10*6.28;A(jitterGeo(new THREE.BoxGeometry(.08,.07,.07),.01),i%2?ST:ST2,.3+Math.cos(a)*.18,.035,.25+Math.sin(a)*.14,0,-a,0);}
     P.pool=A(cyl(.15,.15,.012,16),M(0x5a8a9a,{shininess:90,transparent:true,opacity:.85}),.3,.04,.25);P.glow=S();As(P.glow,cyl(.48,.48,.01,20),GLOW(0x9ae0c0),0,.012,0);P.glow.visible=false;
     P.bare=S();P.bare.visible=false;}}
