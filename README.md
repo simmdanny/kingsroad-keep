@@ -1079,7 +1079,7 @@ Simon: "make it so that uncommon masteries can now be obtained when playing norm
 
 ## The Hall of Champions, a friends leaderboard, and profiles (v406)
 Simon: "is it possible to add a leaderboard? without the need of servers? ... I want it implemented directly in the game, its whats gonna give it a bit of a character, and its JUST for my friends so no cheating". He chose a live board ranked by the best wave on each land.
-- **Where the scores live:** Simon's free Firebase Realtime Database, through its REST API (no SDK, no sign-in). `LB.url` is the database address (empty until Simon creates it: the Hall then says it is not open yet). `GET LB.url/lb.json` reads every land at once; `PATCH LB.url/lb.json` writes this account's entries as `{"<land>/<id>":{n,w,t}}` with `t` the database's own time (`{".sv":"timestamp"}`).
+- **Where the scores live:** Simon's free Firebase Realtime Database, through its REST API (no SDK, no sign-in). `LB.url` is the database address, `https://leaderboard-b4f46-default-rtdb.europe-west1.firebasedatabase.app` (Simon's project, Europe; with no address the Hall says it is not open yet). `GET LB.url/lb.json` reads every land at once; `PATCH LB.url/lb.json` writes this account's entries as `{"<land>/<id>":{n,w,t}}` with `t` the database's own time (`{".sv":"timestamp"}`).
 - **Database rules** (Firebase console, Realtime Database, Rules): anyone may read `/lb` and write one player's entry; the name must be a string of at most 20 and the wave a number. It is only for friends, so nothing checks that a score is real.
   ```
   {"rules":{"lb":{".read":true,"$map":{"$player":{".write":true,".validate":"newData.child('n').isString() && newData.child('n').val().length <= 20 && newData.child('w').isNumber()"}}}}}
