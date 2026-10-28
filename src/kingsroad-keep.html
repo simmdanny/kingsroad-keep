@@ -14134,6 +14134,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Frost Wolves masteries, reworked',d:'28 Oct',v:'v415',li:[
+    'Razor Fangs: every third bite in a row tears for 60% more. Flanking Instinct: both wolves hunt a tough foe together, every second bite 45% more.',
+    'Winter\u2019s Trail: their pawprints burst into crystals, 35%. Howl of the North: a second howl, a wave of frost for 75%.',
+    'Ragnarok Pack: at the end both wolves blaze white and leap at the strongest foe, 100% each, and shatter for 100%.',
+    'Every bite and shatter is now a 3D burst of frost.']},
   {t:'Uncommon masteries for everyone',d:'28 Oct',v:'v405',li:[
     'The Uncommon scrolls now earn mastery XP and use their masteries in every game, not only in developer mode. Scrolls above Uncommon come later.',
     'The patch notes start afresh: just the Common and Uncommon mastery reworks, in short.']},
@@ -23815,13 +23820,24 @@ const CFM_BOOM_FS='uniform float uT,uHeat,uDis,uA,uSeed,uGlow;varying vec3 vP,vN
   'c=mix(c,vec3(1.,.6,.15),smoothstep(.45,.67,h));c=mix(c,vec3(1.,.92,.68),smoothstep(.74,.98,h));'+
   'float a=uA*smoothstep(uDis,uDis+.18,n*.85+f*.32)*smoothstep(.0,.45,f)*mix(.5,1.,clamp(uHeat*2.5,0.,1.));if(a<.01)discard;'+
   'if(uGlow>0.)gl_FragColor=vec4(c*smoothstep(.42,.95,h),a*uGlow);else gl_FragColor=vec4(c,a);}';
-function cfmBoomMat(glow){return new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*10},uAmp:{value:.3},uSeed:{value:rnd()*40},uHeat:{value:1},uDis:{value:0},uA:{value:1},uGlow:{value:glow?1:0}},
-  vertexShader:CFM_BOOM_VS,fragmentShader:CFM_BOOM_FS,transparent:true,depthWrite:false,blending:glow?THREE.AdditiveBlending:THREE.NormalBlending});}
+/* the same fireball as a frost burst (Frost Wolves): white, pale cyan, deep blue, then a pale frost mist */
+const CFM_BOOM_FS_ICE='uniform float uT,uHeat,uDis,uA,uSeed,uGlow;varying vec3 vP,vN,vV;varying float vD;'+CFM_N3+
+  'void main(){float n=fb3(vP*2.7+vec3(uSeed*1.7,uSeed,0.)+vec3(0.,-uT*1.5,0.));float f=abs(dot(normalize(vN),normalize(vV)));'+
+  'float h=uHeat*(.42+1.*n)*(.5+.5*f)+vD*.14*uHeat;'+
+  'vec3 c=vec3(.66,.76,.84)+vec3(.2,.18,.15)*n*(.55+.45*f);c=mix(c,vec3(.14,.34,.7),smoothstep(.1,.24,h));c=mix(c,vec3(.36,.74,1.),smoothstep(.24,.44,h));'+
+  'c=mix(c,vec3(.78,.94,1.),smoothstep(.44,.68,h));c=mix(c,vec3(1.,1.,1.),smoothstep(.76,.98,h));'+
+  'float a=uA*smoothstep(uDis,uDis+.18,n*.85+f*.32)*smoothstep(.0,.45,f)*mix(.5,1.,clamp(uHeat*2.5,0.,1.));if(a<.01)discard;'+
+  'if(uGlow>0.)gl_FragColor=vec4(c*smoothstep(.42,.95,h),a*uGlow);else gl_FragColor=vec4(c,a);}';
+/* the colours of a blast's sparks, embers, dust and scorch, by palette */
+const CFM_PAL={fire:{s:[0xfff6c8,0xff6a10],e:[0xffb040,0x7a1404],k:[0xffe8a0,0xff3a00],d:[0x7a6a56,0x4a3e32],g:[0x120804,0x8a2a04],w:[0x2e2620,0x1a1612]},
+  ice:{s:[0xffffff,0x5aa8f0],e:[0xd8f2ff,0x4a90d8],k:[0xffffff,0x6ab8ff],d:[0xd8e8f4,0xa8c4dc],g:[0x9fd0f4,0x6ab8ff],w:[0xe8f4ff,0xcfe2f0]}};
+function cfmBoomMat(glow,pal){return new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*10},uAmp:{value:.3},uSeed:{value:rnd()*40},uHeat:{value:1},uDis:{value:0},uA:{value:1},uGlow:{value:glow?1:0}},
+  vertexShader:CFM_BOOM_VS,fragmentShader:pal==='ice'?CFM_BOOM_FS_ICE:CFM_BOOM_FS,transparent:true,depthWrite:false,blending:glow?THREE.AdditiveBlending:THREE.NormalBlending});}
 /* S is the size (about the fireball's radius in tiles). o.lobes, o.T (life), o.mush (a column and a mushroom cap rising), o.skirt (flat lobes
    of fire rolling out along the ground), o.ground=false (in the air: no dust ring or scorch), o.shake. */
 function cfmBoom(x,y,z,S,o){o=o||{};const g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);const geo=ico(1,4),mats=[],lobes=[],T=o.T||(.8+.7*S),gy0=gy(x,z);
-  const add=(p)=>{const m=cfmBoomMat(false),me=new THREE.Mesh(geo,m);me.visible=false;me.renderOrder=7;me.rotation.set(rnd()*6,rnd()*6,rnd()*6);g.add(me);mats.push(m);p.m=me;p.mat=m;
-    if(p.glow){const gm=cfmBoomMat(true),ge=new THREE.Mesh(geo,gm);ge.visible=false;ge.renderOrder=8;g.add(ge);mats.push(gm);p.gm=gm;p.ge=ge;}lobes.push(p);};
+  const C=CFM_PAL[o.pal]||CFM_PAL.fire,add=(p)=>{const m=cfmBoomMat(false,o.pal),me=new THREE.Mesh(geo,m);me.visible=false;me.renderOrder=7;me.rotation.set(rnd()*6,rnd()*6,rnd()*6);g.add(me);mats.push(m);p.m=me;p.mat=m;
+    if(p.glow){const gm=cfmBoomMat(true,o.pal),ge=new THREE.Mesh(geo,gm);ge.visible=false;ge.renderOrder=8;g.add(ge);mats.push(gm);p.gm=gm;p.ge=ge;}lobes.push(p);};
   const n=(o.lobes||Math.max(3,Math.round(3+S*2.5)))+2;
   add({dir:smV(0,1,0),dist:0,r:S*.48,del:0,rise:S*.45,hk:3,flat:1,glow:true});
   for(let i=1;i<n;i++){const a=rnd()*6.283,el=-.15+rnd()*1.1,dir=smV(Math.cos(a)*Math.cos(el),Math.sin(el),Math.sin(a)*Math.cos(el));
@@ -23829,12 +23845,12 @@ function cfmBoom(x,y,z,S,o){o=o||{};const g=smTag(new THREE.Group());g.position.
   if(o.skirt)for(let i=0;i<o.skirt;i++){const a=i/o.skirt*6.283+rnd()*.4;add({dir:smV(Math.cos(a),.05,Math.sin(a)),dist:S*(.7+.25*rnd()),r:S*(.2+.08*rnd()),del:.05+rnd()*.08,rise:S*.15,hk:3.4+rnd(),flat:.8,low:true});}
   if(o.mush){add({dir:smV(0,1,0),dist:0,r:S*.42,del:.12,rise:S*1.25,hk:2,flat:.85,cap:true,glow:true});for(let i=0;i<3;i++)add({dir:smV((rnd()-.5)*.2,1,(rnd()-.5)*.2),dist:0,r:S*(.24-.04*i),del:.1+.05*i,rise:S*(.45+.25*i),hk:2.6,flat:1});}
   /* the blast's sparks, embers and ground */
-  const sp=Math.round(14+46*S);sprayP(1,x,y,z,sp,{c:0xfff6c8,c2:0xff6a10,sp:(2+2.2*S),up:1.1,s:.05+.02*S,s2:0,life:.45+.25*S,g:3,drag:.7,r:S*.2});
-  sprayP(0,x,y,z,Math.round(6+16*S),{c:0xffb040,c2:0x7a1404,sp:1.2+1.4*S,up:1.6,s:.07+.03*S,s2:.02,a:.95,life:.6+.3*S,g:2.4});
-  for(let i=0;i<Math.round(3+8*S);i++){const a=rnd()*6.283,v=1.5+rnd()*2.5*S;emit(1,{x,y:y+.05,z,vx:Math.cos(a)*v,vy:1.2+rnd()*2.4*S,vz:Math.sin(a)*v,s:.04+.02*S,s2:0,c:0xffe8a0,c2:0xff3a00,life:.7+rnd()*.5,g:5,drag:.4});}
+  const sp=Math.round(14+46*S);sprayP(1,x,y,z,sp,{c:C.s[0],c2:C.s[1],sp:(2+2.2*S),up:1.1,s:.05+.02*S,s2:0,life:.45+.25*S,g:3,drag:.7,r:S*.2});
+  sprayP(0,x,y,z,Math.round(6+16*S),{c:C.e[0],c2:C.e[1],sp:1.2+1.4*S,up:1.6,s:.07+.03*S,s2:.02,a:.95,life:.6+.3*S,g:2.4});
+  for(let i=0;i<Math.round(3+8*S);i++){const a=rnd()*6.283,v=1.5+rnd()*2.5*S;emit(1,{x,y:y+.05,z,vx:Math.cos(a)*v,vy:1.2+rnd()*2.4*S,vz:Math.sin(a)*v,s:.04+.02*S,s2:0,c:C.k[0],c2:C.k[1],life:.7+rnd()*.5,g:5,drag:.4});}
   if(o.ground!==false){const R=S*1.1+.2,m=Math.round(10+18*S);for(let i=0;i<m;i++){const a=i/m*6.283+rnd()*.2;
-      emitS(0,{x:x+Math.cos(a)*S*.3,y:gy0+.06,z:z+Math.sin(a)*S*.3,vx:Math.cos(a)*R*2.2,vy:.15+rnd()*.15,vz:Math.sin(a)*R*2.2,s:.12+.12*S,s2:.35+.5*S,c:0x7a6a56,c2:0x4a3e32,a:.32,life:.55+.3*S,drag:2.4,turb:.3});}
-    nsDecal(x,z,.3+S*.55,0x120804,.55,2.5+2*S,{fout:1});nsDecal(x,z,.18+S*.35,0x8a2a04,.35,.8+.6*S,{add:true,fout:1});}
+      emitS(0,{x:x+Math.cos(a)*S*.3,y:gy0+.06,z:z+Math.sin(a)*S*.3,vx:Math.cos(a)*R*2.2,vy:.15+rnd()*.15,vz:Math.sin(a)*R*2.2,s:.12+.12*S,s2:.35+.5*S,c:C.d[0],c2:C.d[1],a:.32,life:.55+.3*S,drag:2.4,turb:.3});}
+    nsDecal(x,z,.3+S*.55,C.g[0],.55,2.5+2*S,{fout:1});nsDecal(x,z,.18+S*.35,C.g[1],.35,.8+.6*S,{add:true,fout:1});}
   if(o.shake)camShake=Math.max(camShake,o.shake);
   let tt=0;
   addFx(g,T+.1,(f,dt)=>{tt+=dt;for(const p of lobes){const lt=tt-p.del;if(lt<0)continue;const k=Math.min(1,lt/T),gr=1-Math.exp(-lt*9/(.45+.45*S)),R=p.r*(.2+.85*gr+.6*k)*(p.cap?1+.6*k:1);
@@ -23843,7 +23859,7 @@ function cfmBoom(x,y,z,S,o){o=o||{};const g=smTag(new THREE.Group());g.position.
       p.m.scale.set(R*(p.cap?1.25:1),R*p.flat,R*(p.cap?1.25:1));p.m.rotation.y+=dt*.6;p.mat.uniforms.uT.value+=dt*(.9+.6*heat);p.mat.uniforms.uHeat.value=heat;p.mat.uniforms.uDis.value=dis;p.mat.uniforms.uA.value=Math.min(1,lt*14);
       if(p.ge){p.ge.visible=true;p.ge.position.copy(p.m.position);p.ge.scale.copy(p.m.scale).multiplyScalar(.93);p.ge.rotation.copy(p.m.rotation);p.gm.uniforms.uT.value=p.mat.uniforms.uT.value;p.gm.uniforms.uHeat.value=heat*1.15;p.gm.uniforms.uDis.value=dis;p.gm.uniforms.uA.value=1;p.gm.uniforms.uGlow.value=Math.min(1,1.6*heat);}
       /* the cooling smoke leaves wisps behind as it rises */
-      if(k>.35&&k<.9&&rnd()<.12*S+.04)emitS(0,{x:x+p.m.position.x,y:y+p.m.position.y+R*.4,z:z+p.m.position.z,vx:(rnd()-.5)*.3,vy:.35+rnd()*.3,vz:(rnd()-.5)*.3,s:R*.6,s2:R*1.6,c:0x2e2620,c2:0x1a1612,a:.3,life:1.4+S*.6,lift:.25,turb:.4});}},null,{mats});
+      if(k>.35&&k<.9&&rnd()<.12*S+.04)emitS(0,{x:x+p.m.position.x,y:y+p.m.position.y+R*.4,z:z+p.m.position.z,vx:(rnd()-.5)*.3,vy:.35+rnd()*.3,vz:(rnd()-.5)*.3,s:R*.6,s2:R*1.6,c:C.w[0],c2:C.w[1],a:.3,life:1.4+S*.6,lift:.25,turb:.4});}},null,{mats});
   return g;}
 
 /* a flying flame: a white-hot core in a halo, a ribbon of fire behind it, and optionally two thinner ribbons twisting round its path (helix).
@@ -25423,6 +25439,183 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
   const S={t,e,len,dmg,C,P:C.P,L:C.L,a:C.a,o:smO(o),o0:o,hits:[]};C.bem=S;bemLog({ev:'cast',L:C.L});
   if(C.L>=5){bemStar(S);mxLater(BEM.raT0,()=>{if(state==='playing')bemFire(S,true);});}
   else bemFire(S,false);};
+/* ================= Frost Wolves' masteries, as Simon designed them (v415) =================
+   Simon (abridged): "1. Razor Fangs - every bite leaves a deeper wound. The wolves' jaws crystallise into long, serrated ice blades; each
+   successive bite on the same target leaves visible fractures spreading across its body. Every third consecutive bite on the same foe deals an
+   additional 60% damage; switching targets resets the bite counter for that wolf; the finishing shatter deals an additional 40% damage to foes
+   bitten at least three times by that wolf. / 2. Flanking Instinct - the pack learns to hunt together: one distracts the prey while the other
+   lunges from the opposite side. When both wolves are hunting the same foe, every second bite from either wolf deals an additional 45% damage;
+   the wolves briefly circle their shared target before the coordinated lunge; the bonus ends if either wolf switches to another target. Apply
+   this only if the enemy being targeted can survive more than one hit. / 3. Winter's Trail - the wolves' pawprints remain behind them as tiny
+   glowing ice sigils; after a short delay, the prints erupt into sharp crystals: 35% damage to nearby ground foes, each enemy damaged by the
+   trail once every 0.6 seconds, slowed by 20% for 1 second; the trail fades shortly after each wolf passes. / 4. Howl of the North - after
+   forming, the wolves release a second, more powerful howl: a wave of freezing air rolls down the road before the hunt begins: 75% damage to
+   foes within 1.4 tiles of the hero, slowed by 35% for 2 seconds; both wolves' first bite against a howled enemy deals an additional 50% damage;
+   the howl affects flyers as well as ground foes. / 5. Ragnarok Pack - in their final moments, both wolves stop hunting and turn toward the
+   strongest foe within their reach; their bodies glow white, cracks race across their crystalline frames, and they leap together: each wolf's
+   final leap deals 100% direct damage to its chosen target; each shatter deals 100% AoE damage within 1.1 tiles, up from 60% within 0.8;
+   enemies hit by both shatters take both; the two wolves shatter 0.25 seconds apart." And: "no low effort effects or bland 2d explosions".
+   Percentages are of the scroll's power (each bite 28% and 30% slower for 1.5s; each wolf's shatter 60% within 0.8). Every Frost Wolves cast
+   now runs fwmCast (a castFrostWolves wrapper): the same rune, wolves, howl, hunt (4.6s), target choice, bites and final leap as
+   castFrostWolves, but the bites and shatters are 3D frost bursts (cfmBoom with the 'ice' palette) with ice spikes (fwmSpikes) instead of
+   flat flashes. A mastered cast (fwmC(o)) also hooks in:
+   - M1 Razor Fangs: the wolves' jaws grow serrated ice blades. Each wolf counts its bites in a row on one foe (a new foe starts it again);
+     every 3rd deals 60% more, and frost cracks (fwmCracks) spread over the foe with each bite and burst on the 3rd. A wolf's shatter deals
+     40% more to the foes it bit 3 times or more.
+   - M2 Flanking Instinct: a wolf may join the other's prey if that foe can survive more than one bite (hp above a bite's damage); then it
+     circles to the far side of the prey before it lunges. While both hunt the same foe, every 2nd bite between them deals 45% more (an ice
+     cross-slash); the count ends when either wolf turns to another foe.
+   - M3 Winter's Trail: a running wolf leaves a glowing ice sigil (fwmSigil) every 0.22s; 0.45s later it bursts into crystals: 35% and 20%
+     slower for 1s to ground foes within 0.32, each foe at most once every 0.6s from the whole trail; the sigils fade soon after.
+   - M4 Howl of the North: after their first howl the wolves howl again (0.45s more before the hunt): a wave of frost rolls out from the hero
+     (fwmFrostWave): 75% and 35% slower for 2s to every foe within 1.4 (flyers too); each wolf's first bite on a howled foe deals 50% more.
+   - M5 Ragnarok Pack: when the hunt ends both wolves stop, turn to the strongest foe within 3 tiles of each, blaze white as cracks run over
+     them (0.5s), and leap 0.25s apart: 100% to each one's target, then each shatters for 100% (instead of 60%) within 1.1 (instead of 0.8);
+     a foe caught by both takes both.
+   FWM.dbg (an array) logs the events for the tests. */
+const FWM={dbg:null,bite:.28,reach:.55,rf:.6,rfN:3,rfShat:.4,fl:.45,flEvery:2,trGap:.22,trDelay:.45,tr:.35,trR:.32,trCd:.6,trSlow:.2,trSlowT:1,hw:.75,hwR:1.4,hwSlow:.35,hwSlowT:2,hwFirst:.5,hwT:.45,
+  rk:1,rkShat:1,rkR:1.1,rkGap:.25,rkReach:3,rkGlow:.5,shat:.6,shatR:.8,HUNT:4.6,T0:.95};
+const fwmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='frostwolves'&&c.L?c:null;};
+const fwmLog=d=>{if(FWM.dbg){d.t=time;FWM.dbg.push(d);}};
+SM_D.frostwolves=[
+  {n:'Razor Fangs',d:'Every third bite in a row on the same foe tears it open for {60}% more. When a wolf shatters, foes it bit at least three times take {40}% more.'},
+  {n:'Flanking Instinct',d:'When a foe can take more than one bite, both wolves hunt it together from opposite sides: every second bite between them deals {45}% more.'},
+  {n:'Winter\u2019s Trail',d:'The wolves leave glowing ice sigils behind them that burst into crystals: {35}% to ground foes nearby and 20% slower for 1s (at most once every 0.6s).'},
+  {n:'Howl of the North',d:'Before the hunt the wolves howl again: a wave of frost hits foes within 1.4 tiles of the hero for {75}% and slows them 35% for 2s, and each wolf\u2019s first bite on them deals {50}% more.'},
+  {n:'Ragnarok Pack',d:'At the end both wolves turn on the strongest foe in reach, blaze white and leap at it: {100}% each, then they shatter 0.25s apart for {100}% within 1.1 tiles.'}];
+SMF.frostwolves={m:1};
+SMA.frostwolves=[1,1,1,1,1];
+/* power with Simon's numbers (tests/sm-ladder.js, 3 runs): 1.31 / 1.73 / 1.78 / 2.32 / 3.00 against the Rare ladder 1.09 / 1.23 / 1.35 / 1.52 / 1.74:
+   his numbers carry it above the ladder from Mastery 1, so no hidden factors. SM.free: his numbers. */
+SMG.frostwolves=[1,1,1,1,1];
+SM.free=SM.free||{};SM.free.frostwolves='Simon'+String.fromCharCode(8217)+'s own numbers for Frost Wolves';
+
+/* ---- shared pieces ---- */
+const fwmBoom=(x,y,z,S,o)=>cfmBoom(x,y,z,S,Object.assign({pal:'ice'},o||{}));
+/* a cluster of ice spikes bursting out of the ground round a point (n spikes, out to R, h tall), then shattering into splinters */
+function fwmSpikes(x,z,R,n,h,life){const g=smTag(new THREE.Group()),y=gy(x,z);g.position.set(x,y,z);scene.add(g);const S=[],G=cone(1,1,5);life=life||.75;
+  for(let i=0;i<n;i++){const a=i/n*6.283+rnd()*.5,r=R*(.25+.75*Math.sqrt(rnd())),m=new THREE.Mesh(G,rnd()<.6?NS_ICE:NS_ICE2),hh=h*(.6+.6*rnd())*(1-.35*r/R);m.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+    m.rotation.set(Math.sin(a)*.5*r/R,rnd()*6,-Math.cos(a)*.5*r/R);m.scale.set(.001,.001,.001);g.add(m);S.push({m,hh,w:.035+.03*rnd()*h/.4,d:rnd()*.08});}
+  let tt=0,broke=false;nsDecal(x,z,R*1.1,0x9fd0f4,.5,2,{fout:1});
+  addFx(g,life,(f,dt)=>{tt+=dt;S.forEach(s=>{const k=SMS(tt,s.d,s.d+.1),out=1-SMS(tt,life-.2,life);s.m.scale.set(s.w*k*out+.001,s.hh*k*(.6+.4*out)+.001,s.w*k*out+.001);s.m.position.y=s.hh*.45*k;});
+    if(!broke&&tt>life-.22){broke=true;nsSplinters(x,y+h*.4,z,Math.round(6+n*.8),1.1);sprayP(1,x,y+h*.4,z,Math.round(10+n),{c:0xffffff,c2:0x6ab8ff,sp:1.6,up:.6,s:.04,s2:0,life:.4,g:2});}});
+  return g;}
+/* serrated ice blades along a wolf's jaw (Razor Fangs) */
+function fwmFangs(M){const G=cone(1,1,4),out=[];[[M.jaw,-.005,.06,.03],[M.head,-.015,.1,.034]].forEach(([par,y,z,w])=>{for(let i=0;i<3;i++)for(const s of [-1,1]){const m=new THREE.Mesh(G,NS_ICE);m.position.set(s*w,y-.01,z-.02+i*.03);m.rotation.set(Math.PI,0,s*.25);m.scale.set(.008,.035+.012*(2-i),.008);par.add(m);out.push(m);}});return out;}
+/* frost cracks spreading over a foe (Razor Fangs): n of 3 bites; they burst at 3 */
+function fwmCracks(e){const g=smTag(new THREE.Group()),mats=[],geos=[],lm=new THREE.MeshBasicMaterial({color:0xd8f4ff,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});mats.push(lm);scene.add(g);
+  const sets=[0,1,2].map(j=>{const pts=[];for(let b=0;b<2+j;b++){let a=rnd()*6.28,x=(rnd()-.5)*.04,y=(rnd()-.5)*.08,l=.035+.02*j;for(let s=0;s<3+j;s++){const nx=x+Math.cos(a)*l,ny=y+Math.sin(a)*l;pts.push(new THREE.Vector3(x,y,.06),new THREE.Vector3(nx,ny,.06));x=nx;y=ny;a+=(rnd()-.5)*1.3;l*=.85;}}
+    /* each crack stroke is a thin glowing quad, so it reads at any size (a line is a single pixel) */
+    const pos=[];for(let i=0;i<pts.length;i+=2){const A=pts[i],B=pts[i+1],dx=B.x-A.x,dy=B.y-A.y,l=Math.hypot(dx,dy)||1,w=.007*(1.3-.1*j),nx=-dy/l*w,ny=dx/l*w;
+      pos.push(A.x+nx,A.y+ny,.06,A.x-nx,A.y-ny,.06,B.x+nx,B.y+ny,.06,A.x-nx,A.y-ny,.06,B.x-nx*.4,B.y-ny*.4,.06,B.x+nx*.4,B.y+ny*.4,.06);}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geos.push(geo);const L=new THREE.Mesh(geo,lm);L.visible=false;g.add(L);return L;});
+  const C={n:0,e,done:false};let tt=0;
+  addFx(g,30,(f,dt)=>{tt+=dt;if(C.done||e.dead||!enemies.includes(e))f.life=Math.min(f.life,.01);const p=tpos2(e);g.position.set(p.x,p.y,p.z);g.quaternion.copy(camera.quaternion);g.scale.setScalar(Math.max(.9,(e.hitY||.4)/.4)*1.4);
+    sets.forEach((L,j)=>{L.visible=j<C.n;});lm.opacity=.7+.3*Math.sin(tt*12);},null,{mats,geos});
+  C.set=n=>{C.n=n;};C.free=()=>{C.done=true;};return C;}
+/* a glowing ice sigil left by a running wolf (Winter's Trail) */
+function fwmSigil(x,z){const y=gy(x,z),g=smTag(new THREE.Group()),mats=[],rm=new THREE.MeshBasicMaterial({color:0xbfe8ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});mats.push(rm);
+  const ring=new THREE.Mesh(SMQ.ring(),rm);ring.scale.setScalar(.75);g.add(ring);const st=new THREE.Mesh(SMQ.ring(),rm);st.scale.setScalar(.35);st.rotation.y=.6;g.add(st);
+  const cr=new THREE.Mesh(oct(.03),NS_ICE);cr.scale.set(.6,1.6,.6);cr.position.y=.03;g.add(cr);g.position.set(x,y+.03,z);g.rotation.y=rnd()*6;scene.add(g);let tt=0;
+  addFx(g,FWM.trDelay+.25,(f,dt)=>{tt+=dt;const k=Math.min(1,tt/.12);rm.opacity=(.5+.5*Math.sin(tt*30))*k*Math.min(1,f.life/.2);g.rotation.y+=dt*2;g.scale.setScalar(.6+.4*k+.25*SMS(tt,FWM.trDelay-.1,FWM.trDelay));},null,{mats});}
+/* the second howl's wave of frost rolling out from the hero (Howl of the North) */
+function fwmFrostWave(x,z,R){const y=gy(x,z);let tt=0,ring=0;const T=.45;nsDecal(x,z,R,0xcfeaff,.55,2.6,{fin:.3,fout:1.2});
+  addFx(new THREE.Group(),T+.1,(f,dt)=>{tt+=dt;const k=Math.min(1,tt/T),r=R*k;
+    for(let i=0;i<14;i++){const a=rnd()*6.283;emitS(0,{x:x+Math.cos(a)*r,y:y+.08+rnd()*.15,z:z+Math.sin(a)*r,vx:Math.cos(a)*2.2,vy:.2,vz:Math.sin(a)*2.2,s:.15,s2:.45,c:0xf0f8ff,c2:0xcfe6f4,a:.4,life:.6,drag:2,turb:.3});}
+    for(let i=0;i<6;i++){const a=rnd()*6.283;emit(1,{x:x+Math.cos(a)*r,y:y+.1+rnd()*.3,z:z+Math.sin(a)*r,vx:Math.cos(a)*1.4,vy:.3,vz:Math.sin(a)*1.4,s:.04,s2:0,c:0xffffff,c2:0x6ab8ff,life:.4});}
+    while(ring<3&&k>=(ring+1)/3){ring++;const rr=R*ring/3,n=6+ring*4;for(let j=0;j<n;j++){const a=j/n*6.283+rnd()*.3;fwmSpikes(x+Math.cos(a)*rr,z+Math.sin(a)*rr,.12,3,.18+.06*(3-ring),.6);}}});}
+
+/* ---- the cast: castFrostWolves' rune, wolves, howl, hunt and leap, with frost bursts and (when mastered) the masteries ---- */
+function fwmCast(t,list,P,o,c){const L=c?c.L:0,A5=c?c.a:[1,1,1,1,1],hx=t.x,hz=t.z,hy=gy(hx,hz),SC=1.7,HUNT=FWM.HUNT,T0=FWM.T0+(L>=4?FWM.hwT:0),REACH=FWM.reach,lv=1+.08*L;
+  const rune=makeRune(.85*lv,0xa8e8ff,{star:6,step:2,glyphs:18,fill:.25,fillCol:0x0a1a2a,fillNormal:true});rune.position.set(hx,hy+.03,hz);nsOwn(rune);rune.userData.fade(0);
+  const q0=enemies.find(e=>!e.dead)||list[0],fw=q0?Math.atan2(q0.x-hx,q0.z-hz):0,wmats=[];
+  const S={flank:{q:null,n:0},trCd:new Map(),howled:new Set(),cracks:new Map(),bites:0};if(c)c.fw=S;
+  const W=[-1,1].map((side,wi)=>{const M=s6WolfModel();nsOwn(M.g);M.g.position.set(hx+Math.cos(fw)*side*.42,hy,hz-Math.sin(fw)*side*.42);M.g.rotation.y=fw;M.g.scale.setScalar(.01);
+    /* Ragnarok Pack glows each wolf white, so at Mastery 5 each wolf gets its own copies of the ice */
+    if(L>=5){const cl=new Map();M.g.traverse(m=>{if(m.isMesh&&(m.material===S6_WICE||m.material===S6_WICE2)){if(!cl.has(m.material)){const q=m.material.clone();cl.set(m.material,q);wmats.push(q);}m.material=cl.get(m.material);}});M.ice=[...cl.values()];}
+    if(L>=1)fwmFangs(M);
+    return{M,wi,side,tgt:null,st:'form',lt:0,cd:0,ph:rnd()*6,fp:0,tp:0,from:null,to:null,gone:false,bit:false,streak:{q:null,n:0},count:new Map(),first:new Set(),circle:0};});
+  const other=w=>W.find(v=>v!==w&&!v.gone);
+  const pick=w=>{const p=w.M.g.position,ot=other(w);
+    /* M2: join the other wolf's prey if it can survive more than one bite */
+    if(L>=2&&ot&&ot.tgt&&!ot.tgt.dead&&!ot.tgt.fake&&ot.tgt.hp>P*FWM.bite&&Math.hypot(ot.tgt.x-p.x,ot.tgt.z-p.z)<3)return ot.tgt;
+    let best=null,bs=-1e9;for(const q of enemies){if(q.dead)continue;let s=-Math.hypot(q.x-p.x,q.z-p.z);if(ot&&ot.tgt===q)s-=1.1;if(q===w.tgt)s-=.6;if(s>bs){bs=s;best=q;}}return best;};
+  const shared=w=>{const ot=other(w);return L>=2&&ot&&w.tgt&&ot.tgt===w.tgt&&ot.st!=='end'&&ot.st!=='rk';};
+  const crackOn=q=>{let C=S.cracks.get(q);if(!C||C.done){C=fwmCracks(q);S.cracks.set(q,C);}return C;};
+  /* a bite lands */
+  const bite=(w,q)=>{S.bites++;hurt(q,P*FWM.bite,'magic',o);const b={ev:'bite',w:w.wi,e:q,rf:false,fl:false,hw:false};
+    if(!q.dead){q.slow=Math.max(q.slow||0,.3);q.slowT=Math.max(q.slowT||0,1.5);}
+    w.count.set(q,(w.count.get(q)||0)+1);
+    if(L>=1){if(w.streak.q===q)w.streak.n++;else{w.streak={q,n:1};}const C=crackOn(q);C.set(((w.streak.n-1)%3)+1);
+      if(w.streak.n%FWM.rfN===0&&!q.dead){b.rf=true;hurt(q,P*FWM.rf*A5[0],'magic',smO(o));const e2=tpos2(q);fwmBoom(e2.x,e2.y,e2.z,.2,{lobes:3,T:.5,ground:false});nsSplinters(e2.x,e2.y,e2.z,16,1.4);C.set(0);}}
+    if(L>=2){if(shared(w)){if(S.flank.q!==q)S.flank={q,n:0};S.flank.n++;if(S.flank.n%FWM.flEvery===0&&!q.dead){b.fl=true;hurt(q,P*FWM.fl*A5[1],'magic',smO(o));const e2=tpos2(q);
+          for(const s of [-1,1])nsArc(smV(e2.x-.25,e2.y+.2*s,e2.z-.25*s),smV(e2.x+.25,e2.y-.2*s,e2.z+.25*s),{col:0xeaf8ff,halo:0x5ab8ff,w:1.3,disp:.05,depth:2,life:.22});sprayP(1,e2.x,e2.y,e2.z,20,{c:0xffffff,c2:0x6ab8ff,sp:1.8,s:.045,s2:0,life:.35,g:2});}}
+      else S.flank={q:null,n:0};}
+    if(L>=4&&S.howled.has(q)&&!w.first.has(q)&&!q.dead){w.first.add(q);b.hw=true;hurt(q,P*FWM.hwFirst*A5[3],'magic',smO(o));const e2=tpos2(q);fwmBoom(e2.x,e2.y,e2.z,.16,{lobes:3,T:.45,ground:false});}
+    else if(L>=4)w.first.add(q);
+    fwmLog(b);const e2=tpos2(q);nsSplinters(e2.x,e2.y,e2.z,7,.9);sprayP(1,e2.x,e2.y,e2.z,14,{c:0xffffff,c2:0x5aa8f0,sp:1.4,s:.04,s2:0,life:.35,g:2});};
+  /* a wolf shatters: a frost burst and ice spikes; R and dmg are Ragnarok Pack's at Mastery 5 */
+  const shatter=w=>{if(w.gone)return;w.gone=true;const p=w.M.g.position,y=p.y+.3,rk=L>=5,R=rk?FWM.rkR:FWM.shatR,dm=rk?FWM.rkShat*A5[4]:FWM.shat;
+    nsSplinters(p.x,y,p.z,rk?40:24,rk?2:1.5);fwmBoom(p.x,y,p.z,(rk?.62+.18*w.wi:.42)*lv,{lobes:rk?7:5,skirt:rk?6:3,shake:rk?.12+.05*w.wi:.05});fwmSpikes(p.x,p.z,R*.9,rk?16:9,rk?.55:.32);
+    emitS(0,{x:p.x,y,z:p.z,vx:0,vy:.15,vz:0,s:.3,s2:.9,c:0xe8f6ff,c2:0xcfe6f4,a:.35,life:1.3,lift:.2});
+    const H=[];for(const e of enemies.slice()){if(e.dead)continue;if((e.x-p.x)**2+(e.z-p.z)**2<R*R){hurt(e,P*dm,'magic',o);H.push(e);
+      if(L>=1&&(w.count.get(e)||0)>=FWM.rfN&&!e.dead)hurt(e,P*FWM.rfShat*A5[0],'magic',smO(o));if(!e.dead){e.slow=Math.max(e.slow||0,.3);e.slowT=Math.max(e.slowT||0,1.5);}}}
+    fwmLog({ev:'shatter',w:w.wi,x:p.x,z:p.z,L:H,rk});nsFree(w.M.g);};
+  /* M3: a sigil on the trail bursts into crystals */
+  const trail=(x,z)=>{fwmSigil(x,z);mxLater(FWM.trDelay,()=>{if(state!=='playing')return;fwmSpikes(x,z,.2,5,.26,.55);sprayP(1,x,gy(x,z)+.1,z,8,{c:0xffffff,c2:0x6ab8ff,sp:.8,up:.8,s:.035,s2:0,life:.3,g:2});
+    const H=[];for(const e of enemies){if(e.dead||e.fake||e.fly)continue;const cd=S.trCd.get(e);if(cd&&cd>time)continue;if((e.x-x)**2+(e.z-z)**2<FWM.trR*FWM.trR){S.trCd.set(e,time+FWM.trCd);hurt(e,P*FWM.tr*A5[2],'magic',smO(o));if(!e.dead)smSlow(e,FWM.trSlow,FWM.trSlowT);H.push(e);}}
+    fwmLog({ev:'trail',x,z,L:H});});};
+  /* M4: the second howl */
+  const howl2=()=>{fwmLog({ev:'howl'});fwmFrostWave(hx,hz,FWM.hwR);camShake=Math.max(camShake,.06);
+    mxLater(.2,()=>{if(state!=='playing')return;const H=[];for(const e of enemies.slice()){if(e.dead||e.fake||(e.x-hx)**2+(e.z-hz)**2>FWM.hwR*FWM.hwR)continue;hurt(e,P*FWM.hw*A5[3],'magic',smO(o));if(!e.dead)smSlow(e,FWM.hwSlow,FWM.hwSlowT);S.howled.add(e);H.push(e);
+      const p=tpos2(e);nsSplinters(p.x,p.y,p.z,6,.8);}fwmLog({ev:'howlHit',L:H});});};
+  /* M5: the strongest foe within reach of a wolf */
+  const strongest=w=>{const p=w.M.g.position;let b=null,bh=-1;for(const q of enemies){if(q.dead||q.fake)continue;if(Math.hypot(q.x-p.x,q.z-p.z)>FWM.rkReach)continue;if(q.hp>bh){bh=q.hp;b=q;}}return b;};
+  let tt=0,howled=false;
+  addFx(new THREE.Group(),T0+HUNT+(L>=5?FWM.rkGlow+FWM.rkGap+.9:.9),(f,dt)=>{tt+=dt;rune.userData.fade(tt<.35?tt/.35:Math.max(0,1-(tt-.7-(L>=4?FWM.hwT:0))/.6));rune.rotation.y+=dt;
+    if(L>=4&&!howled&&tt>=FWM.T0){howled=true;howl2();}
+    for(const w of W){if(w.gone)continue;const g=w.M.g,M=w.M,p=g.position;w.lt+=dt;
+      if(w.st==='form'){const k=Math.min(1,tt/.5);g.scale.setScalar(Math.max(.01,ease(k))*SC);
+        if(tt<.5)for(let i=0;i<3;i++){const a=rnd()*6.28,r=.5;emit(1,{x:p.x+Math.cos(a)*r,y:hy+.2+rnd()*.3,z:p.z+Math.sin(a)*r,vx:-Math.cos(a)*1.4,vy:-.1,vz:-Math.sin(a)*1.4,s:.04,s2:.01,c:0xffffff,c2:0x6ab8ff,life:.3});}
+        /* the howl (and at Mastery 4 a second, longer one) */
+        const how=SMS(tt,.5,.62)*(1-SMS(tt,.82,.95))+(L>=4?SMS(tt,FWM.T0,FWM.T0+.08)*(1-SMS(tt,T0-.1,T0))*1.15:0);M.head.rotation.x=-.85*Math.min(1.15,how);M.jaw.rotation.x=.45*how;M.body.rotation.x=-.18*how;
+        if(how>.5&&rnd()<.5+.4*(tt>FWM.T0))emitS(0,{x:p.x+Math.sin(g.rotation.y)*.3*SC,y:hy+.5*SC,z:p.z+Math.cos(g.rotation.y)*.3*SC,vx:Math.sin(g.rotation.y)*(tt>FWM.T0?1.6:0),vy:.3,vz:Math.cos(g.rotation.y)*(tt>FWM.T0?1.6:0),s:.07,s2:.3,c:0xeaf6ff,c2:0xcfe6f4,a:.35,life:.7,lift:.1});
+        if(tt>=T0){w.st='run';w.tgt=pick(w);}continue;}
+      /* the end: the old leap and shatter, or at Mastery 5 Ragnarok Pack */
+      if(tt>=T0+HUNT&&w.st!=='end'&&w.st!=='rk'){w.lt=0;if(L>=5){w.st='rk';w.rkT=strongest(w)||w.tgt;fwmLog({ev:'rk',w:w.wi,e:w.rkT});}
+        else{w.st='end';w.from=p.clone();const q=w.tgt&&!w.tgt.dead?w.tgt:pick(w);w.to=q?new THREE.Vector3(q.x,0,q.z):p.clone().add(new THREE.Vector3(Math.sin(g.rotation.y)*.8,0,Math.cos(g.rotation.y)*.8));}}
+      if(w.st==='rk'){const q=w.rkT,gl=Math.min(1,w.lt/FWM.rkGlow),dl=w.wi*FWM.rkGap;
+        if(w.lt<FWM.rkGlow+dl){/* it stops, turns to its prey and blazes white as cracks run over it */if(q&&!q.dead)g.rotation.y=lerpAng(g.rotation.y,Math.atan2(q.x-p.x,q.z-p.z),Math.min(1,dt*10));
+          (M.ice||[]).forEach(m=>{m.emissive.setRGB(.16+.84*gl,.4+.6*gl,.7+.3*gl);m.emissiveIntensity=.5+1.2*gl;});M.body.rotation.x=-.3*gl;M.legs.forEach((l,i)=>l.rotation.x=(i<2?.5:-.6)*gl);
+          g.scale.setScalar(SC*(1+.08*gl+Math.sin(tt*40)*.02*gl));if(rnd()<.8*gl){nsCrackle({x:p.x+(rnd()-.5)*.3,y:p.y+.35,z:p.z+(rnd()-.5)*.3},.2,0xffffff);}
+          for(let i=0;i<3;i++)emit(1,{x:p.x+(rnd()-.5)*.4,y:p.y+.1+rnd()*.5,z:p.z+(rnd()-.5)*.4,vx:0,vy:.6,vz:0,s:.05,s2:0,c:0xffffff,c2:0x8ad0ff,life:.35});continue;}
+        if(!w.rkF){w.rkF=p.clone();w.rkTo=q?new THREE.Vector3(q.x,0,q.z):p.clone();w.lt2=0;}
+        w.lt2+=dt;const k=Math.min(1,w.lt2/.32);if(q&&!q.dead)w.rkTo.set(q.x,0,q.z);p.set(w.rkF.x+(w.rkTo.x-w.rkF.x)*k,0,w.rkF.z+(w.rkTo.z-w.rkF.z)*k);p.y=gy(p.x,p.z)+Math.sin(k*Math.PI)*.7;M.body.rotation.x=-.5+.9*k;
+        for(let i=0;i<4;i++)emit(1,{x:p.x,y:p.y+.3,z:p.z,vx:(rnd()-.5)*.5,vy:.2,vz:(rnd()-.5)*.5,s:.07,s2:0,c:0xffffff,c2:0x6ab8ff,life:.3});
+        if(k>=1){if(q&&!q.dead){hurt(q,P*FWM.rk*A5[4],'magic',smO(o));fwmLog({ev:'rkHit',w:w.wi,e:q});}shatter(w);}continue;}
+      if(w.st==='end'){const k=Math.min(1,w.lt/.32);p.set(w.from.x+(w.to.x-w.from.x)*k,0,w.from.z+(w.to.z-w.from.z)*k);p.y=gy(p.x,p.z)+Math.sin(k*Math.PI)*.4;M.body.rotation.x=-.4+.8*k;M.legs.forEach((l,i)=>l.rotation.x=(i<2?-1:1)*.9);if(k>=1)shatter(w);continue;}
+      const old=w.tgt;if(!w.tgt||w.tgt.dead)w.tgt=pick(w);if(w.tgt!==old){w.circle=0;}const q=w.tgt;w.cd-=dt;
+      if(w.st==='bite'){const k=Math.min(1,w.lt/.2);p.set(w.from.x+(w.to.x-w.from.x)*k,0,w.from.z+(w.to.z-w.from.z)*k);p.y=gy(p.x,p.z)+Math.sin(k*Math.PI)*.18;
+        M.jaw.rotation.x=k<.6?.6*k/.6:.6*(1-(k-.6)/.4);M.head.rotation.x=-.3*Math.sin(k*Math.PI);M.body.rotation.x=-.25*Math.sin(k*Math.PI);M.legs.forEach((l,i)=>l.rotation.x=(i<2?-.9:.9)*Math.sin(k*Math.PI));
+        if(k>=.6&&!w.bit){w.bit=true;if(q&&!q.dead)bite(w,q);}
+        if(k>=1){w.st='run';w.cd=.42;if(rnd()<.4){const n=pick(w);if(n!==w.tgt){w.tgt=n;w.circle=0;}}}continue;}
+      if(!q){M.legs.forEach(l=>l.rotation.x*=.8);continue;}
+      /* M2: while both hunt one foe, this wolf circles to the far side of it from the other before it lunges */
+      let gx=q.x,gz=q.z,ready=true;const sh=shared(w);
+      if(sh){const ot=other(w),ox=ot.M.g.position.x-q.x,oz=ot.M.g.position.z-q.z,ol=Math.hypot(ox,oz)||1;w.circle+=dt;gx=q.x-ox/ol*.45;gz=q.z-oz/ol*.45;ready=Math.hypot(gx-p.x,gz-p.z)<.3||w.circle>.8;}
+      const dx=gx-p.x,dz=gz-p.z,dist=Math.hypot(dx,dz),dq=Math.hypot(q.x-p.x,q.z-p.z),yaw=Math.atan2(sh&&!ready?dx:q.x-p.x,sh&&!ready?dz:q.z-p.z);g.rotation.y=lerpAng(g.rotation.y,yaw,Math.min(1,dt*10));
+      if(dq<REACH&&w.cd<=0&&ready){w.st='bite';w.lt=0;w.bit=false;w.from=p.clone();const Ld=nsLead(q,.2),yq=Math.atan2(q.x-p.x,q.z-p.z);w.to=new THREE.Vector3(Ld.x-Math.sin(yq)*.22,0,Ld.z-Math.cos(yq)*.22);continue;}
+      const tgtD=sh&&!ready?dist:dq,sp=(sh&&!ready)?Math.min(3.4,Math.max(1.6,dist*5)):(dq<REACH?0:Math.min(3.4,dq*5)),mv=Math.min(sp*dt,Math.max(0,tgtD-(sh&&!ready?0:.4)));p.x+=Math.sin(g.rotation.y)*mv;p.z+=Math.cos(g.rotation.y)*mv;
+      w.ph+=dt*(sp>.5?15:4);const run=Math.min(1,sp/2);p.y=gy(p.x,p.z)+Math.abs(Math.sin(w.ph))*.06*run;
+      M.legs.forEach((l,i)=>{l.rotation.x=Math.sin(w.ph+(i<2?0:Math.PI)+(i%2)*.4)*.85*run;});M.body.rotation.x=Math.sin(w.ph*2)*.05*run;M.head.rotation.x=Math.sin(w.ph*2+.5)*.08*run;M.tail.rotation.x=-1+Math.sin(w.ph)*.25;M.jaw.rotation.x=.1*run;
+      w.fp-=dt;if(w.fp<=0&&run>.5){w.fp=.11;nsDecal(p.x+(rnd()-.5)*.08,p.z+(rnd()-.5)*.08,.08,0xbfe0f8,.55,1.5,{fout:.8});if(rnd()<.6)emit(1,{x:p.x,y:p.y+.03,z:p.z,vx:(rnd()-.5)*.4,vy:.25,vz:(rnd()-.5)*.4,s:.035,s2:0,c:0xffffff,c2:0x6ab8ff,life:.3});}
+      if(L>=3){w.tp-=dt;if(w.tp<=0&&run>.5){w.tp=FWM.trGap;trail(p.x,p.z);}}
+      if(rnd()<.35){const a=g.rotation.y;emitS(0,{x:p.x+Math.sin(a)*.38*SC,y:p.y+.32*SC,z:p.z+Math.cos(a)*.38*SC,vx:Math.sin(a)*.2,vy:.1,vz:Math.cos(a)*.2,s:.05,s2:.18,c:0xeaf6ff,c2:0xcfe6f4,a:.3,life:.5,lift:.05});}
+      M.core.scale.set(.12+rnd()*.015,.1+rnd()*.012,.2);}
+    if(f.life<=0){W.forEach(w=>{if(!w.gone){w.gone=true;nsFree(w.M.g);}});S.cracks.forEach(C=>C.free());nsFree(rune);}},
+    null,{mats:[...rune.userData.mats,...wmats],geos:rune.userData.geos});}
+const FWM_OLD=castFrostWolves;
+castFrostWolves=function(t,list,P,o){return t?fwmCast(t,list||[],P,o,fwmC(o)):FWM_OLD.apply(this,arguments);};
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
