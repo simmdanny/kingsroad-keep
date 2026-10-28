@@ -25491,13 +25491,20 @@ SMG.deflect=[1,1,1,1,1];
 SM.free=SM.free||{};SM.free.deflect='Simon'+String.fromCharCode(8217)+'s own numbers for Spatial Deflection';
 
 /* ---- the warp pass: two new fields ---- */
-DFM.rw=[null,null,null,null];DFM.rwU=[0,1,2,3].map(()=>new THREE.Vector4());DFM.ecU={c:new THREE.Vector4(),o:new THREE.Vector4(),a:new THREE.Vector4()};DFM.fdU={d:new THREE.Vector4(),e:new THREE.Vector4(),f:new THREE.Vector4()};
+DFM.shS=null;DFM.shU={a:new THREE.Vector4(),b:new THREE.Vector4()};DFM.rw=[null,null,null,null];DFM.rwU=[0,1,2,3].map(()=>new THREE.Vector4());DFM.ecU={c:new THREE.Vector4(),o:new THREE.Vector4(),a:new THREE.Vector4()};DFM.fdU={d:new THREE.Vector4(),e:new THREE.Vector4(),f:new THREE.Vector4()};
 {const si0=sdpInit;sdpInit=function(){const was=!!SDP.mat;si0.apply(this,arguments);if(was&&SDP.mat.userData.dfm)return;const m=SDP.mat;if(!m||m.userData.dfm)return;m.userData.dfm=1;
-  Object.assign(m.uniforms,{uRw:{value:DFM.rwU},uEc:{value:DFM.ecU.c},uEo:{value:DFM.ecU.o},uEa:{value:DFM.ecU.a},uFd:{value:DFM.fdU.d},uFe:{value:DFM.fdU.e},uFf:{value:DFM.fdU.f}});
+  Object.assign(m.uniforms,{uSh:{value:DFM.shU.a},uSs:{value:DFM.shU.b},uRw:{value:DFM.rwU},uEc:{value:DFM.ecU.c},uEo:{value:DFM.ecU.o},uEa:{value:DFM.ecU.a},uFd:{value:DFM.fdU.d},uFe:{value:DFM.fdU.e},uFf:{value:DFM.fdU.f}});
   let fs=m.fragmentShader;const A='uniform float uT,uK;',B='b0=mix(G.xz,b0,uK);',C='gl_FragColor=vec4(col*(1.-clamp(dk,0.,.88))+glow,1.);}';
   if(fs.indexOf(A)<0||fs.indexOf(B)<0||fs.indexOf(C)<0){console.error('dfm: warp shader not found');return;}
-  fs=fs.replace(A,A+'uniform vec4 uEc,uEo,uEa,uFd,uFe,uFf,uRw[4];');
+  fs=fs.replace(A,A+'uniform vec4 uEc,uEo,uEa,uFd,uFe,uFf,uRw[4],uSh,uSs;');
   /* the fold field: a pinch toward the centre with a twist (uFd.w, uFe.w), and a cross of creases along uFe.xy and its normal with shear (uFe.z) */
+  /* shattered space (Fractured Perspective): the zone breaks into long shards (cells of a polar Voronoi pattern, revealed outward to uSh.z),
+     each shifting the world behind it a little in its own direction and outward, with a chromatic split; only the seams glow, faintly */
+  fs=fs.replace(B,'if(uSh.w>0.){vec2 q=G.xz-uSh.xy;float d=length(q),Rs=uSs.x;float mk=(1.-smoothstep(Rs*.8,Rs*1.02,d))*smoothstep(uSh.z+.02,uSh.z-.35,d);if(mk>0.){'+
+    'vec2 rq=vec2(atan(q.y,q.x)*1.25,log(d+.25)*2.6)*vec2(2.2,1.5)+uSs.y;vec2 ip=floor(rq),fp=fract(rq);float f1=8.,f2=8.;vec2 cid=ip;'+
+    'for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 g=vec2(float(i),float(j));vec2 o=vec2(h21(ip+g),h21(ip+g+7.3))*.85+.075;float dd=length(g+o-fp);if(dd<f1){f2=f1;f1=dd;cid=ip+g;}else if(dd<f2)f2=dd;}'+
+    'float e=f2-f1;vec2 r2=vec2(h21(cid*1.7+3.1),h21(cid*2.3-1.9))-.5,ra=q/(d+1e-3);vec2 D=-(r2*.3+ra*(.08+.12*h21(cid)))*uSh.w*mk;sh[0]+=D*.8;sh[1]+=D;sh[2]+=D*1.2;'+
+    'float seam=1.-smoothstep(0.,.045,e);glow+=vec3(.62,.8,1.)*seam*mk*uSs.z*.3+vec3(.5,.7,1.)*exp(-pow((d-uSh.z)/.12,2.))*mk*uSs.z*.12;anyZ=1.;}}'+B);
   /* smooth ripples: a ring pushing the world outward as it passes, with a chromatic split and a faint cold glow (x, z, front radius, amount) */
   fs=fs.replace(B,'for(int i=0;i<4;i++){vec4 Rw=uRw[i];if(Rw.w<=0.)continue;vec2 q=G.xz-Rw.xy;float l=length(q),x=l-Rw.z,env=exp(-x*x/.16);vec2 rd=q/(l+1e-3);vec2 D=rd*Rw.w*env*(x>0.?1.:-.55);sh[0]+=D*.86;sh[1]+=D;sh[2]+=D*1.14;glow+=vec3(.55,.75,1.)*env*Rw.w*.3;anyZ=1.;}'+B);
   fs=fs.replace(B,'if(uFd.z>0.){vec2 q=G.xz-uFd.xy;float d=length(q)/uFd.z;float mk=1.-smoothstep(.6,1.,d);vec2 u=uFe.xy,v=vec2(-u.y,u.x);float a=dot(q,u),b=dot(q,v);'+
@@ -25513,6 +25520,7 @@ DFM.rw=[null,null,null,null];DFM.rwU=[0,1,2,3].map(()=>new THREE.Vector4());DFM.
 {const sr0=sdpRender;sdpRender=function(){if(SDP.mat&&SDP.mat.uniforms.uEc){const E=DFM.ecS,F=DFM.fdS,U=DFM.ecU,V=DFM.fdU;
     if(E){U.c.set(E.x,E.z,E.R,0);U.o.set(E.o1x,E.o1z,E.o2x,E.o2z);U.a.set(E.a1,E.a2,0,0);}else U.c.set(0,0,0,0);
     if(F){V.d.set(F.x,F.z,F.R,F.pinch);V.e.set(F.ux,F.uz,F.crease,F.twist);V.f.set(F.glow,F.point,0,0);}else V.d.set(0,0,0,0);
+    {const Q=DFM.shS;if(Q){DFM.shU.a.set(Q.x,Q.z,Q.front,Q.amt);DFM.shU.b.set(Q.R,Q.seed,Q.edge,0);}else DFM.shU.a.set(0,0,0,0);}
     for(let i=0;i<4;i++){const q=DFM.rw[i];if(q&&q.amp>0)DFM.rwU[i].set(q.x,q.z,q.r,q.amp);else DFM.rwU[i].set(0,0,0,0);}}
   return sr0.apply(this,arguments);};}
 /* a smooth ripple of space racing out from (x,z) to RM in T seconds (the oldest is replaced when all four are in use) */
@@ -25547,11 +25555,11 @@ function dfmWaveMat(S,M){return new THREE.ShaderMaterial({uniforms:{uR:{value:.2
   vertexShader:'varying vec2 vP;void main(){vP=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
   fragmentShader:'uniform float uR,uT,uA,uS;varying vec2 vP;'+SLM_N+'void main(){vec2 p=vP*uS;float d=length(p),a=atan(p.y,p.x);float x=d-uR;float n=fb(vec2(a*14.,d*2.-uT*3.)),n2=n1(vec2(a*40.,d*6.));'+
     'float front=exp(-pow(x/.05,2.))*(.7+.3*n2);float wake=step(x,0.)*smoothstep(-.55-.3*n,-.05,x)*(.35+.65*n);float facet=step(x,0.)*smoothstep(-.4,0.,x)*pow(abs(sin(a*9.+floor(d*6.))),18.);'+
-    (M?'gl_FragColor=vec4(vec3(.7,.85,1.),clamp(front*.6+facet*.45,0.,1.)*uA);}':'gl_FragColor=vec4(mix(vec3(.12,.24,.5),vec3(.62,.8,1.),front),clamp(wake*.42+front*.7,0.,.85)*uA);}')});}
+    (M?'gl_FragColor=vec4(vec3(.6,.8,1.),clamp(front*.28+facet*.18,0.,1.)*uA);}':'gl_FragColor=vec4(mix(vec3(.12,.24,.5),vec3(.5,.7,1.),front),clamp(wake*.2+front*.3,0.,.6)*uA);}')});}
 function dfmWave(x,z,R,T,col){const y=gy(x,z),g=new THREE.Group();g.position.set(x,y,z);scene.add(smTag(g));const S=R+.4,mp=dfmWaveMat(S,0),mg=dfmWaveMat(S,1);
   for(const[m,yy,ro]of[[mp,.04,5],[mg,.045,6]]){const me=new THREE.Mesh(DFMQ.plane(),m);me.scale.setScalar(S);me.position.y=yy;me.renderOrder=ro;g.add(me);}
   let t=0;addFx(g,T+.3,(f,dt)=>{t+=dt;const k=Math.min(1,t/T),r=.2+(R-.2)*(1-Math.pow(1-k,2)),fd=t<T?1:Math.max(0,1-(t-T)/.3);for(const m of[mp,mg]){m.uniforms.uR.value=r;m.uniforms.uT.value+=dt;m.uniforms.uA.value=fd*Math.min(1,t/.04);}
-    let n=dt*90*fd;while(n>0){if(n<1&&rnd()>n)break;n--;const a=rnd()*6.28;emit(1,{x:x+Math.cos(a)*r,y:y+.06,z:z+Math.sin(a)*r,vx:Math.cos(a)*.5,vy:.2+rnd()*.3,vz:Math.sin(a)*.5,s:.035,s2:0,c:rnd()<.4?0xffffff:DFC.B,c2:DFC.D,life:.35});}},null,{mats:[mp,mg]});}
+    let n=dt*35*fd;while(n>0){if(n<1&&rnd()>n)break;n--;const a=rnd()*6.28;emit(1,{x:x+Math.cos(a)*r,y:y+.06,z:z+Math.sin(a)*r,vx:Math.cos(a)*.5,vy:.2+rnd()*.3,vz:Math.sin(a)*.5,s:.03,s2:0,c:DFC.B,c2:DFC.D,life:.3});}},null,{mats:[mp,mg]});}
 
 /* ---- M1 Fractured Perspective: a network of cracks of light racing out at the snap ---- */
 /* the cracks: jagged radial cracks from the centre with branches, and broken polygonal rings joining them (each segment: A, B, the distance
@@ -25578,18 +25586,21 @@ function dfmCrackGeo(seg,W){const pos=[],aD=[],aS=[],idx=[];let n=0;
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('aD',new THREE.Float32BufferAttribute(aD,1));g.setAttribute('aS',new THREE.Float32BufferAttribute(aS,1));g.setIndex(idx);return g;}
 function dfmFracture(S,dmg){const cx=S.cx,cz=S.cz,R=S.R,g0=gy(cx,cz),net=dfmCrackNet(R),g=new THREE.Group();g.position.set(cx,g0+.075,cz);scene.add(smTag(g));dfmLog({ev:'fracture',n:net.seg.length});
   const geo=dfmCrackGeo(net.seg,2.6),m0=dfmCrackMat(0),m1=dfmCrackMat(1);const a=new THREE.Mesh(geo,m0),b=new THREE.Mesh(geo,m1);a.renderOrder=5;b.renderOrder=6;g.add(a,b);
+  const Q={x:cx,z:cz,front:0,amt:0,R,seed:rnd()*40,edge:1};DFM.shS=Q;
   const maxD=net.seg.reduce((m,q)=>Math.max(m,q[5]),0),SPD=R/.38,SPP=maxD/.42,hit=new Set(),warps=[];let t=0;dfmWarp(true);let warpOn=true;
   /* four main cracks bend the world along them (SDP.sl) */
   for(let i=0;i<4;i++){const p=net.rad[Math.floor(i*net.rad.length/4)],A=p[0],B=p[p.length-1],s=dfmSlot('sl',4);if(s<0)break;const q={ax:cx+A[0],az:cz+A[1],bx:cx+B[0],bz:cz+B[1],w2:.07,amp2:0,curve:(rnd()-.5)*.2,seed:rnd()*9};SDP.sl[s]=q;warps.push({k:'sl',s,q,max:.16});}
-  const cleanup=()=>{for(const w of warps)if(SDP[w.k][w.s]===w.q)SDP[w.k][w.s]=null;if(warpOn){warpOn=false;dfmWarp(false);}};SG_ACTIVE.add(cleanup);
-  addFx(g,1.7,(f,dt)=>{t+=dt;const r=Math.min(R*1.02,t*SPD),rp=Math.min(maxD+.2,t*SPP);m0.uniforms.uR.value=m1.uniforms.uR.value=rp;m0.uniforms.uA.value=m1.uniforms.uA.value=Math.min(1,f.life/.55);m1.uniforms.uG.value=.7+1.5*Math.exp(-t*3)+.12*Math.sin(t*23);
+  const cleanup=()=>{if(DFM.shS===Q)DFM.shS=null;for(const w of warps)if(SDP[w.k][w.s]===w.q)SDP[w.k][w.s]=null;if(warpOn){warpOn=false;dfmWarp(false);}};SG_ACTIVE.add(cleanup);
+  addFx(g,1.7,(f,dt)=>{t+=dt;const r=Math.min(R*1.02,t*SPD),rp=Math.min(maxD+.2,t*SPP);m0.uniforms.uR.value=m1.uniforms.uR.value=rp;m0.uniforms.uA.value=0;m1.uniforms.uA.value=Math.min(1,f.life/.55)*.3;m1.uniforms.uG.value=.4+.9*Math.exp(-t*4);
+    /* the shards: they break out with the front, hold, then ease back into place */
+    Q.front=r*1.08+.1;Q.amt=Math.min(1,t/.12)*(t<.55?1:Math.max(0,1-(t-.55)/.9))*(1+.15*Math.sin(t*30)*Math.exp(-t*4));Q.edge=Math.max(0,1-t/1.2);
     for(const w of warps){const k=w.k==='sl'?Math.min(1,t/.2)*Math.max(0,1-(t-.25)/.5):Math.max(0,1-(t-w.t0)/.35);if(w.k==='sl')w.q.amp2=w.max*k;else w.q.amp=w.max*k;}
     /* the front reaches the foes: 35%, and the ground beneath each twists */
     if(state==='playing')for(const e of enemies){if(e.dead||hit.has(e))continue;const d=Math.hypot(e.x-cx,e.z-cz);if(d>R||d>r)continue;hit.add(e);hurt(e,dmg,'magic',S.o);dfmLog({ev:'crack',e});
-      const p=tpos2(e);flash(p.x,p.y,p.z,0xffffff,.28,.1);sprayP(1,p.x,g0+.08,p.z,8,{c:0xffffff,c2:DFC.B,sp:1.2,up:.5,s:.035,s2:0,life:.3,g:2});
+      const p=tpos2(e);flash(p.x,p.y,p.z,DFC.B,.12,.08);sprayP(1,p.x,g0+.08,p.z,4,{c:DFC.I,c2:DFC.D,sp:.9,up:.4,s:.03,s2:0,life:.3,g:2});
       const s=dfmSlot('pl',12);if(s>=0){const q={x:e.x,z:e.z,r:.55,amp:.0001};SDP.pl[s]=q;warps.push({k:'pl',s,q,max:.32,t0:t});}}
-    if(t<.45){let n=dt*60;while(n>0){if(n<1&&rnd()>n)break;n--;const sg=net.seg[Math.floor(rnd()*net.seg.length)];if(Math.abs(sg[5]-rp)>.3)continue;emit(1,{x:cx+sg[2],y:g0+.06,z:cz+sg[3],vx:(rnd()-.5)*.5,vy:.3+rnd()*.4,vz:(rnd()-.5)*.5,s:.035,s2:0,c:0xffffff,c2:DFC.B,life:.3});}}
-    dfmLight(cx,g0+.8,cz,1.6*Math.exp(-t*3),R+2);
+    if(t<.45){let n=dt*25;while(n>0){if(n<1&&rnd()>n)break;n--;const sg=net.seg[Math.floor(rnd()*net.seg.length)];if(Math.abs(sg[5]-rp)>.3)continue;emit(1,{x:cx+sg[2],y:g0+.06,z:cz+sg[3],vx:(rnd()-.5)*.5,vy:.3+rnd()*.4,vz:(rnd()-.5)*.5,s:.035,s2:0,c:0xffffff,c2:DFC.B,life:.3});}}
+    dfmLight(cx,g0+.8,cz,.6*Math.exp(-t*3),R+2);
     /* (an effect's end callback only runs during a battle, so it also cleans up in its last frame) */
     if(f.life<=dt+1e-6)cleanup();},()=>{SG_ACTIVE.delete(cleanup);cleanup();},{mats:[m0,m1],geos:[geo]});}
 
@@ -25603,8 +25614,8 @@ function dfmEchoes(S,dmg){const cx=S.cx,cz=S.cz,R=S.R,g0=gy(cx,cz),th=Math.atan2
     mats.push(m);const c=new THREE.Mesh(DFMQ.cyl(),m);c.position.set(cx,g0,cz);c.scale.set(R,.45,R);root.add(c);return{c,m,o};});
   const T0=DFM.ecT,TS=DFM.SNAP,C1=TS+.08,C2=TS+.3,hit=new Set();let t=0,c1=false,c2=false;
   const cleanup=()=>{if(DFM.ecS===E)DFM.ecS=null;if(warpOn){warpOn=false;dfmWarp(false);}};SG_ACTIVE.add(cleanup);
-  const collapse=(i)=>{const o=i?o2:o1;dfmLog({ev:'collapse',i});dfmRipple(cx+o[0]*.5,cz+o[1]*.5,R*1.25,.5,.42);dfmWave(cx,cz,R+.3,.42,DFC.B);camShake=Math.max(camShake,.06);flash(cx,g0+.4,cz,DFC.I,.5,.12);
-    if(state==='playing')for(const e of dfmFoes(S)){if(hit.has(e))continue;hit.add(e);hurt(e,dmg,'magic',S.o);dfmLog({ev:'echoHit',e,i});const p=tpos2(e);flash(p.x,p.y,p.z,DFC.B,.28,.1);}};
+  const collapse=(i)=>{const o=i?o2:o1;dfmLog({ev:'collapse',i});dfmRipple(cx+o[0]*.5,cz+o[1]*.5,R*1.3,.55,.55);dfmWave(cx,cz,R+.3,.45,DFC.B);camShake=Math.max(camShake,.05);
+    if(state==='playing')for(const e of dfmFoes(S)){if(hit.has(e))continue;hit.add(e);hurt(e,dmg,'magic',S.o);dfmLog({ev:'echoHit',e,i});const p=tpos2(e);flash(p.x,p.y,p.z,DFC.B,.12,.08);}};
   addFx(root,C2+.5,(f,dt)=>{t+=dt;for(const r of rims)r.m.uniforms.uT.value+=dt;if(t<T0)return;
     const k=SMS(t,T0,T0+.9),fl1=.82+.18*Math.sin(t*31)*Math.sin(t*7.3),fl2=.82+.18*Math.sin(t*27+1)*Math.sin(t*5.1);
     /* each copy collapses into the real world: its offset shrinks to nothing as it fades */
@@ -25639,7 +25650,7 @@ function dfmFold(S,dmg){const cx=S.cx,cz=S.cz,R=S.R,g0=gy(cx,cz),u=[S.Z.dx,S.Z.d
       tick-=dt;if(tick<=0){tick=.2;if(state==='playing'){const L=dfmDraw(S,.07,.5);for(const q of L)caught.add(q.e);if(L.length)dfmLog({ev:'draw',n:L.length});}}
       if(rnd()<dt*30*k){const a=rnd()<.5,s=(rnd()-.5)*2*R,ax=a?u[0]:-u[1],az=a?u[1]:u[0];emit(1,{x:cx+ax*s,y:g0+.06,z:cz+az*s,vx:-ax*s*.6,vy:.3,vz:-az*s*.6,s:.035,s2:0,c:0xffffff,c2:DFC.B,life:.5});}
       dfmLight(cx,g0+.6,cz,.5*k,R+1.5);}
-    else{/* it springs open at the snap */if(!sprung){sprung=true;dfmLog({ev:'unfold'});if(state==='playing')for(const e of dfmFoes(S)){hurt(e,dmg,'magic',S.o);dfmLog({ev:'foldHit',e});const p=tpos2(e);flash(p.x,p.y,p.z,0xffffff,.3,.1);}}
+    else{/* it springs open at the snap */if(!sprung){sprung=true;dfmLog({ev:'unfold'});if(state==='playing')for(const e of dfmFoes(S)){hurt(e,dmg,'magic',S.o);dfmLog({ev:'foldHit',e});const p=tpos2(e);flash(p.x,p.y,p.z,DFC.B,.12,.08);}}
       const r=t-TS;F.crease=1.1*Math.exp(-r*9)*Math.cos(r*30);F.pinch=.22*Math.exp(-r*8)*Math.cos(r*26);F.glow=Math.max(0,1-r*3);for(const s of sheets){s.m.uniforms.uA.value=Math.max(0,.55-r*1.5);s.p.scale.y=Math.max(.01,.55+r*2);}
       if(r>.5&&DFM.fdS===F)DFM.fdS=null;}
     if(f.life<=dt+1e-6)cleanup();},()=>{SG_ACTIVE.delete(cleanup);cleanup();},{mats,geos});}
@@ -25662,23 +25673,22 @@ function dfmPrison(S,dmg){const cx=S.cx,cz=S.cz,R=S.R*1.04,g0=gy(cx,cz),N=10,H=1
     const m=dfmPanelMat();mats.push(m);const tri=new THREE.Mesh(g,m);tri.position.y=H;root.add(tri);roofs.push({tri,m,g,A,B});}
   const lm=new THREE.LineBasicMaterial({color:0xeaf4ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(lm);
   let t=0,broke=false;
-  addFx(root,TS+.4,(f,dt)=>{t+=dt;if(t<T0)return;const cl=SMS(t,TC,TS-.35),con=SMS(t,TS-.5,TS),wh=SMS(t,TS-.6,TS);
+  addFx(root,TS+.4,(f,dt)=>{t+=dt;if(t<T0)return;const cl=SMS(t,TC,TS-.35),con=SMS(t,TS-.5,TS),wh=.5*SMS(t,TS-.6,TS);
     root.scale.set(1-.14*con,1+.05*con,1-.14*con);
     for(const s of sides){const k=SMS(t,T0+s.d,T0+s.d+.6);s.p.scale.y=Math.max(.001,H*k);s.piv.rotation.x=(1-k)*.6;s.m.uniforms.uA.value=.85*k;s.m.uniforms.uW.value=wh;s.m.uniforms.uT.value+=dt;s.m.uniforms.uG.value=-1+3*((t*.35+s.d)%1);}
     /* the roof closes: each triangle's apex rises from flat out beyond the rim to the point above the centre */
     for(const r of roofs){const ap=cl,ox=(r.A[0]+r.B[0])*.5,oz=(r.A[2]+r.B[2])*.5;const P=r.g.attributes.position;P.setXYZ(2,ox*(1-ap),(AP-H)*ap,oz*(1-ap));P.needsUpdate=true;
       r.m.uniforms.uA.value=.8*SMS(t,TC,TC+.4);r.m.uniforms.uW.value=wh;r.m.uniforms.uT.value+=dt;r.m.uniforms.uG.value=-1+3*((t*.3)%1);}
     if(cl>0&&rnd()<dt*40){const a=rnd()*6.28;emit(1,{x:cx+Math.cos(a)*R,y:g0+H+rnd()*.6*cl,z:cz+Math.sin(a)*R,vx:-Math.cos(a)*.3,vy:.3,vz:-Math.sin(a)*.3,s:.04,s2:0,c:0xffffff,c2:DFC.B,life:.5});}
-    dfmLight(cx,g0+1.4,cz,.3+2.2*wh,R+2);
+    dfmLight(cx,g0+1.4,cz,.25+1.2*wh,R+2);
     if(t>=TS&&!broke){broke=true;root.visible=false;dfmShatter(S,root,sides,roofs,R*(1-.14),H*1.05,AP);dfmLog({ev:'prison'});
-      dfmRipple(cx,cz,R*1.7,.6,.7);camShake=Math.max(camShake,.16);flashA=Math.max(flashA,.3);flashCol='#eef6ff';flashDecay=4;
-      if(state==='playing')for(const e of dfmFoes(S)){hurt(e,dmg,'magic',S.o);dfmLog({ev:'prisonHit',e});const p=tpos2(e);flash(p.x,p.y,p.z,0xffffff,.36,.12);}}},null,{mats,geos});}
+      dfmRipple(cx,cz,R*1.8,.65,.95);camShake=Math.max(camShake,.14);flashA=Math.max(flashA,.1);flashCol='#eef6ff';flashDecay=4;
+      if(state==='playing')for(const e of dfmFoes(S)){hurt(e,dmg,'magic',S.o);dfmLog({ev:'prisonHit',e});const p=tpos2(e);flash(p.x,p.y,p.z,DFC.B,.14,.08);}}},null,{mats,geos});}
 /* the cage breaking into glass: shards from the walls and roof flying inward, crossing, then scattering and falling */
 function dfmShatter(S,root,sides,roofs,R,H,AP){const cx=S.cx,cz=S.cz,g0=gy(cx,cz),N=320,mt=dfmGlass(),im=dfmHideI(new THREE.InstancedMesh(DFMQ.shard(),mt,N)),g=new THREE.Group();g.position.set(cx,g0,cz);g.add(im);scene.add(smTag(g));
   const F=[];for(let i=0;i<N;i++){let x,y,z;if(i<N*.7){const a=rnd()*6.28;x=Math.cos(a)*R;z=Math.sin(a)*R;y=rnd()*H;}else{const a=rnd()*6.28,u=rnd();x=Math.cos(a)*R*(1-u);z=Math.sin(a)*R*(1-u);y=H+(AP-H)*u;}
     const tx=(rnd()-.5)*.5,tz=(rnd()-.5)*.5,ty=.5+rnd()*.5,sp=4+rnd()*4,dl=Math.hypot(tx-x,ty-y,tz-z)||1;F.push({x,y,z,vx:(tx-x)/dl*sp,vy:(ty-y)/dl*sp,vz:(tz-z)/dl*sp,rx:rnd()*6,ry:rnd()*6,wx:(rnd()-.5)*20,wy:(rnd()-.5)*20,s:.08+rnd()*.1});}
-  for(let i=0;i<14;i++){const a=rnd()*6.28;flash(cx+Math.cos(a)*R,g0+rnd()*H,cz+Math.sin(a)*R,0xffffff,.35,.1);}
-  sprayP(1,cx,g0+.8,cz,40,{c:0xffffff,c2:DFC.B,sp:3,s:.05,s2:0,life:.5,g:1});
+  sprayP(1,cx,g0+.8,cz,14,{c:DFC.I,c2:DFC.D,sp:2.4,s:.04,s2:0,life:.45,g:1});
   let t=0;addFx(g,1.1,(f,dt)=>{t+=dt;const k=t/1.1;for(let i=0;i<N;i++){const q=F[i];if(t>.18){q.vy-=dt*6;q.vx*=1-dt*.8;q.vz*=1-dt*.8;}q.x+=q.vx*dt;q.y=Math.max(.02,q.y+q.vy*dt);q.z+=q.vz*dt;q.rx+=q.wx*dt;q.ry+=q.wy*dt;
       DFMO.position.set(q.x,q.y,q.z);DFMO.rotation.set(q.rx,q.ry,0);DFMO.scale.setScalar(q.s*(1-k*.7));DFMO.updateMatrix();im.setMatrixAt(i,DFMO.matrix);if(rnd()<dt*2)emit(1,{x:cx+q.x,y:g0+q.y,z:cz+q.z,vx:0,vy:0,vz:0,s:.04,s2:0,c:0xffffff,c2:DFC.B,life:.2});}
     im.instanceMatrix.needsUpdate=true;mt.opacity=.95*(1-k*k);mt.emissiveIntensity=.8+2.2*Math.exp(-t*3);},null,{mat:mt});}
@@ -25693,10 +25703,10 @@ function dfmSingularity(x,y,z,life){const g=new THREE.Group();g.position.set(x,y
   let t=0;addFx(g,life,(f,dt)=>{t+=dt;const k=Math.min(1,t/.35),fd=Math.min(1,f.life/.12);g.scale.setScalar((.01+.99*k*fd)*1.6);l1.rotation.x+=dt*2.2;l1.rotation.y+=dt*1.4;l2.rotation.y-=dt*1.1;l2.rotation.z+=dt*.8;l3.rotation.x-=dt*3;core.rotation.y+=dt*2;
     sm.opacity=k;st.scale.setScalar(1.1+.15*Math.sin(t*40));sm.rotation+=dt*2;hm.opacity=.4*k;ha.scale.setScalar(1.8);dfmLight(x,y,z,2.2*k,4);},null,{mats,geos});return g;}
 /* a ring of fractured light: shards in a circle, tilted, expanding */
-function dfmRing(S,tilt,T,RM,delay){const cx=S.cx,cz=S.cz,g0=gy(cx,cz),N=54,mt=new THREE.MeshBasicMaterial({color:0xeaf6ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}),im=dfmHideI(new THREE.InstancedMesh(DFMQ.shard(),mt,N));
+function dfmRing(S,tilt,T,RM,delay){const cx=S.cx,cz=S.cz,g0=gy(cx,cz),N=54,mt=new THREE.MeshBasicMaterial({color:0x9cc6ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}),im=dfmHideI(new THREE.InstancedMesh(DFMQ.shard(),mt,N));
   const piv=new THREE.Group();piv.position.set(cx,g0+.35,cz);piv.rotation.set(tilt[0],tilt[1],tilt[2]);piv.add(im);scene.add(smTag(piv));const F=[];for(let i=0;i<N;i++)F.push({a:i/N*6.2832+(rnd()-.5)*.08,j:(rnd()-.5)*.14,h:(rnd()-.5)*.1,s:.06+rnd()*.07,sp:rnd()*6});
   const gm=dfmSM(DFC.B,0);let t=-delay;
-  addFx(piv,delay+T+.25,(f,dt)=>{t+=dt;if(t<0)return;const k=Math.min(1,t/T),r=.15+(RM-.15)*(1-Math.pow(1-k,1.8)),fd=t<T?1:Math.max(0,1-(t-T)/.25);mt.opacity=fd*(t<.05?t/.05:1);
+  addFx(piv,delay+T+.25,(f,dt)=>{t+=dt;if(t<0)return;const k=Math.min(1,t/T),r=.15+(RM-.15)*(1-Math.pow(1-k,1.8)),fd=t<T?1:Math.max(0,1-(t-T)/.25);mt.opacity=.55*fd*(t<.05?t/.05:1);
     for(let i=0;i<N;i++){const q=F[i],rr=r*(1+q.j);DFMO.position.set(Math.cos(q.a)*rr,q.h,Math.sin(q.a)*rr);DFMO.rotation.set(q.sp+t*6,-q.a,Math.PI/2);DFMO.scale.set(q.s*(1+r*.25),q.s*2.6*(1+r*.3),q.s);DFMO.updateMatrix();im.setMatrixAt(i,DFMO.matrix);}
     im.instanceMatrix.needsUpdate=true;if(rnd()<dt*80*fd){const a=rnd()*6.28;DFMV.a.set(Math.cos(a)*r,0,Math.sin(a)*r).applyEuler(piv.rotation);emit(1,{x:cx+DFMV.a.x,y:g0+.35+DFMV.a.y,z:cz+DFMV.a.z,vx:0,vy:.2,vz:0,s:.04,s2:0,c:0xffffff,c2:DFC.B,life:.3});}},null,{mats:[mt,gm]});
   return{r:()=>t<0?0:.15+(RM-.15)*(1-Math.pow(1-Math.min(1,t/T),1.8)),live:()=>t>=0&&t<T};}
@@ -25710,17 +25720,17 @@ function dfmParadox(S,dRing,dRes){const cx=S.cx,cz=S.cz,R=S.R,g0=gy(cx,cz),T0=DF
       let n=dt*120*k;while(n>0){if(n<1&&rnd()>n)break;n--;const a=rnd()*6.28,r=R*(.3+rnd()*.7);emit(1,{x:cx+Math.cos(a)*r,y:g0+.1+rnd()*.4,z:cz+Math.sin(a)*r,vx:-Math.cos(a)*r*2.2-Math.sin(a)*1.5,vy:.4,vz:-Math.sin(a)*r*2.2+Math.cos(a)*1.5,s:.035,s2:0,c:0xffffff,c2:DFC.B,life:.4});}
       darkTarget=Math.max(darkTarget,.18*k);dfmLight(cx,g0+.6,cz,.5+1.5*k,R+2);}
     else if(t<TE){/* rupture: three rings of fractured light race out */if(!rup){rup=true;dfmLog({ev:'rupture'});if(Math.abs(darkTarget-.18)<.02)darkTarget=0;
-        flash(cx,g0+.55,cz,0xffffff,.9,.14);camShake=Math.max(camShake,.12);
+        flash(cx,g0+.55,cz,DFC.I,.35,.1);camShake=Math.max(camShake,.12);
         rings=[[[0,0,0],.5,0],[[.42,0,.18],.6,.06],[[-.38,0,-.3],.7,.12]].map(([tl,T,dl])=>{const g=dfmRing(S,tl,T,R+1.1,dl);mxLater(dl,()=>{if(state==='playing'){dfmRipple(cx,cz,R+1.2,T,.55);dfmWave(cx,cz,R+1.1,T,DFC.B);}});return g;});}
       const u=t-TR;F.pinch=-.6*Math.exp(-u*7)*Math.cos(u*22);F.twist=-1.2*Math.exp(-u*6);F.point=Math.max(0,1-u*6);F.crease=0;F.glow=0;
       /* each foe is struck by the first ring to reach it, once */
-      if(state==='playing'&&rings)for(const e of enemies){if(e.dead||hitR.has(e))continue;const d=Math.hypot(e.x-cx,e.z-cz);if(rings.some(g=>g.live()&&d<=g.r())){hitR.add(e);hurt(e,dRing,'magic',S.o);dfmLog({ev:'ring',e});const p=tpos2(e);flash(p.x,p.y,p.z,0xffffff,.3,.1);}}}
+      if(state==='playing'&&rings)for(const e of enemies){if(e.dead||hitR.has(e))continue;const d=Math.hypot(e.x-cx,e.z-cz);if(rings.some(g=>g.live()&&d<=g.r())){hitR.add(e);hurt(e,dRing,'magic',S.o);dfmLog({ev:'ring',e});const p=tpos2(e);flash(p.x,p.y,p.z,DFC.B,.12,.08);}}}
     else if(!res){/* restoration: the scene slams back into alignment */res=true;dfmLog({ev:'restore'});F.pinch=0;F.twist=0;F.point=0;
-      dfmRipple(cx,cz,R*2,.75,1);flashA=Math.max(flashA,.6);flashCol='#e6f0ff';flashDecay=2.4;camShake=Math.max(camShake,.24);
-      if(typeof snfGlowDisc==='function')snfGlowDisc(cx,cz,g0,R*1.3,DFC.B,.7,.6,.03);sprayP(1,cx,g0+.4,cz,60,{c:0xffffff,c2:DFC.B,sp:4,s:.055,s2:0,life:.6,drag:1.6,flat:true});
-      if(state==='playing')for(const e of dfmFoes(S)){hurt(e,dRes,'magic',S.o);dfmLog({ev:'restoreHit',e});const p=tpos2(e);flash(p.x,p.y,p.z,0xffffff,.4,.12);sprayP(1,p.x,p.y,p.z,10,{c:0xffffff,c2:DFC.B,sp:1.8,up:.8,s:.045,s2:0,life:.4,g:1});}
+      dfmRipple(cx,cz,R*2.1,.8,1.3);flashA=Math.max(flashA,.2);flashCol='#e6f0ff';flashDecay=2.6;camShake=Math.max(camShake,.22);
+      if(typeof snfGlowDisc==='function')snfGlowDisc(cx,cz,g0,R*1.2,DFC.D,.3,.5,.03);sprayP(1,cx,g0+.4,cz,20,{c:DFC.I,c2:DFC.D,sp:3.4,s:.045,s2:0,life:.5,drag:1.6,flat:true});
+      if(state==='playing')for(const e of dfmFoes(S)){hurt(e,dRes,'magic',S.o);dfmLog({ev:'restoreHit',e});const p=tpos2(e);flash(p.x,p.y,p.z,DFC.B,.15,.08);}
       if(DFM.fdS===F)DFM.fdS=null;}
-    else dfmLight(cx,g0+1,cz,3*Math.max(0,1-(t-TE)/.5),R+4);
+    else dfmLight(cx,g0+1,cz,1.2*Math.max(0,1-(t-TE)/.5),R+4);
     if(f.life<=dt+1e-6)cleanup();},()=>{SG_ACTIVE.delete(cleanup);cleanup();});}
 
 /* ---- the hook ---- */
