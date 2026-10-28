@@ -28735,7 +28735,7 @@ function hlUnitKit(type,v){const key=type+v;if(HL_UNIT_CACHE[key])return HL_UNIT
     const pal=[{w:0x6d4c2e,r:0xe6dac2,hd:IRON},{w:0x6d4c2e,r:0x6a4a5a,hd:0xb8862a},{w:0x4a3a2e,r:0x6a6e74,hd:0x8a8780},{w:0x6d4c2e,r:0xe6dac2,hd:IRON},{w:0x6d4c2e,r:0x6a4a5a,hd:IRON}][v];
     [-1,1].forEach(s=>{Pb(box(.04,.04,.62),pal.w,s*.16,.13,0);for(const z of[-.25,0,.25])Pb(box(.035,.2,.035),pal.w,s*.16,.24,z);Pb(box(.035,.035,.6),pal.w,s*.16,.34,0);});
     for(const z of[-.25,.25])Pb(box(.36,.035,.035),pal.w,0,.13,z);[-1,1].forEach(s=>Pb(box(.24,.025,.66),hlDk(pal.r,.8),s*.1,.4,0,0,0,s*-.5));Pb(box(.03,.03,.68),pal.w,0,.46,0);
-    if(v===0||v===3)for(let i=0;i<28;i++){const s=i%2?1:-1,z=-.3+(i>>2)*.09+(i%4>1?.045:0),r=i%4>1?.12:.05;Pb(jitterGeo(new THREE.IcosahedronGeometry(.055,1),.012),i%3?HLC.fleece:HLC.fleece2,s*r,.435-r*.5,z,0,0,s*-.5,1.5,.38,1.3);}
+    if(v===0||v===3)for(let i=0;i<42;i++){const s=i%2?1:-1,q=i%6>>1,z=-.3+Math.floor(i/6)*.1+q*.03,r=.03+q*.075;Pb(jitterGeo(new THREE.IcosahedronGeometry(.05,1),.012),i%3?HLC.fleece:HLC.fleece2,s*r,.445+(.1-r)*.55,z,0,0,s*-.5,1.5,.45,1.3);}
     if(v===1||v===4)for(let i=0;i<9;i++)[-1,1].forEach(s=>{Pb(box(.01,.03,.67),i%2?0x5a3a4e:0x7a5068,s*(.03+i*.022),.42-i*.011,0,0,0,s*-.5);if(i%3===0)for(let j=0;j<4;j++)Pb(ico(.012,0),0xb05a90,s*(.03+i*.022),.43-i*.011,-.25+j*.17);});
     if(v===2)for(let i=0;i<5;i++)for(let j=0;j<6;j++)[-1,1].forEach(s=>Pb(box(.05,.008,.1),(i+j)%2?0x6a6e74:0x5a5e66,s*(.03+i*.045),.415-i*.023,-.27+j*.11+(i%2)*.04,0,0,s*-.5));
     const logY=.25;Pb(cyl(.06,.065,.78,8),DWOOD,0,logY,.05,Math.PI/2);for(const z of[-.2,.1,.35])Pb(cyl(.068,.068,.025,8),v===2?0x5a3a22:IRON,0,logY,z,Math.PI/2);
@@ -28745,7 +28745,7 @@ function hlUnitKit(type,v){const key=type+v;if(HL_UNIT_CACHE[key])return HL_UNIT
       Pb(box(.012,.012,.004),0x1a1210,-.03,logY+.02,.53);Pb(box(.012,.012,.004),0x1a1210,.03,logY+.02,.53);}
     if(v===2){Pb(jitterGeo(new THREE.IcosahedronGeometry(.09,1),.015),0x8e8c86,0,logY,.52,0,0,0,1,1,1.15);for(let i=0;i<4;i++){const a=i/4*6.28;Pb(box(.006,.006,.2),0x6a5230,Math.cos(a)*.07,logY+Math.sin(a)*.07,.47);}
       Pb(new THREE.TorusGeometry(.07,.008,4,10),0x6a5230,0,logY,.44);[-1,1].forEach(s=>{for(const z of[-.18,.08]){Pb(cyl(.07,.07,.012,12),0x5a3a22,s*.18,.26,z,0,0,Math.PI/2);Pb(ico(.016,0),HLC.brass,s*.187,.26,z);}});}
-    if(v===3){Pb(box(.1,.02,.1),GOLD,0,.48,0);for(let i=0;i<4;i++){const a=i/4*6.28+.785;Pb(box(.01,.07,.01),GOLD,Math.cos(a)*.035,.52,Math.sin(a)*.035,Math.sin(a)*.3,0,-Math.cos(a)*.3);}K.special={kind:'gem',parent:'body',sp:{x:0,y:.53,z:0,s:1.6}};}
+    if(v===3){Pb(box(.1,.02,.1),GOLD,0,.53,0);for(let i=0;i<4;i++){const a=i/4*6.28+.785;Pb(box(.01,.07,.01),GOLD,Math.cos(a)*.035,.57,Math.sin(a)*.035,Math.sin(a)*.3,0,-Math.cos(a)*.3);}K.special={kind:'gem',parent:'body',sp:{x:0,y:.58,z:0,s:1.6}};}
     if(v===4){Pb(cyl(.006,.006,.3,5),WOOD,0,.6,-.2);K.special={kind:'scroll',parent:'body',sp:{x:0,y:.68,z:-.19,s:1.4}};}
     K.wheels=[[-.19,.09,-.2],[.19,.09,-.2],[-.19,.09,.2],[.19,.09,.2]];for(let i=0;i<4;i++){const k='wh'+i;P(k,cyl(.09,.09,.04,10),DWOOD,0,0,0,0,0,Math.PI/2);P(k,cyl(.03,.03,.05,8),IRON,0,0,0,0,0,Math.PI/2);for(let sp=0;sp<4;sp++)P(k,box(.01,.15,.012),WOOD,0,0,0,sp*Math.PI/4);P(k,cyl(.093,.093,.012,10),IRON,0,0,0,0,0,Math.PI/2);}
     K.h=.45;K.still=true;}
