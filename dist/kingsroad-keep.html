@@ -2982,7 +2982,7 @@ function moveEnemy(e,dt){
   const d0_=e.dist;e.dist+=e.spd*f*dt*(OW.on&&e.route?owMarch(e):1);if(FOLD.on)foldHop(e,d0_);
   const[x,z,a]=posAt(e.dist,e.route);e.x=x+Math.cos(a)*e.off+(e.ox||0);e.z=z-Math.sin(a)*e.off+(e.oz||0);
   if(!e.stunT&&(e.ox||e.oz)){e.ox*=Math.max(0,1-dt*3);e.oz*=Math.max(0,1-dt*3);if(Math.abs(e.ox)+Math.abs(e.oz)<.005){e.ox=0;e.oz=0;}}
-  let lift=0;if(e.liftT>0){e.liftT-=dt;const k=clamp(1-e.liftT/1.6,0,1);lift=(e.liftH||.9)*Math.sin(Math.min(1,k*1.15)*Math.PI);}
+  let lift=0;if(e.liftT>0){e.liftT-=dt;const k=clamp(1-e.liftT/(e.liftD||1.6),0,1);if(e.liftT<=0)e.liftD=0;lift=(e.liftH||.9)*Math.sin(Math.min(1,k*1.15)*Math.PI);}
   e.y=(e.fly?(e.boss?1.25:.95)+Math.sin(time*3+e.phase)*.06:0)+lift+gy(e.x,e.z);
   e.g.position.set(e.x,0,e.z);e.b.position.y=e.y+(e.fly?0:Math.abs(Math.sin(time*9*e.spd*f+e.phase))*.035);
   if(e.limbs){const L=e.limbs,sw=Math.sin(time*9*e.spd*f+e.phase)*Math.min(1,f*2);
@@ -14132,6 +14132,8 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Entangling Roots masteries reworked',d:'28 Oct',v:'v415',li:[
+    'Entangling Roots (Rare) has five new masteries, for now in developer mode: Thornbound (thorns grow on the roots and stab as they let go: 100% more, 150% to foes already Overgrown), Root Network (roots tunnel between the prisoners and pulse twice: 55% each pulse), Verdant Reclamation (thorny patches for 3s: 35% a second and 25% slower), Earth\'s Reprisal (a great root throws each prisoner: 130%, and 40% to the foes round it) and Heart of the Wildwood (a great rune and ancient roots that burst: 180% more to the prisoners, 100% within 1.5, 3s more Overgrown).']},
   {t:'Uncommon masteries for everyone',d:'28 Oct',v:'v405',li:[
     'The Uncommon scrolls now earn mastery XP and use their masteries in every game, not only in developer mode. Scrolls above Uncommon come later.',
     'The patch notes start afresh: just the Common and Uncommon mastery reworks, in short.']},
@@ -25421,6 +25423,212 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
   const S={t,e,len,dmg,C,P:C.P,L:C.L,a:C.a,o:smO(o),o0:o,hits:[]};C.bem=S;bemLog({ev:'cast',L:C.L});
   if(C.L>=5){bemStar(S);mxLater(BEM.raT0,()=>{if(state==='playing')bemFire(S,true);});}
   else bemFire(S,false);};
+/* ================= Entangling Roots' masteries, as Simon designed them (v415) ================= */
+/* Simon (abridged; his "why it works" notes left out): "1. Thornbound: Thorns rapidly grow along the roots while they hold their targets,
+   then pierce inward just before the roots retreat. Each affected foe takes an additional 100% damage when the roots retract; 150% instead to
+   foes already Overgrown before the cast. / 2. Root Network: After the targets are bound, thick underground roots connect their positions.
+   When one prisoner struggles, the entire network pulses with green energy. Each connected foe takes 55% when the network pulses; the pulse
+   repeats twice, 0.7s apart; each pulse refreshes Overgrown on connected foes for 0.5s, but does not refresh the stun. / 3. Verdant
+   Reclamation: When the roots retreat, the cracked ground blooms into a patch of thorny vegetation beneath each captured foe. 3s; ground
+   enemies on a patch take 35% every second; 25% slow, no stun or Overgrown; overlapping patches merge visually, damage does not stack. /
+   4. Earth's Reprisal: As the roots pull their prisoners underground, a much thicker root erupts beneath each target and launches it upward
+   in a burst of dirt and leaves. +130%; non-bosses are briefly lifted, bosses resist the launch but take the damage; a small green shockwave
+   deals 40% to nearby ground foes. / 5. Heart of the Wildwood: After the initial bindings, the ground beneath the captured group glows with a
+   huge green rune. Ancient roots surge out from it, converge around the prisoners, then burst apart in a storm of wood splinters and leaves.
+   The original targets take an additional 180%; the eruption deals 100% to other ground foes within 1.5 tiles; all enemies hit by it become
+   Overgrown for an additional 3s; it also hits flyers (damage only)." He warned against reapplying Overgrown too often: only Mastery 2
+   (0.5s, twice) and Mastery 5 (3s, once) touch it.
+   Percentages are of the scroll's power (the roots themselves deal 170%). Mastery 0, echoes and other casters are the old roots (rtmC(o): the
+   SM.ctx entry of o.smId, not o.smx). From Mastery 1 castRoots is replaced by rtmCast: the old cast line for line (the rune, the burst, five
+   roots and their side roots growing in 0.2s, holding, sinking in the last 0.45s of 1.9s; 170%, the hold, the slow, Overgrown 3s), keeping
+   each root's curve, and a director (rtmRun) plays the masteries on one clock from the cast:
+   - M1 Thornbound: thorns (bone-tipped, dark at the base) push out along every root from 0.25s to 1.2s, pointing outward; at 1.32s they
+     swing inward and stab (0.08s), then each prisoner takes 100% (150% if it was Overgrown before the cast) with a spray of sap and splinters.
+   - M2 Root Network (2+ prisoners): from 0.3s thick roots tunnel between them (a tree joining the nearest ones), weaving in and out of the
+     soil with dirt thrown up at the tip; at 0.55s and 1.25s one prisoner struggles and a band of green light runs out through the network
+     from it; as it reaches each prisoner, 55% and Overgrown refreshed to at least 0.5s.
+   - M3 Verdant Reclamation: at 1.6s the cracked ground under each prisoner (where it was caught) blooms: a moss stain spreading over the
+     earth and thorny bramble sprouting with leaves and flowers, 3s; every 0.5s each ground foe on any patch takes 17.5% (35% a second, once
+     however many patches it stands on) and is slowed 25%.
+   - M4 Earth's Reprisal: at 1.45s a thick root bursts up under each prisoner with dirt and leaves; 130%, a non-boss is thrown up (0.9s, a
+     0.75s hold) and a boss only staggers; a shockwave of churned earth runs out 0.9: 40% to the other ground foes it reaches (not prisoners).
+   - M5 Heart of the Wildwood: at 0.35s a great rune glows under the group; two ancient roots for each prisoner surge in from its rim and
+     coil round it; at 1.15s they burst into a storm of wood splinters and leaves with an earth wave: 180% more to the prisoners, 100% to the
+     other foes within 1.5 of any prisoner (flyers too), and every foe it hits gets 3s more Overgrown.
+   RTM.dbg (an array) logs the events for the tests. */
+const RTM={dbg:null,nwV:4,tb:1,tbO:1.5,tbT:1.32,nw:.55,nwP:[.55,1.25],nwO:.5,vr:.35,vrT:.5,vrR:.5,vrS:.25,vrL:3,vrAt:1.6,er:1.3,erAt:1.45,erW:.4,erR:.9,hw:1.8,hwO:1,hwR:1.5,hwOv:3,hwAt:1.15};
+const rtmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='roots'?c:null;};
+const rtmLog=d=>{if(RTM.dbg){d.time=time;RTM.dbg.push(d);}};
+SM_D.roots=[
+  {n:'Thornbound',d:'Thorns grow along the roots and stab inward as they let go: {100}% more ({150}% to foes already Overgrown).'},
+  {n:'Root Network',d:'Roots tunnel between the prisoners and pulse twice with green light: {55}% each pulse, and Overgrown kept for 0.5s.'},
+  {n:'Verdant Reclamation',d:'The broken ground blooms into thorny patches for 3s: {35}% a second to ground foes on them, and 25% slower.'},
+  {n:'Earth\'s Reprisal',d:'A great root bursts up under each prisoner and throws it: {130}% more, and {40}% to the ground foes round it.'},
+  {n:'Heart of the Wildwood',d:'A great rune wakes ancient roots that burst round the prisoners: {180}% more to them, {100}% to foes within 1.5, and 3s more Overgrown.'}];
+SMF.roots={m:1.7};
+SMA.roots=[1,1,1,1,1];
+SMG.roots=[1,1,1,1,1];
+SM.free=SM.free||{};SM.free.roots='Simon'+String.fromCharCode(8217)+'s own numbers for Entangling Roots';
+/* a lift of any length (the old lift is always 1.6s: e.liftD, cleared when it lands) */
+const rtmLift=(e,sec,h)=>{if(e.liftT>0)return false;e.liftD=sec;e.liftT=sec;e.liftH=h;return true;};
+
+/* ---- shared pieces ---- */
+const RTMQ={},RTMO=new THREE.Object3D(),RTMV=new THREE.Vector3(),RTMV2=new THREE.Vector3();
+const rtmHideI=im=>{RTMO.position.set(0,-50,0);RTMO.rotation.set(0,0,0);RTMO.scale.setScalar(.0001);RTMO.updateMatrix();for(let i=0;i<im.count;i++)im.setMatrixAt(i,RTMO.matrix);im.instanceMatrix.needsUpdate=true;im.frustumCulled=false;return im;};
+/* a thorn: a four-sided cone along +Y, dark wood at the base and bone at the tip */
+RTMQ.thorn=()=>RTMQ._th||(RTMQ._th=(()=>{const g=new THREE.ConeGeometry(.022,.13,4);g.translate(0,.065,0);const p=g.attributes.position,c=new Float32Array(p.count*3),a=new THREE.Color(0x3a2414),b=new THREE.Color(0xf0e6c4),t=new THREE.Color();
+  for(let i=0;i<p.count;i++){t.copy(a).lerp(b,Math.pow(clamp(p.getY(i)/.13,0,1),.8));c[i*3]=t.r;c[i*3+1]=t.g;c[i*3+2]=t.b;}g.setAttribute('color',new THREE.BufferAttribute(c,3));return g;})());
+RTMQ.thornM=()=>RTMQ._tm||(RTMQ._tm=(typeof asOffRun==='function'?asOffRun:f=>f())(()=>new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:30,specular:0x403828})));
+/* a wood splinter: a long jagged sliver of bark */
+RTMQ.spl=()=>RTMQ._sp||(RTMQ._sp=(()=>{const b=new THREE.BoxGeometry(.022,.02,.15,1,1,3);const j=jitterGeo(b,.006);b.dispose();return j;})());
+RTMQ.splM=()=>RTMQ._sm||(RTMQ._sm=(typeof asOffRun==='function'?asOffRun:f=>f())(()=>new THREE.MeshPhongMaterial({color:0x7a5634,emissive:0x140a04,flatShading:true,shininess:6})));
+RTMQ.plane=()=>RTMQ._pl||(RTMQ._pl=new THREE.PlaneGeometry(2,2).rotateX(-Math.PI/2));
+/* a wave of churned earth running over the ground: torn soil and grass at the front, a thin green glow (additive) */
+function rtmWaveMat(S,M){return new THREE.ShaderMaterial({uniforms:{uR:{value:.1},uA:{value:0},uS:{value:S}},transparent:true,depthWrite:false,
+  blending:M?THREE.AdditiveBlending:THREE.NormalBlending,polygonOffset:true,polygonOffsetFactor:-4-M,polygonOffsetUnits:-4-M,
+  vertexShader:'varying vec2 vP;void main(){vP=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uR,uA,uS;varying vec2 vP;'+SLM_N+'void main(){vec2 p=vP*uS;float d=length(p),a=atan(p.y,p.x);float n=fb(vec2(a*9.,d*4.)),n2=n1(vec2(a*40.,d*14.));float x=d-uR*(1.+.12*(n-.5));'+
+    'float band=smoothstep(.16+.1*n,0.,abs(x+.05))*step(x,.05);float trail=step(x,0.)*smoothstep(-.7,-.05,x)*.45;'+
+    (M?'float f=exp(-pow(x/.035,2.))*(.4+.6*n2);gl_FragColor=vec4(vec3(.55,1.,.35),clamp(f*.35,0.,1.)*uA);}':
+     'vec3 soil=mix(vec3(.2,.13,.06),vec3(.36,.25,.13),n2);vec3 grass=mix(vec3(.2,.38,.1),vec3(.42,.62,.2),n);gl_FragColor=vec4(mix(grass,soil,band/(band+trail+.001)),clamp(band*.85+trail*n*.6,0.,.9)*uA);}')});}
+function rtmWave(x,z,R,T){const y=gy(x,z),g=new THREE.Group();g.position.set(x,y,z);scene.add(smTag(g));const S=R+.3,mp=rtmWaveMat(S,0),mg=rtmWaveMat(S,1);
+  for(const[m,yy,ro]of[[mp,.065,5],[mg,.07,6]]){const me=new THREE.Mesh(RTMQ.plane(),m);me.scale.setScalar(S);me.position.y=yy;me.renderOrder=ro;g.add(me);}
+  let t=0;addFx(g,T+.5,(f,dt)=>{t+=dt;const k=Math.min(1,t/T),r=.1+(R-.1)*(1-Math.pow(1-k,2)),fd=t<T?1:Math.max(0,1-(t-T)/.5);for(const m of[mp,mg]){m.uniforms.uR.value=r;m.uniforms.uA.value=fd*Math.min(1,t/.04);}},null,{mats:[mp,mg]});}
+/* splinters flung from points (instanced, tumbling, bouncing on the ground) */
+function rtmSplinters(pts,cx,cz,n,sp){const N=Math.min(160,n),im=rtmHideI(new THREE.InstancedMesh(RTMQ.spl(),RTMQ.splM(),N)),g=new THREE.Group();g.add(im);scene.add(smTag(g));const F=[];
+  for(let i=0;i<N;i++){const p=pts[i%pts.length],dx=p.x-cx,dz=p.z-cz,dl=Math.hypot(dx,dz)||1,a=Math.atan2(dz,dx)+(rnd()-.5)*1.4,v=sp*(.5+rnd()*.9);
+    F.push({x:p.x,y:p.y,z:p.z,vx:Math.cos(a)*v,vy:1+rnd()*2.4*sp/2.5,vz:Math.sin(a)*v,rx:rnd()*6,ry:rnd()*6,wx:(rnd()-.5)*20,wy:(rnd()-.5)*14,s:.6+rnd()*.9,rest:false});}
+  let t=0;addFx(g,1.6,(f,dt)=>{t+=dt;for(let i=0;i<N;i++){const q=F[i];if(!q.rest){q.vy-=dt*8;q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;q.rx+=q.wx*dt;q.ry+=q.wy*dt;const fl=gy(q.x,q.z)+.012;if(q.y<fl){q.y=fl;if(Math.abs(q.vy)<.8){q.rest=true;q.rx=Math.PI/2;}q.vy=-q.vy*.3;q.vx*=.5;q.vz*=.5;q.wx*=.4;}}
+      const sc=q.s*Math.min(1,f.life/.4);RTMO.position.set(q.x,q.y,q.z);RTMO.rotation.set(q.rx,q.ry,0);RTMO.scale.set(sc,sc,sc);RTMO.updateMatrix();im.setMatrixAt(i,RTMO.matrix);}im.instanceMatrix.needsUpdate=true;});}
+
+/* ---- M1 Thornbound: thorns along each root (instanced), pushing out, then stabbing inward ---- */
+function rtmThorns(F){const N=[];for(const v of F.V){if(v.side)continue;for(let i=0;i<9;i++)N.push({v,u:.16+i/9*.8+(rnd()-.5)*.04,sp:rnd()*6.28,s:.75+rnd()*.6,d:.25+rnd()*.5});}
+  const im=rtmHideI(new THREE.InstancedMesh(RTMQ.thorn(),RTMQ.thornM(),N.length));F.g.add(im);const up=new THREE.Vector3(0,1,0),out=new THREE.Vector3(),inn=new THREE.Vector3(),tn=new THREE.Vector3(),qa=new THREE.Quaternion(),qb=new THREE.Quaternion(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),M=new THREE.Matrix4();
+  for(const T of N){const p=T.v.curve.getPointAt(T.u);T.p=p;T.v.curve.getTangentAt(T.u,tn);
+    /* outward: away from the foe's axis, turned round the root a little; inward: at the foe's body */
+    out.set(p.x-F.ex,0,p.z-F.ez).normalize();out.addScaledVector(up,.25+.3*Math.sin(T.sp)).normalize();out.addScaledVector(tn,-out.dot(tn)).normalize();T.qa=new THREE.Quaternion().setFromUnitVectors(up,out);
+    inn.set(F.ex-p.x,(F.y0+F.h*.55)-p.y,F.ez-p.z).normalize();T.qb=new THREE.Quaternion().setFromUnitVectors(up,inn);}
+  return{N,im,step(t,k){/* k: how much of each root shows */for(let i=0;i<N.length;i++){const T=N[i];let s=0,w=0,L=1;
+      if(T.u<=k){s=T.s*SMS(t,T.d,T.d+.45)*(1-SMS(t,1.5,1.75));w=SMS(t,RTM.tbT,RTM.tbT+.08);L=1+1.2*w*(1-SMS(t,1.42,1.6));}
+      q.copy(T.qa).slerp(T.qb,w);sc.set(s*(1-.3*w),s*L,s*(1-.3*w));M.compose(T.p,q,sc);im.setMatrixAt(i,M);}im.instanceMatrix.needsUpdate=true;}};}
+
+/* ---- M2 Root Network: roots tunnelling between the prisoners, and pulses of light running through them ---- */
+function rtmPulseMat(){return new THREE.ShaderMaterial({uniforms:{uP:{value:-1},uA:{value:0},uW:{value:.22}},transparent:true,depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4,
+  vertexShader:'varying vec2 vU;varying vec3 vN,vV;void main(){vU=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
+  fragmentShader:'uniform float uP,uA,uW;varying vec2 vU;varying vec3 vN,vV;void main(){float b=exp(-pow((vU.x-uP)/uW,2.));float tail=step(vU.x,uP)*exp(-(uP-vU.x)*5.)*.35;float rim=.5+.5*pow(1.-abs(dot(vN,vV)),1.5);'+
+    'float f=(b+tail*.8)*(.55+.45*rim);gl_FragColor=vec4(mix(vec3(.62,1.,.3),vec3(1.,1.,.82),b*b),clamp(f*1.1,0.,.95)*uA);}'});}
+function rtmNetwork(R,F){const P=F.map(f=>({x:f.ex,z:f.ez,f}));const n=P.length;if(n<2)return null;
+  /* a tree joining the nearest prisoners (Prim), rooted at the one that struggles */
+  const src=Math.floor(rnd()*n),inT=[src],par=new Array(n).fill(-1),dep=new Array(n).fill(0),E=[];
+  while(inT.length<n){let best=null;for(const i of inT)for(let j=0;j<n;j++){if(inT.includes(j))continue;const d=Math.hypot(P[i].x-P[j].x,P[i].z-P[j].z);if(!best||d<best.d)best={i,j,d};}inT.push(best.j);par[best.j]=best.i;dep[best.j]=dep[best.i]+best.d;E.push(best);}
+  const g=new THREE.Group();scene.add(smTag(g));const geos=[],mats=[];
+  for(const e of E){const A=P[e.i],B=P[e.j],pts=[],K=Math.max(6,Math.round(e.d*7));const nx=-(B.z-A.z)/e.d,nz=(B.x-A.x)/e.d,wob=(rnd()-.5)*.25;
+    for(let k=0;k<=K;k++){const u=k/K,x=A.x+(B.x-A.x)*u+nx*Math.sin(u*Math.PI)*wob,z=A.z+(B.z-A.z)*u+nz*Math.sin(u*Math.PI)*wob;const hm=Math.sin(u*Math.PI*Math.max(2,Math.round(e.d*2.4)));pts.push(new THREE.Vector3(x,gy(x,z)-.07+.17*Math.max(0,hm)*Math.min(1,Math.sin(u*Math.PI)*3),z));}
+    const v=natVine(pts,.045,Math.round(e.d*6),'root',{leaves:Math.round(e.d*3),taper:.25});g.add(v.g);geos.push(v.geo);e.v=v;
+    /* heaped soil where the root runs under the ground */
+    e.mo=[];for(let k=0;k<12;k++){const u=(k+.5)/12,p=v.curve.getPointAt(u);if(p.y-gy(p.x,p.z)>-.02)continue;const m=new THREE.Mesh(nfxKit().moundG,nfxKit().dirt);m.position.set(p.x,gy(p.x,p.z)-.01,p.z);m.rotation.y=rnd()*6;m.scale.setScalar(.0001);g.add(m);e.mo.push({m,u,s:.07+rnd()*.04});}
+    const pm=rtmPulseMat();mats.push(pm);const pg=new THREE.TubeGeometry(v.curve,Math.max(16,K*6),.07,6,false);geos.push(pg);const pmesh=new THREE.Mesh(pg,pm);g.add(pmesh);e.pm=pm;e.len=e.d;
+    /* the same light running through the soil above it: a ribbon on the ground along the root */
+    {const M=48,pos=[],uv=[],idx=[],nr=[];for(let k=0;k<=M;k++){const u=k/M,p=v.curve.getPointAt(u),tg=v.curve.getTangentAt(u),l=Math.hypot(tg.x,tg.z)||1,sx=-tg.z/l*.05,sz=tg.x/l*.05,w=.6+.4*Math.sin(u*37+e.d*9);
+      for(const sg of[-1,1]){const x=p.x+sx*sg*w,z=p.z+sz*sg*w;pos.push(x,gy(x,z)+.05,z);uv.push(u,sg>0?1:0);nr.push(0,1,0);}if(k<M){const o=k*2;idx.push(o,o+1,o+2,o+1,o+3,o+2);}}
+      const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));rg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));rg.setAttribute('normal',new THREE.Float32BufferAttribute(nr,3));rg.setIndex(idx);geos.push(rg);
+      const rm=new THREE.Mesh(rg,pm);rm.renderOrder=6;g.add(rm);}const sm=new THREE.SpriteMaterial({map:softDiscTex(),color:0xf4ffc8,transparent:true,opacity:0,depthWrite:false});mats.push(sm);e.sp=new THREE.Sprite(sm);e.sp.scale.setScalar(.3);g.add(e.sp);}
+  return{g,E,src,par,dep,P,geos,mats,maxD:Math.max(...dep)};}
+
+/* ---- M3 Verdant Reclamation: thorny patches where the prisoners were caught ---- */
+function rtmMossMat(x,z,R){return new THREE.ShaderMaterial({uniforms:{uK:{value:0},uA:{value:0},uC:{value:new THREE.Vector2(x,z)},uR:{value:R}},transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3,
+  vertexShader:'varying vec2 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xz;gl_Position=projectionMatrix*viewMatrix*w;}',
+  fragmentShader:'uniform float uK,uA,uR;uniform vec2 uC;varying vec2 vW;'+SLM_N+'void main(){vec2 p=vW-uC;float d=length(p)/uR;float n=fb(vW*3.1),n2=n1(vW*13.);float edge=uK*(.85+.3*n);float m=smoothstep(edge,edge-.25,d);if(m<=0.)discard;'+
+    'vec3 c=mix(vec3(.1,.2,.05),vec3(.28,.46,.12),n2);c=mix(c,vec3(.32,.22,.1),smoothstep(.55,.8,n)*.5);gl_FragColor=vec4(c,m*(.55+.25*n2)*uA);}'});}
+function rtmPatches(S,spots){const R=RTM.vrR,g=new THREE.Group();scene.add(smTag(g));const geos=[],mats=[],B=[];rtmLog({ev:'patch0',n:spots.length});
+  for(const s of spots){const y=gy(s.x,s.z),mm=rtmMossMat(s.x,s.z,R+.08);mats.push(mm);const me=new THREE.Mesh(RTMQ.plane(),mm);me.position.set(s.x,y+.045,s.z);me.scale.setScalar(R+.15);me.renderOrder=3;g.add(me);
+    /* bramble: low thorny arcs sprouting and curling over the patch */
+    for(let i=0;i<5;i++){const a=i/5*6.28+rnd()*.8,r0=.08+rnd()*.12,r1=R*(.55+rnd()*.4),h=.12+rnd()*.14,pts=[];for(let k=0;k<=4;k++){const u=k/4,aa=a+u*(1.2+rnd()*.3),rr=r0+(r1-r0)*u;pts.push(new THREE.Vector3(s.x+Math.cos(aa)*rr,y-.03+h*Math.sin(u*Math.PI)*1.1,s.z+Math.sin(aa)*rr));}
+      const v=natVine(pts,.02,7,'bramble',{leaves:3,flowers:i%2?1:0,berries:i%3===0?1:0,taper:.7});g.add(v.g);geos.push(v.geo);B.push({v,d:i*.05+rnd()*.06});}
+    nfxLeaves(s.x,y+.15,s.z,5,[natKit().leaf,natKit().leaf2],null,.4);}
+  const L=RTM.vrL;let t=0,ticks=0;
+  addFx(g,L,(f,dt)=>{t+=dt;const k=SMS(t,0,.35),w=1-SMS(t,L-.5,L);for(const m of mats){m.uniforms.uK.value=k*(1-.15*(1-w));m.uniforms.uA.value=w;}for(const b of B)b.v.grow(SMS(t,b.d,b.d+.3)*(w>.01?1:0)*(.4+.6*w));
+    /* every 0.5s: 17.5% to each ground foe on any patch (once), and slowed */
+    const due=Math.min(Math.round(L/RTM.vrT),Math.floor(t/RTM.vrT+1e-6));if(ticks<due){ticks++;if(state==='playing')for(const e of enemies){if(e.dead||e.fake||e.fly)continue;if(!spots.some(s=>(e.x-s.x)**2+(e.z-s.z)**2<R*R))continue;
+        hurt(e,S.P*RTM.vr*RTM.vrT,'magic',smO(S.o,{dot:true}));smSlow(e,RTM.vrS,RTM.vrT+.15);rtmLog({ev:'patch',e});const p=tpos2(e);if(rnd()<.6)sprayP(0,p.x,gy(e.x,e.z)+.08,p.z,3,{c:0x7ab83e,c2:0x2a5a12,sp:.5,up:.5,s:.03,s2:.01,life:.4,g:3});}}
+    if(rnd()<dt*6*w){const s=spots[Math.floor(rnd()*spots.length)];emit(0,{x:s.x+(rnd()-.5)*R,y:gy(s.x,s.z)+.06,z:s.z+(rnd()-.5)*R,vx:0,vy:.25,vz:0,s:.03,s2:0,c:0xc8ff80,c2:0x4a9a2a,life:.8});}},null,{mats,geos});}
+
+/* ---- M4 Earth's Reprisal: a great root bursting up under a prisoner ---- */
+function rtmReprisal(S,F,targets){const e=F.e,x=F.ex,z=F.ez,y=F.y0;
+  const pts=[];const a=rnd()*6.28;for(let k=0;k<=5;k++){const u=k/5;pts.push(new THREE.Vector3(x+Math.cos(a+u*1.2)*.08*(1-u),y-.35+u*(1.25+F.h*.5),z+Math.sin(a+u*1.2)*.08*(1-u)));}
+  const v=natVine(pts,.16,6,'root',{leaves:4,taper:.85}),g=new THREE.Group();g.add(v.g);scene.add(smTag(g));const SV=[v];
+  for(let i=0;i<4;i++){const b=a+i/4*6.28+.4,q=[new THREE.Vector3(x,y-.15,z)];for(let k=1;k<=3;k++){const u=k/3,r=.12+u*.32;q.push(new THREE.Vector3(x+Math.cos(b+u*.5)*r,y-.05+.28*Math.sin(u*Math.PI)*(1-u*.3),z+Math.sin(b+u*.5)*r));}const w=natVine(q,.07,3,'root',{leaves:1,taper:.85});g.add(w.g);SV.push(w);}
+  nfxBurst(x,z,.65,{cracks:8,n:22,life:1.4,s:1.3});nfxLeaves(x,y+.3,z,10,[natKit().leaf,natKit().leaf2,nfxKit().leafD],null,.25);flash(x,y+.3,z,0xa8ff60,.3,.12);camShake=Math.max(camShake,.06);
+  let t=0;addFx(g,1.1,(f,dt)=>{t+=dt;const k=t<.12?t/.12:t<.5?1:Math.max(0,1-(t-.5)/.5);for(const w of SV)w.grow(k);g.position.y=t<.12?-.1*(1-t/.12):-(SMS(t,.5,1))*.25;},null,{geos:SV.map(w=>w.geo)});
+  if(state==='playing'&&!e.dead&&!e.fake){hurt(e,S.P*RTM.er*S.a[3],'magic',S.o);rtmLog({ev:'reprisal',e});if(!e.dead&&!e.boss){if(rtmLift(e,.9,.75))rtmLog({ev:'lift',e});stunE(e,.75);}else if(!e.dead&&e.boss&&typeof pushE==='function')pushE(e,.05);}
+  rtmWave(x,z,RTM.erR,.25);const hit=new Set();
+  addFx(new THREE.Group(),.3,(f,dt)=>{if(state!=='playing')return;const r=RTM.erR*Math.min(1,(.3-f.life)/.25+.15);for(const q of enemies){if(q.dead||q.fake||q.fly||hit.has(q)||targets.includes(q))continue;if((q.x-x)**2+(q.z-z)**2>r*r)continue;hit.add(q);hurt(q,S.P*RTM.erW*S.a[3],'magic',S.o);rtmLog({ev:'wave',e:q,src:e});natDirt(q.x,q.z,5,.6);}});}
+
+/* ---- M5 Heart of the Wildwood: the great rune, ancient roots converging, the eruption ---- */
+function rtmWildwood(S,F){const cx=F.reduce((s,f)=>s+f.ex,0)/F.length,cz=F.reduce((s,f)=>s+f.ez,0)/F.length,y=gy(cx,cz);const spread=Math.max(...F.map(f=>Math.hypot(f.ex-cx,f.ez-cz)));const R=Math.min(2.4,spread+1);rtmLog({ev:'rune',R});
+  nfxRune(cx,cz,R,1.3,0x8ad24a,1);nfxRune(cx,cz,R*.62,1.25,0xc8ff70,.8);
+  const g=new THREE.Group();scene.add(smTag(g));const A=[],geos=[];let ri=0;
+  for(const f of F)for(let s=0;s<2;s++){const a0=Math.atan2(f.ez-cz,f.ex-cx)+(s?1:-1)*(.7+rnd()*.6)+(F.length===1?s*3.14:0),sx=cx+Math.cos(a0)*R,sz=cz+Math.sin(a0)*R,pts=[],K=9;
+    const dx=f.ex-sx,dz=f.ez-sz,dl=Math.hypot(dx,dz)||1,nx=-dz/dl,nz=dx/dl,bend=(s?1:-1)*(.3+rnd()*.3);
+    for(let k=0;k<=K;k++){const u=k/K;if(u<.7){const w=u/.7,x=sx+dx*w*.85+nx*Math.sin(w*Math.PI)*bend,z=sz+dz*w*.85+nz*Math.sin(w*Math.PI)*bend;pts.push(new THREE.Vector3(x,gy(x,z)-.05+.22*Math.sin(w*Math.PI)*(.6+.4*w),z));}
+      else{const w=(u-.7)/.3,aa=Math.atan2(-dz,-dx)+w*Math.PI*1.6*(s?1:-1),rr=.32*(1-.45*w);pts.push(new THREE.Vector3(f.ex+Math.cos(aa)*rr,f.y0+.08+w*(.25+f.h*.8),f.ez+Math.sin(aa)*rr));}}
+    const v=natVine(pts,.075,8,'root',{leaves:4,taper:.7,glow:1});g.add(v.g);geos.push(v.geo);A.push({v,d:.45+(ri++)*.04});}
+  /* moss-green glow welling up under the group, and drifting motes */
+  let t=0,boom=false;const T=RTM.hwAt-.35;
+  addFx(g,T+.05,(f,dt)=>{t+=dt;for(const r of A)r.v.grow(SMS(t,r.d-.35,r.d-.35+.45));if(rnd()<dt*30){const a=rnd()*6.28,rr=Math.sqrt(rnd())*R;emit(1,{x:cx+Math.cos(a)*rr,y:gy(cx,cz)+.05,z:cz+Math.sin(a)*rr,vx:0,vy:.5+rnd()*.5,vz:0,s:.04,s2:0,c:0xd8ff90,c2:0x4a9a2a,life:.7});}
+    if(t>=T&&!boom){boom=true;rtmErupt(S,F,A,cx,cz,R);}},()=>{if(!boom){boom=true;rtmErupt(S,F,A,cx,cz,R);}},{geos});}
+function rtmErupt(S,F,A,cx,cz,R){rtmLog({ev:'erupt'});const pts=[];for(const r of A)for(let i=1;i<=8;i++)pts.push(r.v.curve.getPointAt(i/8));for(const r of A)r.v.g.visible=false;
+  rtmSplinters(pts,cx,cz,150,2.6);const K=natKit(),F2=nfxKit();for(const f of F){nfxBurst(f.ex,f.ez,.55,{cracks:6,n:14,life:1.2});nfxLeaves(f.ex,f.y0+.4,f.ez,12,[K.leaf,K.leaf2,F2.leafD,F2.leafR],null,.4);}
+  nfxLeaves(cx,gy(cx,cz)+.3,cz,14,[K.leaf,K.leaf2],null,R);rtmWave(cx,cz,R+.3,.35);flash(cx,gy(cx,cz)+.4,cz,0xb8ff70,.6,.14);camShake=Math.max(camShake,.12);
+  for(let i=0;i<8;i++){const a=rnd()*6.28,rr=rnd()*R*.7;emitS(0,{x:cx+Math.cos(a)*rr,y:gy(cx,cz)+.1,z:cz+Math.sin(a)*rr,vx:Math.cos(a)*.6,vy:.3,vz:Math.sin(a)*.6,s:.25,s2:.8,c:0x8a7a5a,c2:0x4a3e2a,a:.35,life:1.2,lift:.2});}
+  if(state!=='playing')return;const T=F.map(f=>f.e),hitE=new Set();
+  for(const e of T){if(e.dead||e.fake)continue;hurt(e,S.P*RTM.hw*S.a[4],'magic',S.o);hitE.add(e);rtmLog({ev:'heart',e});}
+  for(const q of enemies){if(q.dead||q.fake||T.includes(q))continue;if(!F.some(f=>(q.x-f.ex)**2+(q.z-f.ez)**2<RTM.hwR*RTM.hwR))continue;hurt(q,S.P*RTM.hwO*S.a[4],'magic',S.o);hitE.add(q);rtmLog({ev:'heartO',e:q});const p=tpos2(q);sprayP(0,p.x,p.y,p.z,6,{c:0x8a6a44,c2:0x3e2a18,sp:1,up:.6,s:.03,s2:0,life:.4,g:4});}
+  for(const e of hitE)if(!e.dead)ovgApply(e,(e.ovgT>0?e.ovgT:0)+RTM.hwOv);}
+
+/* ---- the cast: the old roots, keeping each root's curve ---- */
+function rtmCast(C,t,list,P,o){const S={L:C.L,a:C.a,P,o:smO(o)};let L=list.filter(e=>e&&!e.dead&&!e.fly&&!e.fake).slice(0,5);if(!L.length&&list[0])L=[list[0]];
+  const F=[];let ri=0;for(const e of L){const ex=e.x,ez=e.z,y0=gy(ex,ez),g=new THREE.Group();scene.add(g);const geos=[],V=[],h=(e.hitY||.45);if(ri++%2===0)nfxRune(ex,ez,.55,1.9,0x8ad24a,.7);nfxBurst(ex,ez,.48,{cracks:6,n:14,life:1.7});
+    for(let i=0;i<5;i++){const a=i/5*6.28+rnd()*.5,r0=.42+rnd()*.12,p=[nfxV(ex+Math.cos(a)*r0,y0-.08,ez+Math.sin(a)*r0)];
+      for(let j=1;j<=5;j++){const u=j/5,aa=a+u*2.1,rr=r0*(1-u*.76);p.push(nfxV(ex+Math.cos(aa)*rr,y0+u*(.32+h*.75),ez+Math.sin(aa)*rr));}
+      const v=natVine(p,.05-i*.004,4,'root',{leaves:i%2?1:0,taper:.82});g.add(v.g);geos.push(v.geo);V.push(v);
+      const m=p[2],b=[m.clone(),nfxV(m.x+Math.cos(a+1)*.14,m.y+.05,m.z+Math.sin(a+1)*.14),nfxV(m.x+Math.cos(a+1.4)*.24,m.y-.04,m.z+Math.sin(a+1.4)*.24)];
+      const w=natVine(b,.016,0,'root',{leaves:0,taper:.85});w.side=1;g.add(w.g);geos.push(w.geo);V.push(w);}
+    const wasO=e.ovgT>0;
+    if(!e.dead&&!e.fake){hurt(e,P*1.7,'magic',o);if(!e.dead){stunE(e,e.boss?.4:1.2);e.heldT=Math.max(e.heldT||0,2);e.slow=Math.max(e.slow||0,.5);e.slowT=Math.max(e.slowT||0,2);ovgApply(e,3);}}
+    const Fe={e,ex,ez,y0,h,g,V,wasO,k:0};F.push(Fe);
+    let tt=0;addFx(g,1.9,(f,dt)=>{tt+=dt;const k=Math.min(1,tt/.2)*(f.life<.45?f.life/.45:1);Fe.k=k;for(const v of V)v.grow(k);if(Fe.th)Fe.th.step(tt,k);
+      if(tt<1.4&&rnd()<.4)emit(1,{x:ex+(rnd()-.5)*.5,y:y0+.1,z:ez+(rnd()-.5)*.5,vx:0,vy:.45+rnd()*.3,vz:0,s:.035,s2:0,c:0xc8ff80,c2:0x4a9a2a,life:.7});},()=>natDirt(ex,ez,10,.8),{geos});}
+  rtmLog({ev:'cast',L:C.L,n:F.length});rtmRun(S,F);}
+function rtmRun(S,F){const L=S.L,a=S.a,T=F.map(f=>f.e);let t=0;const done={};
+  if(L>=1)for(const f of F)f.th=rtmThorns(f);
+  let net=null;
+  addFx(new THREE.Group(),3,(fx,dt)=>{t+=dt;const play=state==='playing';
+    /* M1: the thorns stab */
+    if(L>=1&&!done.tb&&t>=RTM.tbT+.08){done.tb=true;for(const f of F){const e=f.e;if(play&&!e.dead&&!e.fake){const m=f.wasO?RTM.tbO:RTM.tb;hurt(e,S.P*m*a[0],'magic',S.o);rtmLog({ev:'thorn',e,m});}
+      const p={x:f.ex,y:f.y0+f.h*.55,z:f.ez};sprayP(0,p.x,p.y,p.z,10,{c:0x9ad04a,c2:0x3a5a12,sp:1,up:.5,s:.03,s2:.01,life:.45,g:4});sprayP(0,p.x,p.y,p.z,6,{c:0x8a2a1a,c2:0x3a0a06,sp:.8,up:.4,s:.028,s2:.01,life:.4,g:5});
+      rtmSplinters([new THREE.Vector3(p.x,p.y,p.z)],p.x+.001,p.z,10,.9);}}
+    /* M2: the network grows from 0.3s, pulses at 0.55s and 1.25s */
+    if(L>=2&&!done.nw&&t>=.3){done.nw=true;net=rtmNetwork(S,F);if(net){rtmLog({ev:'net',edges:net.E.length});let tn=0;const N=net;
+        addFx(N.g,Math.max(1.75,RTM.nwP[1]-.3+N.maxD/RTM.nwV+.5),(f2,d2)=>{tn+=d2;for(const e of N.E){const k=SMS(tn,N.dep[e.i]*.08,N.dep[e.i]*.08+.25*Math.max(.5,e.len/1.2));e.v.grow(k*(f2.life<.35?f2.life/.35:1));
+            if(k>0&&k<1&&rnd()<.7){const p=e.v.curve.getPointAt(k);natDirt(p.x,p.z,2,.5);}
+            const fo=f2.life<.35?f2.life/.35:1;for(const q of e.mo){const s=q.u<=k?q.s*Math.min(1,(k-q.u)*8)*fo:.0001;q.m.scale.set(s*1.3,Math.max(.0001,s*.6),s*1.3);}}
+          for(const e of N.E){let P0=-1,A0=0;for(const tp of RTM.nwP){const s=tn-(tp-.3),v=RTM.nwV;const head=s*v-N.dep[e.i];if(head>-.2&&head<e.len+1.4){P0=head/e.len;A0=Math.max(A0,1-Math.max(0,head-e.len)/1.4);}}e.pm.uniforms.uP.value=P0;e.pm.uniforms.uA.value=A0;const on=P0>=0&&P0<=1;e.sp.material.opacity=on?.9:0;if(on){e.v.curve.getPointAt(P0,e.sp.position);e.sp.position.y+=.05;e.sp.scale.setScalar(.26+.06*Math.sin(tn*40));if(rnd()<.6)emit(1,{x:e.sp.position.x,y:e.sp.position.y,z:e.sp.position.z,vx:0,vy:.3,vz:0,s:.04,s2:0,c:0xeaffb0,c2:0x4a9a2a,life:.35});}}},null,{geos:N.geos,mats:N.mats});}}
+    if(net)for(let pi=0;pi<RTM.nwP.length;pi++){const tp=RTM.nwP[pi];for(let j=0;j<net.P.length;j++){const key='p'+pi+'_'+j;if(done[key])continue;if(t<tp+net.dep[j]/RTM.nwV)continue;done[key]=true;const f=net.P[j].f,e=f.e;
+        if(net.src===j&&!done['s'+pi]){done['s'+pi]=true;rtmLog({ev:'struggle',e,pi});}
+        const p={x:f.ex,y:f.y0,z:f.ez};sprayP(1,p.x,p.y+.1,p.z,10,{c:0xd8ff90,c2:0x4a9a2a,sp:.9,up:1,s:.04,s2:0,life:.5,g:-.5});emit(1,{x:p.x,y:p.y+.25,z:p.z,vx:0,vy:0,vz:0,s:.35,s2:.6,c:0x9aff60,c2:0x2a6a12,life:.3});
+        if(play&&!e.dead&&!e.fake){hurt(e,S.P*RTM.nw*a[1],'magic',S.o);if(!e.dead)ovgApply(e,RTM.nwO);rtmLog({ev:'pulse',e,pi});}}}
+    /* M5: the rune and the ancient roots from 0.35s */
+    if(L>=5&&!done.hw&&t>=.35){done.hw=true;rtmWildwood(S,F);}
+    /* M4: the great roots at 1.45s */
+    if(L>=4&&!done.er&&t>=RTM.erAt){done.er=true;for(const f of F)rtmReprisal(S,f,T);}
+    /* M3: the patches at 1.6s */
+    if(L>=3&&!done.vr&&t>=RTM.vrAt){done.vr=true;rtmPatches(S,F.map(f=>({x:f.ex,z:f.ez})));}});}
+
+/* ---- the hook ---- */
+const RTM_CAST0=castRoots;
+castRoots=function(t,list,P,o){const C=rtmC(o);if(!C)return RTM_CAST0.apply(this,arguments);return rtmCast(C,t,list,P,o);};
+
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
@@ -25431,7 +25639,8 @@ const NOTES_V='masteries-2';
 const NOTES_HTML=`<h3>\u2726 Scroll masteries reworked</h3><ul>
 <li><b>Common scrolls:</b> masteries reworked for Hexspark, Light Bolt, Basic Wither, Ember Bolt, Gravebind, Frost Shard, Static Spark, Cinder Scatter, Flame Lash, Thunderclap and Thorn Whip.</li>
 <li><b>Uncommon scrolls:</b> masteries reworked for Dark Pulse, Basic Beam, Grasping Shadows, Soul Lantern, Graveburst, Rime Bloom, Ball Lightning, Sunflare, Catch Flame, Wall of Fire and Bramble Patch.</li>
-<li><b>Uncommon masteries are open to everyone:</b> cast an Uncommon scroll in any game and it earns mastery XP, all the way to Mastery 5. Scrolls above Uncommon follow in a later update.</li></ul>`;
+<li><b>Uncommon masteries are open to everyone:</b> cast an Uncommon scroll in any game and it earns mastery XP, all the way to Mastery 5. Scrolls above Uncommon follow in a later update.</li>
+<li><b>Entangling Roots</b> (Rare) has reworked masteries too, for now in developer mode: thorns, a root network, thorny patches, the earth striking back and the heart of the wildwood.</li></ul>`;
 function showNotes(force){if(!force&&meta.notesSeen===NOTES_V)return;let o=$('#notesPop');if(!o){o=document.createElement('div');o.id='notesPop';document.body.appendChild(o);}
   o.innerHTML=`<div class="np-card"><div class="np-top"><small>Update</small><h2>What's new</h2></div><div class="np-body">${NOTES_HTML}</div><button class="np-log">See the full changelog</button><button class="np-ok">Got it</button></div>`;
   o.classList.add('on');o.querySelector('.np-ok').onclick=()=>{o.classList.remove('on');meta.notesSeen=NOTES_V;saveMeta();};{const lb=o.querySelector('.np-log');if(lb)lb.onclick=()=>{o.classList.remove('on');meta.notesSeen=NOTES_V;saveMeta();showChangelog();};}}
