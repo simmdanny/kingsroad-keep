@@ -34,8 +34,9 @@ try{
   ok('the old masteries are gone, SMA is 1 and the numbers are tuned (no SM.free)',!SMF.stormcaller.cast&&!SMF.stormcaller.hit&&SMA.stormcaller.every(x=>x===1)&&!(SM.free&&SM.free.stormcaller));
   ok('no mastery name is also a scroll\'s name',!SM_D.stormcaller.some(x=>Object.values(SPELLS_S).some(s=>s.n===x.n)));
   /* ---- Mastery 0 ---- */
-  {play();STC.dbg=[];log=[];crowd();const added=go(0);
-    ok('Mastery 0: the old storm (strikes of 250 / 175) and none of the masteries',log.length>0&&log.every(strike)&&!STC.dbg.length,log.length);
+  {play();STC.dbg=[];log=[];crowd();let nb=0;const LB0=lightningBolt;lightningBolt=function(){nb++;return LB0.apply(this,arguments);};let added;try{added=go(0);}finally{lightningBolt=LB0;}
+    /* the bolts fall at random on the whole road, so a cast may happen to hit none of the crowd: count the bolts, and check every hit that did land */
+    ok('Mastery 0: the old storm (bolts falling, strikes of 250 / 175) and none of the masteries',nb>20&&log.every(strike)&&!STC.dbg.length,nb+' bolts, '+log.length+' hits');
     ok('Mastery 0: nothing is left behind',smLeft(added)===0,smLeft(added));}
   /* ---- M1 Seeking Bolts ---- */
   {play();STC.dbg=[];log=[];crowd();const added=go(1);const sk=ev('seek');
