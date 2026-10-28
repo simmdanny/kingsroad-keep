@@ -29295,11 +29295,15 @@ function grmStatue(S,z){const e=z.e;if(!e.g)return;const G=nsIceGeos(),h=(e.hitY
 function grmCrest(e){const G=nsIceGeos(),g=smTag(new THREE.Group());for(let i=0;i<5;i++){const a=i/5*6.283,m=new THREE.Mesh(G[2*(i%3)],i%2?NS_ICE:grmMats().slab),w=.07+rnd()*.03,h=.35+rnd()*.25;
     m.scale.set(w,h*.5,w);m.position.set(Math.cos(a)*.2,h*.3,Math.sin(a)*.2);m.rotation.set(Math.sin(a)*.6,0,-Math.cos(a)*.6);g.add(m);}g.position.set(e.x,gy(e.x,e.z),e.z);g.scale.setScalar(.001);scene.add(g);return g;}
 /* ---- M3: a slab breaking off the ridge and toppling onto the road ---- */
-function grmCalve(S,slot){const K=S.K,rt=K.rt,p=posAt(slot.d,rt),a=p[2],side=rnd()<.5?1:-1,sd=side*(.6+rnd()*.2);
-  const bx=p[0]+Math.cos(a)*sd,bz=p[1]-Math.sin(a)*sd,h=1.9+rnd()*.6,w=.27+rnd()*.06;
+function grmCalve(S,slot,tp){const K=S.K,rt=K.rt,p=posAt(slot.d,rt),a=p[2],side=rnd()<.5?1:-1,sd=side*(.6+rnd()*.2);
+  const bx=p[0]+Math.cos(a)*sd,bz=p[1]-Math.sin(a)*sd,w=.27+rnd()*.06;
+  /* it falls toward the far side of the road: its top lands about h from its foot, across the road. Calved at a foe (tp, where the foe
+     will be as it lands), it topples straight at it and is as tall as that fall needs: a random height falling square across the road
+     could land up to 0.95 off the road's middle, past the foes on it */
+  let h=1.9+rnd()*.6,dx=-Math.cos(a)*side,dz=Math.sin(a)*side;
+  if(tp){const qx=tp.x-bx,qz=tp.z-bz,ql=Math.hypot(qx,qz);if(ql>.05){dx=qx/ql;dz=qz/ql;h=clamp(ql/.62,1.5,2.8);}}
   const piv=grmShard(bx,bz,h,w,grmMats().slab,2*Math.floor(rnd()*3));piv.scale.set(1,.001,1);
-  /* it falls toward the far side of the road: its top lands about h from its foot, across the road */
-  const dx=-Math.cos(a)*side,dz=Math.sin(a)*side,yaw=Math.atan2(dx,dz);piv.rotation.y=yaw;const land={x:bx+dx*h*.62,z:bz+dz*h*.62};
+  const yaw=Math.atan2(dx,dz);piv.rotation.y=yaw;const land={x:bx+dx*h*.62,z:bz+dz*h*.62};
   emitS(0,{x:bx,y:gy(bx,bz)+h*.8,z:bz,vx:0,vy:.1,vz:0,s:.25,s2:.6,c:0xf4faff,c2:0xd4e6f4,a:.4,life:.9,lift:.05,turb:.3});
   /* it breaks free (rises out of the ridge with a crack of light), then topples */
   let t=0,landed=false;const UP=.16,T=.55;
@@ -29352,9 +29356,9 @@ function grmStart(o,K){const c=grmC(o);if(!c)return null;const L=c.L,a=c.a;
           /* a foe cannot walk on past the statue (one already standing closer is kept where it was, never shoved back) */
           const lim=st.dist-GRM.gap,pd=S.pd.get(e);if(e.dist>lim&&pd!=null&&e.dist>pd){e.dist=Math.max(lim,pd);if(typeof moveEnemy==='function')moveEnemy(e,0);if(!e.grmHeldLog){e.grmHeldLog=1;grmLog({ev:'held',e,by:st});}if(rnd()<dt*4){const p=tpos2(e);emit(0,{x:p.x,y:p.y*.6,z:p.z,vx:(rnd()-.5)*.2,vy:.2,vz:(rnd()-.5)*.2,s:.06,s2:.15,c:0xffffff,c2:0xcfe6f6,a:.6,life:.5});}}}}
       /* M3: a slab calves off the ridge, where foes are */
-      if(L>=3&&tt>1.15&&tt<K.TS-.1){S.calveT-=dt;if(S.calveT<=0){S.calveT=GRM.calveDt;const up=K.slots.filter(s=>s.up===2&&!s.sh);if(up.length){let s=null;
+      if(L>=3&&tt>1.15&&tt<K.TS-.1){S.calveT-=dt;if(S.calveT<=0){S.calveT=GRM.calveDt;const up=K.slots.filter(s=>s.up===2&&!s.sh);if(up.length){let s=null,tp=null;
           const on=enemies.filter(e=>!e.dead&&!e.fake&&!e.fly&&(e.route||ROUTES[0])===rt&&e.dist!=null&&e.dist>K.d1&&e.dist<K.d0);
-          if(on.length&&rnd()<.8){const e=on[Math.floor(rnd()*on.length)];s=up.reduce((b,q)=>Math.abs(q.d-e.dist)<Math.abs(b.d-e.dist)?q:b);}else s=up[Math.floor(rnd()*up.length)];grmCalve(S,s);}}}
+          if(on.length&&rnd()<.8){const e=on[Math.floor(rnd()*on.length)];s=up.reduce((b,q)=>Math.abs(q.d-e.dist)<Math.abs(b.d-e.dist)?q:b);tp=nsLead(e,.71);}else s=up[Math.floor(rnd()*up.length)];grmCalve(S,s,tp);}}}
       /* M4: rime gathers on every foe in the blizzard (tt .9 to 6.3 s, as nsBlizzard blows) */
       if(L>=4&&tt>.95&&tt<6.3){for(const e of enemies){if(e.dead||e.fake)continue;let q=S.cold.get(e);if(!q){q={t:0,g:grmCrust(e),done:false};S.cold.set(e,q);}if(q.done)continue;q.t+=dt;
           if(q.g)q.g.scale.setScalar(Math.max(.001,Math.min(1,q.t/GRM.coldT)*.9+.1));
