@@ -66,6 +66,8 @@ const S = {
     5: { pack: swap(2, TOUGH()), spy: ['twInfect'], probe: 'PVR.ev.twInfect>0', note: 'The ram is the toughest foe nearby: the rose whip goes for it.' } },
   /* ---- Uncommon ---- */
   darkpulse: {
+    /* the pulse rolls out from the hero: the view takes in the hero and its ring */
+    base: { cx: .45, zk: 1.18 },
     4: { pack: withFly(-.3), note: 'The wall of dark energy strikes flyers too.' } },
   beam: {},
   grasp: {},
@@ -103,7 +105,8 @@ const S = {
   icetomb: { base: { pack: swap(2, TOUGH({ tag: 'Strongest' })), note: 'The ram is the strongest foe: the tomb always takes the strongest.' } },
   geyser: { base: { trail: TRAIL } },
   crows: {},
-  firetornado: { base: {} },
+  /* a tall funnel drifting back along the road: a wider view, leaning up and back */
+  firetornado: { base: { cz: -.35, cx: -.35, zk: 1.15 } },
   frostwolves: { 5: { pack: swap(2, TOUGH({ tag: 'Strongest' })), note: 'At the end both wolves leap at the strongest foe, the ram.' } },
   roots: {},
 };

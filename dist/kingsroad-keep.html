@@ -28496,7 +28496,8 @@ function pvcHide(force){clearTimeout(PVC.hideT);if(!PVC.el||PVC.el.hidden)return
   const v=PVC.el.querySelector('video');try{v.pause();}catch(e){}}
 /* the mastery card's preview calls: a recorded clip if there is one, else the live preview as before */
 {const s0=smPvShow,h0=smPvHide,d0=smPvDrop;
-  smPvShow=function(k,L,anchor){if(pvcHas(k,L)&&smPvCan('scroll',k,L)){h0();return pvcShow(k,L,anchor);}pvcHide(true);return s0.apply(this,arguments);};
+  /* buildings (kind 'tower') keep the live preview: a tower and a scroll can share a key (lantern) */
+  smPvShow=function(k,L,anchor,kind){if(kind!=='tower'&&pvcHas(k,L)&&smPvCan('scroll',k,L)){h0();return pvcShow(k,L,anchor);}pvcHide(true);return s0.apply(this,arguments);};
   smPvHide=function(){if(PVC.el&&!PVC.el.hidden){if(!PVC.pin)pvcHideSoon();return;}return h0.apply(this,arguments);};
   smPvDrop=function(){pvcHide(true);return d0.apply(this,arguments);};}
 /* a click (or tap) on a mastery pins its clip open; a second click on the same one closes it */

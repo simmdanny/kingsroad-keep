@@ -41,7 +41,8 @@ try{
     pvcHide(true);r2[3].dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(60);ok('and an unreached mastery shows nothing',b.hidden);}
   if(sm0===undefined)delete meta.smast.hexspark;else meta.smast.hexspark=sm0;close();meta.dev=true;
   /* a scroll without clips keeps the live preview (its frame is not built here: smPvFrame answers nothing) */
-  {const f0=smPvFrame;smPvFrame=()=>null;try{smPvShow('comet',1,null);ok('a scroll without clips (Epic, developer mode) keeps the live preview',b.hidden&&SMPW.el&&!SMPW.el.hidden);}finally{smPvFrame=f0;smPvHide();}}
+  {const f0=smPvFrame;smPvFrame=()=>null;try{smPvShow('comet',1,null);ok('a scroll without clips (Epic, developer mode) keeps the live preview',b.hidden&&SMPW.el&&!SMPW.el.hidden);smPvHide();
+    smPvShow('lantern',1,null,'tower');ok('a building keeps the live preview, even one that shares its key with a scroll (lantern)',pvcHas('lantern',1)&&b.hidden&&SMPW.el&&!SMPW.el.hidden&&SMPW.want&&SMPW.want.kind==='tower');}finally{smPvFrame=f0;smPvHide();}}
   /* where the clips come from: the dev page reads previews/ beside it; opening a card fetches that scroll's clips so they play from memory */
   ok('the dev page reads the clips from previews/ beside it (the published game: jsDelivr, then GitHub)',PVC.base==='../previews/'&&PVC_SRC.length===3&&/jsdelivr\.net\/gh\/simmdanny\/kingsroad-keep@main\/previews\/$/.test(PVC_SRC[1]));
   {for(let L=0;L<=5;L++){const id='thornwhip-'+L;if(PVC.urls[id]){URL.revokeObjectURL(PVC.urls[id]);delete PVC.urls[id];}delete PVC.got[id];}

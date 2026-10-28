@@ -6,7 +6,7 @@
 const out=[],ok=(n,c,d)=>out.push([n,!!c,d===undefined?'':String(d)]);const m0=JSON.stringify(meta),r0=lsGet(KR),dev0=meta.dev;
 let errs=0;const ce=console.error;console.error=function(){errs++;return ce.apply(console,arguments);};
 const rowsOf=md=>[...md.querySelectorAll('.mst-lvl')].map(r=>r.dataset.smpv||'-').join('');
-const close=()=>{smPvHide();for(const id of ['smModal','mastModal']){const m=document.getElementById(id);if(m)m.remove();}};
+const close=()=>{smPvHide();if(typeof pvcHide==='function')pvcHide(true);for(const id of ['smModal','mastModal']){const m=document.getElementById(id);if(m)m.remove();}};
 try{
   /* ---- scrolls ---- */
   meta.dev=false;meta.smast={};meta.spells.hexspark=meta.spells.hexspark||{lvl:1,hero:null};
@@ -18,7 +18,9 @@ try{
   const row3=md.querySelectorAll('.mst-lvl')[2];smPvShow('hexspark',3,row3);const box=document.getElementById('smPv');
   ok('a mastery not yet reached does not open the panel, even when asked directly',(!box||box.hidden)&&!SMPW.want);
   smPvShow('hexspark',2,md.querySelectorAll('.mst-lvl')[1]);
-  ok('a reached one opens it, for that scroll at that mastery',!!SMPW.el&&!SMPW.el.hidden&&SMPW.want&&SMPW.want.k==='hexspark'&&SMPW.want.L===2&&/Mastery 2/.test(SMPW.el.querySelector('b').textContent),SMPW.want&&JSON.stringify(SMPW.want));close();smPvDrop();
+  /* v428: a published scroll plays its recorded clip in the clip panel (PVC) when the clips are there, else the live panel opens */
+  const clip=typeof PVC!=='undefined'&&PVC.el&&!PVC.el.hidden&&PVC.k==='hexspark'&&PVC.L===2&&/Mastery II/.test(PVC.el.querySelector('.pvc-ttl b').textContent);
+  ok('a reached one opens it, for that scroll at that mastery',clip||!!SMPW.el&&!SMPW.el.hidden&&SMPW.want&&SMPW.want.k==='hexspark'&&SMPW.want.L===2&&/Mastery 2/.test(SMPW.el.querySelector('b').textContent),SMPW.want&&JSON.stringify(SMPW.want));close();smPvDrop();
   const nk=SCROLL_IDS.find(k=>SM_D[k]&&!meta.spells[k]);
   if(nk){smPvShow(nk,0,null);ok('a scroll you do not own shows nothing',(!SMPW.el||SMPW.el.hidden)&&!SMPW.want&&!smPvCan('scroll',nk,0),nk);}
   else ok('a scroll you do not own shows nothing',!smPvCan('scroll','__none__',0),'(the account owns every scroll; checked a made-up one)');

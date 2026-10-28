@@ -1281,7 +1281,8 @@ The live previews (v367, v374) started a second copy of the whole game in a hidd
 **How a clip is made** (`node tools/previews/record.js`, needs the dev server and ffmpeg):
 - The real game runs in headless Chromium, stepped frame by frame (its own loop is stopped), with a seeded `Math.random`, so a clip is the same every time.
 - The stage is a straight stretch of road running across the view (map seed 98), with the hero (Aldric) in front of it and a pack of foes walking down it. The scroll is cast when the pack reaches the hero's side.
-- The camera holds still; the clip runs from just before the cast until the scroll's effects are done (at least 3 s, at most 9.5 s).
+- Each clip is first played without pictures. That run picks the seed (a mastery's moment must happen in it) and the framing: the hero, the pack at the cast and every place a foe was hit, with the road kept across the middle. A few scrolls lean the view (Lightning Cloud up to its clouds, Dark Pulse toward the hero it rolls out from, Fire Tornado up and back).
+- The camera then holds still; the clip runs from just before the cast until the scroll's effects are done (at least 3 s, at most 9.5 s).
 - Each clip is encoded as H.264 (`previews/<scroll>-<level>.mp4`, 480x320, 30 fps). `previews/manifest.json` lists them with their captions; `--sheet` writes contact sheets for checking them by eye.
 
 **The stage for each mastery** (`tools/previews/scenarios.js`):
@@ -1298,7 +1299,7 @@ The live previews (v367, v374) started a second copy of the whole game in a hidd
 
 Every special stage has a check: a spy counts calls of the function that draws the mastery's moment (`hxNova`, `ebMolten`, `sskBurst`, `cfmErupt` and so on). If the moment never happened, the next seed is tried, and a clip that never manages it is reported.
 
-**Where the clips live:** Simon chose to load them from GitHub, so the game file stays small. The clip list is read a few seconds after the game starts: from `previews/` beside the page when it is served from the repository (the dev page, a githack link), else from jsDelivr's copy of the main branch, else from raw GitHub. Opening a scroll's mastery card fetches its clips, so they play at once. Offline the masteries keep the live preview, and so do scrolls without clips (Epic and up, in developer mode).
+**Where the clips live:** Simon chose to load them from GitHub, so the game file stays small. The clip list is read a few seconds after the game starts: from `previews/` beside the page when it is served from the repository (the dev page, a githack link), else from jsDelivr's copy of the main branch, else from raw GitHub. Opening a scroll's mastery card fetches its clips, so they play at once. Offline the masteries keep the live preview, and so do scrolls without clips (Epic and up, in developer mode) and buildings (a building and a scroll can share a key: `lantern`).
 
 **The panel** (`PVC`, `pvcShow`): the scroll and the mastery, the clip (looping, with a progress line), tabs for no mastery and Masteries I to V (the ones you may watch are lit), the mastery's text and a line saying what the clip sets up. Hovering a mastery shows it; a click or a tap pins it open; the close button or a second click closes it. `smPvCan` still decides which masteries can be watched outside developer mode.
 
@@ -1310,6 +1311,8 @@ Tests: `tests/pvc-test.js` (in run-all as 'pvc'):
 - the panel shows the mastery, its text and its note;
 - the tabs switch clips and pin the panel; pinning and closing work;
 - outside developer mode only reached masteries play;
-- a scroll without clips keeps the live preview;
+- a scroll without clips keeps the live preview, and so does a building;
 - the dev page reads `previews/`, and opening a card pre-fetches its clips;
 - offline it falls back to the live preview.
+
+`tests/smprev-test.js` now checks the live preview on an Epic scroll (published scrolls play clips), and `tests/pvown-test.js` accepts either panel for a reached mastery.
