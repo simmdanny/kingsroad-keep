@@ -14162,6 +14162,18 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Grim Harvest masteries, redesigned',d:'28 Oct',v:'v431',li:[
+    'Culling Edge: a foe the scythe leaves under 15% of its health is reaped outright, its soul torn out of it; bosses take more from the scythe instead.',
+    'Soul Swarm: the souls of the foes the first sweep reaps circle the reaper and hurl out at the foes in reach on the backhand.',
+    'Creeping Wither: a foe that dies withering in his clouds bursts into a new cloud of Wither, so the rot creeps after the pack.',
+    'Borrowed Time: the souls that reach the hero stay with it, and the next other scroll it casts is stronger for each.',
+    'Final Toll: a great skeletal hand rises under his mark, holds it and tears its soul out; the soul bursts into shards that strike the foes around.']},
+  {t:'Voidfall masteries, redesigned',d:'28 Oct',v:'v430',li:[
+    'Gravity Well: while the sphere forms it drags the foes that walked past it back toward the impact, so more of them stand under the pillar.',
+    'Hard Landing: the foes it throws up slam back to earth, hurting themselves and the foes beside them, in a burst of void and stone.',
+    'Shattered Orbit: the shards of void orbiting each lifted foe tear free at the top of its flight and spear the nearest foes.',
+    'Hollow: foes the pillar strikes are Hollowed for 5 seconds; a quarter of all damage they take from anything else is drawn in and given back at once when it ends.',
+    'Event Horizon: a second sphere opens over the crater, holds the lifted foes in the air and implodes, hitting harder the more foes it holds.']},
   {t:'Oakheart Treant masteries, redesigned',d:'28 Oct',v:'v426',li:[
     'Oakheart Treant (Epic) has five new masteries, for now in developer mode: Heavy Tread (its steps shake the road), Bark Bulwark (ground foes cannot get past it), Uprooted Boulder (every third slam it hurls a boulder at foes further off), Sap Harvest (it drains Overgrown foes and grows) and Timber! (at the end it topples forward along the road like a felled oak).',
     'Its slams now burst in 3D: clods and turf thrown in arcs and dust billowing up, instead of a flat ring.',
@@ -29216,6 +29228,286 @@ function trmTimber(g,yaw,sz,dmg,O){const x0=g.position.x,z0=g.position.z,dx=-Mat
   if(typeof rtmSplinters==='function')rtmSplinters(pts,x0,z0,90,1.6);const K=natKit(),F=nfxKit();nfxLeaves(x0+dx*len*.7,gy(x0,z0)+.6,z0+dz*len*.7,18,[K.leaf,K.leaf2,K.crown[1],F.leafD],null,1.2);
   if(state!=='playing')return;for(const e of enemies){if(e.dead||e.fake)continue;const px=e.x-x0,pz=e.z-z0,u=px*dx+pz*dz,v=Math.abs(px*dz-pz*dx);if(u<-.2||u>len+.2||v>W2)continue;hurt(e,dmg,'magic',O);if(!e.dead)ovgApply(e,3);trmLog({ev:'crush',e});}}
 
+/* ================= Voidfall's masteries (v430), designed with the framework (MASTERY_DESIGN.md) =================
+   Identity: the world falls silent, a black sphere swallows the ground, collapses, and a pillar of void crashes down and throws the foes
+   under it into the air. Design space: the sphere's hunger (the earth it drags in was only looks), the foes thrown up, the shards of void
+   that orbit them (only looks), the fall back to earth, and what the void leaves inside the foes it touched.
+   - M1 Gravity Well (the sphere; cosmetic made real: 'what if the sphere swallowed foes, not just stones?'): while the sphere forms, foes
+     within VFM.wellR tiles that have walked past the point are dragged back along the road toward it (VFM.wellSp tiles a second, up to VFM.wellMax tiles each;
+     bosses a third of both; like the other Legendary scrolls it moves them itself, without spending their Resolve), threads of void tugging at them, so more of the pack stands under the pillar. No damage of its own:
+     it fixes the spell's weakness (a 1.75s wind-up that the front of a fast pack walks out of).
+   - M2 Hard Landing (the fall; a new phase: 'what if what goes up came down hard?'): every foe the pillar threw up slams back to earth when
+     its lift ends: VFM.land to it and VFM.landS to foes within VFM.landR of it, in a burst of void and thrown stone.
+   - M3 Shattered Orbit (the orbiting shards; cosmetic made real, like Molten Orbit): the five shards of void that orbit each lifted foe
+     tear free at the top of its flight (VFM.orbAt s after the impact) and spear the nearest other foes within VFM.orbR, VFM.orb each.
+   - M4 Hollow (an interaction: 'what if the void stayed inside them?'): foes the pillar strikes are Hollowed for VFM.holT s. A share
+     (VFM.hol) of all the damage they take from anything else is drawn into the hollow; when it ends the void collapses on the foe and
+     gives it all back at once (up to VFM.holCap). Worth something alone, more beside the towers and the other scrolls.
+   - M5 Event Horizon (the finale; a signature payoff: 'what if the void came back for the foes it threw?'): at the top of their flight a
+     second, smaller sphere opens above the crater and holds every lifted foe in the air, bound to it by threads of void; VFM.crushAt s
+     after the impact it implodes: VFM.crush to each held foe plus VFM.crushN for every other foe it holds (up to VFM.crushMax others),
+     and drops them (so Hard Landing follows). A packed crater feels it most.
+   Every Voidfall cast with masteries runs vfmRun beside the old cast (a castVoidfall wrapper), on the same clock: the sphere forms 0.15 to
+   1.75s, the pillar lands at 2.02s, the wave at 2.25s. VFM.dbg (an array) logs the events for the tests. Numbers: see SMG.voidfall below. */
+const VFM={dbg:null,cur:null,hit:2.02,
+  wellR:4,wellSp:1.5,wellB:.33,wellMax:1.5,
+  land:.6,landS:.3,landR:.9,
+  orb:.25,orbR:3,orbAt:.75,
+  hol:.25,holT:5,holCap:3,
+  crush:1.5,crushN:.3,crushMax:8,crushAt:1.45,holdH:1.45};
+const vfmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='voidfall'?c:null;};
+const vfmLog=d=>{if(VFM.dbg){d.t=time;VFM.dbg.push(d);}};
+SM_D.voidfall=[
+  {n:'Gravity Well',d:'While the sphere forms it drags the foes that walked past it back along the road toward the impact (up to 1.5 tiles; bosses less), so more of them stand under the pillar.'},
+  {n:'Hard Landing',d:'Foes the pillar throws up slam back to earth: {60}% to each and {30}% to foes beside it.'},
+  {n:'Shattered Orbit',d:'The shards of void orbiting each lifted foe tear free at the top of its flight and spear the nearest foes, {25}% each.'},
+  {n:'Hollow',d:'Foes the pillar strikes are Hollowed for 5s: {25}% of all damage they take from anything else is drawn in, then given back at once when it ends.'},
+  {n:'Event Horizon',d:'A second sphere opens over the crater and holds the lifted foes in the air, then implodes: {150}% to each, plus {30}% for every other foe it holds.'}];
+SMF.voidfall={m:1};
+SMA.voidfall=[1,1,1,1,1];
+SMG.voidfall=[1.135,1.2,1.285,1.43,1.4];
+
+/* shared pieces: a long shard of void glass (dark body, violet edge), stone chunks, the threads */
+function vfmKit(){if(VFM.K)return VFM.K;const K={};
+  K.body=new THREE.MeshPhongMaterial({color:0x0c0614,emissive:0x2a0a52,emissiveIntensity:.7,specular:0xc8a0ff,shininess:80,flatShading:true});
+  K.edge=new THREE.MeshBasicMaterial({color:0xc890ff,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false});
+  K.sg=new THREE.OctahedronGeometry(1,0);K.se=new THREE.EdgesGeometry(K.sg);K.lm=new THREE.LineBasicMaterial({color:0xd0a0ff,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false});
+  K.rock=[0,1,2].map(i=>jitterGeo(new THREE.DodecahedronGeometry(1,0),.3+.05*i));K.stone=new THREE.MeshPhongMaterial({color:0x2a2230,emissive:0x1a0830,emissiveIntensity:.4,flatShading:true,shininess:4});
+  return VFM.K=K;}
+function vfmShardMesh(s){const K=vfmKit(),m=new THREE.Mesh(K.sg,K.body);m.add(new THREE.LineSegments(K.se,K.lm));m.scale.set(s*.35,s*.35,s);return m;}
+/* a spear of void glass from A into a foe; hurts it on arrival */
+function vfmSpear(A,e,dmg,o,T){if(!e||e.dead)return;const m=vfmShardMesh(.14),g=smTag(new THREE.Group());g.add(m);g.position.copy(A);scene.add(g);let last=tpos2(e),tt=0,done=false;T=T||.3;
+  addFx(g,T+.02,(f,dt)=>{tt+=dt;if(!e.dead)last=tpos2(e);const k=Math.min(1,tt/T),kk=k*k;const x=A.x+(last.x-A.x)*kk,y=A.y+(last.y-A.y)*kk+Math.sin(k*Math.PI)*.25,z=A.z+(last.z-A.z)*kk;g.lookAt(x,y,z);g.position.set(x,y,z);
+    emit(1,{x,y,z,vx:0,vy:.05,vz:0,s:.06,s2:0,c:0xe0c0ff,c2:0x4a10a0,life:.22});
+    if(k>=1&&!done){done=true;if(!e.dead)hurt(e,dmg,'magic',smO(o,{vfm:1}));vfmPop(last.x,last.y,last.z,.55);}});}
+/* a small burst of void with body: splinters of void glass thrown out in arcs, a dark billow, violet motes */
+function vfmPop(x,y,z,S){const K=vfmKit();S=S||1;const n=Math.round(5+5*S);
+  for(let i=0;i<n&&fx.length<300;i++){const m=vfmShardMesh(.05+rnd()*.06*S);m.position.set(x,y,z);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);scene.add(smTag(m));const a=rnd()*6.28,v=smV(Math.cos(a)*(.6+rnd())*1.6*S,(.8+rnd()*1.4)*1.6*S,Math.sin(a)*(.6+rnd())*1.6*S),rs=(rnd()-.5)*16,s0=m.scale.clone();
+    addFx(m,.5+rnd()*.35,(f,dt)=>{v.y-=7*dt;m.position.addScaledVector(v,dt);m.rotation.x+=rs*dt;m.rotation.y+=rs*.6*dt;const fl=gy(m.position.x,m.position.z)+.02;if(m.position.y<fl){m.position.y=fl;v.multiplyScalar(.3);v.y=Math.abs(v.y);}if(f.life<.25)m.scale.copy(s0).multiplyScalar(Math.max(.01,f.life/.25));});}
+  if(typeof cfmBoom==='function')cfmBoom(x,y,z,.28*S,{pal:'void',T:.55,lobes:3,ground:false});
+  sprayP(1,x,y,z,Math.round(10*S),{c:0xe8d0ff,c2:0x5a1aa0,sp:1.6*S,up:.6,s:.04,s2:0,life:.35,g:2});}
+/* stone and void thrown up where a foe slams down */
+function vfmSlam(x,z,S){const K=vfmKit(),y=gy(x,z);
+  for(let i=0;i<7&&fx.length<300;i++){const m=new THREE.Mesh(K.rock[i%3],K.stone),s=(.035+rnd()*.05)*S;m.scale.set(s,s*.8,s);m.position.set(x+(rnd()-.5)*.2,y+.05,z+(rnd()-.5)*.2);scene.add(smTag(m));
+    const a=rnd()*6.28,v=smV(Math.cos(a)*(.7+rnd()*1.2),1.6+rnd()*1.8,Math.sin(a)*(.7+rnd()*1.2)),rs=(rnd()-.5)*12,s0=m.scale.clone();let down=false;
+    addFx(m,1.1,(f,dt)=>{if(!down){v.y-=9*dt;m.position.addScaledVector(v,dt);m.rotation.x+=rs*dt;m.rotation.z+=rs*.7*dt;if(rnd()<.4)emit(1,{x:m.position.x,y:m.position.y,z:m.position.z,vy:.1,s:.035,s2:0,c:0xc890ff,c2:0x3a0a6a,life:.25});
+        const fl=gy(m.position.x,m.position.z)+s*.6;if(m.position.y<fl&&v.y<0){m.position.y=fl;down=true;}}if(f.life<.35)m.scale.copy(s0).multiplyScalar(Math.max(.01,f.life/.35));});}
+  if(typeof cfmBoom==='function')cfmBoom(x,y+.12,z,.34*S,{pal:'void',T:.6,lobes:4,skirt:4});
+  for(let i=0;i<8;i++){const a=rnd()*6.28;emitS(0,{x:x+Math.cos(a)*.2,y:y+.08,z:z+Math.sin(a)*.2,vx:Math.cos(a)*1.4,vy:.25+rnd()*.4,vz:Math.sin(a)*1.4,s:.14,s2:.5,c:0x3a3040,c2:0x18121e,a:.4,life:.9,turb:.4,drag:1.6});}
+  nsDecal(x,z,.42*S,0x0a0410,.5,1.6,{fout:1});camShake=Math.max(camShake,.05);}
+/* the hollow inside a foe: a slow cage of void glass that turns faster and glows hotter the more it holds */
+function vfmHollowFx(e,H){const g=smTag(new THREE.Group());scene.add(g);const sh=[];for(let i=0;i<6;i++){const m=vfmShardMesh(.07);g.add(m);sh.push({m,a:i/6*6.28,y:(i%2?.12:-.08)});}
+  const core=new THREE.Mesh(ico(.07,1),new THREE.MeshBasicMaterial({color:0x000000})),halo=new THREE.Mesh(ico(.13,1),haloMat(0x9a40ff));g.add(core,halo);let tt=0;
+  addFx(g,600,(f,dt)=>{tt+=dt;if(e.dead||H.done||!g.parent){f.life=0;return;}const p=tpos2(e),fill=Math.min(1,H.st/Math.max(1,H.cap)),k=Math.min(1,tt/.3);g.position.set(p.x,p.y,p.z);g.scale.setScalar(k);
+    sh.forEach((s,i)=>{s.a+=dt*(1.2+fill*5);const r=.3-.06*fill;s.m.position.set(Math.cos(s.a)*r,s.y+Math.sin(tt*2+i)*.04,Math.sin(s.a)*r);s.m.rotation.set(tt*2+i,s.a,0);});
+    core.scale.setScalar(.6+fill*1.1);halo.scale.setScalar(.7+fill*1.4+.1*Math.sin(tt*9));if(rnd()<dt*(4+fill*20))emit(1,{x:p.x+(rnd()-.5)*.6,y:p.y+(rnd()-.5)*.5,z:p.z+(rnd()-.5)*.6,vx:0,vy:0,vz:0,s:.035,s2:0,c:0xe0c0ff,c2:0x3a0a6a,life:.3,grav:-1});});}
+/* the void collapsing on a hollowed foe: a lance of void from above, then a burst */
+function vfmLance(e,dmg,o){if(e.dead)return;const p=tpos2(e),g=smTag(new THREE.Group()),K=vfmKit(),mats=[];g.position.set(p.x,p.y+3,p.z);scene.add(g);
+  const sp=vfmShardMesh(.5);sp.scale.set(.09,.09,.9);sp.rotation.x=Math.PI/2;g.add(sp);const hm=nsAM(mats,0x9a40ff,.5),hal=new THREE.Mesh(new THREE.CylinderGeometry(.05,.14,1.6,10,1,true),hm);hal.position.y=.4;g.add(hal);let tt=0,done=false;
+  addFx(g,.3,(f,dt)=>{tt+=dt;const q=e.dead?p:tpos2(e),k=Math.min(1,tt/.22);g.position.set(q.x,q.y+3*(1-k*k)+.3,q.z);hm.opacity=.5*(1-k*.5);
+    if(k>=1&&!done){done=true;if(!e.dead)hurt(e,dmg,'magic',smO(o,{vfm:1}));vfmPop(q.x,q.y,q.z,1);flash(q.x,q.y,q.z,0xc080ff,.5,.14);}},null,{mats,geos:[hal.geometry]});}
+/* the second sphere: a black heart over the crater, threads of void to the foes it holds, then it implodes */
+function vfmHorizon(cx,cz,S){const K=vfmKit(),mats=[],geos=[],g=smTag(new THREE.Group()),Y=gy(cx,cz)+2.5;g.position.set(cx,Y,cz);scene.add(g);
+  const cg=jitterGeo(new THREE.IcosahedronGeometry(.45,2),.2);geos.push(cg);const core=new THREE.Mesh(cg,new THREE.MeshBasicMaterial({color:0x000000}));mats.push(core.material);g.add(core);
+  const rm=nsAM(mats,0x8a3aff,.5);rm.side=THREE.BackSide;const rim=new THREE.Mesh(cg,rm);rim.scale.setScalar(1.18);g.add(rim);
+  const ring=makeRune(.9,0xc080ff,{star:5,step:2,glyphs:20,inner:false,th:.025});ring.rotation.x=Math.PI/2;g.add(ring);mats.push(...ring.userData.mats);geos.push(...ring.userData.geos);g.scale.setScalar(.01);
+  const tm=nsAM(mats,0xd8a8ff,.0);let tt=0,imp=-1;const th=[];
+  const api={g,Y,threads(L){for(const e of L){const m=new THREE.Mesh(new THREE.BufferGeometry(),tm);m.frustumCulled=false;scene.add(smTag(m));th.push({e,m});}},implode(){imp=tt;}};
+  addFx(g,4,(f,dt)=>{tt+=dt;if(imp<0){const k=Math.min(1,tt/.35);g.scale.setScalar(.01+k*(1+.05*Math.sin(tt*14)));}
+    else{const k=Math.min(1,(tt-imp)/.16);g.scale.setScalar(Math.max(.01,(1-k)*1.05));if(k>=1&&g.visible){g.visible=false;f.life=Math.min(f.life,.05);}}
+    core.rotation.y+=dt*2;core.rotation.x+=dt*1.3;rim.scale.set(1.18+.06*Math.sin(tt*11),1.18+.07*Math.sin(tt*8),1.18+.05*Math.sin(tt*13));ring.rotation.z+=dt*2.4;
+    tm.opacity=imp<0?.85*Math.min(1,tt/.3):0;
+    for(const q of th){if(q.e.dead||imp>=0){q.m.visible=false;continue;}const p=tpos2(q.e),A=smV(cx,Y-.3,cz),B=smV(p.x,p.y,p.z),P=[];for(let i=0;i<=8;i++){const u=i/8,w=Math.sin(u*Math.PI)*.12*Math.sin(tt*9+i);P.push(smV(A.x+(B.x-A.x)*u+w,A.y+(B.y-A.y)*u,A.z+(B.z-A.z)*u-w));}
+      q.m.geometry.dispose();q.m.geometry=ribbonGeo(P,.07,.02);if(rnd()<.3){const u=rnd();emit(1,{x:A.x+(B.x-A.x)*u,y:A.y+(B.y-A.y)*u,z:A.z+(B.z-A.z)*u,vx:(A.x-B.x)*.8,vy:(A.y-B.y)*.8,vz:(A.z-B.z)*.8,s:.04,s2:0,c:0xe8d0ff,c2:0x5a1aa0,life:.3});}}
+    if(imp<0&&rnd()<.9){const a=rnd()*6.28,r=.9+rnd()*.7,yy=(rnd()-.5)*1.2;emit(1,{x:cx+Math.cos(a)*r,y:Y+yy,z:cz+Math.sin(a)*r,vx:-Math.cos(a)*r*1.8-Math.sin(a),vy:-yy*1.8,vz:-Math.sin(a)*r*1.8+Math.cos(a),s:.05,s2:0,c:rnd()<.5?0xb070ff:0x1a0a2a,c2:0x2a0a50,life:.45});}},
+    ()=>{for(const q of th){scene.remove(q.m);q.m.geometry.dispose();}},{mats,geos});
+  return api;}
+
+/* the hollows: one per foe; the hurt wrapper below fills them */
+const VFM_HOL=new Map();
+function vfmHollow(e,P,o){if(e.dead||e.fake)return;const cap=P*VFM.holCap*o.a4;let H=VFM_HOL.get(e);if(H&&!H.done){H.until=time+VFM.holT;H.cap=Math.max(H.cap,cap);return;}
+  H={until:time+VFM.holT,st:0,cap,o:o.o,done:false};VFM_HOL.set(e,H);vfmHollowFx(e,H);vfmLog({ev:'hollow',e});}
+function vfmHolTick(){for(const [e,H] of VFM_HOL){if(H.done){VFM_HOL.delete(e);continue;}if(e.dead){H.done=true;VFM_HOL.delete(e);continue;}
+    if(time>=H.until){H.done=true;VFM_HOL.delete(e);const amt=Math.min(H.st,H.cap);vfmLog({ev:'release',e,amt});if(amt>0)vfmLance(e,amt,H.o);}}}
+
+function vfmRun(t,cc,P,o,c){const L=c.L,A5=c.a,cx=cc.x,cz=cc.z,S={c,lifted:[],landed:new Set(),orb:false,hz:null,crushed:false,frags:new Map(),pulled:new Map()};VFM.cur=S;
+  let tt=0,hit=false;vfmLog({ev:'cast',L,x:cx,z:cz});
+  addFx(new THREE.Group(),VFM.hit+3.2,(f,dt)=>{tt+=dt;if(state!=='playing')return;
+    /* M1: the well drags the foes that walked past the point back toward it */
+    if(L>=1&&tt>.2&&tt<VFM.hit-.05){for(const e of enemies){if(e.dead||e.fake||e.fly||e.dist==null)continue;const d=Math.hypot(e.x-cx,e.z-cz);if(d>VFM.wellR||d<.25)continue;
+        const rt=e.route||ROUTES[0],st=VFM.wellSp*(e.boss?VFM.wellB:1)*dt*Math.min(1,tt/.4),q=posAt(Math.max(0,e.dist-st),rt);if(Math.hypot(q[0]-cx,q[1]-cz)>=d-1e-4)continue;
+        const got=S.pulled.get(e)||0,u=Math.min(st,VFM.wellMax*(e.boss?VFM.wellB:1)-got,e.dist);if(u>1e-4){e.dist-=u;S.pulled.set(e,got+u);S.pull=(S.pull||0)+u;if(rnd()<dt*7){const p=tpos2(e);smArc('dark',smV(cx,gy(cx,cz)+2.6,cz),smV(p.x,p.y,p.z),{w:.7,disp:.18,life:.12});}
+          if(rnd()<dt*14){const p=tpos2(e);emit(1,{x:p.x,y:p.y,z:p.z,vx:(cx-p.x)*1.2,vy:1.4,vz:(cz-p.z)*1.2,s:.04,s2:0,c:0xd0a0ff,c2:0x2a0a50,life:.4});}}}}
+    if(!hit&&tt>=VFM.hit+.07){hit=true;vfmLog({ev:'well',pull:S.pull||0});
+      for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-cx)**2+(e.z-cz)**2<2.2*2.2+.01&&e.liftT>0)S.lifted.push(e);}
+      vfmLog({ev:'lift',n:S.lifted.length});
+      if(L>=4)for(const e of S.lifted)vfmHollow(e,P,{a4:A5[3],o});
+      if(L>=5&&S.lifted.length){S.hz=vfmHorizon(cx,cz);S.hz.threads(S.lifted.filter(e=>!e.boss));}}
+    if(!hit)return;const T=tt-VFM.hit;
+    /* M5: hold the lifted foes at the top of their flight, then implode */
+    if(L>=5&&S.hz&&!S.crushed){for(const e of S.lifted){if(e.dead||e.boss)continue;if(T>.3){const D=e.liftD||1.6;e.liftD=D;e.liftT=Math.max(e.liftT,D*.565);e.liftH=Math.min(VFM.holdH,(e.liftH||.95)+dt*1.2);e.stunT=Math.max(e.stunT||0,.3);}}
+      if(T>=VFM.crushAt){S.crushed=true;S.hz.implode();const live=S.lifted.filter(e=>!e.dead),n=live.length,others=Math.min(VFM.crushMax,Math.max(0,n-1)),dmg=P*(VFM.crush+VFM.crushN*others)*A5[4];
+        const Y=S.hz.Y;for(const e of live){hurt(e,dmg,'magic',smO(o,{vfm:1}));const p=tpos2(e);vfmSpearIn(cx,Y,cz,p);}
+        mxLater(.12,()=>{if(typeof cfmBoom==='function')cfmBoom(cx,Y,cz,.9,{pal:'void',T:.8,lobes:5,ground:false});vfmPop(cx,Y,cz,1.6);flash(cx,Y,cz,0xe0c0ff,1.2,.2);camShake=Math.max(camShake,.2);});
+        vfmLog({ev:'crush',n,dmg});for(const e of live)if(!e.dead&&!e.boss){e.liftD=.55;e.liftT=.55*.565;}}}
+    /* M3: the orbiting shards tear free at the top of the flight */
+    if(L>=3&&!S.orb&&T>=VFM.orbAt){S.orb=true;let n=0;for(const e of S.lifted){if(e.dead)continue;const fr=S.frags.get(e);if(fr)fr.visible=false;const p=tpos2(e),near=smNear(e.x,e.z,VFM.orbR,e,5);
+        for(let i=0;i<5;i++){const q=near.length?near[i%near.length]:null;if(!q)break;const a=i/5*6.28;vfmSpear(smV(p.x+Math.cos(a)*.3,p.y+.1,p.z+Math.sin(a)*.3),q,P*VFM.orb*A5[2],o,.26+i*.03);n++;}}vfmLog({ev:'orbit',n});}
+    /* M2: the hard landing when each lift ends */
+    if(L>=2)for(const e of S.lifted){if(S.landed.has(e))continue;if(e.dead){S.landed.add(e);continue;}if(T>.2&&!(e.liftT>0)){S.landed.add(e);const p=tpos2(e);hurt(e,P*VFM.land*A5[1],'magic',smO(o,{vfm:1}));
+        for(const q of smNear(e.x,e.z,VFM.landR,e))hurt(q,P*VFM.landS*A5[1],'magic',smO(o,{vfm:1}));vfmSlam(e.x,e.z,e.boss?1.4:1);vfmLog({ev:'land',e});}}
+  },()=>{if(VFM.cur===S)VFM.cur=null;});
+  return S;}
+/* M5's implosion: shards of the foes' void rushing up into the sphere */
+function vfmSpearIn(cx,Y,cz,p){for(let i=0;i<3;i++){const m=vfmShardMesh(.08),A=smV(p.x+(rnd()-.5)*.3,p.y+(rnd()-.5)*.2,p.z+(rnd()-.5)*.3);m.position.copy(A);scene.add(smTag(m));let tt=0;
+  addFx(m,.14,(f,dt)=>{tt+=dt;const k=Math.min(1,tt/.12);m.position.set(A.x+(cx-A.x)*k,A.y+(Y-A.y)*k,A.z+(cz-A.z)*k);m.lookAt(cx,Y,cz);});}}
+/* the wrappers: the cast; the base cast's orbiting shards (kept so Shattered Orbit can tear them free); the hollows' share of every hit;
+   the hollows' clock */
+const VFM_OLD=castVoidfall;
+castVoidfall=function(t,c,P,o){const r=VFM_OLD.apply(this,arguments),C=t&&c?vfmC(o):null;if(C)vfmRun(t,c,P,o,C);return r;};
+{const of0=orbitFrags;orbitFrags=function(en,dur){const r=of0.apply(this,arguments);const S=VFM.cur;if(S&&S.frags&&dur>=1.65){const F=fx[fx.length-1];if(F&&F.o)S.frags.set(en,F.o);}return r;};}
+{const h0=hurt;hurt=function(e,amt,kind,o){const H=e&&!e.dead?VFM_HOL.get(e):null,hp0=H?e.hp:0;const r=h0.apply(this,arguments);
+  if(H&&!H.done&&!(o&&o.vfm)){const took=Math.max(0,hp0-(e.dead?0:e.hp));H.st=Math.min(H.cap,H.st+took*VFM.hol);}return r;};}
+{const u0=updFx;updFx=function(dt){const r=u0.apply(this,arguments);if(VFM_HOL.size&&state==='playing')vfmHolTick();return r;};}
+/* ---- end of Voidfall's masteries (v430) ---- */
+/* ================= Grim Harvest's masteries (v431), designed with the framework (MASTERY_DESIGN.md) =================
+   Identity: a death god rises ahead of the strongest foe, reaps the road with two sweeps of his scythe, and sends the souls he takes back
+   to the hero. Design space: his scythe (what a reaper does to the dying), the souls (they circled him and flew home, mostly looks), the
+   Wither he leaves, the hero who receives the souls, and the mark he came for.
+   - M1 Culling Edge (the scythe; behaviour change: 'what if the reaper did what reapers do?'): a foe the scythe leaves under GHM.cull of
+     its health (not a boss) is reaped outright, its soul torn up out of it; a boss the scythe touches takes GHM.cullB more instead.
+   - M2 Soul Swarm (the souls; cosmetic made real: 'what if the souls he took fought for him?'): every foe the first sweep reaps leaves a
+     soul circling the reaper (up to GHM.swarmN); on the backhand they hurl out with the blade at the foes in reach, GHM.swarm each.
+   - M3 Creeping Wither (the Wither; coverage and an interaction: 'what if the rot spread?'): a foe that dies while withering in his clouds
+     bursts into a new cloud of Wither where it falls (radius GHM.cR, the same rot), so the clouds creep after the pack (up to GHM.cMax
+     a cast).
+   - M4 Borrowed Time (the hero; an interaction with the player's other scrolls: 'what if the souls were not only time but power?'):
+     each soul that reaches the hero stays with it, circling it, and the next other scroll it casts is GHM.bt stronger for each (up to
+     GHM.btMax souls); the souls dive into that cast. They wait GHM.btT s.
+   - M5 Final Toll (the mark; a signature payoff with anticipation: 'what if death came for the strongest himself?'): after the backhand a
+     great skeletal hand rises from the dark under his mark (or the strongest foe left in reach), closes round it and holds it (GHM.tollHold
+     s, Resolve applies), then tears its soul out: GHM.toll to it, and the soul bursts into GHM.tollN shards that strike the foes around
+     for GHM.tollS each.
+   Hooks: SMF.harvest.hit (each reap), .cast (after the base cast); a wrapper on nsReaper (to know where he stands), on nsWitherCloud (to
+   know his clouds), on kill (Creeping Wither) and on castScrollNow (Borrowed Time). GHM.dbg (an array) logs the events for the tests. */
+const GHM={dbg:null,RP:null,S1:1.64,S2:2.56,
+  cull:.15,cullB:.25,
+  swarm:.4,swarmN:8,
+  cR:1.3,cMax:6,cP:1,
+  bt:.04,btMax:10,btT:20,
+  toll:3,tollS:.6,tollN:6,tollR:3.5,tollAt:2.95,tollHold:1.3,tollTear:1.15};
+const ghmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='harvest'?c:null;};
+const ghmLog=d=>{if(GHM.dbg){d.t=time;GHM.dbg.push(d);}};
+SM_D.harvest=[
+  {n:'Culling Edge',d:'A foe the scythe leaves under 15% of its health is reaped outright, its soul torn out of it. Bosses take {25}% more from the scythe instead.'},
+  {n:'Soul Swarm',d:'Every foe the first sweep reaps leaves a soul circling the reaper; on the backhand they hurl out at the foes in reach, {40}% each.'},
+  {n:'Creeping Wither',d:'A foe that dies withering in his clouds bursts into a new cloud of Wither where it falls ({60}% a second), so the rot creeps after the pack.'},
+  {n:'Borrowed Time',d:'Each soul that reaches the hero stays with it: the next other scroll it casts is {4}% stronger for each (up to 10 souls).'},
+  {n:'Final Toll',d:'A great skeletal hand rises under his mark, holds it 1.3s (Resolve applies) and tears its soul out: {300}% to it, and the soul bursts into 6 shards for {60}% each.'}];
+SMF.harvest={m:1,
+  hit(c,e,amt,o){const S=c.ghm;if(!S||o.ghm)return;const L=c.L,A5=c.a,sw=S.tt<2.1?1:2;
+    if(L>=1&&!e.dead){if(e.boss){hurt(e,amt*GHM.cullB*A5[0],'magic',smO(c.o,{ghm:1}));}else if(!e.fake&&e.hp<=(e.maxHp||e.hp)*GHM.cull){const p=tpos2(e);ghmLog({ev:'cull',e,hp:e.hp,max:e.maxHp});hurt(e,e.hp*10+1e7,'magic',smO(c.o,{ghm:1}));ghmRip(p.x,p.y,p.z);}}
+    if(L>=2&&sw===1&&S.souls.length<GHM.swarmN&&S.at){const p=tpos2(e);S.souls.push(ghmWisp(S,p));}
+    if(L>=4&&c.t&&c.t.x!=null){const t=c.t;mxLater(1.2,()=>ghmBorrow(t,c));}},
+  cast(c){const S={tt:0,souls:[],at:null,clouds:0,toll:false};c.ghm=S;const L=c.L,A5=c.a,RP=GHM.RP;GHM.RP=null;
+    if(RP&&RP.g)S.at={x:RP.g.position.x,z:RP.g.position.z};
+    const cands=(c.list||[]).filter(e=>!e.dead&&!e.fake),all=enemies.filter(e=>!e.dead&&!e.fake),pool=cands.length?cands:all;S.mark=pool.length?pool.reduce((b,e)=>nsStrong(e)>nsStrong(b)?e:b):null;
+    ghmLog({ev:'cast',L,at:S.at});
+    addFx(new THREE.Group(),5.2,(f,dt)=>{S.tt+=dt;if(state!=='playing')return;
+      if(L>=2&&!S.flung&&S.tt>=GHM.S2){S.flung=true;const pool2=S.at?smNear(S.at.x,S.at.z,4.3+1,null,12):[];let n=0;
+        S.souls.forEach((w,i)=>{const q=pool2.length?pool2[i%pool2.length]:null;w.fling(q,()=>{if(q&&!q.dead){hurt(q,c.P*GHM.swarm*A5[1],'magic',smO(c.o,{ghm:1}));n++;}});});ghmLog({ev:'swarm',n:S.souls.length});}
+      if(L>=5&&!S.toll&&S.tt>=GHM.tollAt){S.toll=true;let m=S.mark&&!S.mark.dead?S.mark:null;
+        if(!m&&S.at){let bs=-1;for(const e of enemies){if(e.dead||e.fake)continue;const d=Math.hypot(e.x-S.at.x,e.z-S.at.z);if(d>4.3+1.5)continue;const sc=nsStrong(e)-d*.001;if(sc>bs){bs=sc;m=e;}}}
+        if(!m){const live=enemies.filter(e=>!e.dead&&!e.fake);if(live.length)m=live.reduce((b,e)=>nsStrong(e)>nsStrong(b)?e:b);}
+        if(m)ghmToll(m,c);}});}};
+SMA.harvest=[1,1,1,1,1];
+SMG.harvest=[1.12,1.255,1.33,1.48,1.46];
+
+/* shared: a soul wisp (a white heart, a violet halo, a ribbon trail) */
+function ghmWispMesh(mats){const g=smTag(new THREE.Group());g.add(new THREE.Mesh(ico(.05,1),NS_WHITE));const h=new THREE.Mesh(ico(.07,1),haloMat(0xb070ff));g.add(h);const tr=nsTrail(mats,[[0x6a2aaa,.35,.06],[0xe0c8ff,.7,.022]]);return{g,tr};}
+/* M2: a soul circling the reaper, then flung at a foe */
+function ghmWisp(S,p){const mats=[],W=ghmWispMesh(mats),g=W.g,tr=W.tr;scene.add(g);g.position.set(p.x,p.y,p.z);const i=S.souls.length,ph=i/GHM.swarmN*6.28,by=gy(S.at.x,S.at.z);let mode=0,tt=0,q=null,cb=null,A=null,C=null,T0=0;
+  const api={fling(e,fn){q=e;cb=fn;mode=2;T0=tt;A=g.position.clone();const E=q&&!q.dead?tpos2(q):smV(S.at.x+Math.sin(ph)*3,by+.2,S.at.z+Math.cos(ph)*3);C=smV((A.x+E.x)/2,Math.max(A.y,E.y)+.9,(A.z+E.z)/2);}};
+  addFx(g,4,(f,dt)=>{tt+=dt;if(mode<2){const a=ph+tt*2.6,r=1.15+.15*Math.sin(tt*3+i),y=by+1.25+Math.sin(tt*2.2+i)*.25,X=S.at.x+Math.sin(a)*r,Z=S.at.z+Math.cos(a)*r,k=Math.min(1,tt/.45);
+      g.position.set(g.position.x+(X-g.position.x)*Math.min(1,dt*(2+8*k)),g.position.y+(y-g.position.y)*Math.min(1,dt*(2+8*k)),g.position.z+(Z-g.position.z)*Math.min(1,dt*(2+8*k)));}
+    else{const k=Math.min(1,(tt-T0)/.32),E=q&&!q.dead?tpos2(q):null;if(E){const ke=k*k;g.position.set((1-ke)*(1-ke)*A.x+2*(1-ke)*ke*C.x+ke*ke*E.x,(1-ke)*(1-ke)*A.y+2*(1-ke)*ke*C.y+ke*ke*E.y,(1-ke)*(1-ke)*A.z+2*(1-ke)*ke*C.z+ke*ke*E.z);}
+      if(k>=1&&mode===2){mode=3;cb&&cb();const P2=g.position;ghmBurst(P2.x,P2.y,P2.z,.7);f.life=Math.min(f.life,.2);g.visible=false;}}
+    tr.push(g.position,mode===2?16:10);tr.draw(1);tr.fade(Math.min(1,f.life/.2));if(rnd()<.5)emit(1,{x:g.position.x,y:g.position.y,z:g.position.z,vx:(rnd()-.5)*.2,vy:.1,vz:(rnd()-.5)*.2,s:.05,s2:0,c:0xe0c0ff,c2:0x5a1aa0,life:.35});},
+    ()=>{tr.free();},{mats});
+  return api;}
+/* a burst of soul fire with body: violet-white flames licking up, a dark billow, splinters of light */
+function ghmBurst(x,y,z,S){if(typeof cfmBoom==='function')cfmBoom(x,y,z,.26*S,{pal:'void',T:.5,lobes:3,ground:false});flash(x,y,z,0xc890ff,.35*S,.12);
+  for(let i=0;i<Math.round(10*S);i++){const a=rnd()*6.28,el=rnd()*1.2;emit(1,{x,y,z,vx:Math.cos(a)*Math.cos(el)*2*S,vy:Math.sin(el)*2.4*S+.4,vz:Math.sin(a)*Math.cos(el)*2*S,s:.05,s2:0,c:0xf4e8ff,c2:0x6a20c0,life:.45,drag:1.8});}}
+/* M1: the soul torn up out of a culled foe: a pale shape stretched upward, writhing, then gone */
+function ghmRip(x,y,z){const mats=[],g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);const bm=new THREE.MeshBasicMaterial({color:0xc8b4f0,transparent:true,opacity:.5,depthWrite:false,side:THREE.DoubleSide}),hm=nsAM(mats,0x6a2ad0,.22);mats.push(bm);
+  const bodyG=new THREE.ConeGeometry(.16,.7,10,1,true);bodyG.rotateX(Math.PI);bodyG.translate(0,.25,0);const body=new THREE.Mesh(bodyG,bm),head=new THREE.Mesh(ico(.11,2),bm),hal=new THREE.Mesh(ico(.2,1),hm);head.position.y=.68;g.add(body,head,hal);
+  const arms=[-1,1].map(s=>{const a=new THREE.Mesh(new THREE.ConeGeometry(.04,.4,6,1,true),bm);a.position.set(s*.16,.45,0);a.rotation.z=s*-.6;g.add(a);return a;});let tt=0;
+  for(let i=0;i<6;i++){const a=rnd()*6.28;emitS(0,{x:x+Math.cos(a)*.15,y,z:z+Math.sin(a)*.15,vx:Math.cos(a)*.6,vy:.4+rnd()*.5,vz:Math.sin(a)*.6,s:.16,s2:.5,c:0x1a0e24,c2:0x0a0610,a:.5,life:.9,turb:.4});}
+  ghmBurst(x,y,z,.8);
+  addFx(g,.9,(f,dt)=>{tt+=dt;const k=tt/.9;g.position.y=y+k*1.6+Math.sin(tt*14)*.02;g.scale.set(1-.4*k+.08*Math.sin(tt*20),1+1.2*k,1-.4*k+.08*Math.cos(tt*17));g.rotation.y+=dt*4;
+    arms.forEach((a,i)=>a.rotation.z=(i?-1:1)*(-.6-.9*Math.sin(tt*9+i)));bm.opacity=.5*(1-k);hm.opacity=.22*(1-k);if(rnd()<.8)emit(1,{x:x+(rnd()-.5)*.2,y:g.position.y+rnd()*.6,z:z+(rnd()-.5)*.2,vx:0,vy:-.4,vz:0,s:.04,s2:0,c:0xe0c8ff,c2:0x4a10a0,life:.4});},
+    null,{mats,geos:[bodyG,...arms.map(a=>a.geometry)]});}
+
+/* M3: the clouds he leaves, and the new ones that creep from the dead */
+const GHM_CLOUD=[];
+{const w0=nsWitherCloud;nsWitherCloud=function(bx,bz,by,fc,R,HALF,P,o){const r=w0.apply(this,arguments);const c=ghmC(o);if(c&&c.L>=3)GHM_CLOUD.push({x:bx,z:bz,R,until:time+5.4,c});return r;};}
+{const k0=kill;kill=function(e,src){const was=!!e&&!e.dead,w=e&&e.wither,wx=e&&e.x,wz=e&&e.z;const r=k0.apply(this,arguments);
+  if(was&&e.dead&&w&&w.t>0&&w.o&&w.o.spell==='harvest'&&GHM_CLOUD.length){for(let i=GHM_CLOUD.length-1;i>=0;i--)if(GHM_CLOUD[i].until<time)GHM_CLOUD.splice(i,1);
+    let C=null;for(let i=GHM_CLOUD.length-1;i>=0;i--){const q=GHM_CLOUD[i];if((wx-q.x)**2+(wz-q.z)**2<(q.R+.8)**2&&q.c.ghm&&q.c.ghm.clouds<GHM.cMax){C=q;break;}}if(C){const c=C.c,S=c.ghm;if(S&&S.clouds<GHM.cMax&&state==='playing'){S.clouds++;ghmLog({ev:'creep',x:wx,z:wz});ghmSpore(wx,wz);
+      nsWitherCloud(wx,wz,gy(wx,wz),0,GHM.cR,Math.PI,c.P*GHM.cP*c.a[2],c.o);}}}
+  return r;};}
+/* the corpse bursting into rot: a green-black billow, spores, a soul mote */
+function ghmSpore(x,z){const y=gy(x,z)+.25;if(typeof cfmBoom==='function')cfmBoom(x,y,z,.3,{pal:'void',T:.6,lobes:3,ground:false});
+  for(let i=0;i<9;i++){const a=rnd()*6.28;emitS(0,{x:x+Math.cos(a)*.15,y,z:z+Math.sin(a)*.15,vx:Math.cos(a)*.9,vy:.35+rnd()*.5,vz:Math.sin(a)*.9,s:.25,s2:.8,c:rnd()<.6?0x1e3a1a:0x2a1438,c2:0x060806,a:.45,life:1.4,lift:.1,turb:.5,drag:1.2});}
+  for(let i=0;i<14;i++){const a=rnd()*6.28;emit(0,{x,y,z,vx:Math.cos(a)*(.6+rnd()),vy:.8+rnd()*1.2,vz:Math.sin(a)*(.6+rnd()),s:.05,s2:.02,c:0x7ab84a,c2:0x1a2a10,a:.8,life:.8,g:1.5});}}
+
+/* M4: souls that stay with the hero until its next other scroll */
+const GHM_BT=new Map();
+function ghmBorrow(t,c){if(state!=='playing'||!t||t.x==null)return;let B=GHM_BT.get(t);if(!B||!B.g.parent){B={n:0,v:0,until:0,g:smTag(new THREE.Group()),w:[],t};scene.add(B.g);GHM_BT.set(t,B);ghmBtFx(B);}
+  if(B.n>=GHM.btMax){B.until=time+GHM.btT;return;}B.n++;B.v+=GHM.bt*c.a[3];B.until=time+GHM.btT;const mats=[],W=ghmWispMesh(mats);B.g.add(W.g);W.g.scale.setScalar(.7);B.w.push({g:W.g,mats,ph:B.w.length/GHM.btMax*6.28});ghmLog({ev:'borrow',n:B.n});}
+function ghmBtFx(B){let tt=0;addFx(B.g,1e5,(f,dt)=>{tt+=dt;const t=B.t;if(!t||t.x==null||time>B.until||B.spent||(typeof heroU!=='undefined'&&t===heroU&&t.dead)){f.life=0;return;}
+  B.g.position.set(t.x,(t.topY||1)+.25,t.z);B.w.forEach((w,i)=>{const a=w.ph+tt*2.2,r=.42+.05*Math.sin(tt*3+i);w.g.position.set(Math.sin(a)*r,Math.sin(tt*2.6+i*1.3)*.12,Math.cos(a)*r);});
+  if(rnd()<dt*B.n*2){const w=B.w[Math.floor(rnd()*B.w.length)];if(w){const p=w.g.getWorldPosition(smV(0,0,0));emit(1,{x:p.x,y:p.y,z:p.z,vx:0,vy:.15,vz:0,s:.04,s2:0,c:0xe0c0ff,c2:0x5a1aa0,life:.35});}}},
+  ()=>{if(GHM_BT.get(B.t)===B)GHM_BT.delete(B.t);B.w.forEach(w=>w.mats.forEach(m=>m.dispose()));});}
+function ghmSpend(B,t){B.spent=true;GHM_BT.delete(t);const p=smV(t.x,(t.topY||1)+.25,t.z);
+  B.w.forEach((w,i)=>{const a=w.g.getWorldPosition(smV(0,0,0));emit(1,{x:a.x,y:a.y,z:a.z,vx:(p.x-a.x)*4,vy:1.6,vz:(p.z-a.z)*4,s:.07,s2:0,c:0xf4e8ff,c2:0x6a20c0,life:.35});});
+  ghmBurst(p.x,p.y,p.z,.6+B.n*.05);for(let i=0;i<10;i++)emit(1,{x:t.x+(rnd()-.5)*.3,y:p.y,z:t.z+(rnd()-.5)*.3,vx:0,vy:1.5+rnd()*1.5,vz:0,s:.05,s2:0,c:0xe8d0ff,c2:0x5a1aa0,life:.5});}
+{const c0=castScrollNow;castScrollNow=function(k,t,s,list,P,o){if(k!=='harvest'&&t&&GHM_BT.size){const B=GHM_BT.get(t);if(B&&!B.spent&&B.n>0&&time<=B.until){const v=B.v;P*=1+v;ghmLog({ev:'spend',k,v});ghmSpend(B,t);}}
+  return c0.call(this,k,t,s,list,P,o);};}
+
+/* M5: the hand from below: five long finger bones rise out of the ground in a ring round the foe and curl in over it like a cage; a ring
+   of knuckles and the dark it climbs out of mark the palm under the earth */
+function ghmHandKit(){if(GHM.HK)return GHM.HK;const K={bone:new THREE.MeshPhongMaterial({color:0xd8ccb2,emissive:0x2a1040,emissiveIntensity:.45,specular:0x9a8ab0,shininess:26,flatShading:true}),
+    seg:new THREE.CylinderGeometry(.75,1,1,6),knuckle:new THREE.IcosahedronGeometry(1,1),claw:new THREE.ConeGeometry(1,1,5)};K.seg.translate(0,.5,0);K.claw.translate(0,.5,0);return GHM.HK=K;}
+function ghmHand(S){const K=ghmHandKit(),g=new THREE.Group(),F=[],r=.3*S,L=[[.24,.17,.13],[.27,.19,.15],[.28,.2,.15],[.25,.18,.14],[.19,.14,.11]],W=[.032,.034,.034,.032,.036];
+  for(let f=0;f<5;f++){const a=f/5*6.28+(f===4?.35:0),par=new THREE.Group();par.position.set(Math.cos(a)*r,0,Math.sin(a)*r);par.rotation.y=Math.atan2(-Math.cos(a),-Math.sin(a));g.add(par);const J=[];let up=par;
+    for(let n=0;n<3;n++){const j=new THREE.Group();if(n)j.position.y=L[f][n-1]*S;up.add(j);const w=W[f]*S*(1-n*.18),b=new THREE.Mesh(K.seg,K.bone);b.scale.set(w,L[f][n]*S*.92,w);j.add(b);
+      const kn=new THREE.Mesh(K.knuckle,K.bone);kn.scale.setScalar(w*1.35);j.add(kn);J.push(j);up=j;}
+    const cl=new THREE.Mesh(K.claw,K.bone);cl.position.y=L[f][2]*S*.92;cl.scale.set(W[f]*S*.55,.1*S,W[f]*S*.55);J[2].add(cl);F.push(J);}
+  /* the knuckle ring at the ground (the top of the palm) */
+  for(let i=0;i<9;i++){const a=i/9*6.28,kn=new THREE.Mesh(K.knuckle,K.bone);kn.position.set(Math.cos(a)*r*.75,.01,Math.sin(a)*r*.75);kn.scale.set(.05*S,.03*S,.05*S);g.add(kn);}
+  return{g,curl(k,open){F.forEach((J,f)=>J.forEach((j,n)=>{j.rotation.x=-.32*(1-k)+k*(n?.62:.38)-(open||0)*(n?.28:.16);}));}};}
+function ghmToll(e,c){const L=c.L,A5=c.a,mats=[],geos=[],x0=e.x,z0=e.z,y0=gy(x0,z0),HS=Math.max(.9,Math.min(2,(e.hitY||.45)/.45))*(e.boss?1.3:1),H=ghmHand(HS),g=smTag(H.g),root=smTag(new THREE.Group());root.add(g);scene.add(root);
+  const pool=nsDecal(x0,z0,.75,0x0a0410,0,3,{manual:true});const seams=nsSeams(x0,z0,1.1,7,0xb060ff,0x0a0414,mats,geos,.04);
+  const held=smStun(e,GHM.tollHold);ghmLog({ev:'toll',e,held});let tt=0,torn=false;
+  addFx(root,2.4,(f,dt)=>{tt+=dt;const q=e.dead?{x:x0,y:y0,z:z0}:tpos2(e),bx=e.dead?x0:e.x,bz=e.dead?z0:e.z,by=gy(bx,bz);
+    const rise=SMS(tt,.05,.45),grip=SMS(tt,.4,.62),yank=SMS(tt,GHM.tollTear,GHM.tollTear+.12),sink=SMS(tt,1.5,2.2);
+    root.position.set(bx,by-.95*HS*(1-rise)-.95*HS*sink+.08*yank*(1-sink),bz);g.rotation.y=tt*.25;H.curl(grip*(1-.5*yank),yank*.6*(1-sink));
+    if(pool.material)pool.material.opacity=.7*Math.min(1,tt/.25)*(1-sink);seams.grow(rise);seams.op(.6*(1-sink),.85*(1-sink));
+    if(tt<.6&&rnd()<.9){const a=rnd()*6.28,r=.3+rnd()*.5;emitS(0,{x:bx+Math.cos(a)*r,y:by+.05,z:bz+Math.sin(a)*r,vx:Math.cos(a)*.3,vy:.5+rnd()*.5,vz:Math.sin(a)*.3,s:.2,s2:.6,c:0x1a0e24,c2:0x0a0610,a:.45,life:1,turb:.4});}
+    if(grip>.5&&tt<GHM.tollTear&&rnd()<.7)emit(1,{x:q.x+(rnd()-.5)*.3,y:q.y+(rnd()-.5)*.3,z:q.z+(rnd()-.5)*.3,vx:0,vy:-.6,vz:0,s:.04,s2:0,c:0xd0a0ff,c2:0x3a0a6a,life:.3});
+    if(!torn&&tt>=GHM.tollTear){torn=true;if(!e.dead)hurt(e,c.P*GHM.toll*A5[4],'magic',smO(c.o,{ghm:1}));ghmRip(q.x,q.y,q.z);camShake=Math.max(camShake,.12);flash(q.x,q.y+.3,q.z,0xe0c0ff,.5,.16);
+      const near=smNear(q.x,q.z,GHM.tollR,e.dead?null:e,GHM.tollN);let n=0;for(let i=0;i<GHM.tollN&&near.length;i++){const t2=near[i%near.length];n++;ghmShard(smV(q.x,q.y+.9,q.z),t2,c.P*GHM.tollS*A5[4],c.o,i);}ghmLog({ev:'tear',n});}},
+    ()=>{seams.free();if(pool.parent)nsFree(pool);},{mats,geos});}
+/* a shard of the torn soul arcing onto a foe */
+function ghmShard(A,e,dmg,o,i){const mats=[],W=ghmWispMesh(mats),g=W.g,tr=W.tr;scene.add(g);g.position.copy(A);const a=i/GHM.tollN*6.28,C=smV(A.x+Math.cos(a)*1.3,A.y+1,A.z+Math.sin(a)*1.3);let tt=0,done=false;
+  addFx(g,.62,(f,dt)=>{tt+=dt;const k=Math.min(1,tt/.5),ke=k*k*(3-2*k),E=e.dead?C:tpos2(e);g.position.set((1-ke)*(1-ke)*A.x+2*(1-ke)*ke*C.x+ke*ke*E.x,(1-ke)*(1-ke)*A.y+2*(1-ke)*ke*C.y+ke*ke*E.y,(1-ke)*(1-ke)*A.z+2*(1-ke)*ke*C.z+ke*ke*E.z);
+    tr.push(g.position,14);tr.draw(1);tr.fade(1);if(k>=1&&!done){done=true;g.visible=false;if(!e.dead)hurt(e,dmg,'magic',smO(o,{ghm:1}));ghmBurst(E.x,E.y,E.z,.6);}},()=>{tr.free();},{mats});}
+/* where he stands: the reaper's group from the base cast */
+{const r0=nsReaper;nsReaper=function(){const R=r0.apply(this,arguments);GHM.RP=R;return R;};}
+/* a new world: no clouds, souls or hollows carry over */
+{const cw0=clearWorld;clearWorld=function(){GHM_CLOUD.length=0;GHM_BT.clear();if(typeof VFM_HOL!=='undefined')VFM_HOL.clear();return cw0.apply(this,arguments);};}
+/* ---- end of Grim Harvest's masteries (v431) ---- */
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
