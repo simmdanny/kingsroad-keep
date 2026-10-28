@@ -35,9 +35,9 @@ try{
   /* ---- v405: the patch notes start afresh (masteries-2), short: only the Common and Uncommon mastery reworks ---- */
   {const NS=SCROLL_IDS.filter(k=>/^(common|uncommon)$/.test(SPELLS_S[k].r)&&SM_D[k]&&!SPELLS_S[k].ev),miss=NS.filter(k=>!NOTES_HTML.includes(SPELLS_S[k].n));
     ok('new patch notes (masteries-2) name every Common and Uncommon scroll',NOTES_V==='masteries-2'&&NS.length>=22&&!miss.length,NS.length+' scrolls; missing: '+miss.join(', '));
-    ok('and nothing else: no mastery-by-mastery text, no older sections',!/\(Mastery \d\)/.test(NOTES_HTML)&&(NOTES_HTML.match(/<h3>/g)||[]).length===1&&NOTES_HTML.length<1500,NOTES_HTML.length+' chars');
+    {const MS=NOTES_HTML.slice(NOTES_HTML.indexOf('Scroll masteries reworked'));ok('and short: no mastery-by-mastery text, no older sections after it',!/\(Mastery \d\)/.test(NOTES_HTML)&&!/<h3>/.test(MS)&&MS.length<1500,MS.length+' chars');}
     ok('they say the Uncommon masteries are open to everyone',/Uncommon masteries are open to everyone/.test(NOTES_HTML));
-    ok('the changelog keeps the history, with this update on top',CLOG[0].v==='v405'&&CLOG.some(c=>c.v==='v404')&&CLOG.some(c=>c.v==='v375'),CLOG[0].v);
+    ok('the changelog keeps the history, with this update in it',CLOG.some(c=>c.v==='v405')&&CLOG.some(c=>c.v==='v404')&&CLOG.some(c=>c.v==='v375'),CLOG[0].v);
     meta.notesSeen='masteries-1';showNotes();const np=document.getElementById('notesPop');
     ok('a player who saw the old notes gets the new ones once',!!np&&np.classList.contains('on')&&np.textContent.includes('Scroll masteries reworked'));
     if(np){np.querySelector('.np-ok').click();ok('and not again',meta.notesSeen==='masteries-2'&&(showNotes(),!np.classList.contains('on')));}}

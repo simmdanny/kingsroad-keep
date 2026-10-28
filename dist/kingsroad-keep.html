@@ -14132,6 +14132,10 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'The Hall of Champions, and profiles',d:'28 Oct',v:'v406',li:[
+    'A leaderboard for you and your friends: the gold trophy on the land card opens it. The best wave on every land, a podium for the top three and everyone else below.',
+    'Carve your name in once; every new best wave goes up by itself. Passing a friend shows a toast, and the last board stays readable offline. Runs in developer mode never count.',
+    'Profiles: tap your portrait at the top left of the home screen. Pick a portrait (a Knight or a Mage, drawn from the game\'s own models), rename your account and see your records and Hall ranks. Your name and portrait are the ones on the Hall.']},
   {t:'Uncommon masteries for everyone',d:'28 Oct',v:'v405',li:[
     'The Uncommon scrolls now earn mastery XP and use their masteries in every game, not only in developer mode. Scrolls above Uncommon come later.',
     'The patch notes start afresh: just the Common and Uncommon mastery reworks, in short.']},
@@ -25421,6 +25425,348 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
   const S={t,e,len,dmg,C,P:C.P,L:C.L,a:C.a,o:smO(o),o0:o,hits:[]};C.bem=S;bemLog({ev:'cast',L:C.L});
   if(C.L>=5){bemStar(S);mxLater(BEM.raT0,()=>{if(state==='playing')bemFire(S,true);});}
   else bemFire(S,false);};
+/* ================= v406 (Simon): the friends leaderboard, the Hall of Champions =================
+   Simon: "is it possible to add a leaderboard? without the need of servers? ... I want it implemented directly in the game, its whats gonna
+   give it a bit of a character, and its JUST for my friends so no cheating". A live board of the best wave on each land (meta.bestA), kept
+   in Simon's free Firebase Realtime Database through its REST API (no SDK, no sign-in): GET LB.url/lb.json reads every land at once and
+   PATCH LB.url/lb.json writes this account's entries ({"plains/<id>":{n,w,t}}). The database rules let anyone read /lb and write one
+   player's entry (n a string of at most 20, w a number); it is only for friends, so nothing checks a score.
+   - meta.lb {id,on,sent,sentN,sentI}: the account's board id (random), whether it has joined, and what was last sent (the wave on each land,
+     the name, the portrait). The name on the board is the account's name (meta.acct.n, set in the profile or More > Accounts) and the
+     portrait is the profile's (meta.prof.icon). meta.lb lives in meta, so it travels with the account's save code, and it is not one of
+     DEV_KEYS, so developer mode leaves it alone.
+   - A new best wave goes up within LB.gap seconds, and at once when the keep falls; runs in developer mode never count.
+   - The last board read is kept on the device (LB.ck) and shown when offline. LB.fetch is the network call (the tests swap in a fake).
+   - The Hall: a trophy on the land card (Battle tab) opens it. A tab per land, a podium for the top 3, everyone else below; your own row
+     glows. Passing a friend on a land shows a toast. */
+const LB={url:'https://leaderboard-b4f46-default-rtdb.europe-west1.firebasedatabase.app',ck:'kingsroad.lb',gap:30,to:8000,max:20,busy:false,t:0,timer:0,data:null,at:0,err:'',tab:null,load:false,edit:false,anim:true,
+  fetch:(u,o)=>fetch(u,o)};
+const LB_SHORT={plains:'Kingsroad',snow:'Frostvale',tundra:'Tundra',whitewaste:'Whitewaste',taiga:'Taiga'};
+const LB_CUP='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 2.5h10V4h3.2v2.6a4.6 4.6 0 0 1-4.3 4.6 5.6 5.6 0 0 1-3.1 3.2V17H16v2.2H8V17h3.2v-2.6a5.6 5.6 0 0 1-3.1-3.2 4.6 4.6 0 0 1-4.3-4.6V4H7V2.5zM5.6 5.8v.8a2.8 2.8 0 0 0 1.8 2.6c-.2-.7-.4-1.5-.4-2.3V5.8H5.6zm11.4 0v1.1c0 .8-.1 1.6-.4 2.3a2.8 2.8 0 0 0 1.8-2.6v-.8H17zM6.5 20.2h11v1.6h-11z"/></svg>';
+function lbEsc(v){return String(v).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'})[c]);}
+function lbClean(s){return String(s==null?'':s).replace(/[\u0000-\u001f\u007f<>]/g,'').replace(/\s+/g,' ').trim().slice(0,LB.max);}
+function lbLands(){return Object.keys(ARENAS).filter(k=>!ARENAS[k].soon);}
+function lbMe(){let m=meta.lb;if(!m||typeof m!=='object')m=meta.lb={};let ch=false;
+  if(typeof m.id!=='string'||!/^[a-z0-9]{6,24}$/.test(m.id)){m.id='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);ch=true;}
+  /* the first build kept its own name (m.n): it becomes the account's name, unless that was already chosen */
+  if(typeof m.n==='string'){if(m.n&&!m.on){m.on=true;const A=acctId();if(/^Account \d+$/.test(A.n))A.n=m.n;}delete m.n;ch=true;}
+  m.on=!!m.on;if(!m.sent||typeof m.sent!=='object')m.sent={};if(ch)saveMeta();return m;}
+function lbName(){return lbClean(acctId().n)||'Player';}
+function lbIcon(){return typeof profIcon==='function'?profIcon():'';}
+/* whatever comes back from the database is checked before it is shown */
+function lbSane(d){const o={};if(!d||typeof d!=='object')return o;
+  for(const k of lbLands()){const L=d[k];if(!L||typeof L!=='object')continue;const q={};
+    for(const id in L){const e=L[id];if(!e||typeof e!=='object'||!/^[A-Za-z0-9_-]{1,40}$/.test(id))continue;const n=lbClean(e.n),w=Math.floor(+e.w);
+      if(!n||!isFinite(w)||w<1)continue;q[id]={n,w:Math.min(w,1e7),t:isFinite(+e.t)?+e.t:0,i:typeof e.i==='string'&&/^[a-z]{1,16}$/.test(e.i)?e.i:''};}
+    o[k]=q;}
+  return o;}
+function lbCache(){if(!LB.data){const c=lsGet(LB.ck);if(c&&c.d){LB.data=lbSane(c.d);LB.at=+c.at||0;}}return LB.data;}
+/* a land's board, best first; a tie goes to whoever reached it first */
+function lbList(k){const L=(lbCache()||{})[k]||{};return Object.keys(L).map(id=>Object.assign({id},L[id])).sort((a,b)=>b.w-a.w||a.t-b.t||(a.id<b.id?-1:1));}
+function lbRank(k){const me=lbMe(),L=lbList(k),i=L.findIndex(e=>e.id===me.id);return{r:i+1,of:L.length,list:L};}
+async function lbReq(method,body){if(!LB.url)throw new Error('not connected');
+  const ctl=typeof AbortController!=='undefined'?new AbortController():null,tm=setTimeout(()=>{if(ctl)ctl.abort();},LB.to);
+  try{const o={method,cache:'no-store'};if(ctl)o.signal=ctl.signal;if(body!==undefined)o.body=JSON.stringify(body);
+    const r=await LB.fetch(LB.url.replace(/\/+$/,'')+'/lb.json',o);if(!r||!r.ok)throw new Error('HTTP '+(r?r.status:'?'));return await r.json();}
+  finally{clearTimeout(tm);}}
+async function lbPull(){LB.load=true;try{const d=await lbReq('GET');LB.data=lbSane(d);LB.at=Date.now();LB.err='';lsSet(LB.ck,{d:LB.data,at:LB.at});return LB.data;}
+  catch(e){LB.err=String(e&&e.message||e);throw e;}finally{LB.load=false;}}
+/* send this account's best waves that the board does not have yet (all of them after a new name) */
+async function lbPush(){const me=lbMe();if(!LB.url||!me.on||meta.dev||LB.busy)return false;const up={},due=[],n=lbName(),ic=lbIcon();LB.t=Date.now();
+  for(const k of lbLands()){const w=arenaBest(k);if(w>0&&(me.sent[k]!==w||me.sentN!==n||me.sentI!==ic)){up[k+'/'+me.id]={n,w,t:{'.sv':'timestamp'},i:ic};due.push([k,w]);}}
+  if(!due.length)return false;LB.busy=true;
+  try{await lbReq('PATCH',up);for(const [k,w] of due)me.sent[k]=w;me.sentN=n;me.sentI=ic;saveMeta();
+    const D=lbCache()||(LB.data={});for(const [k,w] of due){const L=D[k]||(D[k]={});L[me.id]={n,w,t:(L[me.id]&&L[me.id].w===w&&L[me.id].t)||Date.now(),i:ic};}
+    lsSet(LB.ck,{d:D,at:LB.at});return true;}
+  catch(e){LB.err=String(e&&e.message||e);return false;}finally{LB.busy=false;lbBadge();}}
+/* during a run: a new best goes up at most every LB.gap seconds */
+function lbSoon(){if(LB.timer)return;const wait=Math.max(0,LB.gap*1000-(Date.now()-LB.t));LB.timer=setTimeout(()=>{LB.timer=0;lbPush();},wait);}
+async function lbLeave(){const me=lbMe(),up={};for(const k of lbLands())up[k+'/'+me.id]=null;
+  if(LB.url){try{await lbReq('PATCH',up);}catch(e){LB.err=String(e&&e.message||e);toast('Could not reach the Hall. Try again when you are online.');return false;}}
+  me.on=false;me.sent={};delete me.sentN;delete me.sentI;saveMeta();const D=lbCache();if(D)for(const k in D)delete D[k][me.id];lsSet(LB.ck,D?{d:D,at:LB.at}:null);return true;}
+/* passing friends: who was above you before and is below you now */
+function lbPassed(k,before){const me=lbMe(),now=lbRank(k);if(!now.r)return null;const was=before.list.findIndex(e=>e.id===me.id)+1;
+  const above=new Set(before.list.slice(0,was?was-1:before.list.length).map(e=>e.id));const passed=now.list.slice(now.r).filter(e=>above.has(e.id));
+  return{r:now.r,of:now.of,first:!was,passed};}
+async function lbAfterRun(){const k=arenaNow(),me=lbMe();if(!LB.url||!me.on||meta.dev)return;const before=lbRank(k);
+  const sent=await lbPush();if(!sent)return;try{await lbPull();}catch(e){}const p=lbPassed(k,before);if(!p)return;const land=LB_SHORT[k]||ARENAS[k].n;
+  if(p.passed.length)toast(`Hall of Champions: you passed ${p.passed.slice(0,2).map(e=>e.n).join(' and ')}${p.passed.length>2?' and '+(p.passed.length-2)+' more':''} in ${land}! Now #${p.r}.`,'lvl');
+  else if(p.first)toast(`Hall of Champions: ${land} #${p.r} of ${p.of}, wave ${arenaBest(k)}.`,'lvl');}
+function lbAgo(t){if(!t)return'';const s=Math.max(0,(Date.now()-t)/1000);return s<90?'just now':s<3600?Math.round(s/60)+'m ago':s<86400?Math.round(s/3600)+'h ago':Math.round(s/86400)+'d ago';}
+
+/* ---- the trophy on the land card ---- */
+function lbBtn(){let b=document.getElementById('bHall');if(b)return b;const a=document.querySelector('[data-tab="battle"] .arena .arena-foot')||document.querySelector('[data-tab="battle"] .arena');if(!a)return null;
+  b=document.createElement('button');b.id='bHall';b.type='button';b.className='hall-btn';b.setAttribute('aria-label','Hall of Champions, the friends leaderboard');
+  b.innerHTML=LB_CUP+'<span>Hall</span><em hidden></em>';a.appendChild(b);b.addEventListener('click',()=>lbOpen());return b;}
+function lbBadge(){const b=lbBtn();if(!b)return;const em=b.querySelector('em'),me=lbMe();const r=me.on&&lbCache()?lbRank(arenaNow()).r:0;
+  em.hidden=!r;em.textContent=r?'#'+r:'';b.classList.toggle('top',r===1);}
+
+/* ---- the Hall ---- */
+function lbPod(L,me){const pl=[L[1],L[0],L[2]],cls=['p2','p1','p3'],num=[2,1,3];
+  return '<div class="lb-pod">'+pl.map((e,i)=>`<div class="lb-p ${cls[i]}${e&&e.id===me.id?' me':''}${e?'':' empty'}" style="--d:${[.12,0,.24][i]}s">
+    <div class="lb-who"><div class="lb-medal">${e?profFace(e.i):'<span class="pf-face lb-seat"></span>'}<b>${num[i]}</b>${i===1?'<i class="lb-crown"></i>':''}</div>
+      <div class="lb-pn">${e?lbEsc(e.n):'Open seat'}</div><div class="lb-pw">${e?'<b>'+fmt(e.w)+'</b><small>wave</small>':'<small>&mdash;</small>'}</div></div>
+    <div class="lb-col"><span>${['II','I','III'][i]}</span></div></div>`).join('')+'</div>';}
+function lbRows(L,me){if(L.length<=3)return'';return '<div class="lb-list">'+L.slice(3).map((e,i)=>`<div class="lb-row${e.id===me.id?' me':''}" style="--d:${.3+Math.min(i,10)*.04}s">
+    <b class="lb-r">${i+4}</b>${profFace(e.i,'lb-rf')}<span class="lb-rn">${lbEsc(e.n)}${e.id===me.id?' <i>you</i>':''}</span><span class="lb-rw"><b>${fmt(e.w)}</b> wave</span><small>${lbAgo(e.t)}</small></div>`).join('')+'</div>';}
+function lbBody(){const me=lbMe(),k=LB.tab;
+  if(!LB.url)return `<div class="lb-msg"><b>The Hall is not open yet</b><p>The leaderboard has no database yet. It opens in an update.</p></div>`;
+  if(!me.on)return `<div class="lb-join">${profFace(lbIcon(),'lb-jf')}<b>Carve your name into the Hall</b>
+      <p>Your best wave on every land is shown to your friends here, with your profile&rsquo;s name and portrait, and theirs to you. Runs in developer mode never count.</p>
+      <input id="lbName" maxlength="${LB.max}" autocomplete="off" spellcheck="false" placeholder="Your name" value="${lbEsc(/^Account \d+$/.test(acctId().n)?'':lbName())}">
+      <button class="np-ok lb-go" id="lbJoin">Join the Hall</button></div>`;
+  const D=lbCache();if(!D)return LB.load?'<div class="lb-msg lb-wait"><div class="lb-spin"></div><b>Unrolling the scrolls&hellip;</b></div>'
+    :`<div class="lb-msg"><b>Could not reach the Hall</b><p>Check your connection and try again.</p><button class="np-log" id="lbRetry">Try again</button></div>`;
+  const L=lbList(k);const off=LB.err&&!LB.load?`<div class="lb-off">Offline: the board as it was ${lbAgo(LB.at)||'before'}.</div>`:'';
+  if(!L.length)return off+`<div class="lb-msg"><b>No champions in ${lbEsc(ARENAS[k].n)} yet</b><p>Reach a wave here and the first seat is yours.</p></div>`;
+  return off+lbPod(L,me)+lbRows(L,me)+'<div class="lb-out"><button class="lb-link lb-leave" id="lbLeave">Leave the Hall</button></div>';}
+function lbFoot(){const me=lbMe();if(!LB.url||!me.on)return'';const k=LB.tab,r=lbRank(k),w=arenaBest(k);
+  return `<div class="lb-you">${profFace(lbIcon(),'lb-yf')}<span><b>${lbEsc(lbName())}</b>${meta.dev?'<small>Developer mode: these runs do not count</small>':r.r?`<small>#${r.r} of ${r.of} &middot; wave ${fmt(w)}</small>`:`<small>${w?'Wave '+fmt(w)+' &middot; not sent yet':'No wave here yet'}</small>`}</span>
+    <button class="lb-sm" id="lbProf">Profile</button><button class="lb-sm" id="lbRefresh" aria-label="Refresh"${LB.load?' disabled':''}>&#x21bb;</button></div>`;}
+function lbDraw(){const o=document.getElementById('lbPop');if(!o)return;const me=lbMe();
+  o.querySelector('.lb-tabs').innerHTML=(!LB.url||!me.on)?'':lbLands().map(k=>{const n=lbList(k).length;
+    return `<button class="lb-tab${k===LB.tab?' on':''}" data-lb="${k}">${LB_SHORT[k]||lbEsc(ARENAS[k].n)}${n?'<small>'+n+'</small>':''}</button>`;}).join('');
+  const b=o.querySelector('.lb-body');b.innerHTML=lbBody();b.classList.toggle('lb-anim',LB.anim);LB.anim=false;o.querySelector('.lb-foot').innerHTML=lbFoot();
+  const inp=document.getElementById('lbName');if(inp){inp.addEventListener('keydown',e=>{if(e.key==='Enter')lbJoin();});setTimeout(()=>{try{inp.focus();}catch(e){}},50);}
+  lbBadge();}
+async function lbJoin(){const inp=document.getElementById('lbName');const n=lbClean(inp?inp.value:'');if(!n){if(inp){inp.classList.remove('bad');void inp.offsetWidth;inp.classList.add('bad');}return;}
+  const me=lbMe(),A=acctId();A.n=n;me.on=true;saveMeta();if(typeof renderAccounts==='function')renderAccounts();if(typeof profSync==='function')profSync();
+  LB.anim=true;lbDraw();await lbPush();try{await lbPull();}catch(e){}LB.anim=true;lbDraw();}
+async function lbRefresh(){if(LB.load)return;const p=lbPull().catch(()=>{});lbDraw();await p;LB.anim=true;lbDraw();}
+function lbClose(){const o=document.getElementById('lbPop');if(o){o.classList.remove('on');setTimeout(()=>{if(!o.classList.contains('on'))o.remove();},220);}LB.edit=false;}
+function lbOpen(k){let o=document.getElementById('lbPop');if(!o){o=document.createElement('div');o.id='lbPop';document.body.appendChild(o);}
+  o.innerHTML=`<div class="lb-back"></div><div class="lb-card" role="dialog" aria-label="Hall of Champions"><div class="lb-top"><div class="lb-crest">${LB_CUP}</div><small>Friends</small><h2>Hall of Champions</h2><p>The best wave on every land</p>
+    <button class="hm-x lb-x" aria-label="Close">&times;</button></div><div class="lb-tabs"></div><div class="lb-body"></div><div class="lb-foot"></div></div>`;
+  LB.tab=k&&ARENAS[k]?k:arenaNow();LB.edit=false;LB.anim=true;void o.offsetWidth;o.classList.add('on');
+  o.onclick=e=>{const t=e.target.closest('button,[data-lb],.lb-back');if(!t)return;
+    if(t.classList.contains('lb-back')||t.classList.contains('lb-x'))return lbClose();
+    if(t.dataset.lb){LB.tab=t.dataset.lb;LB.anim=true;return lbDraw();}
+    if(t.id==='lbJoin')return lbJoin();if(t.id==='lbRetry'||t.id==='lbRefresh')return lbRefresh();
+    if(t.id==='lbProf'){lbClose();return profOpen();}
+    if(t.id==='lbLeave')return lbLeave().then(ok=>{if(ok){LB.anim=true;lbDraw();}});};
+  lbCache();lbDraw();if(LB.url&&lbMe().on){lbPush().then(()=>lbRefresh());}}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('lbPop'))lbClose();});
+
+/* ---- hooks: a new best during a run, the keep falling, the home screen, the start ---- */
+{const cw=callWave;callWave=function(){const r=cw.apply(this,arguments);try{if(state==='playing'&&LB.url&&!meta.dev){const me=lbMe(),k=arenaNow(),w=arenaBest(k);if(me.on&&w>0&&me.sent[k]!==w)lbSoon();}}catch(e){console.error(e);}return r;};}
+{const go=gameOver;gameOver=function(){const out=go.apply(this,arguments);try{if(LB.timer){clearTimeout(LB.timer);LB.timer=0;}lbAfterRun();}catch(e){console.error(e);}return out;};}
+{const rh=renderHome;renderHome=function(){const r=rh.apply(this,arguments);try{lbBadge();}catch(e){}return r;};}
+{const st=document.createElement('style');st.textContent=`
+.hall-btn{position:relative;align-self:center;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:58px;height:44px;padding:3px 10px 2px;
+  border:none;border-radius:10px;cursor:pointer;font:inherit;font-weight:800;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#2a1a08;
+  background:linear-gradient(#ffe08a,#d9a23a 60%,#b07a20);box-shadow:0 3px 10px #0009,inset 0 1px 0 #fff8,inset 0 -2px 0 #0003,0 0 0 1px #5a3a10}
+.hall-btn svg{width:20px;height:20px;filter:drop-shadow(0 1px 0 #fff6)}
+.hall-btn em{position:absolute;top:-8px;right:-8px;font-style:normal;padding:1px 6px;border-radius:9px;background:#2a1a08;color:#ffd77a;font-size:11px;letter-spacing:0;
+  box-shadow:0 0 0 1px #e9b94a,0 2px 6px #0008}
+.hall-btn.top{animation:lbGlow 2.4s ease-in-out infinite}
+@keyframes lbGlow{50%{box-shadow:0 3px 14px #0009,inset 0 1px 0 #fff8,inset 0 -2px 0 #0003,0 0 0 1px #5a3a10,0 0 18px #ffd77a}}
+#lbPop{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:14px;opacity:0;pointer-events:none;transition:opacity .2s}
+#lbPop.on{opacity:1;pointer-events:auto}
+.lb-back{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,#2a1d1499,#000d);backdrop-filter:blur(3px)}
+.lb-card{position:relative;width:min(460px,100%);max-height:min(92vh,760px);display:flex;flex-direction:column;border-radius:16px;overflow:hidden;color:#f1e6d0;
+  background:radial-gradient(ellipse at 50% -10%,#6a4a1a66,transparent 60%),linear-gradient(#2e2218,#150e09);border:1px solid #e9b94a;
+  box-shadow:0 14px 50px #000d,inset 0 0 0 1px #0006,inset 0 0 40px #0008;transform:translateY(14px) scale(.97);transition:transform .25s cubic-bezier(.2,1.4,.4,1)}
+#lbPop.on .lb-card{transform:none}
+.lb-top{position:relative;text-align:center;padding:14px 46px 8px}
+.lb-crest{width:44px;height:44px;margin:0 auto 2px;display:grid;place-items:center;border-radius:50%;color:#ffd77a;background:radial-gradient(circle at 50% 35%,#5a3a14,#1e140b);
+  box-shadow:0 0 0 2px #e9b94a,0 0 0 4px #3a2a14,0 0 22px #e9b94a66}
+.lb-crest svg{width:26px;height:26px;filter:drop-shadow(0 0 6px #ffd77a99)}
+.lb-top small{letter-spacing:3px;text-transform:uppercase;color:#e9b94a;font-weight:800;font-size:11px}
+.lb-top h2{margin:0;font-family:var(--display);font-size:32px;line-height:1;color:#ffd77a;text-shadow:0 2px 0 #5a2d12,0 0 24px #e9b94a55}
+.lb-top p{margin:3px 0 0;font-size:12px;color:var(--muted)}
+.lb-x{position:absolute;right:10px;top:10px}
+.lb-tabs{display:flex;gap:5px;overflow-x:auto;padding:4px 12px 8px;scrollbar-width:none}
+.lb-tabs::-webkit-scrollbar{display:none}
+.lb-tab{flex:none;display:flex;align-items:center;gap:5px;height:30px;padding:0 10px;border:none;font:inherit;font-size:12.5px;font-weight:800;color:var(--parch);background:#1c1510;
+  box-shadow:inset 0 0 0 1px #4a3a2a;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);cursor:pointer}
+.lb-tab small{font-size:10.5px;padding:0 5px;border-radius:7px;background:#ffffff14;color:var(--muted)}
+.lb-tab.on{color:#1a120a;background:linear-gradient(#ffd77a,#d9a23a);box-shadow:none}.lb-tab.on small{background:#0002;color:#3a2a10}
+.lb-body{flex:1;min-height:0;overflow-y:auto;padding:4px 12px 8px}
+.lb-pod{display:flex;align-items:flex-end;justify-content:center;gap:6px;padding:20px 0 0;margin-bottom:8px}
+.lb-p{flex:1;max-width:136px;min-width:0;display:flex;flex-direction:column;align-items:center}
+.lb-who{display:flex;flex-direction:column;align-items:center;width:100%;padding-bottom:5px;text-align:center}
+.lb-medal{position:relative;width:52px;height:52px;padding:3px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff8e0,#ffd77a 40%,#c8902a 75%,#7a5010);box-shadow:0 0 0 2px #5a3a10,0 4px 10px #0009}
+.lb-medal .pf-face{width:100%;height:100%;box-shadow:inset 0 0 0 1px #0008}
+.lb-medal>b{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);width:22px;height:22px;display:grid;place-items:center;border-radius:50%;font-family:var(--display);font-size:15px;line-height:1;
+  color:#3a2408;background:radial-gradient(circle at 35% 30%,#fff8e0,#ffd77a 45%,#b07a20);box-shadow:0 0 0 1.5px #5a3a10,0 2px 4px #0008}
+.p1 .lb-medal{width:64px;height:64px;padding:4px;box-shadow:0 0 0 2px #5a3a10,0 4px 12px #0009,0 0 26px #ffd77a99}.p1 .lb-medal>b{width:26px;height:26px;font-size:18px;bottom:-9px}
+.lb-seat{background:#1c1510!important}
+.p2 .lb-medal,.p2 .lb-medal>b{background:radial-gradient(circle at 35% 30%,#ffffff,#e4ebf2 40%,#9aa6b2 75%,#4a5662);color:#2a323a;box-shadow:0 0 0 2px #3a444e,0 4px 10px #0009}
+.p3 .lb-medal,.p3 .lb-medal>b{background:radial-gradient(circle at 35% 30%,#ffe8d0,#f0b07a 40%,#b0703a 75%,#5a3010);color:#3a1a08;box-shadow:0 0 0 2px #4a2a10,0 4px 10px #0009}
+.lb-medal::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(115deg,transparent 30%,#fff9 48%,transparent 60%);background-size:250% 100%;background-position:120% 0;
+  animation:lbShine 3.2s ease-in-out infinite;animation-delay:calc(var(--d) + .9s);mix-blend-mode:overlay}
+@keyframes lbShine{0%{background-position:120% 0}35%,100%{background-position:-60% 0}}
+.lb-crown{position:absolute;z-index:1;top:-17px;left:50%;width:30px;height:18px;transform:translateX(-50%);background:linear-gradient(#fff2b0,#e9b94a 60%,#a06a10);
+  clip-path:polygon(0 100%,0 25%,22% 62%,50% 0,78% 62%,100% 25%,100% 100%);filter:drop-shadow(0 0 6px #ffd77a)}
+.lb-pn{margin-top:12px;max-width:100%;font-weight:800;font-size:13.5px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p1 .lb-pn{font-size:15px;color:#ffe8a8}
+.lb-pw{line-height:1}.lb-pw b{font-family:var(--display);font-size:24px;color:#ffd77a;text-shadow:0 2px 0 #0008}.p1 .lb-pw b{font-size:30px}
+.lb-pw small{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.lb-col{width:100%;display:grid;place-items:start center;padding-top:6px;border-radius:6px 6px 0 0;
+  background:linear-gradient(90deg,#00000055,transparent 30%,transparent 70%,#00000055),linear-gradient(#6a4a2a,#3a2818);box-shadow:inset 0 1px 0 #ffffff22,inset 0 0 0 1px #00000066;
+  font-family:var(--display);font-size:20px;color:#e9b94a99;text-shadow:0 1px 0 #000}
+.p1 .lb-col{height:84px;background:linear-gradient(90deg,#00000055,transparent 30%,transparent 70%,#00000055),linear-gradient(#8a6430,#4a3218)}
+.p2 .lb-col{height:62px}.p3 .lb-col{height:46px}
+.lb-p.me .lb-col{box-shadow:inset 0 1px 0 #ffffff22,inset 0 0 0 2px #ffd77a,0 0 16px #ffd77a66}
+.lb-p.empty .lb-medal{filter:grayscale(1) brightness(.5)}.lb-p.empty .lb-pn{color:var(--muted);font-weight:700}
+.lb-anim .lb-col{transform-origin:bottom;animation:lbRise .55s cubic-bezier(.2,1.3,.4,1) both;animation-delay:var(--d)}
+.lb-anim .lb-who{animation:lbDrop .5s cubic-bezier(.2,1.5,.4,1) both;animation-delay:calc(var(--d) + .25s)}
+.lb-anim .lb-row{animation:lbIn .35s ease-out both;animation-delay:var(--d)}
+@keyframes lbRise{from{transform:scaleY(0)}}
+@keyframes lbDrop{from{opacity:0;transform:translateY(-16px) scale(.8)}}
+@keyframes lbIn{from{opacity:0;transform:translateX(-10px)}}
+.lb-list{display:flex;flex-direction:column;gap:4px}
+.lb-row{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#1c1510;box-shadow:inset 0 0 0 1px #3a2e22;
+  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+.lb-row.me{background:linear-gradient(90deg,#4a3410,#1c1510 70%);box-shadow:inset 0 0 0 1px #e9b94a}
+.lb-r{width:22px;text-align:center;font-family:var(--display);font-size:18px;color:var(--muted)}
+.lb-rf{width:28px;height:28px;box-shadow:0 0 0 1.5px #6b4d31}.lb-row.me .lb-rf{box-shadow:0 0 0 1.5px #e9b94a}
+.lb-you .lb-yf{flex:none;width:38px;height:38px;line-height:0;box-shadow:0 0 0 2px #e9b94a}.lb-jf{width:72px;height:72px;margin:0 auto 8px;box-shadow:0 0 0 3px #e9b94a,0 0 0 5px #2a1d14,0 0 26px #e9b94a66}
+.lb-out{text-align:center;padding:4px 0 2px}.lb-out .lb-link{margin-top:6px;font-size:12px}
+.lb-rn{flex:1;min-width:0;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lb-rn i{font-style:normal;font-size:10px;padding:1px 5px;margin-left:4px;border-radius:6px;background:#e9b94a;color:#2a1a08;vertical-align:2px}
+.lb-rw{font-size:11px;color:var(--muted);font-weight:700}.lb-rw b{font-family:var(--display);font-size:19px;color:#ffd77a;font-weight:700}
+.lb-row small{width:52px;text-align:right;font-size:10.5px;color:#8a7458}
+.lb-msg,.lb-join{text-align:center;padding:16px 8px 10px}.lb-msg b,.lb-join b{display:block;font-family:var(--display);font-size:22px;color:#ffd77a}
+.lb-msg p,.lb-join p{margin:6px auto 12px;max-width:320px;font-size:13px;color:var(--muted);line-height:1.4}
+.lb-big{width:64px;height:64px;margin:0 auto 6px;display:grid;place-items:center;border-radius:50%;color:#ffd77a;background:radial-gradient(circle at 50% 35%,#5a3a14,#1e140b);box-shadow:0 0 0 2px #e9b94a,0 0 30px #e9b94a55}
+.lb-big svg{width:36px;height:36px}
+#lbName{display:block;width:min(280px,100%);margin:0 auto;height:42px;padding:0 12px;border:none;border-radius:10px;font:inherit;font-size:17px;font-weight:800;text-align:center;
+  color:var(--parch);background:#0e0a07;box-shadow:inset 0 0 0 1px #e9b94a88,inset 0 2px 6px #000;user-select:text;-webkit-user-select:text}
+#lbName.bad{animation:lbShake .35s}@keyframes lbShake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.lb-go{display:block;width:min(280px,100%);margin:10px auto 0}
+.lb-link{display:inline-block;margin:10px 8px 0;border:none;background:none;font:inherit;font-size:13px;font-weight:700;color:var(--muted);text-decoration:underline;cursor:pointer}
+.lb-leave{color:#d9806a}
+.lb-off{margin:0 0 8px;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:700;text-align:center;color:#ffd0a0;background:#5a2a1444;box-shadow:inset 0 0 0 1px #c9703a66}
+.lb-wait{padding:30px 0}.lb-spin{width:34px;height:34px;margin:0 auto 10px;border-radius:50%;border:3px solid #e9b94a33;border-top-color:#ffd77a;animation:lbSpin .8s linear infinite}
+@keyframes lbSpin{to{transform:rotate(360deg)}}
+.lb-foot:empty{display:none}
+.lb-you{display:flex;align-items:center;gap:6px;padding:9px 12px 12px;border-top:1px solid #e9b94a33;background:#0000004d}
+.lb-you span{flex:1;min-width:0;line-height:1.2}.lb-you span b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lb-you small{font-size:11.5px;color:var(--muted);font-weight:700}
+.lb-sm{height:32px;min-width:34px;padding:0 10px;border:none;font:inherit;font-size:13px;font-weight:800;color:#ffd77a;background:#ffffff10;box-shadow:inset 0 0 0 1px #e9b94a66;border-radius:8px;cursor:pointer}
+.lb-sm:disabled{opacity:.5}
+@media (max-width:380px){.lb-top h2{font-size:27px}.lb-pw b{font-size:21px}.p1 .lb-pw b{font-size:26px}.lb-row small{display:none}}`;document.head.appendChild(st);}
+lbBtn();lbCache();lbBadge();
+setTimeout(()=>{try{if(LB.url&&lbMe().on&&!meta.dev)lbPush().then(s=>{if(s)lbPull().then(lbBadge,()=>{});});}catch(e){}},4000);
+/* ================= v406 (Simon): profiles =================
+   Simon: "put an icon on the top left where players will be able to see their profile, change their profile icon (make like 2 default
+   for now, a knight and a mage) and there they'll be able to change their account name aswell".
+   - The portraits are the game's own models, rendered once when the game opens (profMake, after makeThumbs): the Knight is the plate
+     knight with the blue lion surcoat (enemyModel('knight',0)), the Mage is Thaddeus the Wizard. PROF.icons lists them; adding a
+     portrait is one more entry. If a render fails the portrait shows its initial instead.
+   - meta.prof {icon}: the chosen portrait (the Knight until one is picked). Not one of DEV_KEYS, so developer mode leaves it alone.
+   - The name is the account's name (meta.acct.n), the same one More > Accounts renames; changing it here renames the account, and the
+     Hall of Champions shows the new name and portrait (both go up with the next send).
+   - The round portrait at the top left of the home screen opens the profile: the portrait and the name (tap to rename), the portraits
+     to choose from, the records (best wave, foes slain, crowns, scrolls, then the best wave and Hall rank on every open land) and a way
+     into the Hall. */
+const PROF={size:192,pics:{},edit:false,icons:[
+  {id:'knight',n:'Knight',bg:['#3f63a8','#0b1326'],make:()=>enemyModel('knight',0).g,ry:-.25,up:.2,dd:1.55},
+  {id:'mage',n:'Mage',bg:['#6a3fae','#150b2a'],make:()=>heroModel('thaddeus'),ry:.35,up:.36,dd:1.4}]};
+function profDef(id){return PROF.icons.find(c=>c.id===id)||PROF.icons[0];}
+function profIcon(){let p=meta.prof;if(!p||typeof p!=='object')p=meta.prof={};if(!PROF.icons.some(c=>c.id===p.icon))p.icon=PROF.icons[0].id;return p.icon;}
+function profFace(id,cls){const d=profDef(id),src=PROF.pics[d.id];
+  return `<span class="pf-face${cls?' '+cls:''}" data-pf="${d.id}" style="--pa:${d.bg[0]};--pb:${d.bg[1]}">${src?`<img src="${src}" alt="">`:`<i>${d.n[0]}</i>`}</span>`;}
+/* head and shoulders of each model, framed from its own size, on a clear background (the colour is the frame's) */
+function profMake(){const pr=renderer.getPixelRatio(),sz=renderer.getSize(new THREE.Vector2()),cc=renderer.getClearColor(new THREE.Color()),ca=renderer.getClearAlpha(),sh=renderer.shadowMap.enabled;
+  try{const ts=new THREE.Scene();ts.add(new THREE.HemisphereLight(0xfff4e0,0x3a3040,.75));
+    const key=new THREE.DirectionalLight(0xfff0d8,.95);key.position.set(-1.5,2.2,2.4);ts.add(key);const rim=new THREE.DirectionalLight(0x9fc8ff,.7);rim.position.set(2,1.5,-2);ts.add(rim);
+    const cam=new THREE.PerspectiveCamera(24,1,.01,20);renderer.shadowMap.enabled=false;renderer.setPixelRatio(1);renderer.setSize(PROF.size,PROF.size,false);renderer.setClearColor(0x000000,0);
+    for(const d of PROF.icons){try{const m=d.make();m.rotation.y=d.ry;ts.add(m);m.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(m),h=bb.max.y-bb.min.y,fy=bb.max.y-h*d.up;
+      cam.position.set(0,fy+h*.06,h*d.dd);cam.lookAt(0,fy,0);renderer.render(ts,cam);PROF.pics[d.id]=renderer.domElement.toDataURL('image/png');ts.remove(m);}catch(e){console.error(e);}}}
+  finally{renderer.shadowMap.enabled=sh;renderer.setPixelRatio(pr);renderer.setSize(sz.x,sz.y,false);renderer.setClearColor(cc,ca);}}
+{const mt=makeThumbs;makeThumbs=function(){const r=mt.apply(this,arguments);profMake();return r;};}
+
+/* ---- the portrait at the top left of the home screen ---- */
+function profBtn(){let b=document.getElementById('bProf');if(b)return b;const top=document.querySelector('#home .home-top');if(!top)return null;
+  b=document.createElement('button');b.id='bProf';b.type='button';b.className='prof-btn';b.setAttribute('aria-label','Your profile');top.prepend(b);
+  b.addEventListener('click',()=>profOpen());return b;}
+function profSync(){const b=profBtn();if(b)b.innerHTML=profFace(profIcon());if(document.getElementById('profPop'))profDraw();}
+
+/* ---- the profile ---- */
+const PROF_PEN='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.2 4.3l4.5 4.5L9 19.5H4.5V15L15.2 4.3zm1.4-1.4 1.6-1.6a1.4 1.4 0 0 1 2 0l2.5 2.5a1.4 1.4 0 0 1 0 2l-1.6 1.6-4.5-4.5z"/></svg>';
+function profRecords(){const lands=lbLands().filter(k=>(meta.arenas&&meta.arenas[k])||arenaBest(k)>0),me=lbMe(),D=me.on&&lbCache();
+  const best=Math.max(meta.best|0,...lands.map(k=>arenaBest(k)));const own=SCROLL_IDS.filter(k=>meta.spells&&meta.spells[k]).length;
+  return `<div class="pf-stats"><div><b>${fmt(best)}</b>Best wave</div><div><b>${fmt(meta.kills||0)}</b>Foes slain</div><div><b>${fmt(meta.crowns||0)}</b>Crowns</div><div><b>${own}</b>Scrolls</div></div>
+    <div class="pf-lands">${lands.map(k=>{const w=arenaBest(k),r=D?lbRank(k):null;
+      return `<div class="pf-land"><span>${lbEsc(ARENAS[k].n)}</span><b>${w?'Wave '+fmt(w):'&mdash;'}</b>${r&&r.r?`<em${r.r===1?' class="top"':''}>#${r.r}</em>`:'<em class="no"></em>'}</div>`;}).join('')}</div>`;}
+function profDraw(){const o=document.getElementById('profPop');if(!o)return;const A=acctId(),ic=profIcon(),me=lbMe();
+  const k=arenaNow(),r=me.on&&lbCache()?lbRank(k):null;
+  o.querySelector('.pf-head').innerHTML=`<button class="pf-big" id="pfPick" aria-label="Change your portrait">${profFace(ic)}<i>${PROF_PEN}</i></button>`+
+    (PROF.edit?`<div class="pf-name-edit"><input id="pfName" maxlength="${LB.max}" autocomplete="off" spellcheck="false" value="${lbEsc(A.n)}" aria-label="Your name"><button class="lb-sm" id="pfSave">Save</button><button class="lb-sm" id="pfCancel" aria-label="Cancel">&times;</button></div>`
+      :`<button class="pf-name" id="pfEdit"><span>${lbEsc(A.n)}</span><i>${PROF_PEN}</i></button>`)+
+    `<p class="pf-sub">${me.on?(r&&r.r?`In the Hall of Champions &middot; #${r.r} in ${LB_SHORT[k]||lbEsc(ARENAS[k].n)}`:'In the Hall of Champions'):'Not in the Hall of Champions yet'}</p>`;
+  o.querySelector('.pf-body').innerHTML=`<div class="pf-h">Portrait</div><div class="pf-pics">${PROF.icons.map(d=>`<button class="pf-pic${d.id===ic?' on':''}" data-pic="${d.id}">${profFace(d.id)}<b>${d.n}</b></button>`).join('')}</div>
+    <p class="pf-more">More portraits are on their way.</p><div class="pf-h">Records</div>${profRecords()}`;
+  const inp=document.getElementById('pfName');if(inp){inp.addEventListener('keydown',e=>{if(e.key==='Enter')profRename();if(e.key==='Escape'){e.stopPropagation();PROF.edit=false;profDraw();}});setTimeout(()=>{try{inp.focus();inp.select();}catch(e){}},50);}}
+function profRename(){const inp=document.getElementById('pfName');const n=lbClean(inp?inp.value:'');if(!n){if(inp){inp.classList.remove('bad');void inp.offsetWidth;inp.classList.add('bad');}return false;}
+  const A=acctId(),was=A.n;A.n=n;saveMeta();PROF.edit=false;if(typeof renderAccounts==='function')renderAccounts();profSync();if(n!==was){toast('Name changed to '+n,'lvl');lbPush();}return true;}
+function profSetIcon(id){if(!PROF.icons.some(c=>c.id===id))return;const was=profIcon();meta.prof.icon=id;saveMeta();profSync();
+  const f=document.querySelector('#profPop .pf-big .pf-face');if(f){f.classList.remove('pop');void f.offsetWidth;f.classList.add('pop');}if(id!==was)lbPush();}
+function profClose(){const o=document.getElementById('profPop');if(o){o.classList.remove('on');setTimeout(()=>{if(!o.classList.contains('on'))o.remove();},220);}PROF.edit=false;}
+function profOpen(){let o=document.getElementById('profPop');if(!o){o=document.createElement('div');o.id='profPop';document.body.appendChild(o);}
+  o.innerHTML=`<div class="lb-back"></div><div class="lb-card pf-card" role="dialog" aria-label="Your profile"><button class="hm-x lb-x" aria-label="Close">&times;</button>
+    <div class="pf-head"></div><div class="pf-body"></div><div class="pf-foot"><button class="np-log pf-hall" id="pfHall">${LB_CUP}<span>Hall of Champions</span></button></div></div>`;
+  PROF.edit=false;void o.offsetWidth;o.classList.add('on');
+  o.onclick=e=>{const t=e.target.closest('button,.lb-back');if(!t)return;
+    if(t.classList.contains('lb-back')||t.classList.contains('lb-x'))return profClose();
+    if(t.dataset.pic)return profSetIcon(t.dataset.pic);
+    if(t.id==='pfPick'){const p=o.querySelector('.pf-pics');if(p){p.scrollIntoView({block:'nearest',behavior:'smooth'});p.classList.remove('flash');void p.offsetWidth;p.classList.add('flash');}return;}
+    if(t.id==='pfEdit'){PROF.edit=true;return profDraw();}if(t.id==='pfCancel'){PROF.edit=false;return profDraw();}if(t.id==='pfSave')return profRename();
+    if(t.id==='pfHall'){profClose();return lbOpen();}};
+  profDraw();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('profPop')&&!PROF.edit)profClose();});
+/* the account's name can also change in More > Accounts, and switching accounts brings another profile */
+{const ra=renderAccounts;renderAccounts=function(){const r=ra.apply(this,arguments);try{profSync();if(lbMe().on)lbPush();lbBadge();}catch(e){console.error(e);}return r;};}
+{const rh=renderHome;renderHome=function(){const r=rh.apply(this,arguments);try{profSync();}catch(e){}return r;};}
+{const st=document.createElement('style');st.textContent=`
+.home-top{position:relative}
+.prof-btn{position:absolute;left:12px;top:calc(env(safe-area-inset-top,0px) + 5px);z-index:3;width:46px;height:46px;padding:0;border:none;border-radius:50%;background:none;cursor:pointer}
+.prof-btn .pf-face{width:100%;height:100%;box-shadow:0 0 0 2px #e9b94a,0 0 0 4px #2a1d14,0 4px 12px #000a;transition:transform .15s}
+.prof-btn:active .pf-face{transform:scale(.93)}
+.pf-face{position:relative;display:inline-grid;place-items:center;flex:none;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 50% 36%,var(--pa),var(--pb) 78%)}
+.pf-face img{width:100%;height:100%;object-fit:cover;display:block}
+.pf-face i{font-style:normal;font-family:var(--display);font-weight:700;color:#fff;font-size:140%}
+.pf-face.pop{animation:pfPop .45s cubic-bezier(.2,1.6,.4,1)}@keyframes pfPop{from{transform:scale(.6) rotate(-8deg)}}
+#profPop{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:14px;opacity:0;pointer-events:none;transition:opacity .2s}
+#profPop.on{opacity:1;pointer-events:auto}#profPop.on .lb-card{transform:none}
+.pf-card{width:min(420px,100%)}
+.pf-head{text-align:center;padding:20px 16px 8px;background:radial-gradient(ellipse at 50% 0%,#6a4a1a77,transparent 70%)}
+.pf-big{position:relative;width:112px;height:112px;padding:0;border:none;border-radius:50%;background:none;cursor:pointer}
+.pf-big .pf-face{width:100%;height:100%;box-shadow:0 0 0 3px #e9b94a,0 0 0 6px #2a1d14,0 0 0 7px #e9b94a66,0 0 34px #e9b94a55}
+.pf-big>i,.pf-name>i{display:grid;place-items:center;border-radius:50%;color:#2a1a08;background:linear-gradient(#ffe08a,#d9a23a)}
+.pf-big>i{position:absolute;right:2px;bottom:4px;width:30px;height:30px;box-shadow:0 0 0 2px #2a1d14,0 2px 6px #000a}
+.pf-big svg{width:16px;height:16px}
+.pf-name{display:flex;align-items:center;gap:8px;width:fit-content;max-width:100%;margin:12px auto 0;padding:0 4px;border:none;background:none;cursor:pointer;color:#ffd77a}
+.pf-name span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--display);font-size:32px;line-height:1.05;text-shadow:0 2px 0 #5a2d12}
+.pf-name>i{width:24px;height:24px;flex:none}.pf-name svg{width:13px;height:13px}
+.pf-name-edit{display:flex;gap:6px;justify-content:center;margin-top:12px}
+#pfName{width:min(220px,60vw);height:38px;padding:0 10px;border:none;border-radius:9px;font:inherit;font-size:17px;font-weight:800;text-align:center;color:var(--parch);background:#0e0a07;
+  box-shadow:inset 0 0 0 1px #e9b94a88,inset 0 2px 6px #000;user-select:text;-webkit-user-select:text}
+#pfName.bad{animation:lbShake .35s}
+.pf-sub{margin:4px 0 0;font-size:12.5px;color:var(--muted);font-weight:700}
+.pf-body{flex:1;min-height:0;overflow-y:auto;padding:4px 14px 10px}
+.pf-h{margin:10px 2px 6px;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#e9b94a}
+.pf-pics{display:flex;gap:10px;border-radius:12px}.pf-pics.flash{animation:pfFlash .9s}@keyframes pfFlash{30%{box-shadow:0 0 0 2px #ffd77a,0 0 24px #ffd77a88}}
+.pf-pic{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px 8px;border:none;border-radius:12px;cursor:pointer;font:inherit;color:var(--parch);
+  background:#1c1510;box-shadow:inset 0 0 0 1px #3a2e22}
+.pf-pic .pf-face{width:76px;height:76px;box-shadow:0 0 0 2px #6b4d31;transition:transform .15s}
+.pf-pic b{font-size:14px}
+.pf-pic.on{background:linear-gradient(#4a3410,#1c1510);box-shadow:inset 0 0 0 2px #e9b94a,0 0 18px #e9b94a33}
+.pf-pic.on .pf-face{box-shadow:0 0 0 2px #e9b94a,0 0 16px #e9b94a88;transform:scale(1.04)}
+.pf-pic.on b::after{content:" \\2713";color:#ffd77a}
+.pf-more{margin:6px 0 0;text-align:center;font-size:11.5px;color:#8a7458}
+.pf-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pf-stats div{padding:8px 2px 6px;text-align:center;border-radius:10px;background:#1c1510;box-shadow:inset 0 0 0 1px #3a2e22;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pf-stats b{display:block;font-family:var(--display);font-size:22px;letter-spacing:0;color:#ffd77a;text-transform:none}
+.pf-lands{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.pf-land{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;background:#ffffff08;font-size:13.5px}
+.pf-land span{flex:1;font-weight:700}.pf-land b{font-family:var(--display);font-size:17px;color:#f1e6d0;font-weight:700}
+.pf-land em{min-width:34px;text-align:center;font-style:normal;font-size:11.5px;font-weight:800;padding:1px 6px;border-radius:8px;background:#e9b94a22;color:#ffd77a}
+.pf-land em.top{background:linear-gradient(#ffe08a,#d9a23a);color:#2a1a08}.pf-land em.no{background:none}
+.pf-foot{padding:8px 14px 14px}.pf-hall{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:0}.pf-hall svg{width:18px;height:18px}
+@media (max-width:360px){.pf-stats b{font-size:18px}.pf-name span{font-size:27px}}`;document.head.appendChild(st);}
+profBtn();profSync();
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
@@ -25428,7 +25774,10 @@ if(GAME.setAside)setTimeout(()=>toast('Your open-world run now belongs to Kingsg
 requestAnimationFrame(frame);
 /* ---- What's new: shown once per notes version (per account), on the first open after an update ---- */
 const NOTES_V='masteries-2';
-const NOTES_HTML=`<h3>\u2726 Scroll masteries reworked</h3><ul>
+const NOTES_HTML=`<h3>\u2726 Hall of Champions, and profiles</h3><ul>
+<li>A leaderboard for you and your friends: tap the gold trophy on the land card to see everyone&rsquo;s best wave on every land, carve your name in and climb the podium. New records go up by themselves.</li>
+<li>Your profile: tap your portrait at the top left to pick a portrait (a Knight or a Mage), rename your account and see your records.</li></ul>
+<h3>\u2726 Scroll masteries reworked</h3><ul>
 <li><b>Common scrolls:</b> masteries reworked for Hexspark, Light Bolt, Basic Wither, Ember Bolt, Gravebind, Frost Shard, Static Spark, Cinder Scatter, Flame Lash, Thunderclap and Thorn Whip.</li>
 <li><b>Uncommon scrolls:</b> masteries reworked for Dark Pulse, Basic Beam, Grasping Shadows, Soul Lantern, Graveburst, Rime Bloom, Ball Lightning, Sunflare, Catch Flame, Wall of Fire and Bramble Patch.</li>
 <li><b>Uncommon masteries are open to everyone:</b> cast an Uncommon scroll in any game and it earns mastery XP, all the way to Mastery 5. Scrolls above Uncommon follow in a later update.</li></ul>`;
