@@ -14148,7 +14148,7 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
-  {t:'Boards at ground level',d:'28 Oct',v:'v419',li:[
+  {t:'Boards at ground level',d:'28 Oct',v:'v427',li:[
     'Every board now sits on the ground instead of floating on its slab, in every land. The land around it is part of the map: it wears the same colours and texture as the tiles (heather, moss, snow, autumn grass), without the grid, and everything that grew or stood down on the low ground stands beside the board now. The tundra keeps its sea.']},
   {t:'The Stormcrag Highlands',d:'28 Oct',v:'v418',li:[
     'Arena 6, the last land: the Stormcrag Highlands, high moor of heather and granite beyond the Greywind Tundra. Win wave 200 in the Deep Taiga to open it (an account that already has opens it now).',
@@ -29186,7 +29186,7 @@ MK_CHEST.highlands={0x8a5226:0x5a3e2a,0x5a3416:0x3a281a,0x4a4a52:0x6a6e74,0xf0c0
   for(let i=0;i<5;i++){const h=new THREE.Mesh(ico(.025,0),M(i%2?0x8a4a72:0xb05a90));h.position.set(.16+(i%3-1)*.03,.4,.08+(i%2)*.03);m.g.add(h);}const sp=new THREE.Mesh(cyl(.004,.004,.12,4),M(0x3a4a2a));sp.position.set(.16,.4,.08);sp.rotation.z=1.4;m.g.add(sp);
   m.g.userData.land='highlands';return m;};}
 /* ---- end of the Stormcrag Highlands (v418) ---- */
-/* ================= Boards at ground level (v419) =================
+/* ================= Boards at ground level (v427) =================
    Simon: "make it so that EVERY map will sit on the bottom ... the background becomes part of the map, that means the background needs to match
    texturewise the texture of the tiles so its not that distinct yet not be tiles". The board used to hover on an earthen slab 1.6 above the land.
    Now, in every land, the land around it comes up to the board: the low ground plane is replaced by one at the board's surface with a hole
@@ -29226,7 +29226,7 @@ function glLevel(){const T=TERRAIN;if(!T||!TILES)return;const m4=new THREE.Matri
   sh.holes.push(new THREE.Path(glHoleLoop().map(([x,y])=>new THREE.Vector2(x,y))));
   const g=new THREE.Mesh(new THREE.ShapeGeometry(sh),glGroundMat());g.rotation.x=-Math.PI/2;g.position.y=-.002;g.receiveShadow=true;g.userData.gl=1;g.userData.keep=1;g.userData.voidKeep=1;T.add(g);GLD.ground=g;}
 {const bm=buildMap;buildMap=function(){const out=bm.apply(this,arguments);try{glLevel();}catch(e){console.error(e);}return out;};}
-/* ---- end of boards at ground level (v419) ---- */
+/* ---- end of boards at ground level (v427) ---- */
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();

@@ -1,5 +1,5 @@
 (function(){
-/* Boards at ground level (v419): in every land the board sits on the ground, the ground around it wears the tiles' colours and texture (no tiles),
+/* Boards at ground level (v427): in every land the board sits on the ground, the ground around it wears the tiles' colours and texture (no tiles),
    the low-ground scenery is lifted to it, the road still enters through the gates, the tundra keeps its sea.
    Run on the dev page: __kk.ev(await (await fetch('/tests/ground-test.js')).text()) returns [name, ok, detail] rows. Puts the account back afterwards. */
 const out=[],ok=(n,c,d)=>out.push([n,!!c,d===undefined?'':String(d)]);const m0=JSON.stringify(meta),r0=lsGet(KR);
@@ -28,7 +28,7 @@ try{
    for(const e of enemies.slice())removeEnemy(e);enemies=[];packFxOff();state='menu';}
   {let err=null;try{for(const a of LANDS){go(a,77);anim(.05,1);renderer.render(scene,camera);}}catch(e){err=e.message;}ok('every land renders with its new ground',!err,err);}
   {let err=null;try{go('plains');for(let s=1;s<=10;s++){clearWorld();buildMap(s*131);if(!GLD.ground||GLD.ground.parent!==TERRAIN)throw new Error('seed '+s);}}catch(e){err=e.message;}ok('ten more boards each get their ground and hole',!err,err);}
-  ok('the changelog tells of it',CLOG.some(c=>c.v==='v419'));
+  ok('the changelog tells of it',CLOG.some(c=>c.v==='v427'));
 }catch(e){out.push(['ERROR',false,String(e&&e.stack||e).slice(0,600)]);}
 finally{try{state='menu';paused=false;clearWorld();meta=migrateMeta(JSON.parse(m0));saveMeta();lsSet(KR,r0);buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;showOverlay('menu');}catch(e){out.push(['restore',false,String(e)]);}}
 return out;})()
