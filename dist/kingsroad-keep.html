@@ -14172,6 +14172,26 @@ const CLOG=[
   {t:'Thunder Wyrm masteries, redesigned',d:'28 Oct',v:'v424',li:[
     'Thunder Wyrm (Epic) has five new masteries, for now in developer mode: Crackling Coils (the arcs between its coils strike foes near its body), Hunter\u2019s Weave (it lingers in packs, darts across empty road and sways toward its prey), Constrict (it coils round the toughest foe near its head, holds and squeezes it), Grounding Strike (every lash marks its foe and the strike grounds through them all) and Thunderhead (it rears high, winds into a crown of lightning and falls as a column of it).',
     'Its dive and its strike now burst in 3D: a churning shell of plasma, forks of lightning thrown up and out, rock flung in arcs and dust climbing, instead of flat shockwaves.']},
+  {t:'Cataclysm masteries, redesigned',d:'28 Oct',v:'v423',li:[
+    'Drawn Down: a pillar rises right under the toughest foe inside the rune.',
+    'Falling Sky: while the rune charges, shards break off it and fall as obsidian meteors onto the foes below.',
+    'Obsidian Chains: a rising pillar chains the foes next to it until the collapse, which then hits them at full strength.',
+    'Sundered: foes the collapse hits take more from physical, piercing and siege hits for 5 seconds.',
+    'World Breaker: the collapse tears the pillars out of the ground; they spin into the sky and slam down on the toughest foes.',
+    'The pillars and the collapse now burst in 3D instead of flat flashes, and the collapse no longer hides the whole field.']},
+  {t:'Spatial Loop masteries, redesigned',d:'28 Oct',v:'v422',li:[
+    'Long Fold: the fold always reaches as far back as it can, and its seam shows as a curtain of folded light.',
+    'Shear: foes the fold sends back are torn by the seam, as space shatters where they go in and come out.',
+    'Groundhog Lap: the loop counts each foe\u2019s laps, and every lap after the first hurts more, with a ring of light for each.',
+    'Displaced: a foe the fold sends back takes more damage from everything for 3 seconds.',
+    'Snapback: when the loop ends, the looped road snaps back in a wave of shattering space that hits harder the more laps a foe walked.']},
+  {t:'Rite of the Phoenix masteries, redesigned',d:'28 Oct',v:'v421',li:[
+    'Rising Heat: each foe the phoenix strikes feeds its fire, so every later strike hits harder and the bird grows larger and hotter.',
+    'Wildfire River: as it climbs away, a front of flame races back along its river of fire and hits every foe on it.',
+    'Burning Plumage: the feathers it bursts into are real now and dart at the foes it struck, toughest first.',
+    'Pyre: a foe its fire hits while already burning erupts in a burst of flame that hits the foes around it.',
+    'Rebirth: its heart falls as an ember, the phoenix is reborn golden from a pyre on the road, skims through the enemy again and dives into a great explosion.',
+    'Its strikes, its birth and its death burst are now 3D fireballs instead of flat flashes.']},
   {t:'Every explosion is 3D',d:'28 Oct',v:'v420',li:[
     'Shockwaves no longer just lie flat on the ground: a wall of light rises and races out with them (big ones kick up stones), and the rings of fire and light that many spells and masteries use rise too.',
     'Flashes of light are soft glowing balls, bright at the heart and clear at the edge, instead of hard white discs that hid what they lit. Thunderclap\u2019s strike is a bolt, a wall of thunder and flying stones rather than a white ball.',
@@ -28436,6 +28456,440 @@ function xfxFrostBoom(x,y,z,R,o){o=o||{};const nb=o.n==null?4:o.n,nt=o.t==null?1
     for(let j=0;j<5;j++){const f=.35+j*.15;emit(j%2,{x:x+dx*R*.12,y:y+dy*R*.12,z:z+dz*R*.12,vx:dx*sp*f,vy:dy*sp*f+.25,vz:dz*sp*f,s:(.07+.12*R)*(1.15-j*.1),s2:.02,c:j%2?0xffffff:0xd8f2ff,c2:j%2?0x6ab8ff:0x9ac8e8,a:.85,life:.3+.12*R+Math.random()*.1,drag:2.4,turb:.8});}}
   nsSplinters(x,y,z,o.sp==null?Math.round(8+12*R):o.sp,1+1.2*R);
   for(let i=0;i<Math.round(3+5*R);i++){const a=Math.random()*6.283,sp=(.8+Math.random())*R;emitS(0,{x:x+Math.cos(a)*.1,y:y-.1,z:z+Math.sin(a)*.1,vx:Math.cos(a)*sp,vy:.12+Math.random()*.2,vz:Math.sin(a)*sp,s:.2+.25*R,s2:.7+.9*R,c:0xf2f8ff,c2:0xc8dcec,a:.32,life:1.1+Math.random()*.6,lift:.05,drag:1.6,turb:.3});}}
+
+/* ================= Rite of the Phoenix's masteries (v421), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: a phoenix is born from fire, skims the road through the enemy leaving a river of fire, and dies in a burst of burning feathers;
+   and a phoenix is the bird that comes back from its own ashes. Design space: its birth (the rune), the dive (where it lands), the skim (each
+   foe it passes), the river of fire, its climb and death burst (the feathers), and rebirth.
+   - M1 Rising Heat (the skim; behaviour change: 'what does the phoenix gain from the crowd?'): each foe it strikes feeds it. Every strike
+     deals 7% more for each foe it struck before, up to 5 (so from the 6th foe on, 35% more), and the bird grows (8% a foe), its body runs
+     white-gold and it sheds more embers.
+   - M2 Wildfire River (the river of fire; new phase: 'what does the road remember?'): 0.25s after it climbs away, a front of flame races
+     back along the whole river from where the skim began to where it ended (10 tiles a second), throwing up flame tongues and fire
+     bursts: 60% to every ground foe the front passes (within 0.45 tiles), who burn again (40% a second for 2s).
+   - M3 Burning Plumage (the death burst; cosmetic made real): the feathers it bursts into were only for show. Now 8 real feathers flutter
+     out of the burst and dart down at the foes it struck that still stand, toughest first (with fewer than 8, some take two; with none,
+     the nearest foes within 6 tiles): 50% each and burning for 2s.
+   - M4 Pyre (the strikes, the river and the feathers; interaction: 'what does it do with fire that is already burning?'): when its fire
+     (a strike, the flaring river, a feather) hits a foe that was already burning, from any source, the foe erupts in a 3D fire burst: 10%
+     to every foe within 0.75 tiles. Each foe erupts at most once a cast. Alone, its strikes set the foes burning for its river and
+     feathers to erupt; cast after other fire, it erupts from the very first strike.
+   - M5 Rebirth (the whole spell; signature payoff: 'what comes back from the ashes?'): after the burst its heart falls as an ember to the
+     road just behind the rearmost foe it struck, a pyre burns there for 0.6s, and the phoenix is reborn from it, a third bigger and golden.
+     It skims toward the keep through the enemy (7 tiles a second, up to 1.2s, until it passes the foremost foe): 15% to each foe it passes
+     (Rising Heat goes on counting, Pyre goes on erupting); then it climbs and dives where the foes it passed are thickest: a mushroom
+     explosion of 50% within 1.3 tiles.
+   Percentages are of the scroll's power (each strike 350%, burning 40% a second for 4s). Every Rite of the Phoenix cast now runs phmCast (a
+   castPhoenix wrapper): the same birth, aim, dive, skim, river and climb, but its strikes, its birth and its death burst are 3D fireballs
+   (cfmBoom) instead of flat flashes. Power on the Epic ladder (tests/sm-ladder.js, 3 runs) with the hidden factors below:
+   1.10 / 1.24 / 1.35 / 1.51 / 1.75 against 1.094 / 1.234 / 1.35 / 1.522 / 1.742. PHM.dbg (an array) logs the events for the tests. */
+const PHM={dbg:null,strike:3.5,burn:.4,burnT:4,R:.75,spd:6,heat:.07,heatN:5,grow:.08,rv:.6,rvR:.45,rvSpd:10,rvDelay:.25,ft:.5,ftN:8,ftR:6,
+  py:.1,pyR:.75,rb:.15,rbSpd:7,rbT:1.2,rbBoom:.5,rbR:1.3,rbScale:1.35};
+const phmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='phoenix'&&c.L?c:null;};
+const phmLog=d=>{if(PHM.dbg){d.t=time;PHM.dbg.push(d);}};
+SM_D.phoenix=[
+  {n:'Rising Heat',d:'Each foe it strikes feeds its fire: every strike deals {7}% more for each foe it struck before (up to 5), and the phoenix grows larger and hotter.'},
+  {n:'Wildfire River',d:'As it climbs away, a front of flame races back along its river of fire: {60}% to every foe on it, who burn again.'},
+  {n:'Burning Plumage',d:'Its death burst becomes a rain of real feathers: 8 burning feathers dart at the foes it struck, toughest first, for {50}% each.'},
+  {n:'Pyre',d:'When its fire (a strike, the flaring river, a feather) hits a foe that is already burning, the foe erupts: {10}% to foes within 0.75 tiles (once per foe each cast).'},
+  {n:'Rebirth',d:'Its heart falls as an ember and the phoenix is reborn from a pyre on the road, larger and golden: it skims toward the keep for {15}% to each foe, then dives where they are thickest, exploding for {50}% within 1.3 tiles.'}];
+SMF.phoenix={m:1};
+SMA.phoenix=[1,1,1,1,1];
+SMG.phoenix=[1.025,1.021,1.016,1.015,1.01];
+
+/* a tongue of flame bursting out of the ground and dying down (h tall, T seconds) */
+function phmTongue(x,z,h,T){const y=gy(x,z),g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);if(!PHM.tg)PHM.tg=s6TuftGeo();T=T||.7;
+  const m1=s6FlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.5,sp:3,h:.5,w:.1}),m2=s6FlameMat({vs:S6_TWIST_VS,e:0,sx:3,sy:1.5,sp:2.6,h:.6,w:.1,add:true});
+  const a=new THREE.Mesh(PHM.tg,m1),b=new THREE.Mesh(PHM.tg,m2);a.renderOrder=5;b.renderOrder=6;b.scale.set(1.3,1.15,1.3);a.rotation.y=rnd()*6.28;g.add(a,b);const w=.5+rnd()*.25;let tt=0;
+  addFx(g,T,(f,dt)=>{tt+=dt;const k=SMS(tt,0,.1)*(1-SMS(tt,T*.5,T)),up=tt<.14?tt/.14*1.15:1.15-.15*SMS(tt,.14,.3);g.scale.set(w*(.6+.4*k),Math.max(.02,h*up*(.35+.65*k)),w*(.6+.4*k));
+    m1.uniforms.uT.value+=dt;m2.uniforms.uT.value+=dt;m1.uniforms.uA.value=.95*k;m2.uniforms.uA.value=.35*k;},null,{mats:[m1,m2]});return g;}
+/* a real burning feather: it flutters out of the burst, then darts down at its foe (fn(e) on arrival, fn(null) if the foe is gone) */
+function phmFeather(b,e,wait,fn){if(!PHM.fg){PHM.fg=nsFeatherGeo(.5,.14,.3);PHM.fm=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.98,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+    PHM.fgm=new THREE.MeshBasicMaterial({color:0xff6a10,transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});}
+  const g=smTag(new THREE.Group()),m=new THREE.Mesh(PHM.fg,PHM.fm),gl=new THREE.Mesh(PHM.fg,PHM.fgm);m.rotation.y=Math.PI/2;gl.rotation.y=Math.PI/2;gl.scale.set(1.25,1,1.8);g.add(m,gl);g.scale.setScalar(1.6);
+  g.position.copy(b);scene.add(g);const a=rnd()*6.28,v=smV(Math.cos(a)*(1+rnd()),.6+rnd()*.8,Math.sin(a)*(1+rnd())),p0=new THREE.Vector3(),c=new THREE.Vector3(),q=new THREE.Vector3(),prev=new THREE.Vector3();
+  let tt=0,go=false,done=false;const FLY=.45+rnd()*.15;
+  addFx(g,wait+FLY+.1,(f,dt)=>{tt+=dt;if(done)return;prev.copy(g.position);
+    if(tt<wait){v.multiplyScalar(Math.max(0,1-dt*3));v.y-=.6*dt;g.position.addScaledVector(v,dt);g.rotation.z+=dt*4;}
+    else{if(!go){go=true;p0.copy(g.position);}const k=Math.min(1,(tt-wait)/FLY),ke=k*k;const tp=e&&!e.dead?tpos2(e):q;if(e&&!e.dead)q.copy(tp);
+      c.set((p0.x+q.x)/2,Math.max(p0.y,q.y)+1.4,(p0.z+q.z)/2);g.position.set((1-ke)*(1-ke)*p0.x+2*(1-ke)*ke*c.x+ke*ke*q.x,(1-ke)*(1-ke)*p0.y+2*(1-ke)*ke*c.y+ke*ke*q.y,(1-ke)*(1-ke)*p0.z+2*(1-ke)*ke*c.z+ke*ke*q.z);
+      if(g.position.distanceTo(prev)>1e-4)g.lookAt(c.copy(g.position).multiplyScalar(2).sub(prev));
+      if(k>=1){done=true;g.visible=false;const ok=e&&!e.dead;cfmBoom(q.x,q.y,q.z,.22,{lobes:3,T:.45,ground:false});sprayP(1,q.x,q.y,q.z,18,{c:0xfff0a0,c2:0xff3a00,sp:1.6,up:.6,s:.05,s2:0,life:.35,g:2});fn(ok?e:null);return;}}
+    for(let i=0;i<6;i++)emit(1,{x:g.position.x+(rnd()-.5)*.08,y:g.position.y,z:g.position.z+(rnd()-.5)*.08,vx:(rnd()-.5)*.3,vy:.2,vz:(rnd()-.5)*.3,s:.09+rnd()*.06,s2:.01,c:rnd()<.4?0xfff2b0:0xffa030,c2:0xb01a00,a:.9,life:.25+rnd()*.15,turb:.8});});
+  if(e)q.copy(tpos2(e));}
+const phmSegD=(px,pz,ax,az,bx,bz)=>{const vx=bx-ax,vz=bz-az,l=vx*vx+vz*vz,u=l?clamp(((px-ax)*vx+(pz-az)*vz)/l,0,1):0;return Math.hypot(px-ax-vx*u,pz-az-vz*u);};
+
+function phmCast(t,list,P,o,c){const L=c?c.L:0,A5=c?c.a:[1,1,1,1,1];const lead=list.find(q=>!q.fake&&!q.dead)||list[0];if(!lead)return;let rt,d0;
+  if(!lead.fake&&lead.dist!=null){rt=lead.route||ROUTES[0];d0=Math.min(rt.len-.5,lead.dist+1.2);}else{const q=nsRouteNear(lead.x,lead.z);rt=q.rt;d0=q.d;}
+  const mats=[],geos=[],PH=nsPhoenixModel(mats,geos),PM=mats.slice(0,5),pg=PH.g;scene.add(pg);pg.scale.setScalar(.01);
+  const hx=t.x,hz=t.z,hy=gy(hx,hz),Hp=new THREE.Vector3(hx,hy+1.85,hz);pg.position.copy(Hp);
+  const rune=makeRune(.95,0xff7a2a,{star:7,step:3,glyphs:22,fill:.32,fillCol:0x3a0a02,fillNormal:true});rune.position.set(hx,hy+.03,hz);nsOwn(rune);rune.userData.fade(0);
+  const tail=nsTrail(mats,[[0xff4a10,.3,.16],[0xffa030,.6,.07],[0xfff0b0,.85,.025]]);
+  const D0=posAt(d0,rt),dive0=new THREE.Vector3(D0[0],gy(D0[0],D0[1])+.55,D0[1]);let d=d0,tt=0,burst=false,dropT=0,aimed=false;
+  const last=new THREE.Vector3(),hit=new Set(),tmp=new THREE.Vector3(),fwd=new THREE.Vector3(),from=new THREE.Vector3(),cB=new THREE.Color(0xffa030),cW=new THREE.Color(0xfff0b0);
+  const S={n:0,pyred:new Set(),fl:null,dE:null,b:null,ph:0,hit2:new Set(),E:null,dR:0,pyreT:0,slam:null};const TB=4.15,TE=L>=5?TB+3.1+1.2:7;
+  const heatK=()=>L>=1?Math.min(S.n,PHM.heatN):0,sc=()=>(1+PHM.grow*heatK())*(S.ph>=3?PHM.rbScale:1);
+  const flapW=(amp,spd,spread)=>{PH.wings.forEach(w=>{w.piv.rotation.z=w.side*Math.sin(tt*spd)*amp;w.piv.scale.set(w.side*spread,1,.6+.4*spread);w.fs.forEach(m=>{m.rotation.y=m.userData.a*(.35+.65*spread);});});};
+  /* M4: a foe that was already burning erupts (once a cast) */
+  const pyre=e=>{if(S.pyred.has(e))return;S.pyred.add(e);const ex=e.x,ez=e.z,p=tpos2(e),y=Math.max(p.y,gy(ex,ez)+.25);
+    cfmBoom(ex,y,ez,.34,{lobes:4,skirt:4,T:.75,shake:.04});phmTongue(ex,ez,.55,.6);const H=[];
+    for(const q of enemies.slice()){if(q.dead||q.fake)continue;if((q.x-ex)**2+(q.z-ez)**2<PHM.pyR*PHM.pyR){hurt(q,P*PHM.py*A5[3],'magic',smO(o));H.push(q);}}phmLog({ev:'pyre',e,L:H});};
+  const burning=e=>!!(e.burn&&e.burn.t>0);
+  const strike=(e,dm,pass)=>{const wb=burning(e),k=heatK(),oo=pass>1?smO(o):o;S.n++;hurt(e,P*dm,'magic',oo);if(k&&!e.dead)hurt(e,P*dm*PHM.heat*k*A5[0],'magic',smO(o));
+    if(!e.dead&&pass===1)applyBurn(e,P*PHM.burn,PHM.burnT,o);const ep=tpos2(e);cfmBoom(ep.x,ep.y,ep.z,.15+.025*k+(pass>1?.08:0),{lobes:2,T:.38,ground:false});
+    sprayP(1,ep.x,ep.y,ep.z,16+3*k,{c:0xfff0a0,c2:0xc02800,sp:1.8,up:.6,s:.06,s2:0,life:.4,g:2});phmLog({ev:'strike',e,k,pass,wb});
+    if(k&&L>=1&&pass===1){PM[1].color.copy(cB).lerp(cW,k/PHM.heatN*.75);PM[2].opacity=.3+.06*k;}if(L>=4&&wb)pyre(e);};
+  /* M2: the front of flame racing back along the river */
+  const flare=dt=>{const F=S.fl,nd=Math.max(S.dE,F.d-PHM.rvSpd*dt),A=posAt(F.d,rt),B=posAt(nd,rt);
+    for(const e of enemies.slice()){if(e.dead||e.fake||e.fly||F.hit.has(e))continue;if(phmSegD(e.x,e.z,A[0],A[1],B[0],B[1])<PHM.rvR){F.hit.add(e);F.H.push(e);const wb=burning(e);
+        hurt(e,P*PHM.rv*A5[1],'magic',smO(o));if(!e.dead)applyBurn(e,P*PHM.burn,2,smO(o));if(L>=4&&wb)pyre(e);}}
+    while(F.mk>=nd-1e-6&&F.mk>=S.dE-.2){const p=posAt(Math.max(0,F.mk),rt),y=gy(p[0],p[1]);phmTongue(p[0]+(rnd()-.5)*.12,p[1]+(rnd()-.5)*.12,.5+rnd()*.35,.8);cfmBoom(p[0],y+.14,p[1],.2,{lobes:2,T:.5,ground:false});F.mk-=.45;}
+    const by=gy(B[0],B[1]);for(let i=0;i<6;i++)emit(1,{x:B[0]+(rnd()-.5)*.3,y:by+.1,z:B[1]+(rnd()-.5)*.3,vx:(rnd()-.5)*.6,vy:1+rnd()*1.4,vz:(rnd()-.5)*.6,s:.1+rnd()*.06,s2:.01,c:rnd()<.4?0xfff0a0:0xff8a20,c2:0xa01a00,a:.9,life:.35+rnd()*.2,turb:1});
+    F.d=nd;if(nd<=S.dE+1e-6){F.done=true;phmLog({ev:'flare',L:F.H});}};
+  /* M5: the heart falls, a pyre burns, the phoenix is reborn, skims toward the keep and dives into the road */
+  const rebirth=dt=>{const s=tt-TB,E=S.E,ey=gy(E[0],E[1]);
+    if(S.ph===1){if(!S.heart){const h=smTag(new THREE.Group()),hm=[];h.add(new THREE.Mesh(ico(.07,1),nsAM(hm,0xffffff,.95)),new THREE.Mesh(ico(.15,1),nsAM(hm,0xffb040,.45)),new THREE.Mesh(ico(.26,1),nsAM(hm,0xff5a10,.2)));
+        h.position.copy(S.b);scene.add(h);S.heart=h;addFx(h,.62,(f2,dt2)=>{h.children[1].scale.setScalar(.85+rnd()*.3);h.children[2].scale.setScalar(.85+rnd()*.3);},null,{mats:hm});}
+      const k=Math.min(1,s/.55),ke=k*k;S.heart.position.set(S.b.x+(E[0]-S.b.x)*k,S.b.y+(ey+.15-S.b.y)*ke,S.b.z+(E[1]-S.b.z)*k);const hp=S.heart.position;
+      for(let i=0;i<5;i++)emit(1,{x:hp.x+(rnd()-.5)*.1,y:hp.y,z:hp.z+(rnd()-.5)*.1,vx:(rnd()-.5)*.4,vy:.4+rnd()*.4,vz:(rnd()-.5)*.4,s:.08,s2:.01,c:0xfff0a0,c2:0xff3a00,life:.35,turb:.6});
+      for(let i=0;i<3;i++)emitS(0,{x:hp.x+(rnd()-.5)*.5,y:hp.y+.2+rnd()*.4,z:hp.z+(rnd()-.5)*.5,vx:(rnd()-.5)*.2,vy:-.5-rnd()*.5,vz:(rnd()-.5)*.2,s:.06,s2:.03,c:0x5a5048,c2:0x2a2420,a:.7,life:.8,turb:.4});
+      if(s>=.55){S.ph=2;S.pyreT=0;camShake=Math.max(camShake,.05);const r2=makeRune(.6,0xffc040,{star:5,step:2,glyphs:14,fill:.3,fillCol:0x3a1a02,fillNormal:true});r2.position.set(E[0],ey+.035,E[1]);nsOwn(r2);r2.userData.fade(0);
+        let rt2=0;addFx(new THREE.Group(),1.5,(f2,dt2)=>{rt2+=dt2;r2.rotation.y+=dt2*2.4;r2.userData.fade(Math.min(1,rt2/.15)*Math.max(0,Math.min(1,(1.5-rt2)/.4)));},()=>nsFree(r2),{mats:r2.userData.mats,geos:r2.userData.geos});
+        for(let i=0;i<6;i++){const a=i/6*6.28;phmTongue(E[0]+Math.cos(a)*.3,E[1]+Math.sin(a)*.3,.55+rnd()*.25,.95);}phmTongue(E[0],E[1],.95,1);nsDecal(E[0],E[1],.55,0x120804,.6,4,{fout:1.5});phmLog({ev:'pyreRise'});}}
+    else if(S.ph===2){S.pyreT+=dt;for(let i=0;i<5;i++){const a=rnd()*6.28,r=.15+rnd()*.35;emit(1,{x:E[0]+Math.cos(a)*r,y:ey+.05+rnd()*.3,z:E[1]+Math.sin(a)*r,vx:-Math.sin(a)*1.4-Math.cos(a)*.3,vy:.9+rnd()*1.2,vz:Math.cos(a)*1.4-Math.sin(a)*.3,s:.08+rnd()*.05,s2:.01,c:0xfff2b0,c2:0xff4a00,a:.9,life:.4+rnd()*.25,turb:.6});}
+      if(S.pyreT>=.6){S.ph=3;S.rt0=tt;cfmBoom(E[0],ey+.2,E[1],.55,{lobes:5,skirt:6,T:1,shake:.12});sprayP(1,E[0],ey+.3,E[1],60,{c:0xfff6c8,c2:0xffa020,sp:3,up:1.4,s:.07,s2:0,life:.6,g:2,drag:1});
+        pg.visible=true;tail.hist.length=0;PM[0].color.setHex(0xffffff);PM[1].color.setHex(0xffe890);PM[2].color.setHex(0xff8a20);PM[2].opacity=.34;PM[4].color.setHex(0xffb030);tail.meshes[0].material.color.setHex(0xffa020);tail.meshes[1].material.color.setHex(0xffd060);
+        fwd.set(0,0,0);const a2=posAt(Math.min(rt.len,S.dR+.5),rt);fwd.set(a2[0]-E[0],0,a2[1]-E[1]).normalize();phmLog({ev:'reborn'});}}
+    else if(S.ph===3){const k=Math.min(1,(tt-S.rt0)/.35),s2=sc();pg.scale.setScalar(Math.max(.01,s2*SMS(k,0,.8)*(1+.15*Math.sin(k*3.14))));pg.position.set(E[0],ey+.2+.5*k+Math.sin(tt*6)*.03,E[1]);flapW(.9,10,1);pg.lookAt(tmp.copy(pg.position).add(fwd));
+      if(k>=1){S.ph=4;d=S.dR;}}
+    else if(S.ph===4){d=Math.min(rt.len-.3,d+PHM.rbSpd*dt);const p=posAt(d,rt),q=posAt(Math.min(rt.len,d+.4),rt),gy0=gy(p[0],p[1]);pg.scale.setScalar(sc());pg.position.set(p[0],gy0+.6+Math.sin(tt*7)*.05,p[1]);pg.lookAt(tmp.set(q[0],gy0+.55,q[1]));pg.rotateZ(Math.sin(tt*3.1)*.12);flapW(.25,8,1);
+      for(const e of enemies.slice()){if(e.dead||S.hit2.has(e))continue;if((e.x-p[0])**2+(e.z-p[1])**2<PHM.R*PHM.R){S.hit2.add(e);strike(e,PHM.rb*A5[4],2);}}
+      from.copy(pg.position);fwd.set(q[0]-p[0],0,q[1]-p[1]).normalize();const front=enemies.reduce((m,e)=>!e.dead&&!e.fake&&e.route===rt&&e.dist!=null?Math.max(m,e.dist):m,-1);
+      if(tt>=S.rt0+.35+PHM.rbT||d>=rt.len-.3||d>front+.5){S.ph=5;S.st=tt;const al=[...S.hit2].filter(e=>!e.dead&&!e.fake),dn=al.length?densest(al):null,g2=dn?[dn.x,dn.z]:posAt(Math.min(rt.len-.3,d+.9),rt);S.slam={x:g2[0],z:g2[1],y:gy(g2[0],g2[1])};phmLog({ev:'slam',e:dn});}}
+    else if(S.ph===5){const k=Math.min(1,(tt-S.st)/.45),Z=S.slam;if(k<.55){const u=k/.55;pg.position.set(from.x+(Z.x-from.x)*u*.5,from.y+Math.sin(u*1.57)*1.3,from.z+(Z.z-from.z)*u*.5);flapW(.9,11,1);pg.lookAt(tmp.set(Z.x,pg.position.y+1,Z.z));}
+      else{const u=(k-.55)/.45,u2=u*u,sx=from.x+(Z.x-from.x)*.5,sz=from.z+(Z.z-from.z)*.5,sy=from.y+1.3;last.copy(pg.position);pg.position.set(sx+(Z.x-sx)*u2,sy+(Z.y+.2-sy)*u2,sz+(Z.z-sz)*u2);flapW(.15,4,.7);pg.lookAt(tmp.copy(pg.position).multiplyScalar(2).sub(last));}
+      if(k>=1){S.ph=6;pg.visible=false;const x=Z.x,z=Z.z,y=Z.y;cfmBoom(x,y+.3,z,1.05,{mush:true,skirt:8,lobes:7,T:1.5,shake:.22});sprayP(1,x,y+.3,z,110,{c:0xfff6c8,c2:0xff6a10,sp:4.5,up:1.3,s:.07,s2:0,life:.7,g:2.5,drag:.8,r:.4});
+        flashA=Math.max(flashA,.22);flashCol='#ffc070';for(let i=0;i<14;i++)nsBurnFeather(x,y+.8,z);for(let i=0;i<7;i++){const a=i/7*6.28;phmTongue(x+Math.cos(a)*.75,z+Math.sin(a)*.75,.6+rnd()*.3,1.1);}
+        const H=[];for(const q of enemies.slice()){if(q.dead||q.fake)continue;if((q.x-x)**2+(q.z-z)**2<PHM.rbR*PHM.rbR){hurt(q,P*PHM.rbBoom*A5[4],'magic',smO(o));H.push(q);}}phmLog({ev:'boom',L:H});}}};
+  addFx(pg,TE,(f,dt)=>{tt+=dt;const gk=(1+.08*heatK())*(S.ph>=3?.8:1);PH.glow.scale.set((.8+rnd()*.12)*gk,(.6+rnd()*.1)*gk,(1.1+rnd()*.12)*gk);
+    if(tt<1.15){const k=tt/1.15;rune.userData.fade(Math.min(1,tt/.25));rune.rotation.y+=dt*1.6;
+      for(let i=0;i<5;i++){const a=rnd()*6.28,r=.95*(.95+rnd()*.1);emit(1,{x:hx+Math.cos(a)*r,y:hy+.05,z:hz+Math.sin(a)*r,vx:0,vy:.6+rnd()*.8,vz:0,s:.09+rnd()*.06,s2:.01,c:0xffc060,c2:0xb02000,a:.9,life:.4+rnd()*.3,turb:1});}
+      for(let i=0;i<6;i++){const a=rnd()*6.28,r=.8+rnd()*.7,y=hy+.3+rnd()*1.2;emit(1,{x:Hp.x+Math.cos(a)*r,y,z:Hp.z+Math.sin(a)*r,vx:(Hp.x-(Hp.x+Math.cos(a)*r))*2.2-Math.sin(a)*1.2,vy:(Hp.y-y)*2.2,vz:(Hp.z-(Hp.z+Math.sin(a)*r))*2.2+Math.cos(a)*1.2,s:.06,s2:.02,c:0xfff0a0,c2:0xff6a10,life:.45,drag:.5});}
+      const s=SMS(k,.35,.9);pg.scale.setScalar(Math.max(.01,s));pg.position.set(Hp.x,Hp.y+Math.sin(tt*3)*.03,Hp.z);flapW(.15,4,SMS(k,.55,1));
+      fwd.set(dive0.x-Hp.x,0,dive0.z-Hp.z).normalize();pg.lookAt(tmp.copy(pg.position).add(fwd));
+      if(tt>.9&&tt-dt<=.9){cfmBoom(Hp.x,Hp.y,Hp.z,.32,{lobes:4,T:.55,ground:false});sprayP(1,Hp.x,Hp.y,Hp.z,60,{c:0xfff0a0,c2:0xff3a00,sp:2.6,s:.07,s2:0,life:.5,drag:1.2});camShake=Math.max(camShake,.05);flashA=Math.max(flashA,.12);flashCol='#ffb060';phmLog({ev:'born'});}}
+    else if(tt<1.65){rune.userData.fade(Math.max(0,1-(tt-1.15)/.4));pg.scale.setScalar(1);pg.position.set(Hp.x,Hp.y+(tt-1.15)*.5+Math.sin(tt*6)*.04,Hp.z);flapW(.75,9,1);pg.lookAt(tmp.copy(pg.position).add(fwd));from.copy(pg.position);}
+    else if(tt<2.05){if(!aimed){aimed=true;const L2=nsDiveLead(lead);if(L2){rt=L2.route||ROUTES[0];d0=Math.min(rt.len-.5,L2.dist+(L2.spd||0)*.45+1.1);d=d0;const q2=posAt(d0,rt);dive0.set(q2[0],gy(q2[0],q2[1])+.55,q2[1]);}}const k=(tt-1.65)/.4,ke=k*k*(3-2*k),cc=new THREE.Vector3((from.x+dive0.x)/2,Math.max(from.y,dive0.y)+.9,(from.z+dive0.z)/2);
+      tmp.set((1-ke)*(1-ke)*from.x+2*(1-ke)*ke*cc.x+ke*ke*dive0.x,(1-ke)*(1-ke)*from.y+2*(1-ke)*ke*cc.y+ke*ke*dive0.y,(1-ke)*(1-ke)*from.z+2*(1-ke)*ke*cc.z+ke*ke*dive0.z);last.copy(pg.position);pg.position.copy(tmp);flapW(.25,5,1);
+      if(pg.position.distanceTo(last)>1e-4)pg.lookAt(tmp.copy(pg.position).multiplyScalar(2).sub(last));}
+    else if(tt<3.55){d=Math.max(0,d-PHM.spd*dt);const p=posAt(d,rt),q=posAt(Math.max(0,d-.4),rt),gy0=gy(p[0],p[1]);pg.scale.setScalar(sc());pg.position.set(p[0],gy0+.55+Math.sin(tt*7)*.05,p[1]);pg.lookAt(tmp.set(q[0],gy0+.5,q[1]));pg.rotateZ(Math.sin(tt*3.1)*.12);flapW(.22,7,1);
+      dropT-=dt;if(dropT<=0){dropT=.085;nsFireTrail(p[0],p[1],P,o);}
+      for(const e of enemies.slice()){if(e.dead||hit.has(e))continue;if((e.x-p[0])**2+(e.z-p[1])**2<PHM.R*PHM.R){hit.add(e);strike(e,PHM.strike,1);}}
+      from.copy(pg.position);fwd.set(q[0]-p[0],0,q[1]-p[1]).normalize();}
+    else if(tt<TB){if(S.dE==null)S.dE=d;const k=(tt-3.55)/.6;pg.position.set(from.x+fwd.x*k*1.6,from.y+k*k*4.6,from.z+fwd.z*k*1.6);tmp.set(pg.position.x+fwd.x,pg.position.y+1.6,pg.position.z+fwd.z);pg.lookAt(tmp);flapW(.85,10,1);}
+    else if(!burst){burst=true;if(S.dE==null)S.dE=d;const b=pg.position.clone();S.b=b;pg.visible=false;cfmBoom(b.x,b.y,b.z,.6,{lobes:6,T:1,ground:false,shake:.06});
+      sprayP(1,b.x,b.y,b.z,90,{c:0xfff0a0,c2:0xff3a00,sp:3.4,s:.08,s2:0,life:.65,g:1.5,drag:1});
+      for(let i=0;i<10;i++)emitS(1,{x:b.x+(rnd()-.5)*.4,y:b.y+(rnd()-.5)*.4,z:b.z+(rnd()-.5)*.4,vx:(rnd()-.5)*2,vy:(rnd()-.5)*1.2,vz:(rnd()-.5)*2,s:.3,s2:1.1,c:0xffa040,c2:0x8a2a08,a:.3,life:1.2,lift:.2,turb:.5});
+      for(let i=0;i<(L>=3?14:22);i++)nsBurnFeather(b.x,b.y,b.z);phmLog({ev:'burst'});
+      if(L>=3){let T1=[...hit].filter(q=>!q.dead&&!q.fake).sort((a,b2)=>b2.hp-a.hp);if(!T1.length)T1=enemies.filter(q=>!q.dead&&!q.fake&&Math.hypot(q.x-b.x,q.z-b.z)<PHM.ftR).sort((a,b2)=>Math.hypot(a.x-b.x,a.z-b.z)-Math.hypot(b2.x-b.x,b2.z-b.z));
+        const T2=[];for(let i=0;i<PHM.ftN&&T1.length&&i<2*T1.length;i++)T2.push(T1[i%T1.length]);T2.forEach((q,i)=>phmFeather(b,q,.18+i*.05,e=>{phmLog({ev:'feather',e:e||q,hit:!!e});if(!e)return;const wb=burning(e);hurt(e,P*PHM.ft*A5[2],'magic',smO(o));if(!e.dead)applyBurn(e,P*PHM.burn,2,smO(o));if(L>=4&&wb)pyre(e);}));}
+      if(L>=5){S.ph=1;const st=[...hit].filter(q=>!q.dead&&q.dist!=null&&q.route===rt);S.dR=st.length?Math.max(0,Math.min(...st.map(q=>q.dist))-.6):Math.max(0,S.dE-.8);S.E=posAt(S.dR,rt);}}
+    if(L>=2&&!S.fl&&tt>=3.55+PHM.rvDelay&&S.dE!=null){S.fl={d:d0,mk:d0,H:[],hit:new Set()};phmLog({ev:'flareStart'});}
+    if(S.fl&&!S.fl.done)flare(dt);
+    if(burst&&S.ph>=1&&S.ph<6)rebirth(dt);
+    if(pg.visible&&tt>.5){const s=pg.scale.x,gold=S.ph>=3,k=heatK(),n=14+3*k;for(let i=0;i<n;i++){const side=rnd()<.5?1:-1;tmp.set(side*(.15+rnd()*.75)*s,(rnd()-.3)*.08,(-.05-rnd()*.35)*s);pg.localToWorld(tmp);
+        emit(1,{x:tmp.x,y:tmp.y,z:tmp.z,vx:(rnd()-.5)*.3,vy:.35+rnd()*.5,vz:(rnd()-.5)*.3,s:.1+rnd()*.09,s2:.01,c:rnd()<.35+.08*k||gold?0xfff2b0:0xffa030,c2:gold?0xff8a10:0xb01a00,a:.9,life:.3+rnd()*.3,turb:1.2});}
+      for(let i=0;i<3;i++){tmp.set((rnd()-.5)*.1,0,-.15);pg.localToWorld(tmp);emit(1,{x:tmp.x,y:tmp.y,z:tmp.z,vx:(rnd()-.5)*.6,vy:-.2,vz:(rnd()-.5)*.6,s:.05,s2:0,c:0xffd080,c2:0xff4a00,life:.5,g:2.5});}
+      tmp.set(0,.02,-.2*s);pg.localToWorld(tmp);if(!tail.hist.length||tail.hist[0].distanceTo(tmp)>.04)tail.push(tmp,18);tail.draw(Math.max(.2,s));tail.fade(1);}
+    else if(!pg.visible){tail.hist.pop();if(tail.hist.length>2){tail.draw(1);tail.fade(Math.max(0,Math.min(1,f.life/3)));}else tail.fade(0);}},
+    ()=>{tail.free();nsFree(rune);},{mats:mats.concat(rune.userData.mats),geos:geos.concat(rune.userData.geos)});}
+const PHM_OLD=castPhoenix;
+castPhoenix=function(t,list,P,o){return t?phmCast(t,list||[],P,o,phmC(o)):PHM_OLD.apply(this,arguments);};
+/* ================= Spatial Loop's masteries (v422), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: space itself folds. The road ahead of the foe nearest the keep loops back onto an earlier stretch for 10 seconds, so foes that
+   reach the fold walk out 3 to 8 tiles back and cross ground they already crossed; then space unfolds. It deals no damage: it buys time and
+   gives the towers a second go. Design space: how far back the fold reaches, the seam where the road meets itself, the foes going round the
+   loop again and again, what the towers make of the second pass, and the moment space lets go.
+   - M1 Long Fold (the fold's reach; behaviour change: 'what if it did not leave the distance to chance?'): the fold always reaches as far
+     back as it can, 8 tiles (or as far as the road allows), instead of a random 3 to 8; the seam shows as a curtain of folded light.
+   - M2 Shear (the seam; cosmetic made real: 'what if crossing the seam hurt?'): the seam was only where the picture of the road met
+     itself. Now a foe the fold sends back is sheared by it: 40%, and the folded space tears open in a burst of glass-like shards where it
+     went in and where it came out.
+   - M3 Groundhog Lap (the loop; new rule: 'what if the loop remembered who it had already sent round?'): the fold counts each foe's laps;
+     from its second lap on, each lap deals 50% more for every lap before it (lap 2: +50%, lap 3: +100%, ...), and a ring of folded light
+     closes round the foe for each lap past the first (up to 4).
+   - M4 Displaced (the second pass; interaction: 'what if the second pass was worth more to the towers?'): a foe the fold sends back is
+     out of place for 3s: it takes 15% more from everything (towers, heroes, other scrolls), and splinters of space orbit it.
+   - M5 Snapback (the unfolding; signature payoff: 'what happens when space lets go?'): when the 10 seconds end, the looped stretch of road
+     snaps back like a released spring: a wave of shattering space runs along it from where the foes came out to the fold (0.6s), 120% to
+     every foe on it plus 40% for each lap it walked, and holds them 0.5s (Resolve applies).
+   Percentages are of the scroll's power. Every Spatial Loop cast now runs lpmCast (a castLoop wrapper): the same fold (the same choice of
+   place and warp) but with the mastery hooks; a foldHop wrapper tells the current fold about each foe it sends back. The ladder does not
+   apply: the loop itself deals no damage (v372 kept its factor at 1), so these numbers sit beside the damage of the set they replace.
+   LPM.dbg (an array) logs the events for the tests. */
+const LPM={dbg:null,cur:null,sh:.4,lap:.5,lapN:4,dp:.15,dpT:3,sb:1.2,sbLap:.4,sbT:.6,sbW:.6,sbStun:.5,backMax:8};
+const lpmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='loop'&&c.L?c:null;};
+const lpmLog=d=>{if(LPM.dbg){d.t=time;LPM.dbg.push(d);}};
+SM_D.loop=[
+  {n:'Long Fold',d:'The fold always reaches as far back as it can (8 tiles) instead of a random 3 to 8, and its seam shows as a curtain of folded light.'},
+  {n:'Shear',d:'Foes the fold sends back are sheared by the seam: {40}% each time, as space tears open where they go in and come out.'},
+  {n:'Groundhog Lap',d:'The loop counts each foe\u2019s laps: from the second on, each lap deals {50}% more for every lap before it.'},
+  {n:'Displaced',d:'For 3s after the fold sends a foe back it takes {15}% more from everything: towers, heroes and scrolls.'},
+  {n:'Snapback',d:'When the loop ends the looped road snaps back: {120}% to every foe on it, plus {40}% for each lap it walked, and holds them 0.5s (Resolve applies).'}];
+SMF.loop={m:1};
+SMA.loop=[1,1,1,1,1];
+SMG.loop=[1,1,1,1,1];
+
+/* shared pieces: a shard of folded space (an octahedron stretched long), its material, and a burst of them where space tears */
+function lpmMats(){if(!LPM.mA){LPM.mA=new THREE.MeshBasicMaterial({color:0xdfe6ff,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+    LPM.mB=new THREE.MeshBasicMaterial({color:0x8a8aff,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+    LPM.sg=new THREE.OctahedronGeometry(1,0);{const cv=document.createElement('canvas');cv.width=32;cv.height=64;const x=cv.getContext('2d'),gr=x.createLinearGradient(0,64,0,0);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.35,'rgba(255,255,255,.7)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,32,64);const g2=x.createLinearGradient(0,0,32,0);g2.addColorStop(0,'rgba(0,0,0,.75)');g2.addColorStop(.35,'rgba(0,0,0,0)');g2.addColorStop(.65,'rgba(0,0,0,0)');g2.addColorStop(1,'rgba(0,0,0,.75)');x.globalCompositeOperation='destination-out';x.fillStyle=g2;x.fillRect(0,0,32,64);LPM.gt=new THREE.CanvasTexture(cv);}LPM.pg=new THREE.PlaneGeometry(1,1);LPM.pg.translate(0,.5,0);LPM.tg=new THREE.TorusGeometry(1,.035,6,40);}return LPM;}
+function lpmTear(x,y,z,S){lpmMats();S=S||1;const g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);const sh=[];
+  for(let i=0;i<12;i++){const m=new THREE.Mesh(LPM.sg,i%3?LPM.mA:LPM.mB),a=rnd()*6.28,el=(rnd()-.3)*1.2,sp=(1.2+rnd()*1.6)*S;m.scale.set(.025*S,.09*S*(1+rnd()),.025*S);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);g.add(m);
+    sh.push({m,v:smV(Math.cos(a)*Math.cos(el)*sp,Math.sin(el)*sp+.6,Math.sin(a)*Math.cos(el)*sp),r:smV((rnd()-.5)*14,(rnd()-.5)*14,(rnd()-.5)*14)});}
+  /* a shell of bent light that snaps shut, and a core that flares */
+  const shm=new THREE.MeshBasicMaterial({color:0x8a94ff,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}),shell=new THREE.Mesh(ico(1,2),shm);shell.scale.setScalar(.35*S);g.add(shell);
+  const cm=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false}),core=new THREE.Mesh(ico(.06*S,1),cm);g.add(core);
+  sprayP(1,x,y,z,Math.round(14*S),{c:0xffffff,c2:0x7a7aff,sp:2.2*S,up:.5,s:.04,s2:0,life:.35,drag:1.5});let tt=0;
+  addFx(g,.6,(f,dt)=>{tt+=dt;sh.forEach(s=>{s.v.multiplyScalar(Math.max(0,1-dt*3.5));s.v.y-=2*dt;s.m.position.addScaledVector(s.v,dt);s.m.rotation.x+=s.r.x*dt;s.m.rotation.y+=s.r.y*dt;s.m.rotation.z+=s.r.z*dt;});
+    const k=Math.min(1,tt/.25);shell.scale.setScalar(Math.max(.01,.35*S*(1-k)));shm.opacity=.22*(1-k);core.scale.setScalar(1+2*k*(1-k)*2);cm.opacity=.8*Math.max(0,1-tt/.25);},null,{mats:[shm,cm]});}
+/* the seam: a curtain of tall thin panes of folded light across the road where it meets itself, with glints drifting through it */
+function lpmSeam(F,nrx,nrz){lpmMats();const g=smTag(new THREE.Group()),y=gy(F.Dx,F.Dz);g.position.set(F.Dx,y,F.Dz);scene.add(g);const P=[],n=11,mats=[];
+  for(let i=0;i<n;i++){const u=(i+.5)/n*2-1,l=u*F.Lw*.85,m=new THREE.MeshBasicMaterial({color:i%2?0xcfd8ff:0x9a9aff,map:LPM.gt,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});mats.push(m);
+    const p=new THREE.Mesh(LPM.pg,m),h=.6+rnd()*.55*(1-.4*u*u);p.position.set(nrx*l,0,nrz*l);p.rotation.y=Math.atan2(nrx,nrz)+Math.PI/2+(rnd()-.5)*.5;p.scale.set(.16+rnd()*.12,h*1.3,1);p.renderOrder=6;g.add(p);P.push({p,m,h,ph:rnd()*6,o:.75+rnd()*.25});}
+  const S={g,a:0,gone:false,P};
+  addFx(g,1e4,(f,dt)=>{if(S.gone){S.a=Math.max(0,S.a-dt*2.5);if(S.a<=0){f.life=0;return;}}
+    P.forEach(q=>{q.ph+=dt*(2+q.o*4);q.m.opacity=S.a*q.o*(.65+.35*Math.sin(q.ph));q.p.scale.y=q.h*(.85+.15*Math.sin(q.ph*.7))*Math.max(.05,S.a);});
+    if(S.a>.3&&rnd()<dt*14){const l=(rnd()-.5)*2*F.Lw*.85;emit(1,{x:F.Dx+nrx*l,y:y+.05+rnd()*.7,z:F.Dz+nrz*l,vx:(rnd()-.5)*.2,vy:.2+rnd()*.3,vz:(rnd()-.5)*.2,s:.04,s2:0,c:0xffffff,c2:0x8a8aff,life:.5});}},null,{mats});return S;}
+/* the rings of folded light round a foe that has walked the loop more than once, one a lap past the first */
+function lpmRings(e,S){lpmMats();const g=smTag(new THREE.Group());scene.add(g);const R=[],mats=[];let tt=0;
+  const add=()=>{if(R.length>=LPM.lapN)return;const m=new THREE.MeshBasicMaterial({color:R.length%2?0x7a7aff:0xb0bcff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}),r=new THREE.Mesh(LPM.tg,m);mats.push(m);
+    r.rotation.set(1.1+R.length*.5,R.length*1.3,0);g.add(r);R.push({r,m,born:tt,sp:(R.length%2?-1:1)*(1.6+R.length*.4)});};
+  addFx(g,1e4,(f,dt)=>{tt+=dt;if(e.dead||S.over){g.scale.multiplyScalar(Math.max(0,1-dt*5));if(g.scale.x<.05){f.life=0;return;}}else{const p=tpos2(e);g.position.set(p.x,p.y,p.z);}
+    R.forEach((q,i)=>{const k=Math.min(1,(tt-q.born)/.25);q.r.scale.setScalar(.24+.05*i+.25*(1-k));q.m.opacity=.5*k;q.r.rotation.z+=dt*q.sp;q.r.rotation.x+=dt*.4*(i%2?-1:1);});},null,{mats});return{add};}
+/* splinters of space orbiting a displaced foe for 3s */
+function lpmOrbit(e,T){lpmMats();const g=smTag(new THREE.Group());scene.add(g);const n=5,sh=[];for(let i=0;i<n;i++){const m=new THREE.Mesh(LPM.sg,i%2?LPM.mA:LPM.mB);m.scale.set(.018,.07,.018);g.add(m);sh.push({m,a:i/n*6.28,y:(rnd()-.5)*.3,r:.26+rnd()*.08});}let tt=0;
+  addFx(g,T,(f,dt)=>{tt+=dt;if(e.dead){f.life=0;return;}const p=tpos2(e),k=Math.min(1,tt/.2)*Math.min(1,f.life/.3);g.position.set(p.x,p.y,p.z);g.scale.setScalar(Math.max(.01,k));
+    sh.forEach((s,i)=>{s.a+=dt*(3+i*.3);s.m.position.set(Math.cos(s.a)*s.r,s.y+Math.sin(tt*3+i)*.06,Math.sin(s.a)*s.r);s.m.rotation.set(tt*4+i,s.a,tt*2);});});}
+/* the snapback: panes of space bursting up out of the road and shattering, one cluster at a time along the stretch */
+function lpmPanes(x,z,dir){lpmMats();const y=gy(x,z),g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);const P=[],mats=[];
+  for(let i=0;i<5;i++){const m=new THREE.MeshBasicMaterial({color:i%2?0xb8c4ff:0x6a6aff,map:LPM.gt,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});mats.push(m);
+    const p=new THREE.Mesh(LPM.pg,m),a=rnd()*6.28,r=rnd()*.3;p.position.set(Math.cos(a)*r,0,Math.sin(a)*r);p.rotation.set((rnd()-.5)*.5,dir+(rnd()-.5)*1.2,(rnd()-.5)*.5);p.renderOrder=6;g.add(p);P.push({p,m,h:.6+rnd()*.7,w:.05+rnd()*.06});}
+  if(rnd()<.5)lpmTear(x,y+.35,z,.6);let tt=0;
+  addFx(g,.7,(f,dt)=>{tt+=dt;const up=Math.min(1,tt/.08),k=SMS(tt,.25,.7);P.forEach(q=>{q.p.scale.set(q.w*(1+k*1.5),Math.max(.01,q.h*up*(1-k*.6)),1);q.m.opacity=.6*(1-k);q.p.position.y+=dt*k*1.2;});},null,{mats});}
+
+function lpmCast(t,list,P,o,c){const L=c?c.L:0,A5=c?c.a:[1,1,1,1,1];
+  const alive=enemies.filter(e=>!e.dead);if(!alive.length)return;sdpInit();
+  const lead=alive.reduce((a,b)=>((a.route||ROUTES[0]).len-a.dist)<((b.route||ROUTES[0]).len-b.dist)?a:b),rt=lead.route||ROUTES[0];
+  const dD=Math.min(rt.len-.3,lead.dist+.5+rnd()*.9),opts=[3,3.5,4,5,5.5,6,7,8],pick=opts[Math.floor(rnd()*opts.length)],back=Math.min(L>=1?LPM.backMax:pick,dD-.8);if(back<1.5)return;
+  if(FOLD.on&&FOLD.end)FOLD.end(true);
+  const dB=dD-back,pD=posAt(dD,rt),pD2=posAt(Math.min(rt.len,dD+.25),rt),pB=posAt(dB,rt),pB2=posAt(dB+.25,rt);
+  let tx=pD2[0]-pD[0],tz=pD2[1]-pD[1],tl=Math.hypot(tx,tz)||1;tx/=tl;tz/=tl;let bx=pB2[0]-pB[0],bz=pB2[1]-pB[1],bl=Math.hypot(bx,bz)||1;bx/=bl;bz/=bl;
+  let th=Math.atan2(bz,bx)-Math.atan2(tz,tx);while(th>Math.PI)th-=6.2832;while(th<-Math.PI)th+=6.2832;
+  const F={amt:0,kappa:(rnd()-.5)*.55,Lw:2.1+rnd()*1.0,F:Math.max(1,Math.min(3.1+rnd()*1.4,rt.len-dD-.3)),tw:.28,seed:rnd()*6.28,Dx:pD[0],Dz:pD[1],Bx:pB[0],Bz:pB[1],tx,tz,th};
+  SDP.fold=F;SDP.n++;FOLD.on=true;FOLD.rel=false;FOLD.route=rt;FOLD.dJ=dD;FOLD.back=back;sdSound(false);
+  const FORM=.9,DUR=10,UNF=.8,END=DUR+UNF;let T=0,rel=false,ended=false;const nrx=-tz,nrz=tx;
+  /* the mastery state: the foes it has sent back and their laps */
+  const S={c,laps:new Map(),rings:new Map(),seam:null,over:false,sb:null,rt,dB,dD,back};lpmLog({ev:'fold',back,dD,dB});
+  if(c){S.hop=e=>{if(S.over||e.fake)return;const n=(S.laps.get(e)||0)+1;S.laps.set(e,n);const d={ev:'hop',e,n,sh:false,lap:0,dp:false};
+      if(L>=2){const p=tpos2(e);lpmTear(F.Dx,p.y,F.Dz,1);const q=posAt(Math.max(0,e.dist),rt);lpmTear(q[0],p.y,q[1],.8);hurt(e,P*LPM.sh*A5[1],'magic',smO(o));d.sh=true;}
+      if(L>=3&&n>=2&&!e.dead){d.lap=n-1;hurt(e,P*LPM.lap*A5[2]*(n-1),'magic',smO(o));let R=S.rings.get(e);if(!R){R=lpmRings(e,S);S.rings.set(e,R);}R.add();}
+      if(L>=4&&!e.dead){e.smMk=e.smMk||{};const m=e.smMk['*'],v=LPM.dp*A5[3],until=time+LPM.dpT;if(m&&m.until>time){m.until=Math.max(m.until,until);m.v=Math.max(m.v,v);}else e.smMk['*']={until,v};lpmOrbit(e,LPM.dpT);d.dp=true;}
+      lpmLog(d);};LPM.cur=S;}
+  if(c&&L>=1)S.seam=lpmSeam(F,nrx,nrz);
+  const finish=()=>{if(ended)return;ended=true;if(SDP.fold===F){SDP.fold=null;SDP.n=Math.max(0,SDP.n-1);}FOLD.on=false;FOLD.route=null;SG_ACTIVE.delete(cleanup);
+    S.over=true;if(LPM.cur===S)LPM.cur=null;if(S.seam)S.seam.gone=true;};
+  const cleanup=()=>finish();SG_ACTIVE.add(cleanup);FOLD.end=finish;
+  addFx(new THREE.Group(),END,(f,dt)=>{T+=dt;
+    if(T<FORM)F.amt=SMS(T,0,FORM);else if(T<DUR)F.amt=1;else F.amt=1-SMS(T,DUR,END);if(S.seam&&!S.seam.gone)S.seam.a=F.amt;
+    if(T>=DUR&&!rel){rel=true;FOLD.rel=true;sfxWind&&sfxWind(.7,.12);for(let i=0;i<16;i++){const l=(rnd()-.5)*2*F.Lw*.9;emit(1,{x:F.Dx+nrx*l,y:.1+rnd()*.2,z:F.Dz+nrz*l,vx:tx*(2+rnd()*3),vy:.2,vz:tz*(2+rnd()*3),s:.05,s2:0,c:0xffffff,c2:0x8a9aff,life:.4,drag:1.5});}
+      if(c&&L>=5&&!ended)S.sb={d:dB,hit:new Set(),H:[]};}
+    /* M5: the wave of shattering space running from where they came out up to the fold */
+    if(S.sb&&!S.sb.done){const W=S.sb,nd=Math.min(dD,W.d+(back/LPM.sbT)*dt),pa=posAt(W.d,rt),pb=posAt(nd,rt);
+      for(const e of enemies.slice()){if(e.dead||e.fake||W.hit.has(e))continue;if(phmSegD(e.x,e.z,pa[0],pa[1],pb[0],pb[1])<LPM.sbW){W.hit.add(e);const n=S.laps.get(e)||0;W.H.push({e,n});
+          hurt(e,P*(LPM.sb+LPM.sbLap*n)*A5[4],'magic',smO(o));if(!e.dead)smStun(e,LPM.sbStun);}}
+      W.mk=W.mk==null?W.d:W.mk;while(W.mk<=nd+1e-6){const p=posAt(W.mk,rt),p2=posAt(Math.min(rt.len,W.mk+.2),rt);lpmPanes(p[0],p[1],Math.atan2(p2[0]-p[0],p2[1]-p[1]));W.mk+=.45;}
+      camShake=Math.max(camShake,.06);W.d=nd;if(nd>=dD-1e-6){W.done=true;lpmLog({ev:'snap',L:W.H});}}
+    if(T>FORM&&T<DUR&&rnd()<dt*3){const l=(rnd()-.5)*2*F.Lw*.8;emit(1,{x:F.Dx+nrx*l+tx*rnd()*F.F*.6,y:.08+rnd()*.25,z:F.Dz+nrz*l+tz*rnd()*F.F*.6,vx:0,vy:.15,vz:0,s:.045,s2:0,c:0xeaf6ff,c2:0x9a8aff,life:.35});}
+  },()=>{finish();});
+}
+const LPM_OLD=castLoop;
+castLoop=function(t,list,P,o){return t?lpmCast(t,list||[],P,o,lpmC(o)):LPM_OLD.apply(this,arguments);};
+const LPM_HOP=foldHop;
+foldHop=function(e,d0){const b=e.dist;LPM_HOP(e,d0);if(LPM.cur&&LPM.cur.hop&&e.dist<b-.01)LPM.cur.hop(e);};
+/* ================= Cataclysm's masteries (v423), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: the sky breaks the earth. A rune opens in the sky over the thickest knot of foes, the ground cracks under it, black obsidian
+   pillars erupt, and then the sky rune falls into the ground in one battlefield-shaking collapse that hurls the foes into the air. Design
+   space: the sky rune and its charge (2.2s of warning), the pillars (where they rise, what they do while they stand, what becomes of them),
+   the collapse and the foes it throws.
+   - M1 Drawn Down (the pillars; behaviour change: 'what if a pillar rose where the foe stands?'): the first of the outer pillars rises
+     right under the toughest foe inside the rune (where it is when the pillar rises) instead of at a random spot.
+   - M2 Falling Sky (the charge; new phase: 'what if the sky started breaking before the rune fell?'): while the rune charges, four shards
+     break off it and fall as obsidian meteors onto different foes inside the rune (0.35s apart): 70% within 0.5 tiles each, a 3D void burst.
+   - M3 Obsidian Chains (the standing pillars; cosmetic made real: 'what if the pillars held them?'): the pillars only stood there until the
+     collapse. Now a pillar that rises chains every ground foe within 0.9 tiles of it with links of black glass: held until the collapse
+     (Resolve applies; bosses 40%), and the collapse hits a chained foe as if it stood at the centre (no falloff).
+   - M4 Sundered (after the collapse; interaction: 'what if the towers could finish what the collapse broke?'): foes the collapse hits are
+     Sundered for 5s, shards of obsidian sticking out of them: physical, piercing and siege hits (archers, ballistas, cannons, soldiers)
+     deal 25% more to them.
+   - M5 World Breaker (the finale; signature payoff: 'what if the pillars came back down?'): the collapse tears the pillars out of the
+     ground instead of shattering them; they spin up into the sky, hang, and slam down one after another (0.12s apart) onto the toughest
+     foes within 4.5 tiles, a different foe each while there are enough: 35% within 0.75 tiles each, a 3D void explosion.
+   Percentages are of the scroll's power (pillars 200% each, the cracked ground 100%, the collapse 300% falling to half at the edge).
+   Every Cataclysm cast now runs ccmCast/ccmExplode (copies of castCataclysm/cataExplode with the mastery hooks); even at Mastery 0 the
+   pillars and the collapse burst in 3D (cfmBoom, void) instead of flat flashes and a camera-facing ring. Power on the Epic ladder
+   (tests/sm-ladder.js, 5 runs) with the hidden factors below: 1.10 / 1.22 / 1.37 / 1.49 / 1.74
+   against 1.094 / 1.234 / 1.35 / 1.522 / 1.742. CCM.dbg logs the events. */
+const CCM={dbg:null,dd:1,fs:.7,fsN:4,fsR:.5,ch:.9,su:.25,suT:5,wb:.35,wbR:.75,wbReach:4.5};
+const ccmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='cataclysm'&&c.L?c:null;};
+const ccmLog=d=>{if(CCM.dbg){d.t=time;CCM.dbg.push(d);}};
+SM_D.cataclysm=[
+  {n:'Drawn Down',d:'A pillar rises right under the toughest foe inside the rune instead of at a random spot.'},
+  {n:'Falling Sky',d:'While the rune charges, 4 shards break off it and fall as obsidian meteors onto foes inside: {70}% each.'},
+  {n:'Obsidian Chains',d:'A rising pillar chains the ground foes next to it until the collapse (Resolve applies), and the collapse hits them at full strength.'},
+  {n:'Sundered',d:'Foes the collapse hits are Sundered for 5s: physical, piercing and siege hits deal {25}% more to them.'},
+  {n:'World Breaker',d:'The collapse tears the pillars out of the ground; they spin into the sky and slam down on the toughest foes nearby: {35}% each.'}];
+SMF.cataclysm={m:1.5};
+SMA.cataclysm=[1,1,1,1,1];
+SMG.cataclysm=[1,1,1.06,1.19,1.15];
+{const h0=hurt;hurt=function(e,amt,kind,o){if(e&&e.ccmSu>time&&!e.dead&&(kind==='phys'||kind==='pierce'||kind==='siege'))amt*=1+CCM.su*(e.ccmSuA||1);return h0.call(this,e,amt,kind,o);};}
+const ccmToughest=(L,n)=>L.slice().sort((a,b)=>b.hp-a.hp).slice(0,n);
+/* an obsidian pillar or shard: a jagged black column with a glowing crown */
+function ccmRock(h,rad,mats,geos){const g=new THREE.Group(),g1=jitterGeo(new THREE.CylinderGeometry(rad*.55,rad,h,6,3),rad*.6),g2=jitterGeo(new THREE.ConeGeometry(rad*.7,rad*1.6,5),rad*.4);geos.push(g1,g2);
+  const m1=M(0x0c0a10,{emissive:0x2a0a40,emissiveIntensity:.5}),m2=M(0x120a1c,{emissive:0x9a40ff,emissiveIntensity:1});mats.push(m1,m2);const a=new THREE.Mesh(g1,m1),b=new THREE.Mesh(g2,m2);b.position.y=h/2+rad*.6;g.add(a,b);
+  const gl=new THREE.MeshBasicMaterial({color:0x8a30ff,transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(gl);const gm=new THREE.Mesh(ico(1,1),gl);gm.scale.set(rad*1.6,h*.62,rad*1.6);g.add(gm);return g;}
+/* M2: a shard of the sky rune falling as an obsidian meteor onto e */
+function ccmShard(from,e,fn){const mats=[],geos=[],g=smTag(ccmRock(.34,.07,mats,geos));g.position.copy(from);scene.add(g);const to=new THREE.Vector3(),prev=new THREE.Vector3();let tt=0,done=false;const T=.42;
+  addFx(g,T+.05,(f,dt)=>{tt+=dt;if(done)return;if(!e.dead){to.set(e.x,gy(e.x,e.z)+.1,e.z);}const k=Math.min(1,tt/T),ke=k*k;prev.copy(g.position);g.position.lerpVectors(from,to,ke);g.rotation.x+=dt*9;g.rotation.z+=dt*6;
+    for(let i=0;i<5;i++)emit(1,{x:g.position.x+(rnd()-.5)*.1,y:g.position.y+(rnd()-.5)*.1,z:g.position.z+(rnd()-.5)*.1,vx:(prev.x-g.position.x)*4,vy:(prev.y-g.position.y)*4,vz:(prev.z-g.position.z)*4,s:.08+rnd()*.06,s2:.01,c:rnd()<.3?0xffffff:0xc070ff,c2:0x3a0a6a,a:.9,life:.3,turb:.5});
+    emitS(0,{x:g.position.x,y:g.position.y,z:g.position.z,vy:.2,s:.1,s2:.3,c:0x2a1a3a,c2:0x140c18,a:.5,life:.6,turb:.4});
+    if(k>=1){done=true;g.visible=false;const x=to.x,z=to.z;cfmBoom(x,gy(x,z)+.2,z,.32,{pal:'void',lobes:4,skirt:3,T:.7,shake:.05});debris(x,z,6);fn(x,z);}},null,{mats,geos});}
+/* M3: a chain of black glass links from a pillar to a foe, until the collapse (or the foe dies) */
+function ccmChain(pl,e,S){const g=smTag(new THREE.Group());scene.add(g);const n=7,mats=[],G=new THREE.TorusGeometry(.05,.016,5,10),m=M(0x0c0a10,{emissive:0x7a2aff,emissiveIntensity:.8});mats.push(m);const links=[];
+  for(let i=0;i<n;i++){const l=new THREE.Mesh(G,m);g.add(l);links.push(l);}const a=new THREE.Vector3(),b=new THREE.Vector3(),d=new THREE.Vector3();let tt=0;
+  addFx(g,4,(f,dt)=>{tt+=dt;if(S.collapsed||e.dead){f.life=Math.min(f.life,.01);if(S.collapsed&&!e.dead){const p=tpos2(e);sprayP(1,p.x,p.y,p.z,8,{c:0xe0b0ff,c2:0x5a10b0,sp:1.6,s:.04,s2:0,life:.35});}g.visible=false;return;}
+    const pp=pl.g.position;a.set(pp.x,pp.y+pl.h*.55,pp.z);const p=tpos2(e);b.set(p.x,p.y,p.z);d.subVectors(b,a);const k=Math.min(1,tt/.15);
+    links.forEach((l,i)=>{const u=(i+.5)/n*k;l.position.copy(a).addScaledVector(d,u);l.position.y-=Math.sin(u*Math.PI)*.12;l.lookAt(b);l.rotateX(Math.PI/2);l.rotation.z+=(i%2)*1.57;});
+    if(rnd()<.3){const u=rnd();emit(1,{x:a.x+d.x*u,y:a.y+d.y*u,z:a.z+d.z*u,vy:.2,s:.04,s2:0,c:0xc080ff,c2:0x3a0a6a,life:.3});}},null,{mats,geos:[G]});}
+/* M4: shards of obsidian stuck in a sundered foe for 5s */
+function ccmSunder(e){const g=smTag(new THREE.Group());scene.add(g);const mats=[],m=M(0x0c0a10,{emissive:0x9a40ff,emissiveIntensity:.9});mats.push(m);const sh=[];
+  for(let i=0;i<4;i++){const s=new THREE.Mesh(cone(.035,.16,4),m);const a=i/4*6.28+rnd()*.5;s.position.set(Math.cos(a)*.13,(rnd()-.3)*.18,Math.sin(a)*.13);s.rotation.set(Math.sin(a)*1.2,0,-Math.cos(a)*1.2);g.add(s);sh.push(s);}
+  addFx(g,CCM.suT,(f,dt)=>{if(e.dead||!(e.ccmSu>time)){f.life=0;return;}const p=tpos2(e);g.position.set(p.x,p.y,p.z);g.rotation.y+=dt*.6;const k=Math.min(1,f.life/.4);g.scale.setScalar(Math.max(.01,k));
+    if(rnd()<.15)emit(1,{x:p.x+(rnd()-.5)*.2,y:p.y,z:p.z+(rnd()-.5)*.2,vy:.3,s:.04,s2:0,c:0xc080ff,c2:0x3a0a6a,life:.35});},null,{mats});}
+/* M5: the pillars torn out of the ground, thrown up spinning, and slammed down on foes one after another */
+function ccmWorldBreaker(cx,cz,pillars,P,o,A,S){const up=pillars.filter(pl=>pl.up&&!pl.gone);if(!up.length)return;
+  const pool=ccmToughest(enemies.filter(e=>!e.dead&&!e.fake&&Math.hypot(e.x-cx,e.z-cz)<CCM.wbReach),up.length);const mats=[],geos=[];
+  up.forEach((pl,i)=>{pl.gone=true;pl.g.visible=false;const pp=pl.g.position.clone(),h=pl.h,g=smTag(ccmRock(h,.18,mats,geos));g.position.set(pp.x,Math.max(.1,pp.y+h/2),pp.z);scene.add(g);
+    const tg=pool.length?pool[i%pool.length]:null,top=new THREE.Vector3(pp.x+(pp.x-cx)*.3,3.2+rnd()*1.2,pp.z+(pp.z-cz)*.3),from=g.position.clone(),spin=smV((rnd()-.5)*8,(rnd()-.5)*6,(rnd()-.5)*8);
+    const tHang=.55+.2,tFall=tHang+i*.12,T2=tFall+.22;let tt=0,hit=false;const aim=new THREE.Vector3(),fall0=new THREE.Vector3();
+    debris(pp.x,pp.z,8);sprayP(0,pp.x,.15,pp.z,14,{c:0x6a5a48,c2:0x2e2620,sp:1.3,up:.6,flat:true,r:.3,s:.2,s2:.5,a:.55,life:1,turb:.8});
+    addFx(g,T2+.1,(f,dt)=>{tt+=dt;if(hit)return;
+      if(tt<.55){const k=SMS(tt,0,.55);g.position.lerpVectors(from,top,k);g.rotation.x+=spin.x*dt;g.rotation.y+=spin.y*dt;g.rotation.z+=spin.z*dt;if(rnd()<.5)emit(1,{x:g.position.x,y:g.position.y-h*.3,z:g.position.z,vy:-.3,s:.07,s2:0,c:0xc070ff,c2:0x3a0a6a,life:.4});}
+      else if(tt<tFall){g.position.y=top.y+Math.sin(tt*6+i)*.05;g.rotation.y+=dt*1.5;g.rotation.x*=.9;g.rotation.z*=.9;if(tg&&!tg.dead)aim.set(tg.x,0,tg.z);else if(!aim.lengthSq())aim.set(cx+(rnd()-.5)*2,0,cz+(rnd()-.5)*2);fall0.copy(g.position);}
+      else{if(tg&&!tg.dead)aim.set(tg.x,0,tg.z);const k=Math.min(1,(tt-tFall)/.22),k2=k*k;g.position.set(fall0.x+(aim.x-fall0.x)*k2,fall0.y+(gy(aim.x,aim.z)+h*.35-fall0.y)*k2,fall0.z+(aim.z-fall0.z)*k2);g.rotation.set(0,g.rotation.y,0);
+        for(let j=0;j<4;j++)emit(1,{x:g.position.x+(rnd()-.5)*.2,y:g.position.y+h*.3,z:g.position.z+(rnd()-.5)*.2,vy:2,s:.09,s2:.01,c:0xe0b0ff,c2:0x5a10b0,life:.3});
+        if(k>=1){hit=true;g.visible=false;const x=aim.x,z=aim.z,y=gy(x,z);cfmBoom(x,y+.25,z,.55,{pal:'void',lobes:5,skirt:5,T:.95,shake:.12});debris(x,z,14);sprayP(1,x,y+.3,z,40,{c:0xffffff,c2:0x8a30ff,sp:3.5,up:1,s:.06,s2:0,life:.6,g:3,drag:.8});
+          const H=[];for(const q of enemies.slice()){if(q.dead||q.fake)continue;if((q.x-x)**2+(q.z-z)**2<CCM.wbR*CCM.wbR){hurt(q,P*CCM.wb*A[4],'magic',smO(o));H.push(q);}}ccmLog({ev:'wb',i,e:tg,x,z,L:H});}}},null,{});});
+  addFx(new THREE.Group(),3,()=>{},null,{mats,geos});}
+
+function ccmCast(t,c,P,o,C){const L=C?C.L:0,A=C?C.a:[1,1,1,1,1],S={chained:new Set(),collapsed:false,shot:0,fsUsed:new Set()};ccmLog({ev:'cast',x:c.x,z:c.z});
+  const cx=c.x,cz=c.z,Rr=1.9,root=new THREE.Group();scene.add(root);cineLock=Math.max(cineLock,2.4);vigTarget=Math.max(vigTarget,.35);darkTarget=Math.max(darkTarget,.35);
+  sprayP(1,t.x,t.topY+.3,t.z,24,{c:0xe0b0ff,c2:0x6a10c0,sp:1.5,s:.05,s2:0,life:.4});
+  const cp=camera.position,SY=3.6,kT=(cp.y-SY)/cp.y,SX=cp.x+(cx-cp.x)*kT,SZ=cp.z+(cz-cp.z)*kT,sS=1-kT;
+  const sky=makeRune(Rr*1.25*sS,0xb060ff,{star:8,step:3,glyphs:42}),sky2=makeRune(Rr*.62*sS,0xff90ff,{star:5,step:2,glyphs:18});
+  const gRune=makeRune(Rr*1.05,0xa050ff,{star:8,step:3,glyphs:36,fill:.18,fillCol:0x2a0a40,fillNormal:true});gRune.position.set(cx,.045,cz);gRune.scale.setScalar(.01);root.add(gRune);
+  sky.position.set(SX,SY,SZ);sky2.position.set(SX,SY-.02,SZ);root.add(sky,sky2);sky.scale.setScalar(.01);sky2.scale.setScalar(.01);
+  const colG=new THREE.CylinderGeometry(.02,.05,1,6,1,true);colG.translate(0,.5,0);const colM=new THREE.MeshBasicMaterial({color:0xd090ff,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false});
+  const col=new THREE.Mesh(colG,colM);col.position.set(t.x,t.topY,t.z);const cdv=new THREE.Vector3(SX-t.x,SY-t.topY,SZ-t.z);col.scale.set(1,cdv.length(),1);col.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),cdv.normalize());root.add(col);
+  const cracks=crackNet(cx,cz,Rr,10,0xd070ff);cracks.geometry.setDrawRange(0,0);root.add(cracks);
+  const gdG=new THREE.CircleGeometry(Rr,48);gdG.rotateX(-Math.PI/2);const gdM=new THREE.MeshBasicMaterial({color:0x7a28d0,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});
+  const gd=new THREE.Mesh(gdG,gdM);gd.position.set(cx,.03,cz);root.add(gd);
+  const pgeos=[],pillars=[];for(let i=0;i<8;i++){const a=i/8*6.28+rnd()*.5,r=i===0?0:Rr*(.3+rnd()*.55),h=1.1+rnd()*1,rad=.14+rnd()*.12,pg=new THREE.Group();
+    {const g1=jitterGeo(new THREE.CylinderGeometry(rad*(.45+rnd()*.3),rad,h,5+Math.floor(rnd()*3),4),rad*.7),g2=jitterGeo(new THREE.ConeGeometry(rad*(.5+rnd()*.3),rad*(.9+rnd()*.9),5),rad*.5);pgeos.push(g1,g2);
+      const m1=new THREE.Mesh(g1,M(0x0c0a10,{emissive:0x2a0a40,emissiveIntensity:.45}));m1.position.y=h/2;m1.castShadow=true;pg.add(m1);const m2=new THREE.Mesh(g2,M(0x0c0a10,{emissive:0x9a40ff,emissiveIntensity:.9}));m2.position.set((rnd()-.5)*rad*.4,h+rad*.5,(rnd()-.5)*rad*.4);m2.rotation.set((rnd()-.5)*.5,rnd()*6,(rnd()-.5)*.5);pg.add(m2);}
+    for(let k=0;k<3;k++)add(pg,box(rad*1.3,.02,rad*1.3),M(0x9a40ff,{emissive:0x9a40ff,emissiveIntensity:1}),0,h*(.3+k*.22),0,false).rotation.y=k;
+    pg.position.set(cx+Math.cos(a)*r,-h-.4,cz+Math.sin(a)*r);pg.rotation.set((rnd()-.5)*.3,rnd()*6,(rnd()-.5)*.3);pg.visible=false;root.add(pg);pillars.push({g:pg,h,delay:1.1+i*.06,up:false,t:0,i});}
+  if(L>=1){const tg=ccmToughest(enemies.filter(e=>!e.dead&&!e.fake&&Math.hypot(e.x-cx,e.z-cz)<Rr),CCM.dd);tg.forEach((e,i)=>{pillars[i+1].tg=e;});}
+  let tt=0,area=false,waved=false;
+  addFx(root,3.4,(f,dt)=>{tt+=dt;
+    const fk=ease(clamp(tt/.7,0,1));if(!waved){sky.scale.setScalar(.01+fk);sky2.scale.setScalar(.01+fk);}sky.rotation.y+=dt*(.7+.4*Math.sin(tt*1.7)+(tt>1.85&&!waved?6*(tt-1.85):0));
+    if(tt>1.8&&!waved){for(let i=0;i<9;i++){const a=rnd()*6.28,r=(.8+rnd()*1.6)*sS*2.2;emit(1,{x:SX+Math.cos(a)*r,y:SY+(rnd()-.5)*.8,z:SZ+Math.sin(a)*r,vx:-Math.cos(a)*r*4.5,vy:0,vz:-Math.sin(a)*r*4.5,s:.06+rnd()*.05,s2:.01,c:rnd()<.4?0xffffff:0xc080ff,c2:0x6a10c0,life:.22});}if(rnd()<.7)zap({x:SX,y:SY,z:SZ},{x:SX+(rnd()-.5)*1.6*sS*2,y:SY+(rnd()-.5)*.6,z:SZ+(rnd()-.5)*1.6*sS*2},0xe8d0ff,.07);}sky2.rotation.y-=dt*(1.5+.6*Math.sin(tt*2.3));sky.position.y=SY+Math.sin(tt*2.1)*.05;gRune.scale.setScalar(.01+ease(clamp((tt-.2)/.7,0,1)));gRune.rotation.y-=dt*.5;gRune.userData.fade(tt<2.4?1:Math.max(0,1-(tt-2.4)/.8));
+    if(!waved&&fk>.4)for(let i=0;i<4;i++){const a=rnd()*6.28,r=Rr*1.25*(.8+rnd()*.25)*fk;emit(1,{x:SX+Math.cos(a)*r*sS,y:SY,z:SZ+Math.sin(a)*r*sS,vx:(rnd()-.5)*.1,vy:-.5-rnd()*.9,vz:(rnd()-.5)*.1,s:.06+rnd()*.04,s2:0,c:0xe0a0ff,c2:0x5a10b0,life:1.1+rnd()*.6,turb:.4});}
+    colM.opacity=tt<1.1?.7*(.6+.4*Math.sin(tt*30)):Math.max(0,.7-(tt-1.1)*3);
+    const ck=clamp((tt-.35)/.75,0,1);cracks.geometry.setDrawRange(0,Math.floor(cracks.userData.count*ck/2)*2);cracks.material.opacity=(.55+.45*Math.sin(tt*28))*(tt<2.4?1:Math.max(0,1-(tt-2.4)/.8));
+    gdM.opacity=ck*.3*(.7+.3*Math.sin(tt*18))*(tt<2.2?1:Math.max(0,1-(tt-2.2)/.8));
+    if(ck>0&&tt<2.3)for(let i=0;i<6;i++){const a=rnd()*6.28,r=rnd()*Rr*1.05;emit(1,{x:cx+Math.cos(a)*r,y:.04,z:cz+Math.sin(a)*r,vx:(rnd()-.5)*.2,vy:.4+rnd()*1.1,vz:(rnd()-.5)*.2,s:.05+rnd()*.05,s2:0,c:0xe090ff,c2:0x5a10b0,life:.6+rnd()*.5,turb:.6});if(rnd()<.3)emit(0,{x:cx+Math.cos(a)*r,y:.05,z:cz+Math.sin(a)*r,vy:.2+rnd()*.3,s:.12,s2:.3,c:0x2a1a30,c2:0x140c18,a:.45,life:1,turb:.6});}
+    pillars.forEach(pl=>{if(tt<pl.delay||pl.gone)return;const pp=pl.g.position;
+      if(!pl.up){if(pl.tg&&!pl.tg.dead&&Math.hypot(pl.tg.x-cx,pl.tg.z-cz)<Rr*1.15){pp.x=pl.tg.x;pp.z=pl.tg.z;}pl.up=true;pl.g.visible=true;debris(pp.x,pp.z,9);sprayP(0,pp.x,.15,pp.z,18,{c:0x6a5a48,c2:0x2e2620,sp:1.3,up:.5,flat:true,r:.3,s:.2,s2:.5,a:.55,life:1.2,turb:.8});sprayP(1,pp.x,.2,pp.z,16,{c:0xe0a0ff,c2:0x6a10c0,sp:1.8,up:1.2,s:.06,s2:0,life:.7,g:2});for(let i=0;i<5;i++)darkMote(pp.x,.2,pp.z);cfmBoom(pp.x,.25,pp.z,.22,{pal:'void',lobes:3,T:.5});camShake+=.025;
+        const H=[];for(const en of enemies){if(!en.dead&&(en.x-pp.x)**2+(en.z-pp.z)**2<.35){hurt(en,P*2,'magic',o);H.push(en);}}
+        const ch=[];if(L>=3&&!S.collapsed)for(const en of enemies){if(en.dead||en.fake||en.fly||S.chained.has(en)||(en.x-pp.x)**2+(en.z-pp.z)**2>=CCM.ch*CCM.ch)continue;S.chained.add(en);ch.push(en);smStun(en,Math.max(.1,2.27-tt+.05));ccmChain(pl,en,S);}
+        ccmLog({ev:'pillar',i:pl.i,x:pp.x,z:pp.z,tg:pl.tg||null,L:H,ch});}
+      pl.t+=dt;if(tt<2.45)pp.y=-pl.h-.4+(pl.h+.4)*ease(clamp(pl.t/.13,0,1));else{const q=clamp((tt-2.45)/.8,0,1);pp.y=-q*(pl.h+.5);if(rnd()<.15)debris(pp.x,pp.z,1);}});
+    if(L>=2&&S.shot<CCM.fsN&&tt>=.6+S.shot*.35){S.shot++;const pool=enemies.filter(e=>!e.dead&&!e.fake&&Math.hypot(e.x-cx,e.z-cz)<Rr+.3&&!S.fsUsed.has(e)),e=pool.length?pool[Math.floor(rnd()*pool.length)]:null;
+      if(e){S.fsUsed.add(e);ccmShard(new THREE.Vector3(SX+(rnd()-.5)*.6,SY,SZ+(rnd()-.5)*.6),e,(x,z)=>{const H=[];for(const q of enemies.slice()){if(q.dead||q.fake)continue;if((q.x-x)**2+(q.z-z)**2<CCM.fsR*CCM.fsR){hurt(q,P*CCM.fs*A[1],'magic',smO(o));H.push(q);}}ccmLog({ev:'shard',e,x,z,L:H});});}}
+    if(tt>1.6&&!area){area=true;for(const en of enemies)if(!en.dead&&(en.x-cx)**2+(en.z-cz)**2<Rr*Rr)hurt(en,P,'magic',o);}
+    if(tt>2.15){const q=clamp((tt-2.15)/.12,0,1);sky.scale.setScalar(Math.max(.01,1-q)*(1+q*.3));sky2.scale.setScalar(Math.max(.01,1-q));
+      if(!waved&&q>=1){waved=true;sprayP(1,SX,SY,SZ,40,{c:0xffffff,c2:0xa040ff,sp:3*sS,s:.06,s2:0,life:.4,drag:1});ccmExplode(cx,cz,SX,SY,SZ,P,o,pillars,Rr,L,A,S);vigTarget=0;darkTarget=0;}}},
+    null,{mats:[...gRune.userData.mats,...sky.userData.mats,...sky2.userData.mats,cracks.material,gdM,colM],geos:[...gRune.userData.geos,...sky.userData.geos,...sky2.userData.geos,cracks.geometry,gdG,colG,...pgeos]});
+}
+
+function ccmExplode(cx,cz,SX,SY,SZ,P,o,pillars,Rr,LV,AM,S){S.collapsed=true;if(LV>=5)ccmWorldBreaker(cx,cz,pillars,P,o,AM,S);cfmBoom(cx,.3,cz,.8,{pal:'void',mush:true,skirt:8,lobes:6,T:1.1});
+  const root=new THREE.Group();scene.add(root);const geos=[],mats=[],ADD=THREE.AdditiveBlending,A=eclAssets();
+  worldSlow=.22;slowT=.32;flashA=.8;flashCol='#ecd0ff';flashDecay=2.1;camShake=.55;
+  // energy column from the rune into the ground
+  const colG=new THREE.CylinderGeometry(1,1,1,18,1,true);colG.translate(0,-.5,0);
+  const colM=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:1},uCore:{value:0},uC:{value:new THREE.Color(0xb060ff)}},vertexShader:VS_UV,fragmentShader:BEAM_FS,transparent:true,depthWrite:false,blending:ADD,side:THREE.DoubleSide}),colM2=colM.clone();colM2.uniforms.uCore.value=1;
+  const col=new THREE.Group();col.position.set(SX,SY,SZ);const cv=new THREE.Vector3(cx-SX,-SY,cz-SZ),L=cv.length();col.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),cv.normalize());
+  const c1=new THREE.Mesh(colG,colM),c2=new THREE.Mesh(colG,colM2);col.add(c1,c2);root.add(col);
+  // fireball: violet plasma shell, white-hot core, dark after-blast
+  const fbG=jitterGeo(new THREE.IcosahedronGeometry(1,3),.12),dkG=new THREE.IcosahedronGeometry(1,3),fbM=new THREE.MeshBasicMaterial({color:0xc070ff,transparent:true,opacity:.4,blending:ADD,depthWrite:false}),fcM=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:1,blending:ADD,depthWrite:false}),dkM=new THREE.MeshBasicMaterial({color:0x12061c,transparent:true,opacity:0,depthWrite:false});
+  const fb=new THREE.Mesh(fbG,fbM),fc=new THREE.Mesh(fbG,fcM),dk=new THREE.Mesh(dkG,dkM);[fb,fc,dk].forEach(m=>{m.position.set(cx,.25,cz);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);root.add(m);});
+  // shock rings: one flat rising, one facing the camera
+  const tG=new THREE.TorusGeometry(1,.055,6,48),tM=new THREE.MeshBasicMaterial({color:0xe6c0ff,transparent:true,opacity:.9,blending:ADD,depthWrite:false}),tM2=tM.clone();
+  const tor=new THREE.Mesh(tG,tM);tor.rotation.x=Math.PI/2;tor.position.set(cx,.3,cz);root.add(tor);const tor2=new THREE.Mesh(tG,tM2);tor2.position.set(cx,.7,cz);root.add(tor2);
+  // crater: glowing cracks + scorch
+  const dG=new THREE.PlaneGeometry(1,1);dG.rotateX(-Math.PI/2);const crM=new THREE.MeshBasicMaterial({map:pick(A.cracks),color:0xc060ff,transparent:true,opacity:1,blending:ADD,depthWrite:false}),cr=new THREE.Mesh(dG,crM);cr.position.set(cx,.062,cz);cr.rotation.y=rnd()*6.28;cr.scale.setScalar(Rr*2.8);root.add(cr);
+  const crM2=crM.clone();crM2.map=pick(A.cracks);crM2.color=new THREE.Color(0xffc0ff);const cr2=new THREE.Mesh(dG,crM2);cr2.position.set(cx,.064,cz);cr2.rotation.y=rnd()*6.28;cr2.scale.setScalar(Rr*1.6);root.add(cr2);
+  const scG=jitterGeo(new THREE.CircleGeometry(1,40),.08);scG.rotateX(-Math.PI/2);const scM=new THREE.MeshBasicMaterial({color:0x080410,transparent:true,opacity:.6,depthWrite:false}),sc=new THREE.Mesh(scG,scM);sc.position.set(cx,.052,cz);sc.scale.setScalar(Rr*1.35);root.add(sc);
+  geos.push(colG,fbG,dkG,tG,dG,scG);mats.push(colM,colM2,fbM,fcM,dkM,tM,tM2,crM,crM2,scM);
+  // pillars shatter into glowing chunks
+  pillars.forEach(pl=>{if(!pl.up||pl.gone)return;pl.gone=true;pl.g.visible=false;const pp=pl.g.position,h=pl.h,dx=pp.x-cx,dz=pp.z-cz,dl=Math.hypot(dx,dz)||1;
+    cfmBoom(pp.x,Math.max(.3,pp.y+h*.5),pp.z,.22,{pal:'void',lobes:3,T:.45,ground:false});
+    for(let i=0;i<7;i++){const m=new THREE.Mesh(dod(.05+rnd()*.07),M(rnd()<.5?0x0c0a10:0x1a1024,{emissive:0x5a18a0,emissiveIntensity:.55}));m.position.set(pp.x+(rnd()-.5)*.2,Math.max(.12,pp.y+rnd()*h),pp.z+(rnd()-.5)*.2);m.scale.set(1,1+rnd()*1.6,1);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);scene.add(m);
+      const vel=new THREE.Vector3(dx/dl*(2+rnd()*3.5)+(rnd()-.5)*2,2.2+rnd()*3.8,dz/dl*(2+rnd()*3.5)+(rnd()-.5)*2),rs=4+rnd()*12;
+      addFx(m,1.5+rnd()*.7,(e,dt)=>{vel.y-=9*dt;m.position.addScaledVector(vel,dt);m.rotation.x+=dt*rs;m.rotation.z+=dt*rs*.7;if(m.position.y<.04){m.position.y=.04;vel.multiplyScalar(.35);vel.y=Math.abs(vel.y)*.45;}
+        if(rnd()<.35)emit(1,{x:m.position.x,y:m.position.y,z:m.position.z,s:.05,s2:0,c:0xb060ff,c2:0x3a0a6a,life:.35});if(rnd()<.15)emitS(0,{x:m.position.x,y:m.position.y,z:m.position.z,s:.12,s2:.35,c:0x3a2a40,c2:0x1a1420,a:.45,life:.9,turb:.4});
+        if(e.life/e.max<.3)m.scale.multiplyScalar(.95);});}});
+  // immediate bursts
+  sprayP(1,cx,.4,cz,240,{c:0xffffff,c2:0x8a30ff,sp:7.5,r:.6,up:1.2,s:.08,s2:0,life:1.3,g:3,drag:.8});
+  sprayP(1,cx,.25,cz,90,{c:0xffd0ff,c2:0xa040ff,sp:3.5,flat:true,s:.12,s2:0,life:.9,drag:1.5});
+  sprayP(1,cx,.3,cz,40,{c:0xffe0a0,c2:0xa04000,sp:3,up:2,s:.05,s2:0,life:1.6,g:5});
+  debris(cx,cz,36);sprayP(0,cx,.2,cz,40,{c:0x6a5a48,c2:0x2e2620,sp:3.5,flat:true,r:.5,s:.3,s2:.8,a:.6,life:1.6,turb:.6});
+  for(let i=0;i<34;i++){const a=rnd()*6.28,v=2.2+rnd()*3.2;emitS(0,{x:cx+Math.cos(a)*.4,y:.2,z:cz+Math.sin(a)*.4,vx:Math.cos(a)*v,vy:.25+rnd()*.5,vz:Math.sin(a)*v,s:.5,s2:1.5,c:0x5a4a50,c2:0x2a2030,a:.55,life:1.9,drag:1.6,turb:.5});}
+  for(let i=0;i<10;i++)emitS(1,{x:cx+(rnd()-.5)*.6,y:.3+rnd()*.6,z:cz+(rnd()-.5)*.6,vx:(rnd()-.5)*1.5,vy:.5+rnd(),vz:(rnd()-.5)*1.5,s:.5,s2:1.3,c:0x8a40d0,c2:0x14041e,a:.6,life:.8,drag:1.5});
+  // damage, knockback, launch
+  const CL=[];for(const en of enemies){if(en.dead)continue;const d=Math.hypot(en.x-cx,en.z-cz);if(d<Rr+1.5){const full=S.chained.has(en);hurt(en,P*3*(full?1:1-d/(Rr+2)*.5),'magic',o);CL.push({e:en,full});if(LV>=4&&!en.dead){en.ccmSu=time+CCM.suT;en.ccmSuA=AM[3];ccmSunder(en);}
+    if(!en.dead){pushE(en,en.boss?.1:.45);if(stunE(en,en.boss?.4:1)>0){en.liftT=1.6;en.liftH=en.boss?.2:.6;}orbitFrags(en,1.2);}}}ccmLog({ev:'collapse',L:CL});
+  let tt=0;
+  addFx(root,3.4,(f,dt)=>{tt+=dt;colM.uniforms.uT.value=tt;colM2.uniforms.uT.value=tt;
+    const ck=clamp(tt/.5,0,1),w=(1-ck)*.95+.02;c1.scale.set(w,L,w);c2.scale.set(w*.35,L,w*.35);colM.uniforms.uA.value=1-ck;colM2.uniforms.uA.value=1-ck;
+    const fk=ease(clamp(tt/.55,0,1));fb.scale.set(.2+fk*Rr*1.45,(.2+fk*Rr*1.45)*.72,.2+fk*Rr*1.45);fb.rotation.y+=dt*1.5;fbM.opacity=.4*(1-clamp((tt-.12)/.6,0,1));
+    fc.scale.setScalar(.1+fk*Rr*.75);fcM.opacity=1-clamp(tt/.32,0,1);
+    const dkk=ease(clamp((tt-.1)/1.1,0,1));dk.scale.set(.3+dkk*Rr*.95,(.3+dkk*Rr*.95)*.55,.3+dkk*Rr*.95);dkM.opacity=tt<.18?0:.32*(1-clamp((tt-.3)/1,0,1));
+    tor.scale.setScalar(.3+ease(clamp(tt/.65,0,1))*Rr*2.3);tor.position.y=.3+tt*1.6;tM.opacity=.9*(1-clamp(tt/.7,0,1));
+    tor2.visible=false;
+    crM.opacity=(1-clamp((tt-.5)/.8,0,1))*(.7+.3*Math.sin(tt*18));crM2.opacity=(1-clamp((tt-.4)/.7,0,1))*(.6+.4*Math.sin(tt*23+1));scM.opacity=.6*(1-clamp((tt-.6)/.8,0,1));
+    if(!f.s1&&tt>.06){f.s1=1;shockwave(cx,cz,9.5,0xb060ff,1.15,0x000000);}
+    if(!f.s2&&tt>.18){f.s2=1;shockwave(cx,cz,5.5,0xffd8ff,.7);}
+    if(!f.s3&&tt>.34){f.s3=1;shockwave(cx,cz,3.5,0x8a30ff,.6);camShake=Math.max(camShake,.2);}
+    if(tt<1.25){for(let i=0;i<5;i++){const a=rnd()*6.28,r=rnd()*.6;emitS(0,{x:cx+Math.cos(a)*r,y:.3+tt*2,z:cz+Math.sin(a)*r,vx:Math.cos(a)*.6,vy:1.4+rnd()*1.2,vz:Math.sin(a)*.6,s:.5,s2:1.7,c:0x4a2c60,c2:0x1a1024,a:.6,life:2.3,drag:1.2,turb:.6});}
+      if(tt>.3)for(let i=0;i<4;i++){const a=rnd()*6.28;emitS(0,{x:cx+Math.cos(a)*.6,y:1.6+tt*1.3,z:cz+Math.sin(a)*.6,vx:Math.cos(a)*1.7,vy:.2,vz:Math.sin(a)*1.7,s:.6,s2:1.9,c:0x5a3470,c2:0x1a1024,a:.5,life:2.1,drag:1,turb:.5});}
+      if(tt<.6)emitS(1,{x:cx,y:.4+tt*2,z:cz,vy:1.5,s:.7,s2:1.6,c:0xc070ff,c2:0x1a0428,a:.5,life:.9,drag:1});}
+    if(tt<1.3)for(let i=0;i<5;i++){const a=rnd()*6.28,r=rnd()*Rr*.95;emit(1,{x:cx+Math.cos(a)*r,y:.06,z:cz+Math.sin(a)*r,vx:(rnd()-.5)*.2,vy:.6+rnd()*1.3,vz:(rnd()-.5)*.2,s:.1+rnd()*.1,s2:0,c:rnd()<.3?0xffffff:0xc070ff,c2:0x3a0a6a,life:.6+rnd()*.5,turb:1.2});}
+    if(tt<1&&rnd()<.7){const a=rnd()*6.28,r1=rnd()*.5,r2=1+rnd()*Rr*1.6;zap({x:cx+Math.cos(a)*r1,y:.08,z:cz+Math.sin(a)*r1},{x:cx+Math.cos(a+(rnd()-.5)*.4)*r2,y:.08,z:cz+Math.sin(a+(rnd()-.5)*.4)*r2},0xe8c8ff,.12);}},null,{mats,geos});
+}
+const CCM_OLD=castCataclysm;
+castCataclysm=function(t,c,P,o){return t&&c?ccmCast(t,c,P,o,ccmC(o)):CCM_OLD.apply(this,arguments);};
 
 /* ================= Thunder Wyrm's masteries (v424), designed with Simon's framework (MASTERY_DESIGN.md) ================= */
 /* Identity: a hunting serpent of living lightning. It rises from a storm rune, dives onto the road, weaves back through the enemy line
