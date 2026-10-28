@@ -14134,6 +14134,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Riftfang masteries, reworked',d:'28 Oct',v:'v408',li:[
+    'Shardburst: the piercing shard bursts into three splinters, 30%. Void Pins: the side shards leave blades that erupt, 45% each.',
+    'Deathmark: four marks on the target detonate for 120%. Blackglass Barrage: six more spears, 45% each.',
+    'Cataclysmic Convergence: every impact leaves a fracture; at the fifth they explode, 100% and lightning for 50%.',
+    'Every Riftfang impact is now a 3D void explosion, and the piercing shard no longer misses its own target.']},
   {t:'Spatial Deflection masteries, reworked',d:'28 Oct',v:'v407',li:[
     'Fractured Perspective: at the snap, fractures of light race across the zone and bend the ground beneath the foes, 35%. Echoes of Elsewhere: two ghostly copies of the zone collapse into it in turn, 50%.',
     'Folded Space: the zone folds along a glowing cross and draws the foes inside toward its centre, 75% at the snap. The Impossible Prison: a crystal cage closes round the zone and shatters inward, 100%.',
@@ -23823,13 +23828,21 @@ const CFM_BOOM_FS='uniform float uT,uHeat,uDis,uA,uSeed,uGlow;varying vec3 vP,vN
   'c=mix(c,vec3(1.,.6,.15),smoothstep(.45,.67,h));c=mix(c,vec3(1.,.92,.68),smoothstep(.74,.98,h));'+
   'float a=uA*smoothstep(uDis,uDis+.18,n*.85+f*.32)*smoothstep(.0,.45,f)*mix(.5,1.,clamp(uHeat*2.5,0.,1.));if(a<.01)discard;'+
   'if(uGlow>0.)gl_FragColor=vec4(c*smoothstep(.42,.95,h),a*uGlow);else gl_FragColor=vec4(c,a);}';
-function cfmBoomMat(glow){return new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*10},uAmp:{value:.3},uSeed:{value:rnd()*40},uHeat:{value:1},uDis:{value:0},uA:{value:1},uGlow:{value:glow?1:0}},
-  vertexShader:CFM_BOOM_VS,fragmentShader:CFM_BOOM_FS,transparent:true,depthWrite:false,blending:glow?THREE.AdditiveBlending:THREE.NormalBlending});}
+/* the same fireball in void colours (Riftfang): white-lavender, magenta, violet, deep purple, then black smoke */
+const CFM_BOOM_FS_VOID='uniform float uT,uHeat,uDis,uA,uSeed,uGlow;varying vec3 vP,vN,vV;varying float vD;'+CFM_N3+
+  'void main(){float n=fb3(vP*2.7+vec3(uSeed*1.7,uSeed,0.)+vec3(0.,-uT*1.5,0.));float f=abs(dot(normalize(vN),normalize(vV)));'+
+  'float h=uHeat*(.42+1.*n)*(.5+.5*f)+vD*.14*uHeat;'+
+  'vec3 c=vec3(.035,.025,.05)+vec3(.09,.06,.13)*n*(.55+.45*f);c=mix(c,vec3(.17,.03,.32),smoothstep(.1,.24,h));c=mix(c,vec3(.48,.12,.9),smoothstep(.24,.44,h));'+
+  'c=mix(c,vec3(.85,.42,1.),smoothstep(.44,.68,h));c=mix(c,vec3(1.,.9,1.),smoothstep(.76,.98,h));'+
+  'float a=uA*smoothstep(uDis,uDis+.18,n*.85+f*.32)*smoothstep(.0,.45,f)*mix(.5,1.,clamp(uHeat*2.5,0.,1.));if(a<.01)discard;'+
+  'if(uGlow>0.)gl_FragColor=vec4(c*smoothstep(.42,.95,h),a*uGlow);else gl_FragColor=vec4(c,a);}';
+function cfmBoomMat(glow,pal){return new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*10},uAmp:{value:.3},uSeed:{value:rnd()*40},uHeat:{value:1},uDis:{value:0},uA:{value:1},uGlow:{value:glow?1:0}},
+  vertexShader:CFM_BOOM_VS,fragmentShader:pal==='void'?CFM_BOOM_FS_VOID:CFM_BOOM_FS,transparent:true,depthWrite:false,blending:glow?THREE.AdditiveBlending:THREE.NormalBlending});}
 /* S is the size (about the fireball's radius in tiles). o.lobes, o.T (life), o.mush (a column and a mushroom cap rising), o.skirt (flat lobes
    of fire rolling out along the ground), o.ground=false (in the air: no dust ring or scorch), o.shake. */
 function cfmBoom(x,y,z,S,o){o=o||{};const g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);const geo=ico(1,4),mats=[],lobes=[],T=o.T||(.8+.7*S),gy0=gy(x,z);
-  const add=(p)=>{const m=cfmBoomMat(false),me=new THREE.Mesh(geo,m);me.visible=false;me.renderOrder=7;me.rotation.set(rnd()*6,rnd()*6,rnd()*6);g.add(me);mats.push(m);p.m=me;p.mat=m;
-    if(p.glow){const gm=cfmBoomMat(true),ge=new THREE.Mesh(geo,gm);ge.visible=false;ge.renderOrder=8;g.add(ge);mats.push(gm);p.gm=gm;p.ge=ge;}lobes.push(p);};
+  const V=o.pal==='void',add=(p)=>{const m=cfmBoomMat(false,o.pal),me=new THREE.Mesh(geo,m);me.visible=false;me.renderOrder=7;me.rotation.set(rnd()*6,rnd()*6,rnd()*6);g.add(me);mats.push(m);p.m=me;p.mat=m;
+    if(p.glow){const gm=cfmBoomMat(true,o.pal),ge=new THREE.Mesh(geo,gm);ge.visible=false;ge.renderOrder=8;g.add(ge);mats.push(gm);p.gm=gm;p.ge=ge;}lobes.push(p);};
   const n=(o.lobes||Math.max(3,Math.round(3+S*2.5)))+2;
   add({dir:smV(0,1,0),dist:0,r:S*.48,del:0,rise:S*.45,hk:3,flat:1,glow:true});
   for(let i=1;i<n;i++){const a=rnd()*6.283,el=-.15+rnd()*1.1,dir=smV(Math.cos(a)*Math.cos(el),Math.sin(el),Math.sin(a)*Math.cos(el));
@@ -23837,12 +23850,12 @@ function cfmBoom(x,y,z,S,o){o=o||{};const g=smTag(new THREE.Group());g.position.
   if(o.skirt)for(let i=0;i<o.skirt;i++){const a=i/o.skirt*6.283+rnd()*.4;add({dir:smV(Math.cos(a),.05,Math.sin(a)),dist:S*(.7+.25*rnd()),r:S*(.2+.08*rnd()),del:.05+rnd()*.08,rise:S*.15,hk:3.4+rnd(),flat:.8,low:true});}
   if(o.mush){add({dir:smV(0,1,0),dist:0,r:S*.42,del:.12,rise:S*1.25,hk:2,flat:.85,cap:true,glow:true});for(let i=0;i<3;i++)add({dir:smV((rnd()-.5)*.2,1,(rnd()-.5)*.2),dist:0,r:S*(.24-.04*i),del:.1+.05*i,rise:S*(.45+.25*i),hk:2.6,flat:1});}
   /* the blast's sparks, embers and ground */
-  const sp=Math.round(14+46*S);sprayP(1,x,y,z,sp,{c:0xfff6c8,c2:0xff6a10,sp:(2+2.2*S),up:1.1,s:.05+.02*S,s2:0,life:.45+.25*S,g:3,drag:.7,r:S*.2});
-  sprayP(0,x,y,z,Math.round(6+16*S),{c:0xffb040,c2:0x7a1404,sp:1.2+1.4*S,up:1.6,s:.07+.03*S,s2:.02,a:.95,life:.6+.3*S,g:2.4});
-  for(let i=0;i<Math.round(3+8*S);i++){const a=rnd()*6.283,v=1.5+rnd()*2.5*S;emit(1,{x,y:y+.05,z,vx:Math.cos(a)*v,vy:1.2+rnd()*2.4*S,vz:Math.sin(a)*v,s:.04+.02*S,s2:0,c:0xffe8a0,c2:0xff3a00,life:.7+rnd()*.5,g:5,drag:.4});}
+  const sp=Math.round(14+46*S);sprayP(1,x,y,z,sp,{c:V?0xf4e0ff:0xfff6c8,c2:V?0x8a2aff:0xff6a10,sp:(2+2.2*S),up:1.1,s:.05+.02*S,s2:0,life:.45+.25*S,g:3,drag:.7,r:S*.2});
+  sprayP(0,x,y,z,Math.round(6+16*S),{c:V?0x2a0a40:0xffb040,c2:V?0x0a0410:0x7a1404,sp:1.2+1.4*S,up:1.6,s:.07+.03*S,s2:.02,a:.95,life:.6+.3*S,g:2.4});
+  for(let i=0;i<Math.round(3+8*S);i++){const a=rnd()*6.283,v=1.5+rnd()*2.5*S;emit(1,{x,y:y+.05,z,vx:Math.cos(a)*v,vy:1.2+rnd()*2.4*S,vz:Math.sin(a)*v,s:.04+.02*S,s2:0,c:V?0xe8c0ff:0xffe8a0,c2:V?0x6a10d0:0xff3a00,life:.7+rnd()*.5,g:5,drag:.4});}
   if(o.ground!==false){const R=S*1.1+.2,m=Math.round(10+18*S);for(let i=0;i<m;i++){const a=i/m*6.283+rnd()*.2;
-      emitS(0,{x:x+Math.cos(a)*S*.3,y:gy0+.06,z:z+Math.sin(a)*S*.3,vx:Math.cos(a)*R*2.2,vy:.15+rnd()*.15,vz:Math.sin(a)*R*2.2,s:.12+.12*S,s2:.35+.5*S,c:0x7a6a56,c2:0x4a3e32,a:.32,life:.55+.3*S,drag:2.4,turb:.3});}
-    nsDecal(x,z,.3+S*.55,0x120804,.55,2.5+2*S,{fout:1});nsDecal(x,z,.18+S*.35,0x8a2a04,.35,.8+.6*S,{add:true,fout:1});}
+      emitS(0,{x:x+Math.cos(a)*S*.3,y:gy0+.06,z:z+Math.sin(a)*S*.3,vx:Math.cos(a)*R*2.2,vy:.15+rnd()*.15,vz:Math.sin(a)*R*2.2,s:.12+.12*S,s2:.35+.5*S,c:V?0x4a3a5a:0x7a6a56,c2:V?0x241a30:0x4a3e32,a:.32,life:.55+.3*S,drag:2.4,turb:.3});}
+    nsDecal(x,z,.3+S*.55,V?0x0a0410:0x120804,.55,2.5+2*S,{fout:1});nsDecal(x,z,.18+S*.35,V?0x5a1ab0:0x8a2a04,.35,.8+.6*S,{add:true,fout:1});}
   if(o.shake)camShake=Math.max(camShake,o.shake);
   let tt=0;
   addFx(g,T+.1,(f,dt)=>{tt+=dt;for(const p of lobes){const lt=tt-p.del;if(lt<0)continue;const k=Math.min(1,lt/T),gr=1-Math.exp(-lt*9/(.45+.45*S)),R=p.r*(.2+.85*gr+.6*k)*(p.cap?1+.6*k:1);
@@ -23851,7 +23864,7 @@ function cfmBoom(x,y,z,S,o){o=o||{};const g=smTag(new THREE.Group());g.position.
       p.m.scale.set(R*(p.cap?1.25:1),R*p.flat,R*(p.cap?1.25:1));p.m.rotation.y+=dt*.6;p.mat.uniforms.uT.value+=dt*(.9+.6*heat);p.mat.uniforms.uHeat.value=heat;p.mat.uniforms.uDis.value=dis;p.mat.uniforms.uA.value=Math.min(1,lt*14);
       if(p.ge){p.ge.visible=true;p.ge.position.copy(p.m.position);p.ge.scale.copy(p.m.scale).multiplyScalar(.93);p.ge.rotation.copy(p.m.rotation);p.gm.uniforms.uT.value=p.mat.uniforms.uT.value;p.gm.uniforms.uHeat.value=heat*1.15;p.gm.uniforms.uDis.value=dis;p.gm.uniforms.uA.value=1;p.gm.uniforms.uGlow.value=Math.min(1,1.6*heat);}
       /* the cooling smoke leaves wisps behind as it rises */
-      if(k>.35&&k<.9&&rnd()<.12*S+.04)emitS(0,{x:x+p.m.position.x,y:y+p.m.position.y+R*.4,z:z+p.m.position.z,vx:(rnd()-.5)*.3,vy:.35+rnd()*.3,vz:(rnd()-.5)*.3,s:R*.6,s2:R*1.6,c:0x2e2620,c2:0x1a1612,a:.3,life:1.4+S*.6,lift:.25,turb:.4});}},null,{mats});
+      if(k>.35&&k<.9&&rnd()<.12*S+.04)emitS(0,{x:x+p.m.position.x,y:y+p.m.position.y+R*.4,z:z+p.m.position.z,vx:(rnd()-.5)*.3,vy:.35+rnd()*.3,vz:(rnd()-.5)*.3,s:R*.6,s2:R*1.6,c:V?0x1a1222:0x2e2620,c2:V?0x0c0812:0x1a1612,a:.3,life:1.4+S*.6,lift:.25,turb:.4});}},null,{mats});
   return g;}
 
 /* a flying flame: a white-hot core in a halo, a ribbon of fire behind it, and optionally two thinner ribbons twisting round its path (helix).
@@ -26091,6 +26104,242 @@ castDeflectZone=function(t,c,P,o){const C=dfmC(o),r=DFM_ZONE0.apply(this,argumen
   if(L>=4)dfmPrison(S,P*DFM.pr*a[3]);
   if(L>=5)dfmParadox(S,P*DFM.px*a[4],P*DFM.pz*a[4]);
   return r;};
+/* ================= Riftfang's masteries, as Simon designed them (v408) =================
+   Simon (abridged): "Mastery 1 - Shardburst: when the piercing shard hits an enemy, it shatters into three smaller void splinters that fan
+   outward, each dealing 30% damage to the nearest enemy in its path. The splinters can hit different enemies, but each enemy can be hit by only
+   one splinter per cast. Visual: the giant shard punches through the line of foes before bursting into three jagged violet projectiles; they
+   ricochet outward with thin trails of black smoke and vanish on impact. / Mastery 2 - Void Pins: each side shard that hits its target leaves
+   behind a spectral blade embedded in the ground beneath it. When the fourth blade lands, all remaining blades erupt upward, dealing 45% damage
+   to enemies near each blade. If the original target dies early, the blades still form around their respective impact points. Visual: each
+   shard leaves a floating black-violet blade pointing toward the sky; when the last one lands, the blades flash simultaneously and burst upward
+   in a series of violent purple eruptions. / Mastery 3 - Deathmark: every side shard that hits the original target applies one Void Mark. When
+   the fourth mark is applied, the marks ignite and detonate together, dealing 120% bonus damage. If the target dies before all four marks are
+   applied, the remaining marks transfer to the nearest enemy within 1.2 tiles of the fallen target. Visual: each hit carves a glowing violet
+   rune into the target's silhouette; at four marks, the runes connect into a jagged sigil, which flashes black before exploding outward in a
+   burst of dark crystal fragments. / Mastery 4 - Blackglass Barrage: after the original five shards strike, the rift remains open for another
+   0.7 seconds and launches a barrage of six smaller void shards at enemies across the affected area. Each shard deals 45% damage. They
+   prioritize different enemies where possible, and can target flying foes as well as ground enemies. Visual: the rift stretches wider, its
+   violet edges crackling violently; six blackglass spears form inside it before launching in rapid succession, each leaving a razor-thin purple
+   streak. / Mastery 5 - Cataclysmic Convergence: every shard impact leaves behind a fragment of unstable void energy. Once the fifth shard
+   lands, all the fragments detonate simultaneously: each explosion deals 100% damage in a small radius around its impact point; enemies caught
+   in multiple overlapping explosions take damage only once per cast; the explosions send jagged violet lightning between nearby enemies,
+   dealing an additional 50% damage to connected targets. Visual: each shard impact leaves a glowing black-violet fracture in the air; as the
+   final shard lands, all five fractures ignite; dark energy races between them in branching lines; the entire formation erupts in a sequence
+   of near-simultaneous explosions, filling the area with obsidian fragments and violet lightning; the energy collapses into the original rift,
+   which snaps shut normally." And: "NO LOW EFFORT EFFECTS ARE ACCEPTABLE, no bland 2d explosions, it needs to 'feel' as if its getting more
+   powerful".
+   Percentages are of the scroll's power (the piercing shard 150% to every foe on its line, each of the 4 side shards 80% to the target).
+   Every Riftfang cast now runs rfmCast (a castRiftfang wrapper): the same rift, five shards, timings and side-shard targets as castRiftfang,
+   and the piercing line now runs where the shard really flies (from the rift through the target; castRiftfang measured it from the hero,
+   half a tile to the side, so the shard often missed its own target), but every impact and the rift's snap are 3D void explosions (cfmBoom with the 'void' palette) with obsidian shards
+   (rfmCrystals) instead of flat flashes; the rift and the explosions grow with the mastery level. A mastered cast (rfmC(o)) also hooks in:
+   - M1 Shardburst: when the piercing shard has hit at least one foe, it bursts just past the last foe it went through (0.35 on along
+     its line) into 3 splinters (rfmShot): they take the 3 nearest foes within 2.8 tiles
+     that the shard did not go through, one foe each, sorted left to right so they fan out: 30% each. A splinter with no foe flies
+     off and fades.
+   - M2 Void Pins: each side shard, hit or miss, drives a spectral blade (rfmPin) into the ground where it lands, set round that spot. When the
+     fourth lands, the blades flash together and erupt one after another: 45% to every foe within 0.6 of each blade (a foe near two blades is
+     hit twice).
+   - M3 Deathmark: each side shard that hits the marked foe (at first the target) carves a rune into it (rfmRunes), even if that hit kills it.
+     Once the marked foe is dead, its marks move to the nearest foe within 1.2 of where it fell, and the next shards mark that one. At four marks the runes join into a sigil, it flashes
+     black and explodes: 120% more to that foe.
+   - M4 Blackglass Barrage: when the fifth shard has landed, the rift widens and crackles for 0.7s more; six blackglass spears form in it and
+     fly one after another at different foes within 3.2 of the target (nearest first, flyers too; with fewer foes they go round again): 45% each.
+   - M5 Cataclysmic Convergence: each of the five shards leaves a fracture (rfmFracture) where it struck. When the fifth lands, they flare,
+     violet lightning races between them, and they explode one after another: 100% to every foe within 0.75 of each (once per foe), and each
+     explosion sends lightning to up to 2 foes within 1.6 that the lightning has not struck yet, 50% each. Then the energy streams back into
+     the rift, which snaps shut.
+   RFM.dbg (an array) logs the events for the tests. */
+const RFM={dbg:null,sb:.3,sbN:3,sbR:2.8,sbFan:.9,pin:.45,pinR:.6,dm:1.2,dmR:1.2,bb:.45,bbN:6,bbR:3.2,bbOpen:.7,cv:1,cvR:.75,cvArc:.5,cvArcR:1.6,cvArcN:2,cg:null,cm:null};
+const rfmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='riftfang'&&c.L?c:null;};
+const rfmLog=d=>{if(RFM.dbg){d.t=time;RFM.dbg.push(d);}};
+SM_D.riftfang=[
+  {n:'Shardburst',d:'When the piercing shard hits a foe, it shatters into three void splinters that fan outward: {30}% each to the nearest foe in its path. A foe takes only one splinter.'},
+  {n:'Void Pins',d:'Each side shard drives a spectral blade into the ground where it strikes. When the fourth lands, the blades erupt: {45}% to the foes near each blade.'},
+  {n:'Deathmark',d:'Each side shard that hits the target carves a Void Mark into it. At four marks they detonate for {120}% more. If the target dies first, its marks pass to the nearest foe within 1.2 tiles.'},
+  {n:'Blackglass Barrage',d:'After the five shards strike, the rift stays open 0.7s longer and hurls six blackglass spears at different foes across the area, flyers too: {45}% each.'},
+  {n:'Cataclysmic Convergence',d:'Each shard leaves a fracture of void energy where it strikes. When the fifth lands, they all explode: {100}% to the foes around each (once per foe), and violet lightning leaps to foes nearby for {50}% more.'}];
+SMF.riftfang={m:1};
+SMA.riftfang=[1,1,1,1,1];
+/* power with Simon's numbers (tests/sm-ladder.js, 3 runs): 1.06 / 1.43 / 1.55 / 1.84 / 2.39 against the Rare ladder 1.09 / 1.23 / 1.35 / 1.52 / 1.74.
+   Shardburst alone falls just short, so Mastery 1 gets a small hidden factor up to the ladder (as Catch Flame's); from Mastery 2 his numbers
+   carry it above the ladder. SM.free: they are his numbers. */
+SMG.riftfang=[1.04,1,1,1,1];
+SM.free=SM.free||{};SM.free.riftfang='Simon'+String.fromCharCode(8217)+'s own numbers for Riftfang';
+
+/* ---- shared pieces ---- */
+const rfmBoom=(x,y,z,S,o)=>cfmBoom(x,y,z,S,Object.assign({pal:'void'},o||{}));
+const rfmAM=(col,op)=>new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+/* the obsidian look shared by every crystal, splinter, spear and blade (never disposed) */
+function rfmKit(){if(RFM.cm)return RFM.cm;const mk=()=>{const g=jitterGeo(SHARD_GEO,.5);return{g,eg:new THREE.EdgesGeometry(g),
+  m:new THREE.MeshPhongMaterial({color:0x120a1c,emissive:0x4a148a,emissiveIntensity:.6,specular:0xe0c0ff,shininess:90,flatShading:true}),em:new THREE.LineBasicMaterial({color:0xd8a8ff,transparent:true,opacity:.9,blending:THREE.AdditiveBlending})};};
+  return RFM.cm=(typeof asOffRun==='function'?asOffRun(mk):mk());}
+const rfmCrystal=(sx,sy,sz)=>{const K=rfmKit(),m=new THREE.Mesh(K.g,K.m);m.add(new THREE.LineSegments(K.eg,K.em));m.scale.set(sx,sy,sz);return m;};
+/* obsidian fragments flung from a point: they tumble, trail dark smoke and shrink away */
+function rfmCrystals(x,y,z,n,sp){sp=sp||1;for(let i=0;i<n;i++){const m=smTag(rfmCrystal(.025+rnd()*.035,.02+rnd()*.03,.05+rnd()*.07));m.position.set(x,y,z);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);scene.add(m);
+  const v=smV((rnd()-.5)*3.6*sp,(.3+rnd()*1.8)*sp,(rnd()-.5)*3.6*sp),rs=[rnd()*16,rnd()*12],s0=m.scale.clone();
+  addFx(m,.55+rnd()*.45,(f,dt)=>{v.y-=7.5*dt;m.position.addScaledVector(v,dt);m.rotation.x+=dt*rs[0];m.rotation.z+=dt*rs[1];const k=Math.max(.05,f.life/f.max);m.scale.copy(s0).multiplyScalar(k);
+    const g0=gy(m.position.x,m.position.z)+.02;if(m.position.y<g0){m.position.y=g0;v.y=Math.abs(v.y)*.25;v.x*=.5;v.z*=.5;}
+    if(rnd()<.35)emitS(0,{x:m.position.x,y:m.position.y,z:m.position.z,vx:0,vy:.15,vz:0,s:.04,s2:.12,c:0x1a0f26,c2:0x0a0610,a:.45,life:.45});
+    if(rnd()<.2)emit(1,{x:m.position.x,y:m.position.y,z:m.position.z,vx:0,vy:0,vz:0,s:.04,s2:0,c:0xd8a8ff,c2:0x5a10b0,life:.2});});}}
+/* a shard's impact: a void fireball, violet sparks, black smoke and obsidian fragments */
+function rfmImpact(x,y,z,S){rfmBoom(x,y,z,S,{lobes:3,T:.5+.5*S,ground:y-gy(x,z)<.6,shake:.015+.03*S});rfmCrystals(x,y,z,Math.round(3+10*S),.6+S);
+  sprayP(0,x,y,z,Math.round(4+8*S),{c:0x0a0612,c2:0x2a1a3a,sp:.5,up:.3,s:.14,s2:.3,a:.65,life:.9,turb:.8});}
+/* a flying obsidian shard (splinter or spear), pointed along its flight, trailing a thin violet streak and black smoke; o.land(point) on arrival */
+function rfmShot(A,q,o){const g=smTag(new THREE.Group()),mats=[];g.position.copy(A);scene.add(g);const cr=rfmCrystal(o.w||.03,o.w||.03,o.len||.16);g.add(cr);
+  const hal=new THREE.Mesh(ico(.09*(o.size||1),1),haloMat(0x9a40ff));g.add(hal);
+  const tail=nsTrail(mats,o.trail||[[0x5a10c0,.35,.05],[0xc080ff,.85,.014]]);tail.meshes.forEach(smTag);
+  const B=new THREE.Vector3(),tgt=()=>{if(q.isVector3)B.copy(q);else if(!q.dead&&q.x!=null){const p=tpos2(q);B.set(p.x,p.y,p.z);}return B;};tgt();
+  const P=new THREE.Vector3(),prev=A.clone(),side=o.side||0,arc=o.arc==null?.3:o.arc;let tt=0;
+  addFx(g,o.dur,(f,dt)=>{tt+=dt;tgt();const k=Math.min(1,tt/o.dur),dx=B.x-A.x,dz=B.z-A.z,l=Math.hypot(dx,dz)||1,s=Math.sin(k*Math.PI);
+    P.set(A.x+dx*k-dz/l*side*s,A.y+(B.y-A.y)*k+arc*s,A.z+dz*k+dx/l*side*s);g.position.copy(P);if(P.distanceToSquared(prev)>1e-6)g.lookAt(P.x*2-prev.x,P.y*2-prev.y,P.z*2-prev.z);prev.copy(P);
+    hal.scale.setScalar(.8+rnd()*.4);tail.push(P,o.tl||16);tail.draw(1);
+    if(rnd()<.8)emitS(0,{x:P.x,y:P.y,z:P.z,vx:0,vy:.1,vz:0,s:.05,s2:.16,c:0x140a1e,c2:0x0a0610,a:.5,life:.45,turb:.4});emit(1,{x:P.x,y:P.y,z:P.z,vx:(rnd()-.5)*.3,vy:(rnd()-.5)*.3,vz:(rnd()-.5)*.3,s:.05,s2:0,c:0xc890ff,c2:0x3a0a6a,life:.22});
+    if(f.life<=0)tail.free();},()=>{if(o.land)o.land(B.clone());},{mats});}
+
+/* ---- M2 Void Pins: a spectral blade driven into the ground, pointing at the sky ---- */
+function rfmBladeGeo(){if(RFM.bg)return RFM.bg;const s=new THREE.Shape();s.moveTo(0,.46);s.lineTo(.045,.3);s.lineTo(.034,.06);s.lineTo(.09,.05);s.lineTo(.09,.025);s.lineTo(.02,.02);s.lineTo(.02,-.08);s.lineTo(-.02,-.08);s.lineTo(-.02,.02);s.lineTo(-.09,.025);s.lineTo(-.09,.05);s.lineTo(-.034,.06);s.lineTo(-.045,.3);s.lineTo(0,.46);
+  const g=new THREE.ExtrudeGeometry(s,{depth:.018,bevelEnabled:true,bevelThickness:.006,bevelSize:.006,bevelSegments:1});g.translate(0,0,-.009);return RFM.bg={g,eg:new THREE.EdgesGeometry(g,20)};}
+function rfmPin(x,z,P,o,i){const y=gy(x,z),G=rfmBladeGeo(),g=smTag(new THREE.Group()),mats=[],m=new THREE.MeshPhongMaterial({color:0x0e0818,emissive:0x5a18a8,emissiveIntensity:.7,specular:0xe8c8ff,shininess:100,flatShading:true,transparent:true}),
+  em=rfmAM(0xe0b0ff,.9),gm=rfmAM(0x8a3aff,.35);mats.push(m,em,gm);const b=new THREE.Mesh(G.g,m),ed=new THREE.LineSegments(G.eg,new THREE.LineBasicMaterial({color:0xe0b0ff,transparent:true,opacity:.9,blending:THREE.AdditiveBlending}));mats.push(ed.material);
+  const gl=new THREE.Mesh(G.g,gm);gl.scale.set(1.35,1.12,2);b.add(ed,gl);g.add(b);g.position.set(x,y-.04,z);g.rotation.y=rnd()*6.28;b.rotation.z=(rnd()-.5)*.25;scene.add(g);
+  nsDecal(x,z,.16,0x0a0410,.6,3,{fout:1});nsDecal(x,z,.11,0x7a2aff,.4,3,{add:true,fout:1});sprayP(1,x,y+.1,z,12,{c:0xe8c8ff,c2:0x7a20ff,sp:1,up:1.2,s:.04,s2:0,life:.35,g:3});
+  const pin={x,z,y,state:0,tt:0,hit:null};let up=0,vy=0;
+  addFx(g,6,(f,dt)=>{pin.tt+=dt;if(pin.state===0){const k=Math.min(1,pin.tt/.14);g.position.y=y-.04-(1-k)*.4;b.position.y=Math.sin(pin.tt*3+i)*.015;gm.opacity=.3+.12*Math.sin(pin.tt*7+i);if(rnd()<.25)emit(1,{x:x+(rnd()-.5)*.1,y:y+.1+rnd()*.3,z:z+(rnd()-.5)*.1,vx:0,vy:.2,vz:0,s:.035,s2:0,c:0xd0a0ff,c2:0x4a0a8a,life:.4});}
+    else if(pin.state===1){/* the flash: they all light up together */m.emissive.setHex(0xd8b0ff);m.emissiveIntensity=1.4;gm.opacity=.9;em.opacity=1;b.position.y=(rnd()-.5)*.02;}
+    else{up+=dt;vy+=14*dt;g.position.y+=vy*dt;b.rotation.y+=dt*16;m.opacity=gm.opacity=Math.max(0,1-up*3);if(up>.35)f.life=Math.min(f.life,.01);}
+    if(pin.state<2&&pin.tt>5.5)f.life=Math.min(f.life,.01);},null,{mats});
+  pin.flash=()=>{pin.state=1;};
+  pin.erupt=()=>{pin.state=2;rfmBoom(x,y+.15,z,.34,{lobes:4,mush:true,T:.8,shake:.04});rfmCrystals(x,y+.3,z,8,1.1);nsDecal(x,z,.42,0x0a0410,.6,3,{fout:1});
+    for(let j=0;j<8;j++){const a=j/8*6.283;emit(1,{x:x+Math.cos(a)*.08,y:y+.05,z:z+Math.sin(a)*.08,vx:Math.cos(a)*.6,vy:2.6+rnd()*1.2,vz:Math.sin(a)*.6,s:.1,s2:.01,c:0xe8c0ff,c2:0x6a10d0,a:.95,life:.45,turb:.6});}
+    pin.hit=cfmHit(x,z,RFM.pinR,P,o);rfmLog({ev:'pinHit',x,z,n:pin.hit.length,L:pin.hit});};
+  return pin;}
+
+/* ---- M3 Deathmark: runes carved into the marked foe's silhouette ---- */
+function rfmRuneGeo(){if(RFM.rg)return RFM.rg;const R=new THREE.RingGeometry(.05,.062,24),pts=[];
+  for(const [a,b] of [[[-.035,.03],[.035,-.03]],[[0,.045],[0,-.045]],[[.03,.03],[-.01,-.04]]])pts.push(new THREE.Vector3(a[0],a[1],0),new THREE.Vector3(b[0],b[1],0));
+  return RFM.rg={R,L:new THREE.BufferGeometry().setFromPoints(pts)};}
+function rfmRunes(h){const g=smTag(new THREE.Group()),G=rfmRuneGeo(),mats=[],rm=rfmAM(0xd8a0ff,1),lm=new THREE.LineBasicMaterial({color:0xf0d8ff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false}),
+  hm=rfmAM(0x7a20ff,.35);mats.push(rm,lm,hm);scene.add(g);const SPOT=[[0,.13],[-.11,.01],[.11,.01],[0,-.11]],runes=[];let sig=null,tt=0;
+  const M={h,n:0,g,boom:false,lastPos:{x:h.x,y:0,z:h.z}};
+  const carve=()=>{const i=runes.length;if(i>=4)return;const r=new THREE.Group();r.add(new THREE.Mesh(G.R,rm),new THREE.LineSegments(G.L,lm));const hh=new THREE.Mesh(ico(.07,1),hm);r.add(hh);r.position.set(SPOT[i][0],SPOT[i][1],.05);r.rotation.z=rnd()*6;r.scale.setScalar(.01);g.add(r);runes.push({r,t:0});};
+  M.carve=()=>{carve();M.n=runes.length;};
+  M.sigil=()=>{const pts=[];const P2=SPOT.map(s=>new THREE.Vector3(s[0],s[1],.05));for(const [a,b] of [[0,1],[1,3],[3,2],[2,0],[0,3],[1,2]]){const A=P2[a],B=P2[b];let prev=A;for(let j=1;j<=4;j++){const k=j/4,p=A.clone().lerp(B,k);if(j<4){p.x+=(rnd()-.5)*.03;p.y+=(rnd()-.5)*.03;}pts.push(prev,p);prev=p;}}
+    const sg=new THREE.BufferGeometry().setFromPoints(pts),sm=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(sm);sig=new THREE.LineSegments(sg,sm);sig.userData.geo=sg;g.add(sig);};
+  addFx(g,8,(f,dt)=>{tt+=dt;const hh=M.h;if(s6Real(hh)){const p=tpos2(hh);M.lastPos={x:p.x,y:p.y,z:p.z};}g.position.set(M.lastPos.x,M.lastPos.y,M.lastPos.z);g.quaternion.copy(camera.quaternion);g.scale.setScalar(Math.max(.9,(hh.hitY||.4)/.4));
+    runes.forEach(q=>{q.t+=dt;const k=Math.min(1,q.t/.12);q.r.scale.setScalar((.01+k*(1+.6*Math.max(0,1-q.t*4)))*(sig?1.15:1));q.r.rotation.z+=dt*(sig?6:.8);});
+    rm.opacity=.75+.25*Math.sin(tt*9);hm.opacity=sig?.7:.3+.1*Math.sin(tt*7);if(sig)sig.material.opacity=.6+.4*Math.sin(tt*40);
+    if(M.boom)f.life=Math.min(f.life,.01);if(f.life<=0&&sig)sig.userData.geo.dispose();},null,{mats});
+  return M;}
+
+/* ---- M5 Cataclysmic Convergence: a fracture of void energy hanging in the air ---- */
+function rfmFracture(x,y,z){const g=smTag(new THREE.Group()),mats=[],geos=[],shape=new THREE.Shape(),N=6,Hh=.17,Wd=.06,L=[],Rt=[];
+  for(let i=0;i<=N;i++){const v=i/N,yy=(v-.5)*2*Hh,w=Math.sin(v*Math.PI)*Wd;Rt.push([w*(.5+rnd()*.9),yy]);L.push([-w*(.5+rnd()*.9),yy]);}
+  shape.moveTo(Rt[0][0],Rt[0][1]);Rt.forEach(q=>shape.lineTo(q[0],q[1]));for(let i=L.length-1;i>=0;i--)shape.lineTo(L[i][0],L[i][1]);
+  const sg=new THREE.ShapeGeometry(shape);geos.push(sg);const cm=new THREE.MeshBasicMaterial({color:0x040006,side:THREE.DoubleSide,transparent:true}),gm=rfmAM(0x8a2aff,.5);mats.push(cm,gm);
+  const ep=Rt.map(q=>new THREE.Vector3(q[0],q[1],.01)).concat(L.slice().reverse().map(q=>new THREE.Vector3(q[0],q[1],.01)));ep.push(ep[0].clone());const eg=new THREE.BufferGeometry().setFromPoints(ep);geos.push(eg);
+  const em=new THREE.LineBasicMaterial({color:0xe0a0ff,transparent:true,blending:THREE.AdditiveBlending});mats.push(em);
+  const gl=new THREE.Mesh(sg,gm);gl.scale.set(1.8,1.25,1);gl.position.z=-.01;g.add(gl,new THREE.Mesh(sg,cm),new THREE.Line(eg,em));g.position.set(x,y,z);g.rotation.z=(rnd()-.5)*1.2;scene.add(g);
+  const F={x,y,z,lit:0,done:false};let tt=0,rz=g.rotation.z;
+  addFx(g,6,(f,dt)=>{tt+=dt;g.quaternion.copy(camera.quaternion);g.rotateZ(rz);const k=Math.min(1,tt/.15);
+    g.scale.setScalar(k*(1+.08*Math.sin(tt*30))*(1+.9*F.lit));gm.opacity=.45+.2*Math.sin(tt*18)+.5*F.lit;if(F.lit)em.color.setHex(0xffeeff);
+    if(rnd()<.5+F.lit){const a=rnd()*6.28,r=.15+rnd()*.15;emit(1,{x:x+Math.cos(a)*r,y:y+(rnd()-.5)*.3,z:z+Math.sin(a)*r,vx:-Math.cos(a)*r*3,vy:0,vz:-Math.sin(a)*r*3,s:.04,s2:.01,c:0xc080ff,c2:0x2a0a50,life:.25});}
+    if(F.done)f.life=Math.min(f.life,.01);},null,{mats,geos});
+  return F;}
+
+/* ---- the cast: castRiftfang's rift and five shards, with void explosions and (when mastered) the masteries hooked in ---- */
+function rfmCast(t,e,P,o,c){const L=c?c.L:0,A5=c?c.a:[1,1,1,1,1],lv=1+.09*L;
+  const root=smTag(new THREE.Group());scene.add(root);let last=tpos(e);
+  const sx=t.x,sy=t.topY,sz=t.z,dx=last.x-sx,dz=last.z-sz,dl=Math.hypot(dx,dz)||1,ux=dx/dl,uz=dz/dl,px=-uz,pz=ux;
+  const rc=new THREE.Vector3(sx+px*.5,sy+.4,sz+pz*.5);
+  /* the rift (as castRiftfang's), larger with the level */
+  const lr=1+.05*L,shape=new THREE.Shape(),Hh=.62*lr,Wd=.24*lr,N=10,Lp=[],Rt=[];for(let i=0;i<=N;i++){const v=i/N,y=(v-.5)*2*Hh,w=Math.sin(v*Math.PI)*Wd;Rt.push([w*(.55+rnd()*.8),y]);Lp.push([-w*(.55+rnd()*.8),y]);}
+  shape.moveTo(Rt[0][0],Rt[0][1]);Rt.forEach(q=>shape.lineTo(q[0],q[1]));for(let i=Lp.length-1;i>=0;i--)shape.lineTo(Lp[i][0],Lp[i][1]);
+  const rg=new THREE.ShapeGeometry(shape),rm=new THREE.MeshBasicMaterial({color:0x040006,side:THREE.DoubleSide,transparent:true});
+  const ep=Rt.map(q=>new THREE.Vector3(q[0],q[1],.01)).concat(Lp.slice().reverse().map(q=>new THREE.Vector3(q[0],q[1],.01)));ep.push(ep[0].clone());
+  const eg=new THREE.BufferGeometry().setFromPoints(ep),em=new THREE.LineBasicMaterial({color:0xe0a0ff,transparent:true,blending:THREE.AdditiveBlending});
+  const gm=new THREE.MeshBasicMaterial({color:0x8a2aff,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const rift=new THREE.Group(),gl=new THREE.Mesh(rg,gm);gl.scale.set(1.5,1.15,1);gl.position.z=-.02;rift.add(gl,new THREE.Mesh(rg,rm),new THREE.Line(eg,em));rift.position.copy(rc);root.add(rift);
+  const sm=new THREE.MeshPhongMaterial({color:0x160a24,emissive:0x5a18a0,emissiveIntensity:.55+.08*L,flatShading:true,shininess:80}),sem=new THREE.LineBasicMaterial({color:0xe0a8ff,transparent:true,blending:THREE.AdditiveBlending});
+  const rgeos=[],shards=[];for(let i=0;i<5;i++){const sgj=jitterGeo(SHARD_GEO,.6),sej=new THREE.EdgesGeometry(sgj);rgeos.push(sgj,sej);const g=new THREE.Group(),m=new THREE.Mesh(sgj,sm);m.add(new THREE.LineSegments(sej,sem));m.scale.set((.055+rnd()*.05)*lv,(.05+rnd()*.05)*lv,(.28+rnd()*.2)*lv);m.rotation.z=rnd()*6;g.add(m);g.visible=false;root.add(g);
+    shards.push({g,delay:.42+i*.11,t:0,done:false,side:i===0?0:(i%2?1:-1)*(.7+rnd()*.7),up:i===0?0:.35+rnd()*1,prev:null});}
+  /* the barrage's six spears wait inside the rift */
+  const spears=[];if(L>=4)for(let i=0;i<RFM.bbN;i++){const s=new THREE.Group();s.add(rfmCrystal(.028,.028,.2));s.visible=false;s.position.set((i-(RFM.bbN-1)/2)*.07*lr,(rnd()-.5)*.3*lr,.06);s.rotation.set(Math.PI/2,0,0);rift.add(s);spears.push(s);}
+  const S={landed:0,pins:[],mk:null,fr:[],spl:new Set(),cvHit:new Set(),cvArc:new Set(),snapAt:1.4,wide:0,tt:0,end:false};if(c)c.rf=S;
+  const hold=sec=>{S.snapAt=Math.max(S.snapAt,S.tt+sec);};
+  /* M1: the piercing shard bursts into three splinters fanning ahead */
+  const shardburst=(x,y,z,pierced)=>{rfmLog({ev:'burst',x,z});rfmBoom(x,y,z,.3*lv,{lobes:4,ground:false,shake:.03});rfmCrystals(x,y,z,10,1.2);
+    /* the three nearest foes within reach that the shard did not go through; sorted left to right so the splinters fan out */
+    const R2=RFM.sbR*RFM.sbR,cand=enemies.filter(q=>!q.dead&&!q.fake&&!S.spl.has(q)&&!pierced.includes(q)&&(q.x-x)**2+(q.z-z)**2<R2).sort((a,b)=>((a.x-x)**2+(a.z-z)**2)-((b.x-x)**2+(b.z-z)**2)).slice(0,RFM.sbN);
+    const fw=Math.atan2(uz,ux),ang=q=>{let d=Math.atan2(q.z-z,q.x-x)-fw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;return d;};cand.sort((a,b)=>ang(a)-ang(b));
+    cand.forEach(q=>S.spl.add(q));rfmLog({ev:'splAim',L:cand});
+    for(let n=0;n<RFM.sbN;n++){const q=cand[n],j=n-1,a=fw+j*RFM.sbFan,A=smV(x,y,z);
+      mxLater(n*.04,()=>{if(state!=='playing')return;rfmShot(A,q||smV(x+Math.cos(a)*1.4,y+.1,z+Math.sin(a)*1.4),{dur:.2+(q?Math.hypot(q.x-x,q.z-z)*.06:.1),side:j*.35,arc:.18,w:.022,len:.12,size:.8,
+        land:B=>{if(q){if(s6Real(q))hurt(q,P*RFM.sb*A5[0],'magic',smO(o));rfmLog({ev:'splinter',e:q});rfmImpact(B.x,B.y,B.z,.14);}else{rfmCrystals(B.x,B.y,B.z,4,.6);emitS(0,{x:B.x,y:B.y,z:B.z,vx:0,vy:.2,vz:0,s:.08,s2:.25,c:0x1a0f26,c2:0x0a0610,a:.45,life:.6});}}});});}};
+  /* M2: a blade where a side shard lands; at the fourth they all erupt */
+  const pinAt=(i,x,z)=>{const a=(i-1)/4*6.283+rnd()*.4,p=rfmPin(x+Math.cos(a)*.24,z+Math.sin(a)*.24,P*RFM.pin*A5[1],o,i);S.pins.push(p);rfmLog({ev:'pin',n:S.pins.length});
+    if(S.pins.length===4){hold(.8);S.pins.forEach(q=>q.flash());S.pins.forEach((q,j)=>mxLater(.14+j*.07,()=>{if(state==='playing')q.erupt();}));}};
+  /* M3: marks on the target (passing to the nearest foe within 1.2 if it has died); at four they detonate */
+  const mark=tg=>{if(!S.mk)S.mk=rfmRunes(e);const M=S.mk;if(M.boom)return;
+    /* the shard carves its mark on the marked foe, even if this hit kills it; then a dead foe's marks pass on */
+    if(tg&&tg===M.h){M.carve();rfmLog({ev:'mark',e:tg,n:M.n});const p=tpos2(tg);sprayP(1,p.x,p.y,p.z,12,{c:0xf0d0ff,c2:0x8a2aff,sp:.9,up:.3,s:.04,s2:0,life:.3,g:1});}
+    if(!s6Real(M.h)){let nb=null,bd=RFM.dmR*RFM.dmR;for(const q of enemies){if(q.dead||q.fake)continue;const d=(q.x-M.h.x)**2+(q.z-M.h.z)**2;if(d<bd){bd=d;nb=q;}}if(nb){rfmLog({ev:'markMove',from:M.h,to:nb,n:M.n});M.h=nb;}}
+    if(M.n>=4){M.boom=true;hold(.6);const H=M.h;M.sigil();
+      mxLater(.18,()=>{if(state!=='playing')return;const q=s6Real(H)?tpos2(H):M.lastPos;
+        /* the sigil flashes black, then bursts */
+        rfmBoom(q.x,q.y,q.z,.2,{lobes:3,T:.35,ground:false});
+        mxLater(.12,()=>{if(state!=='playing')return;const q2=s6Real(H)?tpos2(H):q;rfmBoom(q2.x,q2.y,q2.z,.5,{lobes:6,ground:false,shake:.07});rfmCrystals(q2.x,q2.y,q2.z,18,1.5);
+          for(let j=0;j<10;j++){const a=rnd()*6.283,b=(rnd()-.5)*1.4;emit(1,{x:q2.x,y:q2.y,z:q2.z,vx:Math.cos(a)*Math.cos(b)*3,vy:Math.sin(b)*3,vz:Math.sin(a)*Math.cos(b)*3,s:.06,s2:0,c:0xffffff,c2:0x8a2aff,life:.3,drag:2});}
+          if(s6Real(H))hurt(H,P*RFM.dm*A5[2],'magic',smO(o));rfmLog({ev:'deathmark',e:H});});});}};
+  /* M4: the rift widens and hurls six blackglass spears at different foes */
+  const barrage=()=>{hold(RFM.bbOpen+.25);rfmLog({ev:'barrage'});const c0=s6Real(e)?e:{x:last.x,z:last.z};
+    const pool=enemies.filter(q=>!q.dead&&!q.fake&&(q.x-c0.x)**2+(q.z-c0.z)**2<RFM.bbR*RFM.bbR).sort((a,b)=>((a.x-c0.x)**2+(a.z-c0.z)**2)-((b.x-c0.x)**2+(b.z-c0.z)**2));
+    S.wideT=S.tt;spears.forEach(s=>{s.visible=true;s.scale.setScalar(.01);});
+    for(let i=0;i<RFM.bbN;i++)mxLater(.2+i*.08,()=>{if(state!=='playing')return;const s=spears[i];s.visible=false;const A=new THREE.Vector3();s.getWorldPosition(A);const q=pool.length?pool[i%pool.length]:null;
+      sprayP(1,A.x,A.y,A.z,8,{c:0xf0d8ff,c2:0x8a2aff,sp:.8,s:.04,s2:0,life:.2,g:0});
+      rfmShot(A,q&&!q.dead?q:smV(c0.x+(rnd()-.5)*2,.3,c0.z+(rnd()-.5)*2),{dur:.17+rnd()*.04,arc:.12,side:(rnd()-.5)*.3,w:.024,len:.22,size:.9,tl:22,trail:[[0x7a20e0,.4,.03],[0xe8c8ff,.95,.009]],
+        land:B=>{rfmImpact(B.x,B.y,B.z,.17);if(q&&s6Real(q)){hurt(q,P*RFM.bb*A5[3],'magic',smO(o));rfmLog({ev:'spear',e:q});}}});});};
+  /* M5: the five fractures flare, lightning races between them, and they explode one after another */
+  const converge=()=>{hold(1.25);rfmLog({ev:'converge',n:S.fr.length});const F=S.fr.slice();F.forEach(f=>{f.lit=1;});
+    for(let w=0;w<3;w++)mxLater(.05+w*.1,()=>{if(state!=='playing')return;for(let i=0;i+1<F.length;i++)nsArc(smV(F[i].x,F[i].y,F[i].z),smV(F[i+1].x,F[i+1].y,F[i+1].z),{col:0xeac8ff,halo:0x7a20ff,w:1.3,disp:.35,depth:4,br:2,life:.14});
+      if(F.length>2)nsArc(smV(F[0].x,F[0].y,F[0].z),smV(F[F.length-1].x,F[F.length-1].y,F[F.length-1].z),{col:0xeac8ff,halo:0x7a20ff,w:1,disp:.4,depth:4,br:2,life:.14});});
+    F.forEach((f,i)=>mxLater(.38+i*.06,()=>{if(state!=='playing')return;f.done=true;rfmBoom(f.x,f.y,f.z,.46,{lobes:6,skirt:f.y-gy(f.x,f.z)<.7?4:0,shake:.06});rfmCrystals(f.x,f.y,f.z,14,1.4);
+      const H=[];for(const q of enemies.slice()){if(q.dead||q.fake||S.cvHit.has(q)||(q.x-f.x)**2+(q.z-f.z)**2>RFM.cvR*RFM.cvR)continue;S.cvHit.add(q);hurt(q,P*RFM.cv*A5[4],'magic',smO(o));H.push(q);}
+      const near=enemies.filter(q=>!q.dead&&!q.fake&&!S.cvArc.has(q)&&(q.x-f.x)**2+(q.z-f.z)**2<RFM.cvArcR*RFM.cvArcR).sort((a,b)=>((a.x-f.x)**2+(a.z-f.z)**2)-((b.x-f.x)**2+(b.z-f.z)**2)).slice(0,RFM.cvArcN);
+      near.forEach(q=>{S.cvArc.add(q);const p=tpos2(q);nsArc(smV(f.x,f.y,f.z),smV(p.x,p.y,p.z),{col:0xf0d8ff,halo:0x8a2aff,w:1.2,disp:.3,depth:4,br:2,life:.25});hurt(q,P*RFM.cvArc*A5[4],'magic',smO(o));sprayP(1,p.x,p.y,p.z,10,{c:0xffffff,c2:0x8a2aff,sp:1.2,s:.04,s2:0,life:.25,g:1});});
+      rfmLog({ev:'cvBoom',x:f.x,z:f.z,L:H,arc:near});
+      /* then the energy streams back into the rift */
+      mxLater(.25,()=>{if(state!=='playing')return;cfmBolt(smV(f.x,f.y+.2,f.z),rc,{dur:.32,arc:.4,side:(rnd()-.5)*.8,size:.7,col:0x8a2aff,core:0xf4e8ff,hot:0xd8b0ff,trail:[[0x3a0a6a,.4,.08],[0x9a50ff,.8,.035],[0xf0e0ff,.95,.012]],len:12,parts:2});});}));};
+  /* a shard lands */
+  const land=(i,tx,ty,tz)=>{if(i===0){const hit=[],s0=shards[0],lx=tx-s0.sx,lz=tz-s0.sz,ll=Math.hypot(lx,lz)||1,vx=lx/ll,vz=lz/ll;let far=0;
+      /* the piercing line runs where the shard flew, from the rift through the target (castRiftfang measured it from the hero, half a tile to the side, so it often missed) */
+      for(const en of enemies.slice()){if(en.dead)continue;const qx=en.x-s0.sx,qz=en.z-s0.sz,pr=clamp(qx*vx+qz*vz,0,ll),cx2=qx-vx*pr,cz2=qz-vz*pr;if(cx2*cx2+cz2*cz2<.1){hurt(en,P*1.5,'magic',o);hit.push(en);far=Math.max(far,pr);}}
+      rfmLog({ev:'pierce',L:hit});
+      /* M1: it bursts just past the last foe it went through (the shard itself fades at the end of its line) */
+      if(L>=1&&hit.length){const bp=Math.min(ll,far+.35),bx=s0.sx+vx*bp,bz=s0.sz+vz*bp;shardburst(bx,Math.max(.2,gy(bx,bz)+.35),bz,hit);rfmCrystals(tx,ty,tz,4,.6);}else rfmImpact(tx,ty,tz,.26*lv);}
+    else{let tg=e.dead?null:e;if(!tg){let bd=1.2;for(const en of enemies){if(en.dead)continue;const d=Math.hypot(en.x-tx,en.z-tz);if(d<bd){bd=d;tg=en;}}}if(tg)hurt(tg,P*.8,'magic',o);rfmLog({ev:'side',i,e:tg});
+      rfmImpact(tx,ty,tz,.2*lv);if(L>=2)pinAt(i,tx,tz);if(L>=3)mark(tg);}
+    if(L>=5)S.fr.push(rfmFracture(tx,ty+(i?.15:.05),tz));
+    S.landed++;if(S.landed===5){if(L>=4)barrage();if(L>=5)converge();}};
+  let tt=0,snapped=false;
+  addFx(root,4.6,(f,dt)=>{tt+=dt;S.tt=tt;if(!e.dead)last=tpos(e);rift.quaternion.copy(camera.quaternion);
+    const W=S.wideT!=null?SMS(tt,S.wideT,S.wideT+.18):0,open=ease(clamp(tt/.35,0,1)),ck=tt>S.snapAt?clamp((tt-S.snapAt)/.1,0,1):0;
+    rift.scale.set(Math.max(.01,open*(1-ck)*(1+Math.sin(tt*34)*.06)*(1+.7*W)),(1-ck*.4)*(1+.18*W),1);gm.opacity=.5+.2*Math.sin(tt*20)+.25*W;
+    if(W>0&&!ck){if(rnd()<.7){const j=Math.floor(rnd()*ep.length),p=ep[j].clone();rift.localToWorld(p);nsCrackle(p,.25,0xe8c8ff);}spears.forEach((s,i)=>{if(s.visible)s.scale.setScalar(Math.min(1,s.scale.x+dt*6));});}
+    if(tt<S.snapAt)for(let i=0;i<5;i++){const a=rnd()*6.28,r=.5+rnd()*.5,yy=(rnd()-.5)*1.2;emit(rnd()<.6?1:0,{x:rc.x+Math.cos(a)*r,y:rc.y+yy,z:rc.z+Math.sin(a)*r,vx:-Math.cos(a)*r*2.2,vy:-yy*1.6,vz:-Math.sin(a)*r*2.2,s:.05+rnd()*.05,s2:.01,c:rnd()<.5?0xc080ff:0x100818,c2:0x3a0a6a,a:.9,life:.45});}
+    shards.forEach((sh,i)=>{if(tt<sh.delay||sh.done)return;
+      if(!sh.g.visible){sh.g.visible=true;sh.t=0;sh.sx=rc.x;sh.sy=rc.y;sh.sz=rc.z;sprayP(1,rc.x,rc.y,rc.z,10,{c:0xf0d8ff,c2:0x8a2aff,sp:.9,s:.05,s2:0,life:.25,g:0});if(i===0){sh.tx=last.x+ux*1.6;sh.ty=Math.max(.2,last.y);sh.tz=last.z+uz*1.6;}}
+      sh.t+=dt;const k=Math.min(1,sh.t/(i===0?.24:.4));const tx=i===0?sh.tx:last.x,ty=i===0?sh.ty:last.y,tz=i===0?sh.tz:last.z;
+      const mx=(sh.sx+tx)/2+px*sh.side,my=(sh.sy+ty)/2+sh.up,mz=(sh.sz+tz)/2+pz*sh.side,q=1-k;
+      const x=q*q*sh.sx+2*q*k*mx+k*k*tx,y=q*q*sh.sy+2*q*k*my+k*k*ty,z=q*q*sh.sz+2*q*k*mz+k*k*tz;
+      if(sh.prev)sh.g.lookAt(x+(x-sh.prev.x),y+(y-sh.prev.y),z+(z-sh.prev.z));sh.prev={x,y,z};sh.g.position.set(x,y,z);for(let q2=0;q2<3;q2++)emit(1,{x:x+(rnd()-.5)*.06,y:y+(rnd()-.5)*.06,z:z+(rnd()-.5)*.06,vx:(rnd()-.5)*.3,vy:(rnd()-.5)*.3,vz:(rnd()-.5)*.3,s:(.08+rnd()*.05)*lv,s2:0,c:0xa050ff,c2:0x2a0a50,a:.8,life:.3+rnd()*.25,turb:.8});if(rnd()<.5)emit(0,{x,y,z,s:.06,s2:.14,c:0x0a0612,a:.6,life:.5,turb:.6});
+      if(k>=1){sh.done=true;sh.g.visible=false;land(i,tx,ty,tz);}});
+    if(tt>S.snapAt&&!snapped){snapped=true;rfmBoom(rc.x,rc.y,rc.z,.36*lv,{lobes:5,ground:false,shake:.06});rfmCrystals(rc.x,rc.y,rc.z,10+2*L,1.3);
+      sprayP(1,rc.x,rc.y,rc.z,44,{c:0xf0c8ff,c2:0x6a10c0,sp:3,r:.3,ry:1,s:.07,s2:0,life:.6,drag:2});sprayP(0,rc.x,rc.y,rc.z,14,{c:0x05030a,c2:0x1a0a2a,sp:1,r:.2,ry:.9,s:.12,s2:.3,a:.8,life:.9,turb:1});}
+    if(ck>=1){rift.visible=false;if(f.life>.3)f.life=.3;}},
+    null,{mats:[rm,em,gm,sm,sem],geos:[rg,eg,...rgeos]});}
+const RFM_OLD=castRiftfang;
+castRiftfang=function(t,e,P,o){return t&&e?rfmCast(t,e,P,o,rfmC(o)):RFM_OLD.apply(this,arguments);};
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
