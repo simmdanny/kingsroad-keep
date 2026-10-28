@@ -3315,8 +3315,13 @@ const slotsFor=id=>{const h=HB[id],sc=(h.dispCl||h.cl)==='mage',st=heroStars(h);
 let forceScroll=false,forceScrollR=null,teachOpen=null;
 const MIST=new THREE.MeshBasicMaterial({color:0x24481f,transparent:true,opacity:.6,depthWrite:false});
 function addFx(o,life,fn,end,extra){const e=Object.assign({o,life,max:life,fn,end},extra||{});fx.push(e);return e;}
-function flash(x,y,z,col,r,dur,norm){const mat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.9,blending:norm?THREE.NormalBlending:THREE.AdditiveBlending,depthWrite:false});const m=new THREE.Mesh(ico(1,1),mat);m.position.set(x,y,z);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);scene.add(m);
-  const ax=.75+rnd()*.5,ay=.7+rnd()*.5,az=.75+rnd()*.5;m.scale.set(r*.3*ax,r*.3*ay,r*.3*az);addFx(m,dur,e=>{const k=1-e.life/e.max,v=r*(.3+.7*k);m.scale.set(v*ax,v*ay,v*az);mat.opacity=.9*(1-k);},null,{mat});}
+/* v420 (the explosion rule): a flash is a soft ball of light, hot at its heart and clear at its edge, so it reads as a glow with depth;
+   it used to be a hard-edged faceted ball that read as a flat white disc and hid what it lit (386 calls use it) */
+const FLASH_VS='varying float vF;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vF=abs(dot(normalize(normalMatrix*normal),normalize(-mv.xyz)));gl_Position=projectionMatrix*mv;}',
+  FLASH_FS='uniform vec3 uC;uniform float uO;varying float vF;void main(){float a=uO*pow(vF,1.7);gl_FragColor=vec4(mix(uC,vec3(1.),.4*vF*vF*vF),a);}';
+function flash(x,y,z,col,r,dur,norm){const mat=new THREE.ShaderMaterial({uniforms:{uC:{value:new THREE.Color(col)},uO:{value:.95}},vertexShader:FLASH_VS,fragmentShader:FLASH_FS,transparent:true,blending:norm?THREE.NormalBlending:THREE.AdditiveBlending,depthWrite:false});
+  const m=new THREE.Mesh(ico(1,2),mat);m.position.set(x,y,z);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);scene.add(m);
+  const ax=.75+rnd()*.5,ay=.7+rnd()*.5,az=.75+rnd()*.5;m.scale.set(r*.3*ax,r*.3*ay,r*.3*az);addFx(m,dur,e=>{const k=Math.min(1,1-e.life/e.max),v=r*(.3+.7*k);m.scale.set(v*ax,v*ay,v*az);mat.uniforms.uO.value=.95*(1-k);},null,{mat});}
 function puff(x,y,z,col,r,dur,mat){if(mat===MIST)emit(0,{x,y,z,vx:(rnd()-.5)*.25,vy:.1+rnd()*.25,vz:(rnd()-.5)*.25,s:r*2.6,s2:r*3.6,c:0x24481f,c2:0x070a07,a:.5,a2:0,life:dur*1.5,turb:.5});
   else if(mat===DUST)emit(0,{x,y,z,vx:(rnd()-.5)*.3,vy:.1+rnd()*.3,vz:(rnd()-.5)*.3,s:r*2.4,s2:r*3.8,c:0x7a6a55,c2:0x4a3e32,a:.45,a2:0,life:dur*1.7,turb:.4});
   else emit(1,{x,y,z,vx:(rnd()-.5)*.1,vy:(rnd()-.5)*.1,vz:(rnd()-.5)*.1,s:r*2.2,s2:0,c:col,c2:col,a:.85,life:dur,turb:.3});}
@@ -3392,10 +3397,11 @@ function debris(x,z,n,col){for(let i=0;i<n&&fx.length<285;i++){const m=new THREE
   const v=new THREE.Vector3((rnd()-.5)*3,2+rnd()*3,(rnd()-.5)*3),rs=rnd()*10;addFx(m,.9+rnd()*.5,(e,dt)=>{v.y-=9*dt;m.position.addScaledVector(v,dt);m.rotation.x+=dt*rs;m.rotation.y+=dt*rs*.7;if(m.position.y<.02){m.position.y=.02;v.multiplyScalar(.4);v.y=Math.abs(v.y);}});}}
 function darkMote(x,y,z,col){emit(0,{x,y,z,vx:(rnd()-.5)*.6,vy:.35+rnd()*.7,vz:(rnd()-.5)*.6,s:.08+rnd()*.06,s2:.02,c:col||0x0a0612,c2:0x1a0a2a,a:.85,life:.8+rnd()*.5,turb:1});if(rnd()<.45)emit(1,{x,y,z,vx:(rnd()-.5)*.4,vy:.4+rnd()*.5,vz:(rnd()-.5)*.4,s:.05,s2:0,c:0x9a4aff,c2:0x2a0a5a,life:.6,turb:.8});}
 function shockwave(x,z,Rr,col,dur,dark){const root=new THREE.Group();root.position.set(x,.05,z);root.rotation.y=rnd()*6.28;scene.add(root);const geos=[];
-  const m1=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}),m2=new THREE.MeshBasicMaterial({color:dark||0x0a0412,transparent:true,opacity:.6,depthWrite:false,side:THREE.DoubleSide});
+  /* v420: the arcs are an accent now (a wall rises with them, see xfxWall), so they are fainter */
+  const m1=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}),m2=new THREE.MeshBasicMaterial({color:dark||0x0a0412,transparent:true,opacity:.45,depthWrite:false,side:THREE.DoubleSide});
   let a=rnd()*6.28;const parts=2+Math.floor(rnd()*3);for(let i=0;i<parts;i++){const len=Math.PI*2/parts*(.55+rnd()*.4),gg=arcGeo(1+(rnd()-.5)*.06,.12+rnd()*.12,a,a+len,.08);geos.push(gg);root.add(new THREE.Mesh(gg,m1));a+=Math.PI*2/parts*(.85+rnd()*.3);}
   const g2=arcGeo(.8,.32,rnd()*6,rnd()*6+5.4,.1);geos.push(g2);root.add(new THREE.Mesh(g2,m2));
-  addFx(root,dur,(e,dt)=>{const k=ease(1-e.life/e.max),r=.2+Rr*k;root.scale.setScalar(r);root.rotation.y+=dt*.3;m1.opacity=.95*(1-k);m2.opacity=.6*(1-k);
+  addFx(root,dur,(e,dt)=>{const k=ease(1-e.life/e.max),r=.2+Rr*k;root.scale.setScalar(r);root.rotation.y+=dt*.3;m1.opacity=.6*(1-k);m2.opacity=.45*(1-k);
     const n=Math.ceil(2+Rr*1.6);for(let i=0;i<n;i++){const aa=rnd()*6.28,rr=r*(.9+rnd()*.15);
       emit(0,{x:x+Math.cos(aa)*rr,y:.06,z:z+Math.sin(aa)*rr,vx:Math.cos(aa)*.9*(1-k),vy:.12+rnd()*.35,vz:Math.sin(aa)*.9*(1-k),s:.14+rnd()*.16,s2:.4,c:0x6a5a48,c2:0x3a3028,a:.4*(1-k*.5),life:.7+rnd()*.6,turb:.6});
       if(rnd()<.45)emit(1,{x:x+Math.cos(aa)*rr,y:.08,z:z+Math.sin(aa)*rr,vx:Math.cos(aa)*1.3,vy:.2+rnd()*.6,vz:Math.sin(aa)*1.3,s:.06,s2:0,c:col,c2:col,life:.45,drag:1.5});}},null,{mats:[m1,m2],geos});}
@@ -7291,7 +7297,8 @@ function castComet(t,c0,P,o){const c=nsLead(c0,1.45);let cx=c.x,cz=c.z,cy=gy(cx,
       if(rnd()<.35)nsSplinters(p.x,p.y,p.z,1,.6);
       for(let i=0;i<4;i++){const a=rnd()*6.28,r=R*(.9+rnd()*.25);emit(1,{x:cx+Math.cos(a)*r,y:cy+.04,z:cz+Math.sin(a)*r,vx:-Math.cos(a)*.6*k,vy:.15,vz:-Math.sin(a)*.6*k,s:.05,s2:0,c:0xffffff,c2:0x8fdcff,life:.5});}}
     else{if(!hit){hit=true;head.visible=false;if(M){cx=E.x;cz=E.z;cy=gy(cx,cz);}const x=cx,z=cz,y=cy+.2,hitL=[];darkTarget=0;vigTarget=0;
-        flash(x,y,z,0xffffff,1.5,.2);flash(x,y,z,0x9fdcff,2.6,.5);flashA=Math.max(flashA,.35);flashCol='#e8f6ff';camShake=Math.max(camShake,.24);shockwave(x,z,R*1.6,0xffffff,.55,0xc8dcec);shockwave(x,z,R*1.2,0x8fdcff,.8,0xa8c8e0);
+        /* v420 (the explosion rule): a billowing frost cloud with jets of frost is the blast; the old glare is cut down */
+        flash(x,y,z,0xffffff,1,.16);flash(x,y,z,0x9fdcff,1.5,.35);flashA=Math.max(flashA,.18);flashCol='#e8f6ff';if(typeof xfxFrostBoom==='function')xfxFrostBoom(x,y+.15,z,1.1,{n:6,t:16,up:.9});camShake=Math.max(camShake,.24);shockwave(x,z,R*1.6,0xffffff,.55,0xc8dcec);shockwave(x,z,R*1.2,0x8fdcff,.8,0xa8c8e0);
         sprayP(1,x,y,z,130,{c:0xffffff,c2:0x6ab8f0,sp:4.2,up:1,s:.06,s2:0,life:.7,g:2.5,drag:.8,r:.5});nsSplinters(x,y+.2,z,40,2.6);
         for(let i=0;i<16;i++){const a=rnd()*6.28,sp=1.5+rnd()*2;emitS(0,{x:x+Math.cos(a)*.3,y:y+.1,z:z+Math.sin(a)*.3,vx:Math.cos(a)*sp,vy:.2+rnd()*.4,vz:Math.sin(a)*sp,s:.35,s2:1.3,c:0xf2f8ff,c2:0xc8dcec,a:.42,life:2+rnd(),lift:.05,drag:1.6,turb:.3});}
         nsDecal(x,z,R*1.3,0xe4f4ff,.72,5.4,{fin:.05,fout:1.8});nsDecal(x,z,.75,0x1a2a3a,.55,5.4,{fout:1.8});spikes.seam=nsSeams(x,z,1.35,10,0xcfefff,0x2a4a6a,mats,geos,.05);
@@ -8306,8 +8313,9 @@ function castThunderclap(t,e,P,o){const c=nsLead(e,.32),x=c.x,z=c.z,y=gy(x,z),cv
     else{const k=(tt-.32)/.98;glow.material.opacity=k<.2&&rnd()<.4?.4:0;}},null,{mats});}
 function s6Clap(x,z,y,e,P,o,from){const top=new THREE.Vector3(from.x,from.y-.1,from.z),hit=new THREE.Vector3(x,y+.05,z);
   nsArc(top,hit,{w:1.7,br:4,life:.22,disp:.35,depth:5});nsArc(top.clone().add(new THREE.Vector3(.08,0,-.05)),hit,{w:.8,br:2,life:.14,disp:.4});
-  flash(x,y+.3,z,0xffffff,.6,.1);flash(x,y+.3,z,0x9fc8ff,1.2,.25);flashA=Math.max(flashA,.07);flashCol='#dfe8ff';camShake=Math.max(camShake,.08);
-  shockwave(x,z,1.15,0xbfe0ff,.35,0x7a8aa0);
+  /* v420: the glow is a quick small accent (it used to be a 1.2-wide white ball that hid the strike); the thunder's wall, its stones and the arcs are the blast now */
+  flash(x,y+.3,z,0xffffff,.35,.08);flash(x,y+.25,z,0x9fc8ff,.6,.14);flashA=Math.max(flashA,.07);flashCol='#dfe8ff';camShake=Math.max(camShake,.08);
+  shockwave(x,z,1.15,0xbfe0ff,.35,0x7a8aa0);debris(x,z,3);
   for(let i=0;i<14;i++){const a=i/14*6.28;emitS(0,{x:x+Math.cos(a)*.25,y:y+.06,z:z+Math.sin(a)*.25,vx:Math.cos(a)*1.6,vy:.08,vz:Math.sin(a)*1.6,s:.14,s2:.5,c:0x8a8478,c2:0x5a5650,a:.35,life:.8,drag:2,turb:.3});}
   sprayP(1,x,y+.1,z,30,{c:0xffffff,c2:0x5a8aff,sp:2.4,up:.6,s:.05,s2:0,life:.35,g:3,drag:.6});for(let i=0;i<6;i++)nsCrackle({x,y:y+.08,z},.7,0xbfe0ff);
   nsDecal(x,z,.42,0x101018,.55,2.4,{fout:1});nsDecal(x,z,.3,0x8fc8ff,.5,.5,{add:true,fout:.4});
@@ -14152,6 +14160,10 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Every explosion is 3D',d:'28 Oct',v:'v420',li:[
+    'Shockwaves no longer just lie flat on the ground: a wall of light rises and races out with them (big ones kick up stones), and the rings of fire and light that many spells and masteries use rise too.',
+    'Flashes of light are soft glowing balls, bright at the heart and clear at the edge, instead of hard white discs that hid what they lit. Thunderclap\u2019s strike is a bolt, a wall of thunder and flying stones rather than a white ball.',
+    'Frostfall Comet\u2019s blast is a billowing cloud of frost with jets of frost and splinters of ice, without the big white glare. New rule for every new effect: no flat explosions.']},
   {t:'Frostfall Comet masteries, redesigned',d:'28 Oct',v:'v419',li:[
     'Comet\u2019s Eye: the comet steers as it falls, onto the thickest knot of foes it will land on. Frostfall Tail: it comes in low along the road and its tail rains ice onto the foes marching in, 50% each.',
     'Crown of Spikes: a spike bursts up through every foe in the blast, 80% and pinned. Faultlines: foes it hits glow with fractures that the next ice hit (a scroll or a Frost Spire) shatters for 100% and a freeze, or that give way for 50%.',
@@ -28315,7 +28327,7 @@ function fcmFault(S,e){if(e.fcmF&&!e.fcmF.done)e.fcmF.drop();const G=nsIceGeos()
   for(let i=0;i<3;i++){const m=new THREE.Mesh(G[(i*2)%6],NS_ICE),a=i/3*6.283+rnd();m.position.set(Math.cos(a)*.15*sz,(rnd()-.4)*.25*sz,Math.sin(a)*.15*sz);m.scale.set(.06*sz,.08*sz,.04*sz);m.rotation.set(rnd()*3,rnd()*3,rnd()*3);g.add(m);}
   const gl=new THREE.Mesh(ico(.2*sz,1),haloMat(0x5ab8ff));g.add(gl);
   const end=(ev,amt,fr)=>{if(F.done)return;F.done=true;if(e.fcmF===F)e.fcmF=null;const p=tpos2(e);g.visible=false;
-    if(fcmHurt(S,e,amt,ev)&&fr)smFreeze(e,fr);nsSplinters(p.x,p.y,p.z,fr?14:8,fr?1.6:1);fcmMist(p.x,p.y-.2,p.z,fr?5:3,fr?.8:.5);
+    if(fcmHurt(S,e,amt,ev)&&fr)smFreeze(e,fr);nsSplinters(p.x,p.y,p.z,fr?14:8,fr?1.6:1);fcmMist(p.x,p.y-.2,p.z,fr?5:3,fr?.8:.5);xfxFrostBoom(p.x,p.y,p.z,fr?.28:.18,{n:fr?2:1,t:fr?6:4,sp:0});
     for(let i=0;i<(fr?16:8);i++)emit(1,{x:p.x,y:p.y,z:p.z,vx:(rnd()-.5)*2.2,vy:(rnd()-.2)*1.6,vz:(rnd()-.5)*2.2,s:.06,s2:0,c:0xffffff,c2:0x6ab8ff,life:.4,g:2,drag:.8});};
   const F={done:false,S,shatter(){end('faultShatter',S.P*FCM.fault*S.a[3],FCM.freeze);},give(){end('faultEnd',S.P*FCM.faultEnd*S.a[3],0);},drop(){F.done=true;if(e.fcmF===F)e.fcmF=null;g.visible=false;}};
   e.fcmF=F;fcmLog({ev:'fault',e});let t=0;
@@ -28348,11 +28360,66 @@ function fcmRebound(S,from,n,last){if(state!=='playing')return;
       if(k>=1){landed=true;g.visible=false;const x=to.x,z=to.z,y=gy(x,z);
         if(fcmHurt(S,tg,S.P*(n?FCM.reb2:FCM.reb)*S.a[4],'reboundHit',{n})){}
         /* the landing: a burst of ice and a small crown of spikes, frost mist rolling out, a heavy thud */
-        nsSplinters(to.x,to.y+.1,to.z,n?16:24,n?1.6:2.1);fcmMist(x,y,z,n?6:9,n?.7:.9);sprayP(1,to.x,to.y+.1,to.z,n?40:60,{c:0xffffff,c2:0x6ab8f0,sp:n?2.6:3.4,up:1,s:.06,s2:0,life:.55,g:2.5,drag:.8,r:.2});
+        nsSplinters(to.x,to.y+.1,to.z,n?16:24,n?1.6:2.1);fcmMist(x,y,z,n?6:9,n?.7:.9);xfxFrostBoom(to.x,to.y+.1,to.z,n?.38:.5,{n:3,t:8,up:.8,sp:0});sprayP(1,to.x,to.y+.1,to.z,n?40:60,{c:0xffffff,c2:0x6ab8f0,sp:n?2.6:3.4,up:1,s:.06,s2:0,life:.55,g:2.5,drag:.8,r:.2});
         if(!tg.fly)fcmCrown(x,z,n?8:12,n?.55:.75,n?.7:.95,1.6);nsDecal(x,z,n?.5:.7,0xe4f4ff,.6,3.5,{fin:.05,fout:1.4});camShake=Math.max(camShake,n?.08:.12);
         let lt=0;addFx(new THREE.Group(),.35,(f2,dt2)=>{lt+=dt2;blmLight(x,y+.6,z,1.2*(1-lt/.35),3,0xaad6ff);});
         if(n<1)mxLater(.3,()=>fcmRebound(S,{x,y,z},n+1,tg));else mxLater(.25,()=>{nsSplinters(x,y+.3,z,10,1.2);fcmLog({ev:'heartGone',n:n+1});});}}
     else{tail.hist.pop();if(tail.hist.length>2){tail.draw(1);tail.fade(Math.max(0,f.life/.6));}else tail.fade(0);}},()=>tail.free(),{mats});}
+
+/* ================= v420 (Simon): every explosion is 3D, the old ones too ================= */
+/* Simon: "theres gonna be a rule I have to set for all future and current explosion effects, no bland 2d effect, it should be 3d even if
+   just a little bit, no too much to obstruct the entire vision but what we have right now just sucks" (MASTERY_DESIGN.md, the explosion
+   rule). The flat pieces most effects are built from get height, so every old blast that uses them is 3D now:
+   - shockwave (112 casts use it): its arcs on the ground stay as an accent, and a wall rises with them: a band of light standing on the
+     ground and racing out with the wave, bright at its foot and ragged at its top, sinking as it spends itself. Big ones (reach 1.2+) also
+     kick up a few stones.
+   - ringFx (85): a smaller band rises with the ring.
+   - myFireRing and ebFireRing (the Ember Titan's, the Fire Bolt's): a wall of fire rises with them.
+   - smNova (the old mastery burst) is built from shockwave and ringFx, so it rises too.
+   - Frostfall Comet's impact (and its masteries' bursts) gets a billowing frost cloud with jets of frost (xfxFrostBoom), and its old
+     glare (a 2.6-wide glow and a screen flash) is cut down so the blast has a body instead of a white sheet.
+   - flash (386 calls): a soft ball of light, hot at its heart and clear at its edge, instead of a hard faceted ball that read as a white disc.
+   - Thunderclap: its glow is a quick small accent, so the strike reads as bolt, wall of thunder and stones instead of a white ball.
+   The walls are see-through, short and fade as they grow (a wide one stays faint), so they never hide the road. XFX.off turns the walls off
+   (for comparisons). */
+const XFX={tex:null,cyl:null,off:false};
+function xfxKit(){if(XFX.tex)return XFX;const S=64,cv=document.createElement('canvas');cv.width=cv.height=S;const g=cv.getContext('2d'),im=g.createImageData(S,S);
+  /* streaks of light: each column climbs to its own height, brightest at the foot (the canvas's bottom row is the band's foot) */
+  const top=[];for(let x=0;x<S;x++)top.push(.35+.65*Math.abs(Math.sin(x*.71+1.1)*Math.cos(x*.29+.4)));
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){const t=(S-1-y)/(S-1),a=Math.pow(Math.max(0,1-t/top[x]),1.5)*(.75+.25*Math.sin(x*1.9+y*.4)),v=Math.round(255*Math.min(1,a)),i=(y*S+x)*4;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=255;}
+  g.putImageData(im,0,0);XFX.tex=new THREE.CanvasTexture(cv);XFX.tex.wrapS=THREE.RepeatWrapping;XFX.tex.repeat.set(3,1);
+  XFX.cyl=new THREE.CylinderGeometry(1,1.07,1,48,1,true);XFX.cyl.translate(0,.5,0);return XFX;}
+/* a band of light standing on the ground and racing out to R, h high at first, sinking and fading as it goes */
+function xfxWall(x,y,z,R,col,dur,h,op){if(XFX.off)return;const K=xfxKit(),m=new THREE.MeshBasicMaterial({color:col,alphaMap:K.tex,transparent:true,opacity:op||.55,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const me=new THREE.Mesh(K.cyl,m);me.position.set(x,y,z);me.rotation.y=Math.random()*6.28;me.renderOrder=5;me.scale.set(.2,h,.2);scene.add(me);const o0=op||.55;
+  addFx(me,dur,(f,dt)=>{const k=ease(Math.min(1,Math.max(0,1-f.life/f.max))),r=.2+R*k;me.scale.set(r,Math.max(.01,h*Math.pow(1-k,.7)),r);m.opacity=o0*Math.pow(1-k,1.2);me.rotation.y+=dt*.6;},null,{mat:m});}
+{const sw0=shockwave;shockwave=function(x,z,Rr,col,dur,dark){const r=sw0.apply(this,arguments);
+  /* a wide one keeps a low, faint wall, so a battlefield-wide wave does not draw a big bright ring round the screen */
+  if(!XFX.off){xfxWall(x,gy(x,z)+.02,z,Rr,col,dur,Math.min(.5,.16+.1*Rr),.5*Math.min(1,2.2/Math.max(.1,Rr)));if(Rr>=1.2)debris(x,z,Math.min(6,Math.round(1+Rr*1.4)));}return r;};}
+{const rf0=ringFx;ringFx=function(x,y,z,r,col,dur){const q=rf0.apply(this,arguments);xfxWall(x,y,z,r,col,dur,Math.min(.3,.1+.05*r),.35);return q;};}
+{const mf0=myFireRing;myFireRing=function(x,z,R,dur){const q=mf0.apply(this,arguments);xfxWall(x,gy(x,z)+.03,z,R,0xff7a20,dur,Math.min(.55,.2+.1*R),.6);return q;};}
+{const ef0=ebFireRing;ebFireRing=function(x,z,R,dur,red){const q=ef0.apply(this,arguments);xfxWall(x,gy(x,z)+.03,z,R,red?0xff3a14:0xff7a20,dur,Math.min(.45,.15+.12*R),.55);return q;};}
+
+/* a cloud of frost that swells, churns and thins away (the frost twin of ftmBall: white at its heart, pale ice blue, a cold blue edge) */
+function xfxFrostBall(x,y,z,R,dur,rise){if(!MY_FBG)MY_FBG=new THREE.IcosahedronGeometry(1,3);
+  const m=new THREE.ShaderMaterial({uniforms:{uT:{value:Math.random()*10},uK:{value:0}},transparent:true,depthWrite:false,
+    vertexShader:'uniform float uT,uK;varying float vN;varying vec3 vNo,vVi;void main(){vec3 p=position;float n=sin(p.x*4.1+uT*3.)*sin(p.y*3.7-uT*2.2)*sin(p.z*4.3+uT*2.6)+.55*sin(p.x*8.7+p.y*7.1-uT*5.)*sin(p.z*7.9+uT*4.);vN=n;'+
+      'p+=normal*n*(.17+.12*uK);vec4 mv=modelViewMatrix*vec4(p,1.);vNo=normalize(normalMatrix*normal);vVi=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
+    fragmentShader:'uniform float uK;varying float vN;varying vec3 vNo,vVi;void main(){float f=clamp(dot(vNo,vVi),0.,1.);float h=clamp(.5+.36*vN+.4*f-uK*.9,0.,1.);'+
+      'vec3 c=mix(vec3(.25,.45,.75),vec3(.62,.84,1.),smoothstep(.15,.45,h));c=mix(c,vec3(.9,.97,1.),smoothstep(.5,.8,h));c=mix(c,vec3(1.),smoothstep(.85,1.,h));'+
+      'float a=(1.-smoothstep(.2,.85,uK))*(.3+.6*f)*mix(.25,.9,smoothstep(.1,.5,h));gl_FragColor=vec4(c,a);}'});
+  const me=new THREE.Mesh(MY_FBG,m);me.position.set(x,y,z);me.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);me.scale.setScalar(.01);me.renderOrder=6;scene.add(smTag(me));let t=0;
+  addFx(me,dur,(f,dt)=>{t+=dt;const k=Math.min(1,t/dur),g=1-Math.pow(1-Math.min(1,t/.28),3);m.uniforms.uT.value+=dt;m.uniforms.uK.value=k;me.scale.setScalar(Math.max(.01,R*(.2+.8*g)*(1+.35*k)));me.position.y=y+(rise||0)*R*k*k;me.rotation.y+=dt*.5;},null,{mats:[m]});
+  return me;}
+/* a burst of frost with body: frost clouds one after another, a little apart and climbing; jets of frost streaming out; splinters of ice;
+   a cold mist rolling out low (o.n clouds, o.t jets, o.up how far it climbs, o.sp splinters) */
+function xfxFrostBoom(x,y,z,R,o){o=o||{};const nb=o.n==null?4:o.n,nt=o.t==null?10:o.t,up=o.up==null?.6:o.up;
+  for(let i=0;i<nb;i++){const a=Math.random()*6.283,r=i?R*(.18+Math.random()*.32):0,h=i?R*(up*1.2*i/nb+Math.random()*.2):0,s=R*(i?.38+Math.random()*.2:.55),du=(.5+Math.random()*.2)*(.8+R*.35);
+    const f=()=>xfxFrostBall(x+Math.cos(a)*r,y+h,z+Math.sin(a)*r,s,du,.5+Math.random()*.6);if(i)mxLater(i*.04,f);else f();}
+  for(let i=0;i<nt;i++){const a=i/nt*6.283+Math.random()*.5,el=.1+Math.random()*1,dx=Math.cos(a)*Math.cos(el),dy=Math.sin(el),dz=Math.sin(a)*Math.cos(el),sp=(2+Math.random()*1.4)*(.5+R);
+    for(let j=0;j<5;j++){const f=.35+j*.15;emit(j%2,{x:x+dx*R*.12,y:y+dy*R*.12,z:z+dz*R*.12,vx:dx*sp*f,vy:dy*sp*f+.25,vz:dz*sp*f,s:(.07+.12*R)*(1.15-j*.1),s2:.02,c:j%2?0xffffff:0xd8f2ff,c2:j%2?0x6ab8ff:0x9ac8e8,a:.85,life:.3+.12*R+Math.random()*.1,drag:2.4,turb:.8});}}
+  nsSplinters(x,y,z,o.sp==null?Math.round(8+12*R):o.sp,1+1.2*R);
+  for(let i=0;i<Math.round(3+5*R);i++){const a=Math.random()*6.283,sp=(.8+Math.random())*R;emitS(0,{x:x+Math.cos(a)*.1,y:y-.1,z:z+Math.sin(a)*.1,vx:Math.cos(a)*sp,vy:.12+Math.random()*.2,vz:Math.sin(a)*sp,s:.2+.25*R,s2:.7+.9*R,c:0xf2f8ff,c2:0xc8dcec,a:.32,life:1.1+Math.random()*.6,lift:.05,drag:1.6,turb:.3});}}
 
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
