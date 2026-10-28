@@ -14146,6 +14146,8 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'A new map of the realm',d:'28 Oct',v:'v429',li:[
+    'The world map where you pick a land is redrawn as one natural island: a winding coast with bays, capes, shoals and a little isle, each land a territory of its own with soft borders, mountain ranges that follow the Highlands and the borders, rivers running down to the sea, lakes, and roads that wind around the hills and cross the rivers on bridges.']},
   {t:'Boards at ground level',d:'28 Oct',v:'v427',li:[
     'Every board now sits on the ground instead of floating on its slab, in every land. The land around it is part of the map: it wears the same colours and texture as the tiles (heather, moss, snow, autumn grass), without the grid, and everything that grew or stood down on the low ground stands beside the board now. The tundra keeps its sea.']},
   {t:'The Stormcrag Highlands',d:'28 Oct',v:'v418',li:[
@@ -29225,6 +29227,198 @@ function glLevel(){const T=TERRAIN;if(!T||!TILES)return;const m4=new THREE.Matri
   const g=new THREE.Mesh(new THREE.ShapeGeometry(sh),glGroundMat());g.rotation.x=-Math.PI/2;g.position.y=-.002;g.receiveShadow=true;g.userData.gl=1;g.userData.keep=1;g.userData.voidKeep=1;T.add(g);GLD.ground=g;}
 {const bm=buildMap;buildMap=function(){const out=bm.apply(this,arguments);try{glLevel();}catch(e){console.error(e);}return out;};}
 /* ---- end of boards at ground level (v427) ---- */
+/* ================= The world map, redrawn (v429) =================
+   Simon: "rework the map where you select arenas? it looks wierd right now, make it more natural and a better shape". The old map was a sum of
+   round lobes (a balloon on a stem), round biome blobs, mountains standing in the sea and straight roads crossing in a diamond. Now:
+   - one continent: a broad rounded mass warped by low noise into capes, bays, a fjord in the north-west and a gulf in the east, a ragged coast,
+     a few islands offshore; nothing touches the frame;
+   - regions are territories (a warped, weighted Voronoi of the six keeps) with soft, wandering borders, not round blobs;
+   - a relief: ridged noise per region (the Highlands and Frostvale mountainous, the plains low), spines along the borders, hill shading;
+     mountains only ever stand on land, and never on a road, a river, a lake, a keep or its name;
+   - rivers run downhill from the mountains to the sea (traced on the height field), lakes sit in hollows;
+   - roads are routed over the land (A* that avoids the sea and climbs round mountains, crossing rivers on bridges) and smoothed;
+   - the shallows are marked with water lines along the coast, forests grow in clusters.
+   The interface stays: WMP.sites, WMP.roads, WMP.paths, wmpPaint, wmpBioSoft, wmpTop, wmpBioPick, wmpVia. */
+Object.assign(WMP.sites.plains,{u:.5,v:.78});Object.assign(WMP.sites.snow,{u:.24,v:.56});Object.assign(WMP.sites.tundra,{u:.76,v:.565});
+Object.assign(WMP.sites.taiga,{u:.22,v:.285});Object.assign(WMP.sites.whitewaste,{u:.5,v:.35});Object.assign(WMP.sites.highlands,{u:.79,v:.275});
+/* biome seeds (u, v, bias: a larger bias grows the territory) */
+const WM2_SEED={plains:[.5,.8,.05],snow:[.22,.57,.01],tundra:[.78,.58,.01],taiga:[.2,.27,.02],snowtundra:[.5,.33,-.02],highlands:[.8,.26,.02]};
+WMP.bio={};for(const k in WM2_SEED)WMP.bio[k]={u:WM2_SEED[k][0],v:WM2_SEED[k][1],r:.2};
+/* capes (+) and bays (-): u, v, radius (width units), strength */
+const WM2_FEAT=[[.82,.86,.08,.32],[.18,.92,.06,-.35],[.9,.16,.06,.28],[.08,.2,.07,.25],[.55,.06,.05,.2],[.31,.885,.08,-.75],[.88,.74,.09,-.8],[.05,.43,.1,-.8],[.15,.445,.045,-.45],[.95,.31,.07,.3],[.27,.1,.07,-.5],[.97,.6,.06,-.4],[.03,.86,.07,-.35],[.1,.76,.075,.28],[.37,.11,.06,-.45],[.66,.1,.055,-.35],[.92,.5,.05,.2],[.05,.6,.05,.22],[.62,.93,.05,.18],[.875,.135,.045,.27],[.91,.075,.025,.25],[.925,.47,.032,.42],[.93,.53,.018,.3]];
+function wm2Land(u,v){const wu=u+WMPN3(u*1.7+31,v*1.7,3)*.13,wv=v+WMPN3(u*1.7,v*1.7+47,3)*.1,dx=(wu-.5)/.34,dy=(wv-.52)*1.4/.5;
+  let s=1-Math.sqrt(dx*dx+dy*dy);s+=WMPN(u*1.8+5,v*1.8,3)*.55+WMPN2(u*5,v*5,3)*.22+WMPN3(u*14,v*14,3)*.06+WMPN(u*40,v*40,2)*.018;
+  for(const F of WM2_FEAT){const a=u-F[0],b=(v-F[1])*1.4;s+=F[3]*Math.exp(-(a*a+b*b)/(F[2]*F[2]));}
+  for(const k in WMP.sites){const S=WMP.sites[k],a=u-S.u,b=(v-S.v)*1.4;s+=.28*Math.exp(-(a*a+b*b)/.012);}
+  if(s<-.04){const isl=WMPN2(u*5.5+3,v*5.5+9,3)-.27;if(isl>0)s=Math.max(s,-.09+isl*1.7+WMPN3(u*30,v*30,2)*.04);}
+  s-=(1-wmpSS(.01,.09,Math.min(u,1-u)))*.9+(1-wmpSS(.01,.07,Math.min(v,1-v)))*.9;return s;}
+/* the field on a 400x560 grid (bilinear), so the painters and the tests share one coast */
+let WM2F=null;const WM2_W=400,WM2_H=560;
+function wm2F(u,v){if(!WM2F){WM2F=new Float32Array(WM2_W*WM2_H);for(let j=0;j<WM2_H;j++)for(let i=0;i<WM2_W;i++)WM2F[j*WM2_W+i]=wm2Land(i/(WM2_W-1),j/(WM2_H-1));}
+  const gx=Math.max(0,Math.min(WM2_W-1.001,u*(WM2_W-1))),gy=Math.max(0,Math.min(WM2_H-1.001,v*(WM2_H-1))),i=gx|0,j=gy|0,fx=gx-i,fy=gy-j,o=j*WM2_W+i,F=WM2F;
+  return(F[o]*(1-fx)+F[o+1]*fx)*(1-fy)+(F[o+WM2_W]*(1-fx)+F[o+WM2_W+1]*fx)*fy;}
+/* territories: warped, weighted Voronoi; soft weights across a narrow wandering band */
+wmpBioRaw=function(u,v){const wu=u+WMPN3(u*2.6,v*2.6,4)*.1+WMPN2(u*9,v*9,2)*.02,wv=v+WMPN3(u*2.6+17,v*2.6+5,4)*.08+WMPN2(u*9+4,v*9,2)*.015,out={},D={};let dm=1e9,tot=0;
+  for(const k in WM2_SEED){const S=WM2_SEED[k],a=wu-S[0],b=(wv-S[1])*1.4,d=Math.sqrt(a*a+b*b)-S[2];D[k]=d;if(d<dm)dm=d;}
+  for(const k in D){const w=Math.exp(-(D[k]-dm)/.028);out[k]=w;tot+=w;}for(const k in out)out[k]/=tot;return out;};
+WMPB=null;
+wmpTop=function(u,v){const w=wmpBioSoft(u,v);let b='plains',bw=-1;for(const k in w)if(w[k]>bw){bw=w[k];b=k;}return b;};
+wmpBio=function(u,v){return Object.assign({},wmpBioSoft(u,v));};
+/* relief: ridged noise scaled per region, spines along the borders between regions (low between the plains and their neighbours) */
+const WM2_MK={plains:.06,snow:.55,tundra:.3,taiga:.4,snowtundra:.28,highlands:1};
+function wm2Mtn(u,v){const w=wmpBioSoft(u,v);let bf=0,t1=0,t2=0,k1='plains',k2='plains';for(const k in w){bf+=w[k]*WM2_MK[k];if(w[k]>t1){t2=t1;k2=k1;t1=w[k];k1=k;}else if(w[k]>t2){t2=w[k];k2=k;}}
+  const r=Math.max(0,1-Math.abs(WMPN(u*4.6+7,v*4.6+3,4))*2.4),rd=r*r*r,border=1-wmpSS(0,.55,t1-t2),bk=(k1==='plains'||k2==='plains')?.25:1;
+  const n=WMPN2(u*3+11,v*3+2,3);return rd*bf*(1.2+n*.8)+border*.42*bk*(.6+Math.max(0,n)*1.2);}
+let WM2H=null;const WM2_HW=125,WM2_HH=175;
+function wm2Height(){if(WM2H)return WM2H;const A=new Float32Array(WM2_HW*WM2_HH),M=new Float32Array(WM2_HW*WM2_HH);
+  for(let j=0;j<WM2_HH;j++)for(let i=0;i<WM2_HW;i++){const u=i/(WM2_HW-1),v=j/(WM2_HH-1),s=wm2F(u,v),m=s>0?wm2Mtn(u,v):0;M[j*WM2_HW+i]=m;A[j*WM2_HW+i]=s<0?s:Math.min(s,.5)*.9+m*.9;}
+  WM2H={A,M};return WM2H;}
+const wm2Hs=(G,u,v)=>{const gx=Math.max(0,Math.min(WM2_HW-1.001,u*(WM2_HW-1))),gy=Math.max(0,Math.min(WM2_HH-1.001,v*(WM2_HH-1))),i=gx|0,j=gy|0,fx=gx-i,fy=gy-j,o=j*WM2_HW+i;
+  return(G[o]*(1-fx)+G[o+1]*fx)*(1-fy)+(G[o+WM2_HW]*(1-fx)+G[o+WM2_HW+1]*fx)*fy;};
+/* a binary heap for the road search */
+function wm2Heap(){const a=[];return{push(n,f){a.push([f,n]);let i=a.length-1;while(i>0){const p=(i-1)>>1;if(a[p][0]<=a[i][0])break;[a[p],a[i]]=[a[i],a[p]];i=p;}},
+  pop(){const top=a[0],l=a.pop();if(a.length){a[0]=l;let i=0;for(;;){const L=i*2+1,Rr=L+1;let m=i;if(L<a.length&&a[L][0]<a[m][0])m=L;if(Rr<a.length&&a[Rr][0]<a[m][0])m=Rr;if(m===i)break;[a[m],a[i]]=[a[i],a[m]];i=m;}}return top[1];},get size(){return a.length;}};}
+/* a smooth polyline made to meander: points pushed sideways along a slow wave (amp grows with t), kept on land */
+function wm2Meander(P,amp,wl,ph,ok){const L=[0];for(let i=1;i<P.length;i++)L.push(L[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));const T=L[L.length-1]||1;
+  return P.map((p,i)=>{if(i===0||i===P.length-1)return p;const a=P[Math.max(0,i-1)],b=P[Math.min(P.length-1,i+1)],dx=b[0]-a[0],dy=b[1]-a[1],dl=Math.hypot(dx,dy)||1,nx=-dy/dl,ny=dx/dl,t=L[i]/T,
+    off=(Math.sin(L[i]/wl+ph)+.45*Math.sin(L[i]/(wl*.43)+ph*2.1))*amp*Math.sin(Math.min(1,t*1.15)*Math.PI*.5+ (t>.85?(t-.85)/.15*Math.PI*.5:0)),q=[p[0]+nx*off,p[1]+ny*off];return ok&&!ok(q[0],q[1])?p:q;});}
+function wm2Paint(){if(WMP.cv)return WMP.cv;const W=WMP.W,H=WMP.H,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d'),R=wmpRng(77),ink='#4a3a2a';
+  const HG=wm2Height(),land=(X,Y)=>wm2F(X/W,Y/H)>0,mAt=(X,Y)=>wm2Hs(HG.M,X/W,Y/H),hAt=(X,Y)=>wm2Hs(HG.A,X/W,Y/H);
+  /* ---- parchment, stains, rhumb lines ---- */
+  x.fillStyle='#ead9b2';x.fillRect(0,0,W,H);
+  {const PW=250,PH=350,pc=document.createElement('canvas');pc.width=PW;pc.height=PH;const px=pc.getContext('2d'),id=px.createImageData(PW,PH);
+    for(let j=0;j<PH;j++)for(let i=0;i<PW;i++){const u=i/PW,v=j/PH,n=WMPN2(u*3,v*4,5),st=WMPN3(u*9,v*12,3),e=Math.min(u,1-u,v,1-v),vg=1-wmpSS(0,.16,e);const o=(j*PW+i)*4;
+      id.data[o]=150+n*60;id.data[o+1]=112+n*45;id.data[o+2]=60+n*30;id.data[o+3]=Math.max(0,Math.min(255,(.1+vg*.5+Math.max(0,st)*.35+Math.max(0,n)*.18)*255));}
+    px.putImageData(id,0,0);x.globalAlpha=.5;x.drawImage(pc,0,0,W,H);x.globalAlpha=1;}
+  for(let i=0;i<7;i++){const cx=R()*W,cy=R()*H,r=40+R()*120,g=x.createRadialGradient(cx,cy,r*.2,cx,cy,r);g.addColorStop(0,'rgba(150,110,60,0)');g.addColorStop(.85,'rgba(150,110,60,.07)');g.addColorStop(1,'rgba(150,110,60,0)');x.fillStyle=g;x.fillRect(cx-r,cy-r,r*2,r*2);}
+  const CR={x:W*.115,y:H*.915};x.strokeStyle='rgba(90,70,48,.2)';x.lineWidth=1;for(let i=0;i<16;i++){const a=i/16*6.283+.1;x.beginPath();x.moveTo(CR.x,CR.y);x.lineTo(CR.x+Math.cos(a)*1800,CR.y+Math.sin(a)*1800);x.stroke();}
+  /* ---- sea wash, land colour with hill shading, per pixel at 400x560 ---- */
+  const LW=WM2_W,LH=WM2_H,lc=document.createElement('canvas');lc.width=LW;lc.height=LH;const lx=lc.getContext('2d'),ld=lx.createImageData(LW,LH);
+  for(let j=0;j<LH;j++)for(let i=0;i<LW;i++){const u=i/(LW-1),v=j/(LH-1),s=WM2F[j*LW+i],o=(j*LW+i)*4;
+    if(s<=0){const k=wmpSS(-.22,0,s);ld.data[o]=104;ld.data[o+1]=134;ld.data[o+2]=132;ld.data[o+3]=18+k*k*72;continue;}
+    const w=wmpBioSoft(u,v),pn=WMPN2(u*9,v*12,4),gr=WMPN3(u*60,v*84,2)*.06;let r=0,g=0,b=0,ws=0;
+    for(const k in w){const q=w[k]*w[k];if(q<1e-5)continue;const P=WMP_PAL[k],t=pn*.5+.5,t2=Math.max(0,WMPN(u*7+3,v*9,3))*1.6,c0=P[0],c1=P[1],c2=P[2];
+      const cr=c0[0]+(c1[0]-c0[0])*t,cg=c0[1]+(c1[1]-c0[1])*t,cb=c0[2]+(c1[2]-c0[2])*t;r+=q*(cr+(c2[0]-cr)*Math.min(1,t2));g+=q*(cg+(c2[1]-cg)*Math.min(1,t2));b+=q*(cb+(c2[2]-cb)*Math.min(1,t2));ws+=q;}
+    r/=ws;g/=ws;b/=ws;const e=.004,hx=wm2Hs(HG.A,u+e,v)-wm2Hs(HG.A,u-e,v),hy=wm2Hs(HG.A,u,v+e)-wm2Hs(HG.A,u,v-e),sh=Math.max(-.12,Math.min(.1,(-hx*.9-hy*.6)*3.2));
+    const coast=1-wmpSS(0,.07,s),dk=(1+sh-coast*.12+gr)*(1-Math.max(0,WMPN(u*15+50,v*20,3))*.08);ld.data[o]=Math.min(255,r*dk);ld.data[o+1]=Math.min(255,g*dk);ld.data[o+2]=Math.min(255,b*dk);ld.data[o+3]=242;}
+  lx.putImageData(ld,0,0);x.imageSmoothingEnabled=true;x.drawImage(lc,0,0,W,H);
+  /* ---- the coast in ink and the water lines of the shallows (marching squares over the field) ---- */
+  const iso=(T,lw,al,dash,off)=>{const cx=W/(LW-1),cy=H/(LH-1),val=(i,j)=>WM2F[Math.min(LH-1,j)*LW+Math.min(LW-1,i)]-T;x.strokeStyle=ink;x.lineWidth=lw;x.globalAlpha=al;x.setLineDash(dash||[]);x.beginPath();
+    for(let j=0;j<LH-1;j++)for(let i=0;i<LW-1;i++){const a=val(i,j),b=val(i+1,j),c=val(i+1,j+1),d=val(i,j+1),m=(a>0?8:0)|(b>0?4:0)|(c>0?2:0)|(d>0?1:0);if(m===0||m===15)continue;
+      const X=i*cx,Y=j*cy+(off||0),pt=(p,q,va,vb)=>p+(q-p)*(va/(va-vb));const top=[pt(X,X+cx,a,b),Y],rt=[X+cx,pt(Y,Y+cy,b,c)],bt=[pt(X,X+cx,d,c),Y+cy],lf=[X,pt(Y,Y+cy,a,d)],seg=(P,Q)=>{x.moveTo(P[0],P[1]);x.lineTo(Q[0],Q[1]);};
+      switch(m){case 1:case 14:seg(lf,bt);break;case 2:case 13:seg(bt,rt);break;case 3:case 12:seg(lf,rt);break;case 4:case 11:seg(top,rt);break;case 5:seg(lf,top);seg(bt,rt);break;case 6:case 9:seg(top,bt);break;case 7:case 8:seg(lf,top);break;case 10:seg(lf,bt);seg(top,rt);break;}}
+    x.stroke();x.setLineDash([]);x.globalAlpha=1;};
+  iso(0,2.4,.9);iso(0,1.1,.35,null,3);iso(-.04,1,.3);iso(-.085,1,.2,[6,5]);iso(-.14,.9,.13,[3,7]);
+  /* ---- rivers: from the high ground down to the sea, always downhill on (distance to the sea + relief), meandering, smoothed ---- */
+  const rivers=[];
+  {const RG=6,RW=Math.ceil(W/RG),RH=Math.ceil(H/RG),dS=new Float32Array(RW*RH).fill(1e9),Q=[];for(let j=0;j<RH;j++)for(let i=0;i<RW;i++)if(wm2F(i*RG/W,j*RG/H)<=0){dS[j*RW+i]=0;Q.push(j*RW+i);}
+    for(let q=0;q<Q.length;q++){const c=Q[q],ci=c%RW,cj=(c/RW)|0;for(const[di,dj]of[[1,0],[-1,0],[0,1],[0,-1]]){const ni=ci+di,nj=cj+dj;if(ni<0||nj<0||ni>=RW||nj>=RH)continue;const n=nj*RW+ni;if(dS[n]>dS[c]+1){dS[n]=dS[c]+1;Q.push(n);}}}
+    const hv=(i,j)=>{const X=i*RG,Y=j*RG;return dS[j*RW+i]+mAt(X,Y)*9+WMPN(X*.008,Y*.008,3)*5;};
+    const box=[[.14,.3,.24,.4],[.68,.86,.18,.32],[.3,.42,.42,.52],[.58,.7,.44,.54],[.42,.58,.56,.64],[.2,.32,.62,.72]];
+    for(const[u0,u1,v0,v1]of box){let best=null,bh=-1;for(let t=0;t<160;t++){const i=Math.round((u0+R()*(u1-u0))*W/RG),j=Math.round((v0+R()*(v1-v0))*H/RG);if(dS[j*RW+i]<6)continue;const h=dS[j*RW+i]+mAt(i*RG,j*RG)*6;if(h>bh){bh=h;best=[i,j];}}if(!best)continue;
+      let[i,j]=best;const cells=[[i,j]],seen=new Set([i+','+j]);for(let st=0;st<500&&dS[j*RW+i]>0;st++){let bi=-1,bj=-1,bv=1e9;for(const[di,dj]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const ni=i+di,nj=j+dj;if(ni<0||nj<0||ni>=RW||nj>=RH||seen.has(ni+','+nj))continue;
+          if(dS[nj*RW+ni]>dS[j*RW+i])continue;const v2=hv(ni,nj);if(v2<bv){bv=v2;bi=ni;bj=nj;}}if(bi<0)break;i=bi;j=bj;seen.add(i+','+j);cells.push([i,j]);}
+      if(dS[j*RW+i]>0||cells.length<10)continue;let P=cells.map(c=>[c[0]*RG,c[1]*RG]);if(rivers.some(Q2=>Q2.some(q=>Math.hypot(q[0]-P[0][0],q[1]-P[0][1])<40)))continue;
+      for(let it=0;it<3;it++){const q=[P[0]];for(let k=0;k<P.length-1;k++){const a=P[k],b=P[k+1];q.push([a[0]*.75+b[0]*.25,a[1]*.75+b[1]*.25],[a[0]*.25+b[0]*.75,a[1]*.25+b[1]*.75]);}q.push(P[P.length-1]);P=q;}
+      P=wm2Meander(P,7+R()*5,26+R()*12,R()*6,null);
+      const cut=P.findIndex((p,k)=>k>4&&rivers.some(Q2=>Q2.some(q=>Math.hypot(q[0]-p[0],q[1]-p[1])<5)));if(cut>0)P=P.slice(0,cut+1);rivers.push(P);}}
+  /* ---- roads: A* over the land, round the mountains, over rivers on bridges; then smoothed ---- */
+  const site=k=>({x:WMP.sites[k].u*W,y:WMP.sites[k].v*H});WMP.paths={};const roadPts=[],GS=8,GW=Math.ceil(W/GS),GH=Math.ceil(H/GS),riv=new Uint8Array(GW*GH);
+  for(const P of rivers)for(const[px,py]of P){const i=Math.round(px/GS),j=Math.round(py/GS);if(i>=0&&j>=0&&i<GW&&j<GH)riv[j*GW+i]=1;}
+  const cost=new Float32Array(GW*GH);for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const X=i*GS,Y=j*GS,s=wm2F(X/W,Y/H);cost[j*GW+i]=s<.03?1e9:1+mAt(X,Y)*14+(s<.08?3:0)+(riv[j*GW+i]?5:0)+(WMPN2(X*.012,Y*.012,3)+.5)*2.2+(WMPN3(X*.03,Y*.03,2)+.5)*1.2;}
+  for(const[a,b]of WMP.roads){const A=site(a),B=site(b),si=Math.round(A.x/GS)+Math.round(A.y/GS)*GW,ti=Math.round(B.x/GS)+Math.round(B.y/GS)*GW,g=new Float32Array(GW*GH).fill(1e18),from=new Int32Array(GW*GH).fill(-1),hp=wm2Heap(),tx=ti%GW,ty=(ti/GW)|0;
+    g[si]=0;hp.push(si,0);while(hp.size){const c=hp.pop();if(c===ti)break;const ci=c%GW,cj=(c/GW)|0;for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){if(!di&&!dj)continue;const ni=ci+di,nj=cj+dj;if(ni<0||nj<0||ni>=GW||nj>=GH)continue;const n=nj*GW+ni;
+        const ng=g[c]+(di&&dj?1.414:1)*(cost[n]+cost[c])*.5;if(ng<g[n]){g[n]=ng;from[n]=c;hp.push(n,ng+Math.hypot(ni-tx,nj-ty)*.9);}}}
+    let path=[];for(let c=ti;c>=0;c=from[c]){path.push([(c%GW)*GS,((c/GW)|0)*GS]);if(c===si)break;}path.reverse();path[0]=[A.x,A.y];path[path.length-1]=[B.x,B.y];
+    const simp=path.filter((p,i)=>i%3===0||i===path.length-1);let pts=simp.map(p=>({x:p[0],y:p[1]}));
+    for(let it=0;it<3;it++){const q=[pts[0]];for(let i=0;i<pts.length-1;i++){const p=pts[i],n=pts[i+1];q.push({x:p.x*.75+n.x*.25,y:p.y*.75+n.y*.25},{x:p.x*.25+n.x*.75,y:p.y*.25+n.y*.75});}q.push(pts[pts.length-1]);pts=q;}
+    {const arr=wm2Meander(pts.map(p=>[p.x,p.y]),9,48+R()*20,R()*6,(X2,Y2)=>wm2F(X2/W,Y2/H)>.05&&mAt(X2,Y2)<.5);pts=arr.map(p=>({x:p[0],y:p[1]}));}
+    WMP.paths[a+'>'+b]=pts;WMP.paths[b+'>'+a]=pts.slice().reverse();roadPts.push(...pts);}
+  /* distance to the nearest road, river, site (and its name) or lake, on a 4px grid */
+  const DG=4,DW=Math.ceil(W/DG),DH=Math.ceil(H/DG),DR=new Float32Array(DW*DH).fill(1e9),DS=new Float32Array(DW*DH).fill(1e9),stamp=(A,X,Y,R0)=>{const r=Math.ceil(R0/DG),ci=Math.round(X/DG),cj=Math.round(Y/DG);
+    for(let j=Math.max(0,cj-r);j<=Math.min(DH-1,cj+r);j++)for(let i=Math.max(0,ci-r);i<=Math.min(DW-1,ci+r);i++){const d=Math.hypot(i*DG-X,j*DG-Y),o=j*DW+i;if(d<A[o])A[o]=d;}};
+  for(const p of roadPts)stamp(DR,p.x,p.y,34);for(const P of rivers)for(const p of P)stamp(DR,p[0],p[1],20);
+  for(const k in WMP.sites){const q=site(k);stamp(DS,q.x,q.y-10,82);for(const dx of[-90,-60,-30,0,30,60,90])stamp(DS,q.x+dx,q.y+86,28);}
+  const lakes=[[.5,.45,46,26,1],[.37,.79,30,18,0],[.34,.205,26,15,0],[.83,.4,22,13,0],[.64,.68,20,12,0]].filter(L=>wm2F(L[0],L[1])>.08);for(const L of lakes){stamp(DS,L[0]*W,L[1]*H,L[2]+26);}
+  const gq=(A,X,Y)=>A[Math.min(DH-1,Math.max(0,Math.round(Y/DG)))*DW+Math.min(DW-1,Math.max(0,Math.round(X/DG)))],nearRoad=(X,Y,r)=>gq(DR,X,Y)<r,nearSite=(X,Y,r)=>gq(DS,X,Y)<r;
+  /* ---- lakes ---- */
+  for(const L of lakes){const cx=L[0]*W,cy=L[1]*H,rx=L[2],ry=L[3],fr=L[4]||wmpTop(L[0],L[1])==='snowtundra';x.save();x.beginPath();for(let i=0;i<=40;i++){const a=i/40*6.283,rr=1+WMPN2(Math.cos(a)*2+cx*.01,Math.sin(a)*2+cy*.01,3)*.35;x.lineTo(cx+Math.cos(a)*rx*rr,cy+Math.sin(a)*ry*rr);}x.closePath();
+    x.fillStyle=fr?'#dce9ee':'#9fb7b2';x.fill();x.strokeStyle=ink;x.lineWidth=1.6;x.stroke();x.clip();x.strokeStyle=fr?'rgba(90,120,140,.55)':'rgba(60,84,84,.4)';x.lineWidth=1;
+    for(let i=0;i<5;i++){const py=cy-ry*.5+i*ry*.25,px=cx+(R()-.5)*rx;x.beginPath();x.moveTo(px-8,py);x.quadraticCurveTo(px,py-3,px+8,py);x.stroke();}x.restore();}
+  /* ---- rivers: widening as they go, banks in ink ---- */
+  for(const P of rivers){x.lineCap='round';x.lineJoin='round';for(let i=1;i<P.length;i++){const t=i/P.length,wd=1.2+t*3.4;x.strokeStyle='rgba(74,58,42,.7)';x.lineWidth=wd+1.6;x.beginPath();x.moveTo(P[i-1][0],P[i-1][1]);x.lineTo(P[i][0],P[i][1]);x.stroke();}
+    for(let i=1;i<P.length;i++){const t=i/P.length,wd=1.2+t*3.4;x.strokeStyle='#8eaaa6';x.lineWidth=wd;x.beginPath();x.moveTo(P[i-1][0],P[i-1][1]);x.lineTo(P[i][0],P[i][1]);x.stroke();}}
+  /* ---- glyphs ---- */
+  const G=[],MT=[];
+  const tree=(X,Y,s,tone)=>()=>{x.fillStyle=`rgb(${118*tone|0},${134*tone|0},${66*tone|0})`;x.strokeStyle=ink;x.lineWidth=1;x.beginPath();x.moveTo(X,Y);x.lineTo(X,Y+s*.5);x.stroke();
+    x.beginPath();x.arc(X-s*.35,Y-s*.15,s*.45,0,6.283);x.arc(X+s*.35,Y-s*.1,s*.45,0,6.283);x.arc(X,Y-s*.55,s*.5,0,6.283);x.fill();x.beginPath();x.arc(X,Y-s*.55,s*.5,3.3,6.1);x.stroke();x.beginPath();x.arc(X-s*.35,Y-s*.15,s*.45,2.6,4.2);x.stroke();};
+  const spruce=(X,Y,s,snowy,tone)=>()=>{x.strokeStyle=ink;x.lineWidth=.9;x.beginPath();x.moveTo(X,Y);x.lineTo(X,Y+s*.35);x.stroke();
+    for(let t=0;t<3;t++){const w=s*(.55-t*.13),y0=Y-t*s*.42,y1=y0-s*.62;x.fillStyle=`rgb(${62*tone|0},${92*tone|0},${74*tone|0})`;x.beginPath();x.moveTo(X-w,y0);x.lineTo(X,y1);x.lineTo(X+w,y0);x.closePath();x.fill();x.stroke();
+      if(snowy){x.fillStyle='#f7f8f4';x.beginPath();x.moveTo(X-w*.55,y0-s*.24);x.lineTo(X,y1);x.lineTo(X+w*.6,y0-s*.2);x.quadraticCurveTo(X,y0-s*.34,X-w*.55,y0-s*.24);x.fill();}}};
+  const mountain=(X,Y,w,h,snowCap,shade)=>()=>{const pk=X+(R()-.5)*w*.25,pts=[[X-w/2,Y]],n=4;for(let i=1;i<n;i++){const t=i/n;pts.push([X-w/2+(pk-(X-w/2))*t+(R()-.5)*5,Y-h*t*(.75+R()*.3)]);}pts.push([pk,Y-h]);
+    for(let i=1;i<n;i++){const t=i/n;pts.push([pk+(X+w/2-pk)*t+(R()-.5)*5,Y-h*(1-t)*(.75+R()*.3)]);}pts.push([X+w/2,Y]);
+    x.fillStyle=shade[0];x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.closePath();x.fill();
+    const mid=X+(pk-X)*.3+w*.08;x.fillStyle=shade[1];x.beginPath();x.moveTo(pk,Y-h);for(let i=n+1;i<pts.length;i++)x.lineTo(pts[i][0],pts[i][1]);x.lineTo(mid,Y);x.closePath();x.fill();
+    if(snowCap){x.fillStyle='#f6f6f0';x.beginPath();x.moveTo(pk,Y-h);const sl=h*(.3+R()*.15);x.lineTo(pk-w*.17,Y-h+sl);x.lineTo(pk-w*.07,Y-h+sl*.75);x.lineTo(pk+w*.01,Y-h+sl*1.05);x.lineTo(pk+w*.1,Y-h+sl*.7);x.lineTo(pk+w*.16,Y-h+sl*.95);x.closePath();x.fill();}
+    x.strokeStyle='rgba(74,58,42,.5)';x.lineWidth=.8;for(let i=0;i<6;i++){const t=.2+i*.12,ax=pk+(X+w/2-pk)*t*.85,ay=Y-h*(1-t)+4;x.beginPath();x.moveTo(ax,ay);x.lineTo(ax-w*.08,ay+h*.16);x.stroke();}
+    x.strokeStyle=ink;x.lineWidth=1.4;x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.stroke();x.lineWidth=1;x.beginPath();x.moveTo(pk,Y-h);x.lineTo(mid,Y);x.stroke();};
+  const hill=(X,Y,w,col)=>()=>{x.fillStyle=col||'rgba(150,140,98,.85)';x.strokeStyle=ink;x.lineWidth=1.1;x.beginPath();x.moveTo(X-w/2,Y);x.quadraticCurveTo(X,Y-w*.6,X+w/2,Y);x.fill();x.stroke();
+    x.strokeStyle='rgba(74,58,42,.45)';x.lineWidth=.8;for(let i=0;i<3;i++){const ax=X+w*(.08+i*.1);x.beginPath();x.moveTo(ax,Y-w*.22+i*w*.05);x.lineTo(ax-4,Y-2);x.stroke();}};
+  const tuft=(X,Y,s,col)=>()=>{x.strokeStyle=col;x.lineWidth=1;x.beginPath();x.moveTo(X-s*.5,Y-s);x.lineTo(X,Y);x.lineTo(X+s*.5,Y-s);x.moveTo(X,Y-s*1.2);x.lineTo(X,Y);x.stroke();};
+  const stone=(X,Y,s)=>()=>{x.fillStyle='#a49d92';x.strokeStyle=ink;x.lineWidth=.9;x.beginPath();x.ellipse(X,Y,s,s*.62,0,0,6.283);x.fill();x.stroke();};
+  const drift=(X,Y,s)=>()=>{x.strokeStyle='rgba(110,140,160,.6)';x.lineWidth=1.1;x.beginPath();x.moveTo(X-s,Y);x.quadraticCurveTo(X,Y-s*.5,X+s,Y);x.stroke();};
+  const shrub=(X,Y,cl)=>()=>{x.fillStyle=cl||'rgba(110,124,104,.85)';x.strokeStyle=ink;x.lineWidth=.8;x.beginPath();x.arc(X,Y,3.2,0,6.283);x.arc(X+3,Y+1,2.4,0,6.283);x.fill();x.beginPath();x.arc(X,Y,3.2,3.4,6);x.stroke();};
+  const deadTree=(X,Y,s)=>()=>{x.strokeStyle=ink;x.lineWidth=1.1;x.beginPath();x.moveTo(X,Y);x.lineTo(X,Y-s);x.moveTo(X,Y-s*.55);x.lineTo(X-s*.3,Y-s*.8);x.moveTo(X,Y-s*.7);x.lineTo(X+s*.28,Y-s*.95);x.stroke();};
+  const heather=(X,Y)=>()=>{x.fillStyle='rgba(130,90,130,.6)';for(let i=0;i<5;i++){x.beginPath();x.arc(X+(R()-.5)*10,Y+(R()-.5)*6,1.4,0,6.283);x.fill();}};
+  const field=(X,Y,w,h,a)=>()=>{x.save();x.translate(X,Y);x.rotate(a);x.fillStyle=R()<.5?'rgba(214,196,120,.75)':'rgba(170,176,92,.7)';x.strokeStyle='rgba(74,58,42,.6)';x.lineWidth=.9;x.fillRect(-w/2,-h/2,w,h);x.strokeRect(-w/2,-h/2,w,h);
+    x.beginPath();for(let i=1;i<5;i++){x.moveTo(-w/2,-h/2+h*i/5);x.lineTo(w/2,-h/2+h*i/5);}x.globalAlpha=.4;x.stroke();x.restore();};
+  /* mountains follow the relief: ranges where it is high, on land only, clear of roads, rivers, lakes, keeps and names */
+  for(let i=0;i<5200;i++){const X=40+R()*(W-80),Y=70+R()*(H-150),u=X/W,v=Y/H,s=wm2F(u,v);if(s<.05)continue;const m=mAt(X,Y);if(m<.5)continue;if(nearRoad(X,Y,26)||nearSite(X,Y,64))continue;
+    const w=30+Math.min(1,(m-.5)*1.6)*44+R()*14,h=w*(.7+R()*.4);if(!land(X-w*.45,Y)||!land(X+w*.45,Y))continue;if(MT.some(g=>Math.abs(g.x-X)<(g.w+w)*.3&&Math.abs(g.y-Y)<16))continue;
+    const b=wmpTop(u,v),cold=b==='snow'||b==='snowtundra'||b==='taiga';const sh=b==='highlands'?['#b49a8a','#86686a']:b==='tundra'?['#b8a89a','#86776e']:cold?['#c4c6ca','#8c8f99']:['#c2a58a','#8f6f62'];
+    const M={x:X,y:Y,w,f:mountain(X,Y,w,h,cold||(b==='highlands'&&h>48)||m>1.1,sh)};G.push(M);MT.push(M);}
+  /* foothills where the relief is middling */
+  for(let i=0;i<2500;i++){const X=40+R()*(W-80),Y=70+R()*(H-150),s=wm2F(X/W,Y/H);if(s<.06)continue;const m=mAt(X,Y);if(m<.3||m>.5)continue;if(nearRoad(X,Y,18)||nearSite(X,Y,50))continue;
+    if(MT.some(g=>Math.abs(g.x-X)<g.w*.5&&Math.abs(g.y-Y)<14))continue;const b=wmpTop(X/W,Y/H);if(R()<.55)continue;
+    G.push({x:X,y:Y,f:hill(X,Y,20+R()*16,b==='highlands'?'rgba(158,134,118,.85)':b==='snow'||b==='snowtundra'?'rgba(214,220,222,.9)':b==='tundra'?'rgba(170,120,92,.85)':b==='taiga'?'rgba(112,128,96,.85)':'rgba(150,140,98,.85)')});}
+  /* vegetation and ground marks, forests in clusters */
+  for(let i=0;i<10000;i++){const X=40+R()*(W-80),Y=60+R()*(H-120),u=X/W,v=Y/H,s=wm2F(u,v);if(s<.03)continue;if(nearRoad(X,Y,11)||nearSite(X,Y,40))continue;
+    if(mAt(X,Y)>.5)continue;if(MT.some(g=>Math.abs(g.x-X)<g.w*.5&&Y<g.y+4&&Y>g.y-g.w*.8))continue;const b=wmpBioPick(u,v,wmpHash(X,Y)),fo=WMPN(u*8+9,v*10,4);
+    if(b==='plains'){if(fo>.06||R()<.01)G.push({x:X,y:Y,f:tree(X,Y,7+R()*4,.8+R()*.35)});else if(fo<-.2&&R()<.05&&v>.68)G.push({x:X,y:Y,f:field(X,Y,26+R()*20,16+R()*10,(R()-.5)*.8)});}
+    else if(b==='taiga'){if(fo>-.2)G.push({x:X,y:Y,f:spruce(X,Y,10+R()*5,R()<.15,.75+R()*.3)});}
+    else if(b==='snow'){if(fo>-.02)G.push({x:X,y:Y,f:spruce(X,Y,9+R()*4,true,.8+R()*.3)});else if(R()<.1)G.push({x:X,y:Y,f:drift(X,Y,6+R()*6)});}
+    else if(b==='tundra'){const q=R();if(q<.08)G.push({x:X,y:Y,f:tuft(X,Y,4+R()*3,'rgba(107,107,58,.75)')});else if(q<.11)G.push({x:X,y:Y,f:stone(X,Y,2.5+R()*3)});else if(q<.21)G.push({x:X,y:Y,f:shrub(X,Y,R()<.6?'rgba(176,48,42,.9)':'rgba(212,169,58,.9)')});else if(fo>.3&&q<.24)G.push({x:X,y:Y,f:spruce(X,Y,7+R()*3,false,.8)});}
+    else if(b==='snowtundra'){const q=R();if(q<.1)G.push({x:X,y:Y,f:drift(X,Y,6+R()*7)});else if(q<.13)G.push({x:X,y:Y,f:tuft(X,Y,4,'rgba(90,90,80,.6)')});else if(q<.15)G.push({x:X,y:Y,f:stone(X,Y,2.5+R()*2)});else if(q<.16)G.push({x:X,y:Y,f:deadTree(X,Y,9+R()*4)});else if(fo>.35&&q<.22)G.push({x:X,y:Y,f:spruce(X,Y,8+R()*3,true,.85)});}
+    else if(b==='highlands'){const q=R();if(q<.12)G.push({x:X,y:Y,f:heather(X,Y)});else if(fo<-.15&&q<.16)G.push({x:X,y:Y,f:tree(X,Y,6+R()*3,.7)});else if(q<.18)G.push({x:X,y:Y,f:stone(X,Y,2.5+R()*2)});}}
+  /* ---- roads under the glyphs, bridges where they cross a river ---- */
+  for(const[a,b]of WMP.roads){const pts=WMP.paths[a+'>'+b];x.lineCap='round';x.lineJoin='round';for(const[wd,col]of[[7,'rgba(74,58,42,.75)'],[4.4,'#ecdfbc']]){x.strokeStyle=col;x.lineWidth=wd;x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p.x,p.y):x.moveTo(p.x,p.y));x.stroke();}
+    x.strokeStyle='rgba(120,96,60,.5)';x.lineWidth=1;x.setLineDash([3,6]);x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p.x,p.y):x.moveTo(p.x,p.y));x.stroke();x.setLineDash([]);
+    let last=-99;pts.forEach((p,i)=>{if(i-last<8)return;if(!rivers.some(P=>P.some(q=>Math.hypot(q[0]-p.x,q[1]-p.y)<4)))return;last=i;const n=pts[Math.min(pts.length-1,i+1)],a2=Math.atan2(n.y-p.y,n.x-p.x);
+      x.save();x.translate(p.x,p.y);x.rotate(a2);x.fillStyle='#b08a5a';x.strokeStyle=ink;x.lineWidth=1.2;x.fillRect(-9,-4.5,18,9);x.strokeRect(-9,-4.5,18,9);x.beginPath();for(const s2 of[-1,1]){x.moveTo(-10,s2*5.5);x.lineTo(10,s2*5.5);}x.stroke();x.restore();});}
+  G.sort((a,b)=>a.y-b.y);for(const g of G)g.f();
+  /* ---- sea: waves, a ship, the compass ---- */
+  x.strokeStyle='rgba(74,58,42,.42)';x.lineWidth=1.1;for(let i=0;i<1100;i++){const X=40+R()*(W-80),Y=40+R()*(H-80),s=wm2F(X/W,Y/H);if(s>-.14)continue;if(s<-.5&&R()<.5)continue;
+    x.beginPath();x.moveTo(X-7,Y);x.quadraticCurveTo(X-3.5,Y-3,X,Y);x.quadraticCurveTo(X+3.5,Y+3,X+7,Y);x.stroke();}
+  {let S={x:W*.84,y:H*.93};for(let t=0;t<40&&wm2F(S.x/W,S.y/H)>-.15;t++)S={x:W*(.6+R()*.33),y:H*(.86+R()*.09)};x.save();x.translate(S.x,S.y);x.fillStyle='#8a6a48';x.strokeStyle=ink;x.lineWidth=1.2;x.beginPath();x.moveTo(-22,0);x.quadraticCurveTo(0,10,22,0);x.lineTo(16,-5);x.lineTo(-18,-5);x.closePath();x.fill();x.stroke();
+    x.fillStyle='#f3ead2';for(const[mx,mh]of[[-8,30],[6,36]]){x.beginPath();x.moveTo(mx,-5);x.lineTo(mx,-5-mh);x.stroke();x.beginPath();x.moveTo(mx-11,-8);x.quadraticCurveTo(mx-3,-5-mh*.5,mx-11,-5-mh*.9);x.lineTo(mx+11,-5-mh*.9);x.quadraticCurveTo(mx+15,-5-mh*.5,mx+11,-8);x.closePath();x.fill();x.stroke();}x.restore();}
+  {const c=CR;x.save();x.translate(c.x,c.y);x.strokeStyle=ink;x.lineWidth=1.2;x.beginPath();x.arc(0,0,44,0,6.283);x.stroke();x.beginPath();x.arc(0,0,38,0,6.283);x.stroke();
+    for(let i=0;i<8;i++){const a=i/8*6.283-Math.PI/2,L=i%2?26:48;x.fillStyle=i%2?'#c9b48c':(i===0?'#9a3a2a':'#5a4632');x.beginPath();x.moveTo(Math.cos(a)*L,Math.sin(a)*L);x.lineTo(Math.cos(a+.3)*9,Math.sin(a+.3)*9);x.lineTo(0,0);x.closePath();x.fill();x.stroke();
+      x.fillStyle=i%2?'#efe2c0':'#e9d9b4';x.beginPath();x.moveTo(Math.cos(a)*L,Math.sin(a)*L);x.lineTo(Math.cos(a-.3)*9,Math.sin(a-.3)*9);x.lineTo(0,0);x.closePath();x.fill();x.stroke();}
+    x.fillStyle=ink;x.font='bold 20px "Grenze Gotisch", Georgia, serif';x.textAlign='center';x.fillText('N',0,-54);x.restore();}
+  /* ---- the frame, the names, the title, the grain ---- */
+  x.strokeStyle=ink;x.lineWidth=2.4;x.strokeRect(16,16,W-32,H-32);x.lineWidth=1;x.strokeRect(24,24,W-48,H-48);
+  x.textAlign='center';x.textBaseline='middle';for(const k in WMP.sites){const s=site(k),n=WMP.sites[k].n;x.font='600 27px "Grenze Gotisch", Georgia, serif';
+    x.lineWidth=6;x.strokeStyle='rgba(238,224,190,.9)';x.lineJoin='round';x.strokeText(n,s.x,s.y+84);x.fillStyle='#3a2c1e';x.fillText(n,s.x,s.y+84);}
+  {x.font='700 46px "Grenze Gotisch", Georgia, serif';x.lineWidth=7;x.strokeStyle='rgba(238,224,190,.92)';x.strokeText('The Realm of Kingsroad',W/2,H*.052);x.fillStyle='#3a2c1e';x.fillText('The Realm of Kingsroad',W/2,H*.052);}
+  {const GW2=500,GH2=700,gc=document.createElement('canvas');gc.width=GW2;gc.height=GH2;const gx=gc.getContext('2d'),gd=gx.createImageData(GW2,GH2),rr=wmpRng(5);for(let i=0;i<GW2*GH2;i++){const v=200+rr()*55;gd.data[i*4]=v;gd.data[i*4+1]=v*.96;gd.data[i*4+2]=v*.9;gd.data[i*4+3]=255;}
+    gx.putImageData(gd,0,0);x.globalCompositeOperation='multiply';x.globalAlpha=.35;x.drawImage(gc,0,0,W,H);x.globalAlpha=1;x.globalCompositeOperation='source-over';}
+  WMP.rivers=rivers;WMP.cv=cv;return cv;}
+wmpField=function(u,v){return wm2F(u,v)+WMP_T;};
+wmpPaint=wm2Paint;WMP.cv=null;
+/* a trip between keeps with no road of their own runs along the roads (breadth first over WMP.paths) */
+wmpVia=function(a,b){if(!WMP.paths)return null;const prev={},Q=[a];prev[a]=null;while(Q.length){const u=Q.shift();if(u===b)break;for(const k in WMP.paths){const q=k.split('>');if(q[0]===u&&!(q[1]in prev)){prev[q[1]]=u;Q.push(q[1]);}}}
+  if(!(b in prev))return null;const hops=[];for(let v=b;prev[v]!=null;v=prev[v])hops.unshift(prev[v]+'>'+v);let out=null;for(const h of hops){const p=WMP.paths[h];out=out?out.concat(p.slice(1)):p.slice();}return out&&out.length>1?out:null;};
+/* ---- end of the world map, redrawn (v429) ---- */
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
