@@ -14132,7 +14132,7 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
-  {t:'Riftfang masteries, reworked',d:'28 Oct',v:'v406',li:[
+  {t:'Riftfang masteries, reworked',d:'28 Oct',v:'v408',li:[
     'Shardburst: the piercing shard bursts into three splinters, 30%. Void Pins: the side shards leave blades that erupt, 45% each.',
     'Deathmark: four marks on the target detonate for 120%. Blackglass Barrage: six more spears, 45% each.',
     'Cataclysmic Convergence: every impact leaves a fracture; at the fifth they explode, 100% and lightning for 50%.',
@@ -25434,7 +25434,7 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
   const S={t,e,len,dmg,C,P:C.P,L:C.L,a:C.a,o:smO(o),o0:o,hits:[]};C.bem=S;bemLog({ev:'cast',L:C.L});
   if(C.L>=5){bemStar(S);mxLater(BEM.raT0,()=>{if(state==='playing')bemFire(S,true);});}
   else bemFire(S,false);};
-/* ================= Riftfang's masteries, as Simon designed them (v406) =================
+/* ================= Riftfang's masteries, as Simon designed them (v408) =================
    Simon (abridged): "Mastery 1 - Shardburst: when the piercing shard hits an enemy, it shatters into three smaller void splinters that fan
    outward, each dealing 30% damage to the nearest enemy in its path. The splinters can hit different enemies, but each enemy can be hit by only
    one splinter per cast. Visual: the giant shard punches through the line of foes before bursting into three jagged violet projectiles; they

@@ -1,5 +1,5 @@
 (function(){
-/* Riftfang's masteries as Simon designed them (v406). Run on the dev page: __kk.ev(await (await fetch('/tests/rfm-test.js')).text())
+/* Riftfang's masteries as Simon designed them (v408). Run on the dev page: __kk.ev(await (await fetch('/tests/rfm-test.js')).text())
    returns [name, ok, detail] rows. Foes stand on the road where they are put (only the effects are stepped, updFx, with the game clock moved
    along), and hurt is wrapped to log the amount each hit is called with, so the numbers are checked exactly. Puts the account back afterwards. */
 const out=[],ok=(n,c,d)=>out.push([n,!!c,d===undefined?'':String(d)]);const m0=JSON.stringify(meta),r0=lsGet(KR),a0=meta.arena,H0=hurt,S0=scene.add;
