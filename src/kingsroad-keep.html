@@ -14152,6 +14152,10 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Oakheart Treant masteries, redesigned',d:'28 Oct',v:'v426',li:[
+    'Oakheart Treant (Epic) has five new masteries, for now in developer mode: Heavy Tread (its steps shake the road), Bark Bulwark (ground foes cannot get past it), Uprooted Boulder (every third slam it hurls a boulder at foes further off), Sap Harvest (it drains Overgrown foes and grows) and Timber! (at the end it topples forward along the road like a felled oak).',
+    'Its slams now burst in 3D: clods and turf thrown in arcs and dust billowing up, instead of a flat ring.',
+    'A burn set by a scroll of the artifact set\u2019s own element (Prism of Dawn under the light set) now burns in the set\u2019s colours.']},
   {t:'Prism of Dawn masteries, redesigned',d:'28 Oct',v:'v425',li:[
     'Prism of Dawn (Epic) has five new masteries, for now in developer mode: Spectrum (the warm beams set foes alight and the cool beams flare the burn), Sun-Tracking (the prism drifts after the foes), Blinding Fold (the folding beams blind the foes for the lance), Full Spectrum (a foe swept by all six colours bursts with them) and Sunrise (the folded light rises and a pillar of dawn comes down).',
     'Its rainbow now bursts in 3D: a ring of coloured crystal racing out with height and rays of colour, instead of six flat rings.']},
@@ -17248,7 +17252,9 @@ function asStatus(e,dt){
   for(const [k,c1,c2] of [['asPsn',0x7aef4a,0x1a4a12],['asBld',0xc0001a,0x3a0006]]){const q=e[k];if(!q)continue;q.t-=dt;hurt(e,q.dps*dt,'magic',asO(null,{dot:true}));if(e.dead)return true;
     q.pt-=dt;if(q.pt<=0){q.pt=.18;asOffRun(()=>emit(0,{x:e.x+(rnd()-.5)*.15,y:e.y+e.hitY*(.3+rnd()*.5),z:e.z+(rnd()-.5)*.15,vx:0,vy:k==='asPsn'?.3:-.4,vz:0,s:.05,s2:.02,c:c1,c2,life:.45}));}if(q.t<=0)e[k]=null;}
   return false;}
-{const s0=statusTick;statusTick=function(e,dt){if(AS.el&&!e.dead&&asStatus(e,dt))return true;const b=e.burn,on=(AS.el==='fire'&&b&&b.o&&b.o.el==='fire'&&(b.o.spell||b.o.syn||b.o.art))||(AS.el==='lightning'&&e.zapT>0);
+{const s0=statusTick;statusTick=function(e,dt){if(AS.el&&!e.dead&&asStatus(e,dt))return true;const b=e.burn,on=(AS.el==='fire'&&b&&b.o&&b.o.el==='fire'&&(b.o.spell||b.o.syn||b.o.art))||(AS.el==='lightning'&&e.zapT>0)||
+    /* a burn set by a scroll of the set's own element (Prism of Dawn's Spectrum under the light set, v425) burns in the set's colours too */
+    (b&&b.t>0&&b.o&&b.o.spell&&SPELL_EL[b.o.spell]===AS.el);
   if(on){const c=AS.ctx;AS.ctx=1;try{return s0.call(this,e,dt);}finally{AS.ctx=c;}}return s0.call(this,e,dt);};}
 /* the tick: zones, runes, the aura; a set change puts kept materials back */
 function asTick(dt){const el=asEl();if(el!==AS.last){asRestore();AS.last=el;}if(!el||state!=='playing'||OW.on)return;
@@ -18712,16 +18718,18 @@ natTreantModel=function(){const K=natKit(),F=nfxKit(),g=new THREE.Group(),body=n
   g.scale.setScalar(1.25);return{g,body,arms,legs,geos,eyes};};
 castTreant=function(t,P,o){const K=natKit(),st=nsRouteNear(t.x,t.z),rt=st.rt;let d=st.d;const W=natTreantModel(),g=W.g,p0=posAt(d,rt);g.position.set(p0[0],gy(p0[0],p0[1])-1.6,p0[1]);scene.add(g);
   nfxRune(p0[0],p0[1],.95,2);nfxBurst(p0[0],p0[1],.9,{cracks:9,n:26,s:1.4,life:2});let tt=0,slT=.6,slK=-1,hit=false,stepS=0,leafT=0;const LIFE=10;
+  /* the masteries (trmStart; null at Mastery 0, for echoes and other casters: the old treant) */
+  const T=typeof trmStart==='function'?trmStart(o,{P,W,g,rt}):null;
   const spike=(x,z)=>{const y=gy(x,z),a=rnd()*6.28,V=natVine([nfxV(x,y-.1,z),nfxV(x+Math.cos(a)*.05,y+.2,z+Math.sin(a)*.05),nfxV(x+Math.cos(a)*.1,y+.42+rnd()*.15,z+Math.sin(a)*.1)],.05,3,'root',{leaves:0,taper:.95});
     scene.add(V.g);let s=0;addFx(V.g,.55,(f,dt)=>{s+=dt;V.grow(s<.12?s/.12:1-(s-.25)/.3);},null,{geo:V.geo});};
-  const slam=()=>{const fx=Math.sin(g.rotation.y)*.45,fz=Math.cos(g.rotation.y)*.45,cx=g.position.x+fx,cz=g.position.z+fz,was=new Set(enemies.filter(e=>e.ovgT>0));
-    const L=splashAt(cx,cz,1.25,P*2.4,'magic',o,false);for(const q of L){if(q.dead)continue;if(was.has(q)){if(stunE(q,q.boss?.3:1)>0)comboFire('wardenoak',q);}else pushE(q,.5);ovgApply(q,3);}
-    shockwave(cx,cz,1.3,0x6a8a3a,.45);nfxBurst(cx,cz,1,{cracks:8,n:20,s:1.3,life:1.3});for(let i=0;i<4;i++){const a=i/4*6.28+rnd(),r=.5+rnd()*.5;spike(cx+Math.cos(a)*r,cz+Math.sin(a)*r);}
+  const slam=()=>{/* (from Bark Bulwark on it slams the foes held at its bark, in front of it; the old slam lands behind it) */const fs=T&&T.L>=2?-.45:.45,fx=Math.sin(g.rotation.y)*fs,fz=Math.cos(g.rotation.y)*fs,cx=g.position.x+fx,cz=g.position.z+fz,was=new Set(enemies.filter(e=>e.ovgT>0));
+    const L=splashAt(cx,cz,1.25*(T?T.size():1),P*2.4,'magic',o,false);if(T)T.slam(cx,cz,L,was);for(const q of L){if(q.dead)continue;if(was.has(q)){if(stunE(q,q.boss?.3:1)>0)comboFire('wardenoak',q);}else pushE(q,.5);ovgApply(q,3);}
+    trmQuake(cx,cz,1.1*(T?T.size():1));nfxBurst(cx,cz,1,{cracks:8,n:20,s:1.3,life:1.3});for(let i=0;i<4;i++){const a=i/4*6.28+rnd(),r=.5+rnd()*.5;spike(cx+Math.cos(a)*r,cz+Math.sin(a)*r);}
     nfxLeaves(cx,gy(cx,cz)+.5,cz,6,[K.leaf,K.leaf2,K.crown[2]]);camShake=Math.max(camShake,.05);};
-  addFx(g,LIFE,(f,dt)=>{tt+=dt;const rise=Math.min(1,tt/.9);if(tt>.9&&slK<0)d=Math.max(0,d-.55*dt);const p=posAt(d,rt),q=posAt(Math.max(0,d-.3),rt);
+  addFx(g,LIFE,(f,dt)=>{tt+=dt;if(T&&T.fall(f,dt,d))return;const rise=Math.min(1,tt/.9);if(tt>.9&&slK<0)d=Math.max(0,d-.55*dt);const p=posAt(d,rt),q=posAt(Math.max(0,d-.3),rt);
     const sink=f.life<.8?(1-f.life/.8):0;g.position.set(p[0],gy(p[0],p[1])-(1-rise)*1.6-sink*1.5,p[1]);g.lookAt(q[0],g.position.y,q[1]);const wk=slK<0&&tt>.9&&sink===0?1:0,s=Math.sin(tt*4.2);
     W.legs[0].rotation.x=s*.42*wk;W.legs[1].rotation.x=-s*.42*wk;W.body.position.y=Math.abs(s)*.03*wk;W.body.rotation.z=s*.045*wk;for(const h of W.eyes)h.scale.setScalar(1.2+.25*Math.sin(tt*7));
-    if(wk&&Math.sign(s)!==stepS){stepS=Math.sign(s);emitS(0,{x:g.position.x+(rnd()-.5)*.2,y:gy(g.position.x,g.position.z)+.05,z:g.position.z+(rnd()-.5)*.2,vx:0,vy:.15,vz:0,s:.12,s2:.32,c:0x8a7a5a,c2:0x4a4030,a:.3,life:.8,lift:.1});}
+    if(T)T.frame(tt,dt,d);if(wk&&Math.sign(s)!==stepS){stepS=Math.sign(s);if(T)T.step(g.position.x,g.position.z);emitS(0,{x:g.position.x+(rnd()-.5)*.2,y:gy(g.position.x,g.position.z)+.05,z:g.position.z+(rnd()-.5)*.2,vx:0,vy:.15,vz:0,s:.12,s2:.32,c:0x8a7a5a,c2:0x4a4030,a:.3,life:.8,lift:.1});}
     leafT-=dt;if(leafT<=0&&rise>=1){leafT=.4;nfxLeaves(g.position.x,g.position.y+1.7,g.position.z,1,[K.leaf,K.crown[2]]);}
     if(sink>0&&rnd()<.4)natDirt(g.position.x,g.position.z,3,.8);
     for(const e of enemies)if(!e.dead&&!e.fly&&(e.x-g.position.x)**2+(e.z-g.position.z)**2<.5){e.slow=Math.max(e.slow||0,.5);e.slowT=Math.max(e.slowT||0,.3);}
@@ -28411,6 +28419,101 @@ function prmSunrise(x,z,P,a,O,COLS){const y=gy(x,z);prmLog({ev:'sunrise0'});
         if(state==='playing')for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-x)**2+(e.z-z)**2<1.8*1.8){hurt(e,P*PRM.sun*a[4],'magic',O);prmLog({ev:'sunHit',e});}}}
       if(landed&&ticks<PRM.sunN&&t>=.18+(ticks+1)*.3){ticks++;if(state==='playing')for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-x)**2+(e.z-z)**2<R*R){hurt(e,P*PRM.sunT*a[4],'magic',O);prmLog({ev:'sunTick',e});const p=tpos2(e);emit(1,{x:p.x,y:p.y,z:p.z,vx:0,vy:1,vz:0,s:.07,s2:0,c:0xffffff,c2:0xffc060,life:.35});}}}
       if(rnd()<.8){const b=rnd()*6.28,r=rnd()*R;emit(1,{x:x+Math.cos(b)*r,y:y+.05,z:z+Math.sin(b)*r,vx:0,vy:1.2+rnd(),vz:0,s:.05,s2:0,c:0xfff6d8,c2:COLS[Math.floor(rnd()*6)],life:.7});}},null,{mats:[pm],geos:[pg]});});}
+
+/* ================= Oakheart Treant's masteries (v426), designed with Simon's framework (MASTERY_DESIGN.md) ================= */
+/* Identity: an old oak that wakes, heaves itself out of the road and walks into the enemy line, smashing the ground with both arms
+   (240% within 1.25; foes already Overgrown are stunned, the rest knocked back; all Overgrown). Design space: its walk and its heavy steps
+   (only dust so far), the body that stands on the road (it only slows foes at its feet), the slam, the Overgrown it feeds on, its size,
+   and its end (it sinks back into the earth). Roster: no map-wide forest (Wrath of Gaia), no world root (the Eldritch Tree), no roots that
+   bind (Entangling Roots), no colossus stomping across the map (the Ember Titan): every mastery is about the oak walking the road.
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Heavy Tread | what if its footsteps were felt? | the steps (only dust before) | cosmetic made real |
+   | 2 | Bark Bulwark | what if it truly stood in their way? | its body on the road | behaviour change, control |
+   | 3 | Uprooted Boulder | what if it could strike beyond its reach? | the slam's reach | new attack |
+   | 4 | Sap Harvest | what if it grew from what it crushed? | Overgrown, other Nature scrolls, its size | interaction, build-up |
+   | 5 | Timber! | what if it fell instead of sinking? | its end | signature payoff |
+   - M1 Heavy Tread: every step it takes shakes the road: TRM.tread to the ground foes within 1 of it, a burst of dust and pebbles.
+   - M2 Bark Bulwark: ground foes cannot get past it: those that walk into it are held against its bark (they stop 0.45 in front of it and
+     are shoved back as it walks), each for up to 2s before it squeezes past. Bosses are too big to hold: they are only slowed 60%.
+   - M3 Uprooted Boulder: every third slam it tears a boulder out of the road and hurls it at the thickest knot of foes 1.4 to 4.5 tiles
+     away: TRM.hurl within 1, a 3D burst of earth where it lands.
+   - M4 Sap Harvest: each foe its slam hits that was already Overgrown (by it, Entangling Roots, Bramble Patch, Thorn Whip, Briarband...)
+     is drained: TRM.sap more, and the treant grows (10% each, up to 40% bigger), its slam reaching further with it.
+   - M5 Timber!: at the end it does not sink: it groans, rocks back and topples forward along the road like a felled oak: TRM.timber to
+     every foe under its length (flyers too), and they are Overgrown; it crashes in a burst of splinters, leaves and earth, lies a moment
+     and crumbles away into leaves.
+   The base cast's slam follows the explosion rule (every cast): instead of a flat ring, earth bursts up: clods and turf thrown in arcs
+   (trmQuake), dust billowing out and up, and the ground's cracks and spikes as before. TRM.dbg (an array) logs the events for the tests. */
+const TRM={dbg:null,tread:.15,treadR:1,hold:2,holdGap:.45,bossSlow:.6,hurl:1.6,hurlR:1,hurlMin:1.4,hurlMax:4.5,sap:.6,grow:.1,growMax:.4,timber:3,timberW:.6,timberLen:2.6};
+const trmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='treant'?c:null;};
+const trmLog=d=>{if(TRM.dbg){d.time=time;TRM.dbg.push(d);}};
+SM_D.treant=[
+  {n:'Heavy Tread',d:'Every step it takes shakes the road: {15}% to the ground foes within 1 tile.'},
+  {n:'Bark Bulwark',d:'Ground foes cannot get past it: they are held against its bark for up to 2s (bosses only slowed).'},
+  {n:'Uprooted Boulder',d:'Every third slam it tears a boulder out of the road and hurls it at the thickest knot of foes up to 4.5 tiles away: {160}%.'},
+  {n:'Sap Harvest',d:'Foes its slam hits that were already Overgrown are drained for {60}% more, and the treant grows (up to 40%), its slam reaching further.'},
+  {n:'Timber!',d:'At the end it topples forward along the road like a felled oak: {300}% to every foe under it, and they are Overgrown.'}];
+SMF.treant={m:2.4};
+SMA.treant=[1,1,1,1,1];
+/* the ladder (tests/sm-ladder.js): the masteries alone come to about 1.15 / 1.01 / 1.14 / 1.37 / 2.07 (Bark Bulwark is worth lives, not damage: holding
+   the pack costs it some Heavy Tread steps, and the ladder only counts damage; Timber! lands on a whole pack); these bring it onto 1.09 / 1.23 / 1.35 / 1.52 / 1.74 */
+SMG.treant=[.95,1.2,1.21,1.19,.88];
+
+/* ---- earth thrown up in 3D: clods and turf in arcs, dust billowing ---- */
+const TRMQ={},TRMO=new THREE.Object3D();
+TRMQ.geo=()=>TRMQ._g||(TRMQ._g=[new THREE.DodecahedronGeometry(1,0),new THREE.IcosahedronGeometry(1,0),new THREE.BoxGeometry(1.3,.7,1.1)].map(g0=>{const g=jitterGeo(g0,.32);g0.dispose();return g;}));
+TRMQ.mats=()=>TRMQ._m||(TRMQ._m=(typeof asOffRun==='function'?asOffRun:f=>f())(()=>[new THREE.MeshPhongMaterial({color:0x5a3e24,emissive:0x0e0804,flatShading:true,shininess:4}),new THREE.MeshPhongMaterial({color:0x4a7a2a,emissive:0x0a1406,flatShading:true,shininess:4}),new THREE.MeshPhongMaterial({color:0x7a7268,emissive:0x0c0c0c,flatShading:true,shininess:6})]));
+function trmClods(x,z,n,sp,s){const y0=gy(x,z),G=TRMQ.geo(),MT=TRMQ.mats(),g=new THREE.Group();scene.add(smTag(g));const ims=[];for(let i=0;i<3;i++){const im=new THREE.InstancedMesh(G[i],MT[i],Math.ceil(n/3));im.frustumCulled=false;TRMO.scale.setScalar(0);TRMO.updateMatrix();for(let k=0;k<im.count;k++)im.setMatrixAt(k,TRMO.matrix);g.add(im);ims.push(im);}
+  const F=[];for(let i=0;i<n;i++){const a=i/n*6.28+rnd()*.5,v=sp*(.5+rnd()*.7);F.push({im:ims[i%3],k:Math.floor(i/3),x:x+Math.cos(a)*.2,y:y0+.05,z:z+Math.sin(a)*.2,vx:Math.cos(a)*v,vy:1.4+rnd()*2*sp/1.5,vz:Math.sin(a)*v,r:rnd()*6,w:(rnd()-.5)*12,s:s*(.6+rnd()*.8),rest:false});}
+  addFx(g,1.4,(f,dt)=>{for(const q of F){if(!q.rest){q.vy-=dt*9;q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;q.r+=q.w*dt;const fl=gy(q.x,q.z)+q.s*.4;if(q.y<fl){q.y=fl;if(q.vy>-1.4)q.rest=true;else{q.vy*=-.25;q.vx*=.45;q.vz*=.45;}}}
+      const sc=q.s*Math.min(1,f.life/.45);TRMO.position.set(q.x,q.y,q.z);TRMO.rotation.set(q.r,q.r*.6,0);TRMO.scale.setScalar(sc);TRMO.updateMatrix();q.im.setMatrixAt(q.k,TRMO.matrix);}for(const im of ims)im.instanceMatrix.needsUpdate=true;});}
+function trmQuake(x,z,S){trmLog({ev:'quake',S});const y=gy(x,z);trmClods(x,z,Math.round(8+10*S),.8+.8*S,.035+.02*S);
+  for(let i=0;i<Math.round(10+10*S);i++){const a=i/(10+10*S)*6.28+rnd()*.3,v=.8+rnd()*1.2*S;emitS(0,{x:x+Math.cos(a)*.25,y:y+.06,z:z+Math.sin(a)*.25,vx:Math.cos(a)*v,vy:.3+rnd()*.5,vz:Math.sin(a)*v,s:.14+.1*S,s2:.4+.45*S,c:0x8a7a5a,c2:0x4a4030,a:.3,life:.9+.4*S,drag:1.8,lift:.25,turb:.3});}
+  sprayP(0,x,y+.1,z,Math.round(10+14*S),{c:0x6a4a2a,c2:0x2a1a0a,sp:1.4*S,up:1.6,s:.04,s2:0,life:.6,g:6});}
+
+/* ---- the masteries ---- */
+function trmStart(o,K){const C=trmC(o);if(!C)return null;const L=C.L,a=C.a,P=K.P,O=smO(o),W=K.W,g=K.g,rt=K.rt;trmLog({ev:'cast',L});TRM.lastG=g;
+  let grow=0,slams=0,falling=null;const held=new Map(),Ks=natKit();
+  return{L,
+    size(){return 1+grow;},
+    step(x,z){if(L<1||state!=='playing')return;let n=0;for(const e of enemies){if(e.dead||e.fake||e.fly)continue;if((e.x-x)**2+(e.z-z)**2>TRM.treadR*TRM.treadR)continue;hurt(e,P*TRM.tread*a[0],'magic',O);n++;trmLog({ev:'tread',e});}
+      const y=gy(x,z);trmClods(x,z,6,.6,.025);for(let i=0;i<6;i++){const b=i/6*6.28;emitS(0,{x:x+Math.cos(b)*.3,y:y+.05,z:z+Math.sin(b)*.3,vx:Math.cos(b)*.8,vy:.2,vz:Math.sin(b)*.8,s:.12,s2:.35,c:0x8a7a5a,c2:0x4a4030,a:.28,life:.7,drag:2,lift:.1});}camShake=Math.max(camShake,.02);},
+    slam(cx,cz,list,was){slams++;
+      /* M4: drain the foes that were Overgrown */
+      if(L>=4){for(const q of list){if(q.dead||!was.has(q))continue;if(state==='playing')hurt(q,P*TRM.sap*a[3],'magic',O);trmLog({ev:'sap',e:q});const p=tpos2(q);
+          sprayP(1,p.x,p.y,p.z,8,{c:0xc8ff80,c2:0x4a9a2a,sp:.6,up:.6,s:.04,s2:0,life:.5,g:-1});const tx=g.position.x,ty=g.position.y+1.2,tz=g.position.z;for(let i=0;i<4;i++)emit(1,{x:p.x,y:p.y,z:p.z,vx:(tx-p.x)*1.6,vy:(ty-p.y)*1.6,vz:(tz-p.z)*1.6,s:.05,s2:0,c:0xd8ff90,c2:0x6aaa3a,life:.55});
+          if(grow<TRM.growMax-1e-9){grow=Math.min(TRM.growMax,grow+TRM.grow);trmLog({ev:'grow',size:1+grow});}}}
+      /* M3: every third slam, a boulder */
+      if(L>=3&&slams%3===0)mxLater(.3,()=>trmHurl(g,P*TRM.hurl*a[2],O));},
+    frame(tt,dt,d){g.scale.setScalar(1+grow);
+      /* M2: the foes that walk into it are held against its bark */
+      if(L>=2&&tt>.9&&state==='playing')for(const e of enemies){if(e.dead||e.fake||e.fly||e.route!==rt||e.dist==null)continue;if(e.dist<d-TRM.holdGap-.15||e.dist>d+.12)continue;
+        if(e.boss){e.slow=Math.max(e.slow||0,TRM.bossSlow);e.slowT=Math.max(e.slowT||0,.2);continue;}const h=held.get(e)||0;if(h>=TRM.hold)continue;held.set(e,h+dt);if(!h)trmLog({ev:'hold',e});
+        if(e.dist>d-TRM.holdGap){e.dist=d-TRM.holdGap;if(typeof moveEnemy==='function')moveEnemy(e,0);if(rnd()<.1){const p=tpos2(e);sprayP(0,p.x,p.y*.5,p.z,2,{c:0x6a4a2a,c2:0x3a2a14,sp:.5,up:.5,s:.03,s2:0,life:.4,g:4});}}}},
+    /* M5: it falls like a felled oak instead of sinking */
+    fall(f,dt,d){if(L<5)return false;if(!falling){if(f.life>1.45)return false;falling={t:0,yaw:g.rotation.y,done:false};trmLog({ev:'creak'});}
+      const F=falling;F.t+=dt;const T1=.35,T2=.85;let tilt;if(F.t<T1)tilt=-.12*Math.sin(F.t/T1*Math.PI);else tilt=Math.min(1.5,Math.pow((F.t-T1)/(T2-T1),2)*1.5);
+      /* (its walk faces it along local -Z, toward the foes up the road: a turn of -tilt about X tips its top that way) */
+      g.rotation.set(0,F.yaw,0);g.rotateX(-tilt);W.arms[0].rotation.x=-.6;W.arms[1].rotation.x=-.6;
+      if(F.t<T1&&rnd()<.5)nfxLeaves(g.position.x,g.position.y+1.8*(1+grow),g.position.z,1,[Ks.leaf,Ks.crown[2]]);
+      if(!F.done&&F.t>=T2){F.done=true;trmTimber(g,F.yaw,1+grow,P*TRM.timber*a[4],O);}
+      if(F.done){const k=Math.max(0,(F.t-T2-.5)/.45);g.scale.setScalar((1+grow)*(1-k*.95));if(rnd()<.6)nfxLeaves(g.position.x-Math.sin(F.yaw)*rnd()*2,g.position.y+.2,g.position.z-Math.cos(F.yaw)*rnd()*2,1,[Ks.leaf,Ks.leaf2,Ks.crown[1]]);}
+      return true;}};}
+/* M3: tear a boulder out of the road and hurl it */
+function trmHurl(g,dmg,O){if(state!=='playing')return;const gx=g.position.x,gz=g.position.z;let best=null,bn=0;
+  for(const e of enemies){if(e.dead||e.fake||e.fly)continue;const d=Math.hypot(e.x-gx,e.z-gz);if(d<TRM.hurlMin||d>TRM.hurlMax)continue;let n=0;for(const q of enemies){if(q.dead||q.fake||q.fly)continue;if((q.x-e.x)**2+(q.z-e.z)**2<TRM.hurlR*TRM.hurlR)n++;}if(n>bn){bn=n;best=e;}}
+  if(!best){trmLog({ev:'hurl0'});return;}const tx=best.x+(best.spd||0)*.15,tz=best.z,y0=gy(gx,gz);trmLog({ev:'hurl',e:best});
+  /* the boulder: rock and clods of earth, roots trailing */
+  const G=TRMQ.geo(),MT=TRMQ.mats(),b=new THREE.Group();const core=new THREE.Mesh(G[0],MT[2]);core.scale.setScalar(.2);b.add(core);for(let i=0;i<4;i++){const c=new THREE.Mesh(G[1],MT[i%2]);const an=rnd()*6.28,el=rnd()*1.2;c.position.set(Math.cos(an)*.16,Math.sin(el)*.12,Math.sin(an)*.16);c.scale.setScalar(.08+rnd()*.05);b.add(c);}
+  b.position.set(gx,y0+.1,gz);scene.add(smTag(b));trmQuake(gx,gz,.5);const S=new THREE.Vector3(gx,y0+1.4,gz),E=new THREE.Vector3(tx,gy(tx,tz)+.15,tz),T=.6;let t=0;
+  addFx(b,T+.05,(f,dt)=>{t+=dt;const k=Math.min(1,t/T);b.position.lerpVectors(S,E,k);b.position.y+=Math.sin(k*Math.PI)*1.6;b.rotation.x+=dt*6;b.rotation.z+=dt*4;if(rnd()<.5)emit(0,{x:b.position.x,y:b.position.y,z:b.position.z,vx:0,vy:-.3,vz:0,s:.04,s2:0,c:0x6a4a2a,c2:0x3a2a14,life:.4,g:4});
+    if(k>=1&&!b.userData.hit){b.userData.hit=1;f.life=0;trmQuake(tx,tz,1);nfxBurst(tx,tz,.7,{cracks:6,n:14,life:1.2});camShake=Math.max(camShake,.08);
+      if(state==='playing')for(const e of enemies){if(e.dead||e.fake||e.fly)continue;if((e.x-tx)**2+(e.z-tz)**2<TRM.hurlR*TRM.hurlR){hurt(e,dmg,'magic',O);trmLog({ev:'boulder',e});}}}});}
+/* M5: the crash along its length */
+function trmTimber(g,yaw,sz,dmg,O){const x0=g.position.x,z0=g.position.z,dx=-Math.sin(yaw),dz=-Math.cos(yaw),len=TRM.timberLen*sz,W2=TRM.timberW*sz;trmLog({ev:'timber'});camShake=Math.max(camShake,.22);
+  const pts=[];for(let i=1;i<=6;i++){const u=i/6*len,x=x0+dx*u,z=z0+dz*u;pts.push(new THREE.Vector3(x,gy(x,z)+.25,z));mxLater(i*.025,()=>trmQuake(x,z,.7));}
+  if(typeof rtmSplinters==='function')rtmSplinters(pts,x0,z0,90,1.6);const K=natKit(),F=nfxKit();nfxLeaves(x0+dx*len*.7,gy(x0,z0)+.6,z0+dz*len*.7,18,[K.leaf,K.leaf2,K.crown[1],F.leafD],null,1.2);
+  if(state!=='playing')return;for(const e of enemies){if(e.dead||e.fake)continue;const px=e.x-x0,pz=e.z-z0,u=px*dx+pz*dz,v=Math.abs(px*dz-pz*dx);if(u<-.2||u>len+.2||v>W2)continue;hurt(e,dmg,'magic',O);if(!e.dead)ovgApply(e,3);trmLog({ev:'crush',e});}}
 
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
