@@ -14168,6 +14168,9 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Skyfall masteries, redesigned',d:'28 Oct',v:'v435',li:[
+    'Skyfall (Legendary) has five new masteries, for now in developer mode: Ember Rain (the burning sky sheds real embers onto the foes), Crescendo (each meteor bigger and harder than the last), Ricochet (each meteor bounces on and crashes again), Shockfall (the impacts knock foes flat) and Extinction (the giant meteor\u2019s heart bursts up in a mushroom of fire and a ring of fireballs races out).',
+    'Its impacts now billow as 3D fireballs with jets of flame, and their smoke is lighter and gone in about a second and a half.']},
   {t:'Stormcaller masteries, redesigned',d:'28 Oct',v:'v434',li:[
     'Stormcaller (Legendary) has five new masteries, for now in developer mode: Seeking Bolts (a bolt that would fall near a foe bends onto it, marked by a sigil), Downpour (its clouds rain on the road and a bolt on a Soaked foe runs through the water to the others), Rolling Thunder (the thunder of each strike rolls along the road), Storm Front (from 8s to 11s the storm marches down every road as a front of bolts) and Last Thunder (at its end the clouds draw into one thunderhead: a ring of bolts closes in, then a colossal bolt).',
     'Each of its strikes now throws forks of lightning up and out and tears stones from the road.']},
@@ -29364,7 +29367,9 @@ SM_D.skyfall=[
   {n:'Extinction',d:'The giant meteor\u2019s heart bursts up in a mushroom of fire and a ring of fireballs races out: {150}% more within 2, {100}% out to 3.5.'}];
 SMF.skyfall={m:1};
 SMA.skyfall=[1,1,1,1,1];
-SMG.skyfall=[1,1,1,1,1];
+/* the ladder (tests/sm-ladder.js, 3 runs): the masteries alone come to 1.06 / 1.40 / 1.45 / 1.45 / 1.58 (Crescendo swells the whole barrage; Shockfall
+   is control the ladder does not count); these bring it onto 1.09 / 1.23 / 1.35 / 1.52 / 1.74 */
+SMG.skyfall=[1.04,.88,.93,1.05,1.1];
 
 /* the impact's 3D fire (the base cast and the masteries): billowing fireballs and jets of flame */
 function skmBoom(x,z,S){skmLog({ev:'boom',S});const y=gy(x,z);if(typeof ftmBoom==='function')ftmBoom(x,y+.15,z,S,{n:S>1?5:3,t:S>1?12:7,up:.6,sm:S>1?6:2});}
