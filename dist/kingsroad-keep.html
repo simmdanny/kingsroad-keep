@@ -14132,6 +14132,8 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Ice Tomb masteries reworked',d:'28 Oct',v:'v413',li:[
+    'Ice Tomb (Rare) has five new masteries, for now in developer mode: Glacial Overgrowth (the tomb keeps growing thick crystal plates; 75% more to the prisoner, splash to 1.5), Heart of Winter (veins of cold light; 20% more for every 0.25s held, up to 120%), Shatterstorm (great fragments hang, then fly out in a second ring: 90% within 1.8), Permafrost Rupture (frost fissures race 2 tiles: 100% and 45% slower for 2s) and Absolute Cataclysm (the tomb compresses, flashes white and bursts: 200% more to the prisoner, 225% within 1.6, then 2s of swirling ice at 30% a second).']},
   {t:'Uncommon masteries for everyone',d:'28 Oct',v:'v405',li:[
     'The Uncommon scrolls now earn mastery XP and use their masteries in every game, not only in developer mode. Scrolls above Uncommon come later.',
     'The patch notes start afresh: just the Common and Uncommon mastery reworks, in short.']},
@@ -25421,6 +25423,214 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
   const S={t,e,len,dmg,C,P:C.P,L:C.L,a:C.a,o:smO(o),o0:o,hits:[]};C.bem=S;bemLog({ev:'cast',L:C.L});
   if(C.L>=5){bemStar(S);mxLater(BEM.raT0,()=>{if(state==='playing')bemFire(S,true);});}
   else bemFire(S,false);};
+/* ================= Ice Tomb's masteries, as Simon designed them (v413) ================= */
+/* Simon (abridged; the "identity" notes left out): "1. Glacial Overgrowth: The crystals don't stop once the target is enclosed. Extra layers
+   of ice grow over the tomb, forming a massive jagged shell before it explodes. The prisoner takes an additional 75% damage on detonation. The
+   explosion's splash radius increases from 1.2 to 1.5 tiles. The tomb visibly grows taller and develops thick, overlapping crystal plates. /
+   2. Heart of Winter: While trapped, the tomb siphons warmth from its captive. Blue-white veins spread from the prisoner through the
+   surrounding crystals, growing brighter as the explosion approaches. Every 0.25 seconds of imprisonment adds 20% damage to the prisoner's
+   detonation, up to 120%. Bosses can accumulate the bonus during their shorter hold. The final explosion releases the stored energy in a
+   brilliant frost burst. / 3. Shatterstorm: When the tomb detonates, its largest crystal fragments remain suspended for a split second before
+   shooting outward in a second, expanding ring. The secondary shard wave deals 90% damage to foes within 1.8 tiles; enemies hit by both waves
+   take damage from both. / 4. Permafrost Rupture: The moment the tomb explodes, jagged frost fissures race across the ground from its base,
+   freezing the area in branching lines. Foes caught along the fissures take 100% damage; ground enemies struck are slowed by 45% for 2
+   seconds. Fissures travel up to 2 tiles; flyers are hit by the main explosion but not the fissures. / 5. Absolute Cataclysm: As the tomb
+   reaches its final moment, every crystal locks into place. The entire structure compresses inward around the captive, flashes pure white,
+   and detonates in a massive radial burst. The prisoner takes an additional 200% damage. The splash damage increases from 150% to 225%. The
+   blast radius increases from 1.2 to 1.6 tiles. The explosion leaves a brief field of swirling ice fragments that deals 30% damage per second
+   for 2 seconds."
+   Percentages are of the scroll's power (the prisoner takes 400%, the foes next to it 150%). Mastery 0, echoes and other casters are the old
+   tomb (itmC(o): the SM.ctx entry of o.smId, not o.smx). From Mastery 1 castIceTomb is wrapped: the old tomb is built and explodes as before
+   (the wrapper catches its group from scene.add and its NTOMB entry), and itmTomb dresses it and watches for the moment it explodes (T.done;
+   the old cast calls its own shatter directly, so it is watched rather than wrapped), then plays the masteries. The prisoner is the foe the
+   old cast chose (the most health); its hold is read back from stunE (e.stunT). The extra splash is dealt as the difference from the old
+   one: 150% (225% at Mastery 5) to foes beyond 1.2 out to the new radius, and 75% more to those within 1.2 at Mastery 5.
+   - M1 Glacial Overgrowth: from the moment the tomb closes, ten more crystals (broad overlapping plates and tall spires) grow round and over
+     it one after another and the whole tomb stretches taller; at the explosion they are flung out with the others. 75% more to the prisoner;
+     the splash reaches 1.5.
+   - M2 Heart of Winter: veins of blue-white light (lines and beads of light) climb from the prisoner through the crystals and a cold heart
+     glows inside; every 0.25s held adds 20% (up to 120%), each step a pulse of the heart and the veins; at the explosion a brilliant frost
+     burst releases it.
+   - M3 Shatterstorm: nine great fragments hang round the burst for 0.2s, turning and glowing, then shoot out in a ring to 1.8 with a frost
+     wave on the ground: 90% to each foe it reaches (flyers too), on top of the explosion.
+   - M4 Permafrost Rupture: frost fissures (a branching crack mesh revealed along its length, a deep blue crack under a cyan glow) race out
+     to 2 tiles with ice spikes bursting up along them: 100% and a 45% slow for 2s to each ground foe a fissure reaches.
+   - M5 Absolute Cataclysm: in the last 0.35s the tomb locks, compresses inward and turns white (a white shell over it), then detonates in a
+     massive radial burst (a frost wave to 1.9, a dome of cold light, 80 shards flung out): 200% more to the prisoner, the splash 225% to 1.6,
+     and a field of swirling ice fragments for 2s: 30% a second (every 0.25s) to the foes inside 1.6.
+   ITM.dbg (an array) logs the events for the tests. */
+const ITM={dbg:null,R0:1.2,og:.75,ogR:1.5,hw:.2,hwT:.25,hwMax:1.2,ss:.9,ssR:1.8,pf:1,pfR:2,pfSlow:.45,ac:2,acS:2.25,acR:1.6,acF:.3,acFT:2,acC:.35};
+const ITC={W:0xffffff,I:0xe6f6ff,B:0x9fdcff,D:0x2a6aa8};
+const itmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='icetomb'?c:null;};
+const itmLog=d=>{if(ITM.dbg){d.time=time;ITM.dbg.push(d);}};
+SM_D.icetomb=[
+  {n:'Glacial Overgrowth',d:'The crystals keep growing over the tomb in thick, jagged plates: the prisoner takes {75}% more, and the explosion reaches 1.5 tiles.'},
+  {n:'Heart of Winter',d:'Veins of cold light climb through the tomb from its prisoner; every 0.25s it is held adds {20}% to its detonation, up to {120}%.'},
+  {n:'Shatterstorm',d:'The great fragments of the burst hang in the air for a moment, then shoot out in a second ring: {90}% to the foes within 1.8 tiles.'},
+  {n:'Permafrost Rupture',d:'Frost fissures race out 2 tiles from the tomb: {100}% to the ground foes along them, and 45% slower for 2s.'},
+  {n:'Absolute Cataclysm',d:'The tomb compresses and flashes white, then detonates in a massive burst: {200}% more to the prisoner, {225}% to the foes within 1.6, and a field of swirling ice for 2s ({30}% a second).'}];
+SMF.icetomb={m:1};
+SMA.icetomb=[1,1,1,1,1];
+SMG.icetomb=[1,1,1,1,1];
+SM.free=SM.free||{};SM.free.icetomb='Simon'+String.fromCharCode(8217)+'s own numbers for Ice Tomb';
+
+/* ---- shared pieces ---- */
+const ITMQ={},ITMO=new THREE.Object3D(),ITMV=new THREE.Vector3();
+ITMQ.plane=()=>ITMQ._pl||(ITMQ._pl=new THREE.PlaneGeometry(2,2).rotateX(-Math.PI/2));
+ITMQ.spike=()=>ITMQ._sp||(ITMQ._sp=(()=>{const c=new THREE.ConeGeometry(.05,.34,5);c.translate(0,.17,0);const j=jitterGeo(c,.018);c.dispose();return j;})());
+const itmSM=(col,op,map)=>new THREE.SpriteMaterial({map:map||softDiscTex(),color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false});
+const itmHideI=im=>{ITMO.position.set(0,-50,0);ITMO.rotation.set(0,0,0);ITMO.scale.setScalar(.0001);ITMO.updateMatrix();for(let i=0;i<im.count;i++)im.setMatrixAt(i,ITMO.matrix);im.instanceMatrix.needsUpdate=true;im.frustumCulled=false;return im;};
+/* the shared effects light, cold (FXL through jvLight): every effect asks each frame, the brightest wins */
+const ITML={on:false,I:0,x:0,y:0,z:0,d:5};
+function itmLight(x,y,z,I,d){if(!(I>0))return;if(I>ITML.I){ITML.I=I;ITML.x=x;ITML.y=y;ITML.z=z;ITML.d=d;}
+  if(ITML.on&&fx.indexOf(ITML.e)>=0)return;ITML.on=true;let idle=0;
+  ITML.e=addFx(new THREE.Group(),1e4,f=>{if(ITML.I>0){idle=0;if(typeof jvLight==='function')jvLight(ITML.x,ITML.y,ITML.z,0xbfe6ff,ITML.I,ITML.d);ITML.I=0;}
+    else if(++idle>2||f.life<1){f.life=0;ITML.on=false;ITML.I=0;if(typeof jvLightOff==='function')jvLightOff();}});}
+/* a frost wave racing over the ground: rime painted in a band with crystal glints, a cold hot line (additive) */
+function itmWaveMat(S,M){return new THREE.ShaderMaterial({uniforms:{uR:{value:.2},uT:{value:rnd()*9},uA:{value:0},uS:{value:S}},transparent:true,depthWrite:false,
+  blending:M?THREE.AdditiveBlending:THREE.NormalBlending,polygonOffset:true,polygonOffsetFactor:-4-M,polygonOffsetUnits:-4-M,
+  vertexShader:'varying vec2 vP;void main(){vP=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uR,uT,uA,uS;varying vec2 vP;'+SLM_N+'void main(){vec2 p=vP*uS;float d=length(p),a=atan(p.y,p.x);float x=d-uR;float n=fb(vec2(a*16.,d*3.)),n2=n1(vec2(a*60.,d*9.));'+
+    'float rime=step(x,0.)*smoothstep(-.9-.4*n,-.04,x)*(.3+.7*n);float glint=pow(n2,10.)*rime*3.;float front=exp(-pow(x/(.05+.07*n),2.))*(.35+.65*n2)*(.5+.5*n);'+
+    (M?'gl_FragColor=vec4(vec3(.7,.88,1.),clamp(front*.22+glint*.45,0.,1.)*uA);}':'gl_FragColor=vec4(mix(vec3(.62,.8,.92),vec3(.95,.99,1.),n2*.5+front*.5),clamp(rime*.6+front*.35,0.,.8)*uA);}')});}
+function itmWave(x,z,R,T){const y=gy(x,z),g=new THREE.Group();g.position.set(x,y,z);scene.add(smTag(g));const S=R+.4,mp=itmWaveMat(S,0),mg=itmWaveMat(S,1);
+  for(const[m,yy,ro]of[[mp,.07,5],[mg,.075,6]]){const me=new THREE.Mesh(ITMQ.plane(),m);me.scale.setScalar(S);me.position.y=yy;me.renderOrder=ro;g.add(me);}
+  let t=0;addFx(g,T+.6,(f,dt)=>{t+=dt;const k=Math.min(1,t/T),r=.15+(R-.15)*(1-Math.pow(1-k,1.8)),fd=t<T?1:Math.max(0,1-(t-T)/.6);for(const m of[mp,mg]){m.uniforms.uR.value=r;m.uniforms.uT.value+=dt;m.uniforms.uA.value=fd*Math.min(1,t/.04);}},null,{mats:[mp,mg]});}
+
+/* ---- M4 Permafrost Rupture: frost fissures racing out from the tomb ---- */
+function itmCrackNet(R){const seg=[],tips=[],N=8,a0=rnd()*6.28;
+  for(let i=0;i<N;i++){let a=a0+i/N*6.2832+(rnd()-.5)*.4,x=Math.cos(a)*.15,z=Math.sin(a)*.15,d=0;
+    while(Math.hypot(x,z)<R){const L=.14+rnd()*.14;a+=(rnd()-.5)*.6;const nx=x+Math.cos(a)*L,nz=z+Math.sin(a)*L;seg.push([x,z,nx,nz,d,d+L,.05*(1-.5*Math.hypot(x,z)/R)]);tips.push([nx,nz,d+L]);
+      if(rnd()<.25&&Math.hypot(nx,nz)<R*.75){let ba=a+(rnd()<.5?1:-1)*(.6+rnd()*.4),bx=nx,bz=nz,bd=d+L;for(let k=0;k<2+Math.floor(rnd()*2);k++){const bl=.12+rnd()*.1;ba+=(rnd()-.5)*.5;const ex=bx+Math.cos(ba)*bl,ez=bz+Math.sin(ba)*bl;if(Math.hypot(ex,ez)>R)break;seg.push([bx,bz,ex,ez,bd,bd+bl,.025]);tips.push([ex,ez,bd+bl]);bx=ex;bz=ez;bd+=bl;}}
+      x=nx;z=nz;d+=L;}}
+  return{seg,tips};}
+function itmCrackMat(M){return new THREE.ShaderMaterial({uniforms:{uR:{value:0},uA:{value:0},uG:{value:1}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
+  blending:M?THREE.AdditiveBlending:THREE.NormalBlending,polygonOffset:true,polygonOffsetFactor:-5-M,polygonOffsetUnits:-5-M,
+  vertexShader:'attribute float aD,aS;varying float vD,vS;void main(){vD=aD;vS=aS;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uR,uA,uG;varying float vD,vS;void main(){float rev=smoothstep(uR+.02,uR-.06,vD);if(rev<=0.)discard;float front=exp(-pow((vD-uR)/.1,2.));'+
+    (M?'float core=exp(-vS*vS*10.),halo=exp(-vS*vS*2.)*.35;gl_FragColor=vec4(mix(vec3(.4,.8,1.),vec3(.95,1.,1.),core),clamp((core*.7+halo)*(uG+front*2.)*rev,0.,1.)*uA);}':
+     'float c=exp(-vS*vS*5.),rim=exp(-vS*vS*1.4);gl_FragColor=vec4(mix(vec3(.75,.9,1.),vec3(.04,.12,.3),c),clamp(rim*.75*rev,0.,.9)*uA);}')});}
+function itmCrackGeo(seg,W){const pos=[],aD=[],aS=[],idx=[];let n=0;
+  for(const[ax,az,bx,bz,da,db,w]of seg){const dx=bx-ax,dz=bz-az,L=Math.hypot(dx,dz)||1,nx=-dz/L*w*W,nz=dx/L*w*W;pos.push(ax+nx,0,az+nz,ax-nx,0,az-nz,bx+nx,0,bz+nz,bx-nx,0,bz-nz);aD.push(da,da,db,db);aS.push(1,-1,1,-1);idx.push(n,n+1,n+2,n+1,n+3,n+2);n+=4;}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('aD',new THREE.Float32BufferAttribute(aD,1));g.setAttribute('aS',new THREE.Float32BufferAttribute(aS,1));g.setIndex(idx);return g;}
+function itmFissures(S,dmg){const cx=S.x,cz=S.z,g0=gy(cx,cz),R=ITM.pfR,net=itmCrackNet(R),g=new THREE.Group();g.position.set(cx,g0+.075,cz);scene.add(smTag(g));itmLog({ev:'fissure0'});
+  const geo=itmCrackGeo(net.seg,2.6),m0=itmCrackMat(0),m1=itmCrackMat(1);const a=new THREE.Mesh(geo,m0),b=new THREE.Mesh(geo,m1);a.renderOrder=5;b.renderOrder=6;g.add(a,b);
+  const maxD=net.seg.reduce((m,q)=>Math.max(m,q[5]),0),SPD=maxD/.5;
+  /* ice spikes bursting up along the fissures */
+  const NS=Math.min(90,net.tips.length),spm=new THREE.MeshPhongMaterial({color:0xdaf2ff,emissive:0x3a7ab0,emissiveIntensity:.5,specular:0xffffff,shininess:90,flatShading:true,transparent:true,opacity:.92}),sp=itmHideI(new THREE.InstancedMesh(ITMQ.spike(),spm,NS));g.add(sp);
+  const SP=net.tips.slice(0,NS).map(q=>({x:q[0],z:q[1],d:q[2],h:.5+rnd()*.9,lx:(rnd()-.5)*.6,lz:(rnd()-.5)*.6,yaw:rnd()*6,t0:-1}));
+  const hit=new Set();let t=0;
+  addFx(g,2.4,(f,dt)=>{t+=dt;const rp=Math.min(maxD+.2,t*SPD);m0.uniforms.uR.value=m1.uniforms.uR.value=rp;const fd=Math.min(1,f.life/.6);m0.uniforms.uA.value=fd;m1.uniforms.uA.value=fd;m1.uniforms.uG.value=.6+1.2*Math.exp(-t*3);
+    for(let i=0;i<NS;i++){const q=SP[i];if(q.t0<0&&rp>=q.d){q.t0=t;if(rnd()<.5)sprayP(0,cx+q.x,g0+.08,cz+q.z,2,{c:0xffffff,c2:0x9fdcff,sp:.6,up:.6,s:.03,s2:.01,life:.4,g:3});}
+      if(q.t0>=0){const u=t-q.t0,up=SMS(u,0,.08),dn=SMS(u,1.3,2);ITMO.position.set(q.x,-.02-dn*.1,q.z);ITMO.rotation.set(q.lx,q.yaw,q.lz);ITMO.scale.set(1-.4*dn,Math.max(.001,q.h*up*(1-dn)),1-.4*dn);ITMO.updateMatrix();sp.setMatrixAt(i,ITMO.matrix);}}
+    sp.instanceMatrix.needsUpdate=true;
+    /* each ground foe a fissure reaches: 100% and slowed */
+    if(state==='playing'&&t<.6)for(const e of enemies){if(e.dead||e.fake||e.fly||hit.has(e))continue;const px=e.x-cx,pz=e.z-cz;if(px*px+pz*pz>(R+.25)**2)continue;
+      for(const q of net.seg){if(q[5]>rp)continue;const dx=q[2]-q[0],dz=q[3]-q[1],l2=dx*dx+dz*dz||1,u=clamp(((px-q[0])*dx+(pz-q[1])*dz)/l2,0,1),ex=q[0]+dx*u,ez=q[1]+dz*u;
+        if((px-ex)**2+(pz-ez)**2<.3*.3){hit.add(e);hurt(e,dmg,'magic',S.o);smSlow(e,ITM.pfSlow,2);itmLog({ev:'fissure',e});const p=tpos2(e);flash(p.x,p.y,p.z,ITC.B,.18,.08);sprayP(0,p.x,g0+.1,p.z,6,{c:0xffffff,c2:0x9fdcff,sp:1,up:.8,s:.03,s2:.01,life:.45,g:4});break;}}}
+  },null,{mats:[m0,m1,spm],geos:[geo]});}
+
+/* ---- M3 Shatterstorm: great fragments hanging in the air, then a ring of them ---- */
+function itmShatterstorm(S,dmg){const cx=S.x,cz=S.z,g0=gy(cx,cz),G=nsIceGeos(),N=12,root=new THREE.Group();root.position.set(cx,g0,cz);scene.add(smTag(root));const F=[];itmLog({ev:'storm0'});
+  for(let i=0;i<N;i++){const m=new THREE.Mesh(G[i%G.length],i%3?NS_ICE:NS_ICE2);const a=i/N*6.2832+(rnd()-.5)*.3,s=.1+rnd()*.06;m.scale.set(s,s*2.6,s*1.1);root.add(m);F.push({m,a,h:.35+rnd()*.5,r:.45+rnd()*.15,sp:(rnd()-.5)*6,s});}
+  const fm=itmSM(0xcfeeff,0);for(const q of F){q.g=new THREE.Sprite(fm);q.g.scale.setScalar(q.s*4);root.add(q.g);}
+  const gm=itmSM(ITC.B,0);const glow=new THREE.Sprite(gm);glow.position.y=.6;glow.scale.setScalar(1.6);root.add(glow);
+  const HOLD=.2,OUT=.36;const hit=new Set();let t=0,shot=false;
+  addFx(root,HOLD+OUT+.5,(f,dt)=>{t+=dt;const k=Math.min(1,t/.08);
+    for(const q of F){let r;if(t<HOLD){r=q.r*k;q.m.rotation.y+=dt*q.sp*.4;}else{const u=Math.min(1,(t-HOLD)/OUT);r=q.r+(ITM.ssR-q.r)*(1-Math.pow(1-u,2));q.m.rotation.x+=dt*q.sp;if(u>=1){q.m.scale.multiplyScalar(Math.max(0,1-dt*5));}}
+      q.m.position.set(Math.cos(q.a)*r,q.h+(t>HOLD?-.25*Math.min(1,(t-HOLD)/OUT):0),Math.sin(q.a)*r);q.m.lookAt(root.position.x,root.position.y+q.h,root.position.z);q.m.rotateX(Math.PI/2);
+      q.g.position.copy(q.m.position);
+      if(t>HOLD&&rnd()<.6)emit(1,{x:cx+q.m.position.x,y:g0+q.m.position.y,z:cz+q.m.position.z,vx:0,vy:0,vz:0,s:.05,s2:0,c:0xffffff,c2:ITC.B,life:.22});}
+    gm.opacity=t<HOLD?.45*k:Math.max(0,.45-(t-HOLD)*2);fm.opacity=t<HOLD?.55*k:Math.max(0,.55*(1-(t-HOLD)/OUT));
+    if(t>=HOLD&&!shot){shot=true;itmWave(cx,cz,ITM.ssR+.1,OUT);itmLog({ev:'storm'});}
+    if(shot&&t<HOLD+OUT+.02&&state==='playing'){const u=Math.min(1,(t-HOLD)/OUT),r=.45+(ITM.ssR-.45)*(1-Math.pow(1-u,2));for(const e of enemies){if(e.dead||e.fake||hit.has(e))continue;const d=Math.hypot(e.x-cx,e.z-cz);if(d<=Math.min(r+.1,ITM.ssR)){hit.add(e);hurt(e,dmg,'magic',S.o);itmLog({ev:'stormHit',e});const p=tpos2(e);sprayP(1,p.x,p.y,p.z,6,{c:0xffffff,c2:ITC.B,sp:1.2,s:.035,s2:0,life:.3,g:2});}}}},null,{mats:[gm,fm]});}
+
+/* ---- M5 Absolute Cataclysm: the burst and the swirling field ---- */
+function itmCataclysm(S,dField){const cx=S.x,cz=S.z,g0=gy(cx,cz),y=g0+S.H0*.55;itmLog({ev:'cataclysm'});
+  itmWave(cx,cz,1.95,.3);camShake=Math.max(camShake,.14);flash(cx,y,cz,ITC.I,.6,.12);flashA=Math.max(flashA,.14);flashCol='#eef8ff';flashDecay=4;
+  /* a dome of cold light swelling and fading */
+  const dg=new THREE.IcosahedronGeometry(1,3),dm=new THREE.ShaderMaterial({uniforms:{uA:{value:1}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+    vertexShader:'varying vec3 vN,vV;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
+    fragmentShader:'uniform float uA;varying vec3 vN,vV;void main(){float f=abs(dot(normalize(vN),normalize(vV)));gl_FragColor=vec4(mix(vec3(.6,.85,1.),vec3(1.),pow(1.-f,3.)),clamp(pow(1.-f,2.2)*uA,0.,1.));}'});
+  const dome=new THREE.Mesh(dg,dm);dome.position.set(cx,g0,cz);dome.scale.setScalar(.2);scene.add(smTag(dome));let t1=0;
+  addFx(dome,.55,(f,dt)=>{t1+=dt;const k=t1/.55;dome.scale.set(.3+1.6*Math.sqrt(k),.25+1*Math.sqrt(k),.3+1.6*Math.sqrt(k));dm.uniforms.uA.value=1.1*(1-k);},null,{mat:dm,geo:dg});
+  /* shards flung out in every direction */
+  const G=nsIceGeos(),N=80,sm=new THREE.MeshPhongMaterial({color:0xe2f4ff,emissive:0x4a8ac0,emissiveIntensity:.8,specular:0xffffff,shininess:110,flatShading:true,transparent:true,opacity:.95}),im=itmHideI(new THREE.InstancedMesh(G[1],sm,N)),g=new THREE.Group();g.position.set(cx,y,cz);g.add(im);scene.add(smTag(g));
+  const F=[];for(let i=0;i<N;i++){const a=rnd()*6.28,b=rnd()*1.2-.3,v=2.5+rnd()*3.5;F.push({x:0,y:0,z:0,vx:Math.cos(a)*Math.cos(b)*v,vy:Math.sin(b)*v+1,vz:Math.sin(a)*Math.cos(b)*v,rx:rnd()*6,wx:(rnd()-.5)*18,s:.025+rnd()*.045});}
+  let t2=0;addFx(g,1,(f,dt)=>{t2+=dt;const k=t2;for(let i=0;i<N;i++){const q=F[i];q.vy-=dt*7;q.vx*=1-dt*1.5;q.vz*=1-dt*1.5;q.x+=q.vx*dt;q.y=Math.max(g0-y+.02,q.y+q.vy*dt);q.z+=q.vz*dt;q.rx+=q.wx*dt;ITMO.position.set(q.x,q.y,q.z);ITMO.rotation.set(q.rx,q.rx*.6,0);ITMO.scale.set(q.s,q.s*2,q.s);ITMO.updateMatrix();im.setMatrixAt(i,ITMO.matrix);}
+    im.instanceMatrix.needsUpdate=true;sm.opacity=.95*(1-k*k);},null,{mat:sm});
+  /* the field: ice fragments swirling low round the spot for 2s, frost mist, 30% a second to the foes inside */
+  const NF=56,fm=new THREE.MeshPhongMaterial({color:0xe8f6ff,emissive:0x3a7ab0,emissiveIntensity:.6,specular:0xffffff,shininess:100,flatShading:true,transparent:true,opacity:0}),fi=itmHideI(new THREE.InstancedMesh(G[0],fm,NF)),fg=new THREE.Group();fg.position.set(cx,g0,cz);fg.add(fi);scene.add(smTag(fg));
+  const FF=[];for(let i=0;i<NF;i++)FF.push({a:rnd()*6.28,r:.25+Math.sqrt(rnd())*(ITM.acR-.25),h:.06+rnd()*.7,sp:(1.6+rnd()*1.6)*(rnd()<.85?1:-1),s:.025+rnd()*.035,rx:rnd()*6,wx:(rnd()-.5)*10,bob:rnd()*6});
+  if(typeof nsDecal==='function')nsDecal(cx,cz,ITM.acR,0xd8f0ff,.5,ITM.acFT+.6,{fout:.8});
+  let t3=0,tick=0;const T=ITM.acFT;
+  addFx(fg,T+.4,(f,dt)=>{t3+=dt;const on=Math.min(1,t3/.2)*Math.min(1,f.life/.4);fm.opacity=.9*on;
+    for(let i=0;i<NF;i++){const q=FF[i];q.a+=dt*q.sp*(1.2-.5*q.r/ITM.acR);q.rx+=q.wx*dt;ITMO.position.set(Math.cos(q.a)*q.r,q.h+Math.sin(t3*3+q.bob)*.05,Math.sin(q.a)*q.r);ITMO.rotation.set(q.rx,-q.a,q.rx*.5);ITMO.scale.set(q.s,q.s*2.2,q.s);ITMO.updateMatrix();fi.setMatrixAt(i,ITMO.matrix);}
+    fi.instanceMatrix.needsUpdate=true;
+    if(rnd()<dt*20*on){const a=rnd()*6.28,r=rnd()*ITM.acR;emitS(0,{x:cx+Math.cos(a)*r,y:g0+.1,z:cz+Math.sin(a)*r,vx:-Math.sin(a)*.6,vy:.1,vz:Math.cos(a)*.6,s:.2,s2:.6,c:0xf0f8ff,c2:0xcfe4f0,a:.3,life:1.1,turb:.4});}
+    const due=Math.min(Math.round(T/.25),Math.floor(t3/.25+1e-6)+1);if(tick<due){tick++;if(state==='playing')for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-cx)**2+(e.z-cz)**2>ITM.acR*ITM.acR)continue;hurt(e,dField*.25,'magic',smO(S.o,{dot:true}));itmLog({ev:'field',e});}}
+    itmLight(cx,g0+.6,cz,.2*on,ITM.acR+1);},null,{mat:fm});}
+
+/* ---- the dressing: overgrowth, veins, the compression; then the explosion's masteries ---- */
+function itmTomb(S){const root=S.root,e=S.e,L=S.L,a=S.a,P=S.P,H0=S.H0,Rr=S.Rr,G=nsIceGeos(),mats=[],geos=[];let t=0,boom=false;
+  /* M1: the overgrowth crystals, children of the tomb's own group so they ride and tremble with it */
+  const OG=[];if(L>=1)for(let i=0;i<10;i++){const plate=i%2===0,an=i/10*6.2832+(rnd()-.5)*.4,r=Rr*(plate?1.18:1.35)*(.95+rnd()*.2),h=H0*(plate?.75+rnd()*.4:1.25+rnd()*.6),w=plate?.11+rnd()*.05:.05+rnd()*.03;
+    const piv=new THREE.Group();piv.position.set(Math.cos(an)*r,0,Math.sin(an)*r);piv.rotation.y=-an;root.add(piv);const tilt=new THREE.Group();tilt.rotation.z=plate?.32+rnd()*.25:.12+rnd()*.18;tilt.rotation.x=(rnd()-.5)*.3;piv.add(tilt);
+    const m=new THREE.Mesh(G[2*(i%3)+1],i%3?NS_ICE:NS_ICE2);m.scale.set(w*(plate?1.3:1),h*.5,plate?w*.32:w*.8);m.position.y=h*.47;tilt.add(m);tilt.scale.set(1,.001,1);OG.push({piv,tilt,d:.55+i*.09+rnd()*.06,v:null,rs:null});}
+  /* M2: veins of cold light from the prisoner through the crystals, beads of light along them, and a cold heart */
+  let veins=null,vm=null,vm2=null,beads=[],heart=null,hm=null;const charge={n:0};
+  if(L>=2){const pts=[],bp=[];for(let b=0;b<9;b++){let an=b/9*6.2832+rnd()*.4,r=Rr*.15,y=H0*.35;for(let s=0;s<5;s++){const a2=an+(rnd()-.5)*.6,r2=Math.min(Rr*1.3,r+Rr*.28),y2=y+H0*(.08+rnd()*.18);
+        pts.push(Math.cos(an)*r,y,Math.sin(an)*r,Math.cos(a2)*r2,y2,Math.sin(a2)*r2);if(s>1)bp.push([Math.cos(a2)*r2,y2,Math.sin(a2)*r2]);an=a2;r=r2;y=y2;}}
+    const vg=new THREE.BufferGeometry();vg.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));geos.push(vg);vm=new THREE.LineBasicMaterial({color:0xeaf8ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});vm2=new THREE.LineBasicMaterial({color:0x6ac8ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(vm,vm2);
+    veins=new THREE.Group();veins.add(new THREE.LineSegments(vg,vm2),new THREE.LineSegments(vg,vm));root.add(veins);const v2=veins.children[0];v2.scale.set(1.03,1.01,1.03);
+    const bm=itmSM(0xcff0ff,0);mats.push(bm);for(const p of bp.filter((q,i)=>i%2===0)){const s=new THREE.Sprite(bm);s.position.set(p[0],p[1],p[2]);s.scale.setScalar(.07);root.add(s);beads.push(s);}
+    hm=itmSM(0xbfe8ff,0);mats.push(hm);heart=new THREE.Sprite(hm);heart.position.y=H0*.55;heart.scale.setScalar(.2);root.add(heart);}
+  /* M5: a white shell over the tomb as it compresses */
+  let ws=null,wm=null;if(L>=5){wm=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(wm);const wg=jitterGeo(new THREE.IcosahedronGeometry(1,1),.18);geos.push(wg);ws=new THREE.Mesh(wg,wm);ws.scale.set(Rr*1.5,H0*.75,Rr*1.5);ws.position.y=H0*.55;root.add(ws);}
+  let pulse=0,lastStep=0;
+  addFx(new THREE.Group(),S.hold+3.2,(f,dt)=>{t+=dt;if(boom)return;
+    /* the explosion: the old cast set T.done in its own shatter */
+    if(S.T.done){boom=true;itmBoom(S,charge,OG);return;}
+    const hk=Math.min(1,t/(S.hold||1));
+    if(L>=1){for(const c of OG){if(t>=c.d){const k=Math.min(1,(t-c.d)/.22),ob=k<1?k*1.1:1.1-.1*Math.min(1,(t-c.d-.22)/.12);c.tilt.scale.set(1,Math.max(.001,ob),1);if(k<1&&rnd()<.5){c.tilt.getWorldPosition(ITMV);emit(1,{x:ITMV.x,y:ITMV.y+H0*ob*.8,z:ITMV.z,s:.04,s2:0,c:0xffffff,c2:ITC.B,life:.3});}}}
+      if(t>.5)root.scale.y=1+.32*SMS(t,.5,Math.max(.6,S.hold-.1));}
+    if(L>=2){/* every 0.25s held adds 20%, up to 120% */const n=Math.min(6,Math.floor(t/ITM.hwT));if(n>charge.n){charge.n=n;pulse=1;itmLog({ev:'heart',n});}pulse=Math.max(0,pulse-dt*4);const c=charge.n/6;
+      vm.opacity=Math.min(1,.15+.75*c+.4*pulse);vm2.opacity=Math.min(1,.1+.5*c+.3*pulse);for(const b of beads){b.material.opacity=Math.min(1,.2+.7*c+.5*pulse);b.scale.setScalar(.06+.05*c+.05*pulse);}
+      hm.opacity=Math.min(1,.2+.6*c+.5*pulse);heart.scale.setScalar(.18+.25*c+.15*pulse);itmLight(root.position.x,root.position.y+H0*.6,root.position.z,.1+.35*c+.25*pulse,1.8);
+      if(rnd()<dt*14*c){const b=beads[Math.floor(rnd()*beads.length)];if(b){b.getWorldPosition(ITMV);emit(1,{x:ITMV.x,y:ITMV.y,z:ITMV.z,vx:0,vy:.2,vz:0,s:.035,s2:0,c:0xffffff,c2:ITC.B,life:.3});}}}
+    if(L>=5){/* the last 0.35s: the crystals lock, the tomb compresses inward and turns white */const k=SMS(t,S.hold-ITM.acC,S.hold-.02);if(k>0){root.scale.x=root.scale.z=1-.28*k;root.scale.y*=1-.08*k;root.position.y=gy(root.position.x,root.position.z);wm.opacity=.85*k*k;
+      if(rnd()<k){const an=rnd()*6.28,r=Rr*2.2;emit(1,{x:root.position.x+Math.cos(an)*r,y:root.position.y+rnd()*H0*1.3,z:root.position.z+Math.sin(an)*r,vx:-Math.cos(an)*r*4,vy:0,vz:-Math.sin(an)*r*4,s:.045,s2:0,c:0xffffff,c2:ITC.B,life:.12});}
+      itmLight(root.position.x,root.position.y+H0*.6,root.position.z,.15+.6*k,2);}}},
+    ()=>{},{mats,geos});
+  /* the overgrowth flies with the burst (its own physics: the old cast only throws its own crystals) */
+  S.ogFly=()=>{for(const c of OG){c.tilt.getWorldPosition(ITMV);const dx=ITMV.x-root.position.x,dz=ITMV.z-root.position.z,dl=Math.hypot(dx,dz)||1;c.v=new THREE.Vector3(dx/dl*(1.8+rnd()*1.8),2+rnd()*2.4,dz/dl*(1.8+rnd()*1.8));c.rs=[(rnd()-.5)*12,(rnd()-.5)*12];}
+    let t2=0;addFx(new THREE.Group(),1.1,(f,dt)=>{t2+=dt;for(const c of OG){if(!c.v)continue;c.v.y-=7*dt;c.piv.position.addScaledVector(c.v,dt);c.tilt.rotation.x+=c.rs[0]*dt;c.tilt.rotation.z+=c.rs[1]*dt;const s=Math.max(.001,c.tilt.scale.x-dt*1.2);c.tilt.scale.set(s,s,s);
+      if(c.piv.position.y<-root.position.y+.02){c.piv.position.y=-root.position.y+.02;c.v.y=Math.abs(c.v.y)*.25;c.v.x*=.5;c.v.z*=.5;}}});};}
+function itmBoom(S,charge,OG){const e=S.e,L=S.L,a=S.a,P=S.P,x=S.root.position.x,z=S.root.position.z,y=S.root.position.y+S.H0*.55,mult=S.mult||1;itmLog({ev:'boom',mult});
+  if(S.root)S.root.scale.set(1,1,1);
+  const play=state==='playing';
+  /* the prisoner: 75% (M1), the stored cold (M2), 200% (M5) */
+  let extra=0;if(L>=1)extra+=ITM.og*a[0];if(L>=2)extra+=ITM.hw*charge.n*a[1];if(L>=5)extra+=ITM.ac*a[4];
+  if(play&&extra>0&&!e.dead&&!e.fake){hurt(e,P*extra*mult,'magic',S.o);itmLog({ev:'prisoner',e,amt:P*extra*mult,n:charge.n});}
+  /* the splash, as the difference from the old one (150% within 1.2) */
+  const R1=L>=5?ITM.acR:ITM.ogR,SA=L>=5?ITM.acS*a[4]:1.5;
+  if(play)for(const q of enemies){if(q.dead||q===e)continue;const d2=(q.x-x)**2+(q.z-z)**2;if(d2<ITM.R0*ITM.R0){if(SA>1.5){hurt(q,P*(SA-1.5)*mult,'magic',S.o);itmLog({ev:'splashX',e:q});}}else if(d2<=R1*R1){hurt(q,P*SA*mult,'magic',S.o);itmLog({ev:'splashR',e:q});}}
+  if(L>=1)S.ogFly();
+  if(L>=2){/* the stored cold released: a brilliant frost burst */const k=charge.n/6;flash(x,y,z,ITC.I,.35+.4*k,.12);sprayP(1,x,y,z,Math.round(20+30*k),{c:0xffffff,c2:ITC.B,sp:2.2+1.6*k,up:.7,s:.05,s2:0,life:.5,g:1,drag:.8});
+    for(let i=0;i<6;i++)emitS(0,{x:x+(rnd()-.5)*.3,y,z:z+(rnd()-.5)*.3,vx:(rnd()-.5)*1.6,vy:.3+rnd()*.5,vz:(rnd()-.5)*1.6,s:.25,s2:.9,c:0xf4faff,c2:0xd0e6f4,a:.4,life:1.3,turb:.4});}
+  if(L>=3)itmShatterstorm({x,z,o:S.o},P*ITM.ss*a[2]);
+  if(L>=4)itmFissures({x,z,o:S.o},P*ITM.pf*a[3]);
+  if(L>=5)itmCataclysm({x,z,o:S.o,H0:S.H0},P*ITM.acF*a[4]);}
+
+/* ---- the hook ---- */
+const ITM_CAST0=castIceTomb;
+castIceTomb=function(t,list,P,o){const C=itmC(o);if(!C)return ITM_CAST0.apply(this,arguments);
+  const real=list.filter(q=>!q.fake&&!q.dead),e=real.length?real.reduce((p,q)=>q.hp>p.hp?q:p,real[0]):list[0];if(!e)return ITM_CAST0.apply(this,arguments);
+  const st0=e.stunT>0?e.stunT:0;let root=null;const add0=scene.add,n0=NTOMB.length;scene.add=function(...q){if(!root&&q[0]&&q[0].isGroup)root=q[0];return add0.apply(this,q);};
+  let r;try{r=ITM_CAST0.apply(this,arguments);}finally{scene.add=add0;}const T=NTOMB[NTOMB.length-1];if(!root||!T||NTOMB.length===n0)return r;
+  const g=e.fake?0:Math.max(0,(e.stunT>0?e.stunT:0)-st0),S={e,root,T,L:C.L,a:C.a,P:C.P,o:smO(o),H0:(e.hitY||.5)*(e.boss?1.3:1.05),Rr:e.boss?.3:.19,hold:.55+(g>0?g:.35),mult:1};
+  const sh0=T.shatter;T.shatter=function(m){S.mult=m||1;return sh0.apply(this,arguments);};itmLog({ev:'cast',L:C.L,e,hold:S.hold});itmTomb(S);return r;};
+
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
@@ -25431,7 +25641,8 @@ const NOTES_V='masteries-2';
 const NOTES_HTML=`<h3>\u2726 Scroll masteries reworked</h3><ul>
 <li><b>Common scrolls:</b> masteries reworked for Hexspark, Light Bolt, Basic Wither, Ember Bolt, Gravebind, Frost Shard, Static Spark, Cinder Scatter, Flame Lash, Thunderclap and Thorn Whip.</li>
 <li><b>Uncommon scrolls:</b> masteries reworked for Dark Pulse, Basic Beam, Grasping Shadows, Soul Lantern, Graveburst, Rime Bloom, Ball Lightning, Sunflare, Catch Flame, Wall of Fire and Bramble Patch.</li>
-<li><b>Uncommon masteries are open to everyone:</b> cast an Uncommon scroll in any game and it earns mastery XP, all the way to Mastery 5. Scrolls above Uncommon follow in a later update.</li></ul>`;
+<li><b>Uncommon masteries are open to everyone:</b> cast an Uncommon scroll in any game and it earns mastery XP, all the way to Mastery 5. Scrolls above Uncommon follow in a later update.</li>
+<li><b>Ice Tomb</b> (Rare) has reworked masteries too, for now in developer mode: a tomb that keeps growing, a heart of winter, a storm of shards, frost fissures and an absolute cataclysm.</li></ul>`;
 function showNotes(force){if(!force&&meta.notesSeen===NOTES_V)return;let o=$('#notesPop');if(!o){o=document.createElement('div');o.id='notesPop';document.body.appendChild(o);}
   o.innerHTML=`<div class="np-card"><div class="np-top"><small>Update</small><h2>What's new</h2></div><div class="np-body">${NOTES_HTML}</div><button class="np-log">See the full changelog</button><button class="np-ok">Got it</button></div>`;
   o.classList.add('on');o.querySelector('.np-ok').onclick=()=>{o.classList.remove('on');meta.notesSeen=NOTES_V;saveMeta();};{const lb=o.querySelector('.np-log');if(lb)lb.onclick=()=>{o.classList.remove('on');meta.notesSeen=NOTES_V;saveMeta();showChangelog();};}}
