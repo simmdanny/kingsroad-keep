@@ -44,7 +44,9 @@ try{
     const b=D*1.3,x=b+2*D*.6*SMA.hexspark[4];
     ok('Hexstorm: the 3rd cast adds black lightning and 2 sparks for 60% each',gap>2.1&&Math.abs(r[0]-b)<.6&&Math.abs(r[1]-b)<.6&&Math.abs(r[2]-x)<1,r.map(v=>v.toFixed(1)).join(' / ')+' (expected '+b.toFixed(1)+' twice, then '+x.toFixed(1)+'; foes '+gap.toFixed(2)+' apart)');clean();}
   /* ---- the ring fix: a ring starts small (no full-size flash on its first frame) ---- */
-  {const n0=scene.children.length;ringFx(0,.1,0,.5,0xffffff,.3);const m=scene.children[scene.children.length-1];ok('a ring starts at its first size, not full size',scene.children.length===n0+1&&Math.abs(m.scale.x-.15)<1e-6,m.scale.x);run(.5);}
+  /* (v420: a wall of light rises with the ring; it is added after the ring and starts small too) */
+  {const n0=scene.children.length;ringFx(0,.1,0,.5,0xffffff,.3);const m=scene.children[n0],w=scene.children.slice(n0+1),wOk=!w.length||w.length===1&&typeof XFX!=='undefined'&&w[0].geometry===XFX.cyl&&w[0].scale.x<=.2+1e-6;
+    ok('a ring starts at its first size, not full size',!!m&&Math.abs(m.scale.x-.15)<1e-6&&wOk,m&&m.scale.x);run(.5);}
   /* ---- every mastery casts clean and leaves nothing ---- */
   {const left=[],e0=errs;for(let L=1;L<=5;L++){play();SM.cnt.hexspark=0;const bd=near(),F=[];for(let i=0;i<8;i++)F.push(foe(bd+.3*(i-3.5),i%3?3000:300));const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};
       for(let c=0;c<4;c++){cast(L,enemies.filter(x=>!x.dead));run(4);}run(6);scene.add=S0;const st=added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let p=o;while(p&&p!==scene)p=p.parent;return p===scene;});
