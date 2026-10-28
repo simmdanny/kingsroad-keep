@@ -14142,7 +14142,7 @@ const CLOG=[
   {t:'Fire Tornado masteries, reworked',d:'28 Oct',v:'v414',li:[
     'Molten Orbit: the twelve molten rocks in the funnel break free one by one and hurl themselves at foes within 2 tiles, 45% each, then fly back in. A foe takes three at most.',
     'Infernal Vortex: the core becomes a furnace that glows brighter as it burns: 25% more each fire tick to foes at its heart, and a 60% burst when a foe held there 0.6s breaks free. Trail of Ruin: it leaves up to four strips of burning ground, 25% every 0.5s for 2.5s.',
-    'Ring of Ruin: halfway through, its rocks and chunks torn from the road spiral out into a spinning ring of molten debris, 70% every 0.6s within 1.35 tiles; in the last second it stands upright and is pulled into the collapse for 100% more.',
+    'Ring of Ruin: halfway through, its rocks and chunks torn from the road spiral out into a spinning ring of molten debris, 70% every 0.6s within 1.35 tiles; in the last second it whirls faster and is pulled into the collapse for 100% more.',
     'Eye of the Inferno: at its end the funnel reverses, draws everything into a blazing core and detonates, 180% within 1.5 tiles, 60% more to foes it marked in its pull. Like every scroll above Uncommon, its masteries are only in developer mode for now.']},
   {t:'Uncommon masteries for everyone',d:'28 Oct',v:'v405',li:[
     'The Uncommon scrolls now earn mastery XP and use their masteries in every game, not only in developer mode. Scrolls above Uncommon come later.',
@@ -25475,9 +25475,9 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
    - M4 Ring of Ruin: at FTM.ringAt (halfway) the funnel's rocks are flung out of it one after another and spiral out from where they are,
      and more chunks are torn up out of the road round its base (grit and sparks where each leaves it): a ragged belt of tumbling molten
      rock, FTM.ringR (1.35) wide, every chunk at its own reach, height and pace, a third of them trailing flames, shedding embers and smoke.
-     Every FTM.ringTick (0.6s) it flares: 70% to each foe within it, chunks of rock bursting off them. In the last second the belt tilts
-     upright, rises round the funnel and spins faster, a wheel of burning debris, then shrinks into the heart; at the collapse 100% to foes
-     within FTM.ringR, and the debris is flung out burning.
+     Every FTM.ringTick (0.6s) it flares: 70% to each foe within it, chunks of rock bursting off them. It stays flat round the funnel (Simon
+     did not want it standing up "spinning like a coin"); in the last second it whirls faster, then is drawn in and up into the heart; at
+     the collapse 100% to foes within FTM.ringR, and the debris is flung out burning.
    - M5 Eye of the Inferno: FTM.markT (0.5s) before the collapse the funnel's layers spin the other way, it narrows and shudders, flames,
      smoke and a ring of flames leaning inward rush in and the core swells into a blazing eye; each ground foe in the pull (1.45) is
      marked by a ring of flames at its feet. Then it detonates: a billowing, climbing mass of fire with tongues of flame bursting out, a
@@ -25495,7 +25495,7 @@ SM_D.firetornado=[
   {n:'Molten Orbit',d:'The twelve molten rocks in the funnel break free one by one and hurl themselves at foes within 2 tiles, {45}% each, then fly back into the vortex. A foe is hit by three at most.'},
   {n:'Infernal Vortex',d:'Its core becomes a furnace that glows brighter as it burns: foes within 0.4 tiles of it take {25}% more each fire tick, and a foe held there for 0.6s takes a {60}% burst when it breaks free.'},
   {n:'Trail of Ruin',d:'Its scorch marks ignite: up to four strips of burning ground along its path, each burning for 2.5s and dealing {25}% every 0.5s to foes on it.'},
-  {n:'Ring of Ruin',d:'Halfway through, its rocks and chunks torn from the road spiral out into a spinning ring of molten debris round its base: {70}% every 0.6s to foes within 1.35 tiles. In its last second the ring stands upright, spins faster and is pulled into the collapse for {100}% more.'},
+  {n:'Ring of Ruin',d:'Halfway through, its rocks and chunks torn from the road spiral out into a spinning ring of molten debris round its base: {70}% every 0.6s to foes within 1.35 tiles. In its last second the ring whirls faster and is pulled into the collapse for {100}% more.'},
   {n:'Eye of the Inferno',d:'At its end the funnel reverses, draws its flames and rocks into a blazing core and detonates: {180}% to foes within 1.5 tiles. Foes in its pull in the last 0.5s are marked by a ring of fire and take {60}% more from the blast.'}];
 SMF.firetornado={m:1};
 SMA.firetornado=[1,1,1,1,1];
@@ -25692,8 +25692,10 @@ function ftmRing(S,t0){const K=ftmKit(),D=S.K.deb,R=new THREE.Group(),T=new THRE
   const hitAll=(c,Sz)=>{pulse=1;let n=0;for(const e of smNear(c.x,c.z,FTM.ringR*Sz,null,99,true)){if(!ftmHurt(S,e,S.P*FTM.ring*S.a[3],'ringHit'))continue;n++;const p=tpos2(e);
       ftmBoom(p.x,p.y,p.z,.16,{n:1,t:4,sm:0,sp:8,el:.3});for(let j=0;j<2;j++){const a=rnd()*6.283;ftmChunk(p.x,p.y,p.z,.022+rnd()*.02,V3(Math.cos(a)*1.2,1.3+rnd(),Math.sin(a)*1.2));}}
     ftmLog({ev:'ringTick',n,x:c.x,z:c.z});};
-  const tick=(dt,tt,c,Sz)=>{const TC=S.TC,tk=ease(SMS(tt,TC-1,TC-.6)),ck=SMS(tt,TC-.45,TC),sf=Sz*(1-.3*tk)*(1-.94*Math.pow(ck,1.4)),om=1+3.2*tk+6*ck;
-    T.rotation.x=tk*Math.PI/2;R.rotation.y+=dt*(2.5+4*tk)*tk;R.position.y=.05+(Math.max(.55,FTM.ringR*sf+.12)-.05)*tk;
+  /* it stays flat round the funnel the whole time (Simon: not "spinning like a coin"); in its last second it whirls faster (tk), then is
+     drawn in and up into the heart (ck) */
+  const tick=(dt,tt,c,Sz)=>{const TC=S.TC,tk=ease(SMS(tt,TC-1,TC-.6)),ck=SMS(tt,TC-.45,TC),sf=Sz*(1-.94*Math.pow(ck,1.4)),om=1+2.6*tk+5*ck;
+    R.position.y=.05+.45*ease(ck);
     pulse=Math.max(0,pulse-dt*3.5);lm.emissiveIntensity=1+.9*pulse+.7*ck;let vis=0;
     for(const q of C){if(tt<q.t0)continue;
       if(!q.h.visible){q.h.visible=true;if(q.torn){/* torn up: grit and sparks where it leaves the road */q.h.getWorldPosition(v);sprayP(1,v.x,c.y+.05,v.z,6,{c:0xffc070,c2:0x8a3a10,sp:.9,up:1.6,s:.04,s2:0,life:.4,g:4});

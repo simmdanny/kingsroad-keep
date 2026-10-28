@@ -74,12 +74,16 @@ try{
     ok('M3: a flyer over it, or a foe beside it, takes none',!tr.some(x=>x.e===bird||x.e===off));
     ok('M3: they are no burning ground for Firestorm, and they leave nothing behind',!fire&&S6FZ.length===f0&&smLeft(added)===0&&NS_OWN.size===n0,NS_OWN.size+' / '+n0);}
   /* ---- M4 Ring of Ruin ---- */
-  {const lead=setup();const F1=foe(at(3.2),1.15),F2=foe(at(3.2),1.75);FTM.dbg=[];log=[];const added=track();wrapHurt();let S,tilt=0,ringY=0;
-    try{S=cast(4,lead);for(let i=0;i<140;i++){run(.05);if(S.ring){tilt=Math.max(tilt,S.ring.R.children[0].rotation.x);}}}finally{hurt=H0;scene.add=S0;setL(0);}
+  {const lead=setup();const F1=foe(at(3.2),1.15),F2=foe(at(3.2),1.75);FTM.dbg=[];log=[];const added=track();wrapHurt();let S,tilt=0,th=[];
+    /* how fast one of the funnel's rocks goes round, before the last second and in it */
+    try{S=cast(4,lead);for(let i=0;i<140;i++){run(.05);const t=time-T0;if(S.ring){tilt=Math.max(tilt,Math.abs(S.ring.T.rotation.x),Math.abs(S.ring.T.rotation.z),Math.abs(S.ring.R.rotation.x),Math.abs(S.ring.R.rotation.z));
+      const q=S.ring.C.find(c=>c.b);for(const at of [2.75,2.95,3.3,3.5])if(Math.abs(t-at)<.026)th.push(q.th);}}}finally{hurt=H0;scene.add=S0;setL(0);}
+    const w1=th.length===4?(th[1]-th[0])/.2:0,w2=th.length===4?(th[3]-th[2])/.2:0;
     const rg=ev('ring')[0],tk=ev('ringTick');
     ok('M4: halfway through its life the rocks drop into the ring',!!rg&&Math.abs(rg.t-T0-FTM.ringAt)<.06&&S.K.deb.every(b=>b.ring),rg?(rg.t-T0).toFixed(2):'none');
     ok('M4: it flares every 0.6s: 70% to each foe within 1.35, once a flare',tk.length>=3&&tk.slice(1).every((x,i)=>Math.abs(x.t-tk[i].t-.6)<.051)&&mine(F1,70).length===tk.length&&ev('ringHit').every(x=>near(x.amt,70))&&!ev('ringHit').some(x=>x.e===F2),tk.length+' flares, '+mine(F1,70).length+' on the foe at 1.15: '+tk.map(x=>Math.hypot(F1.x-x.x,F1.z-x.z).toFixed(2)).join(','));
-    ok('M4: in the last second it stands upright, then is pulled into the collapse for 100% more to foes within 1.35',tilt>1.5&&mine(F1,100).length===1&&ev('ringIn').every(x=>near(x.amt,100))&&!ev('ringIn').some(x=>x.e===F2),'tilted '+tilt.toFixed(2)+', '+mine(F1,100).length+' on the foe at 1.15');
+    ok('M4: it stays flat round the funnel (no spinning like a coin) and whirls faster in its last second',tilt===0&&w1>0&&w2>w1*1.8,'tilt '+tilt.toFixed(2)+', '+w1.toFixed(1)+' then '+w2.toFixed(1)+' rad/s');
+    ok('M4: then it is pulled into the collapse for 100% more to foes within 1.35',mine(F1,100).length===1&&ev('ringIn').every(x=>near(x.amt,100))&&!ev('ringIn').some(x=>x.e===F2),mine(F1,100).length+' on the foe at 1.15');
     ok('M4: the rocks are flung out of the collapse, and it leaves nothing behind',S.K.deb.every(b=>b.out)&&smLeft(added)===0);}
   /* ---- M5 Eye of the Inferno ---- */
   {const lead=setup();const c4=at(4),M1=foe(c4,1.3),M2=foe(c4,1.7),bird=foe(c4,.8,'raven'),gone=foe(at(6.3),0);FTM.dbg=[];log=[];const added=track();wrapHurt();let S,spin=1,pin=0,vis=true,squeeze=9;
