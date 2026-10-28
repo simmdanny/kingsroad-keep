@@ -4334,7 +4334,7 @@ function stormHit(x,z,R,dmg,o){for(const e of enemies){if(e.dead)continue;const 
 /* ---- Lightning Cloud (rare) ---- */
 function castStormCloud(t,c,P,o){
   let cx=c.x,cz=c.z;if(c.dist!=null){const rt=c.route||ROUTES[0],q=posAt(Math.min(rt.len-.5,c.dist+.7),rt);cx=q[0];cz=q[1];}
-  const R=1.15,H=2.55,DUR=5.4,root=new THREE.Group();root.position.set(cx,0,cz);scene.add(root);const geos=[],mats=[];
+  const R=1.15,H=CLOUD.h,DUR=5.4,root=new THREE.Group();root.position.set(cx,0,cz);scene.add(root);const geos=[],mats=[];
   /* v412 (Simon): a little see-through, like Stormcaller's clouds, so the road shows through it (CLOUD.op) */
   const cM=[0x252a33,0x1b1f27,0x2f3541].map(col=>{const m=new THREE.MeshPhongMaterial({color:col,emissive:0x3a5a9a,emissiveIntensity:0,flatShading:true,shininess:0,transparent:true,opacity:0,depthWrite:false});mats.push(m);return m;});
   const cp=camera.position,kT=H/cp.y*.5,CX=(cp.x-cx)*kT,CZ=(cp.z-cz)*kT;
@@ -4350,8 +4350,9 @@ function castStormCloud(t,c,P,o){
   let tt=0,next=.75,flick=0;
   addFx(root,DUR+.9+(S?S.extra:0),(e,dt)=>{tt+=dt;const inA=SMS(tt,0,.6),outA=1-SMS(tt,DUR,DUR+.8),A=inA*outA;
     cloud.scale.setScalar(.2+.8*SMS(tt,0,.7));cloud.rotation.y+=dt*.25;cloud.position.y=H+Math.sin(tt*1.7)*.04;
-    cM.forEach(m=>m.opacity=Math.min(1,A*1.15)*CLOUD.op);shM.opacity=.42*A;rimM.opacity=(.28+.08*Math.sin(tt*6))*A;
-    if(inA>.5&&rnd()<.35)emitS(0,{x:cx+CX+(rnd()-.5)*R*1.6,y:H+(rnd()-.3)*.3,z:cz+CZ+(rnd()-.5)*R*1.2,vx:(rnd()-.5)*.1,vy:.02,vz:(rnd()-.5)*.1,s:.35,s2:.7,c:0x3a4250,c2:0x1a1e26,a:.45*A,life:1.4,turb:.3,drag:1});
+    /* the puffs fade when the camera comes close, so a zoomed-in view never has a cloud in its face (the lightning stays) */
+    const camF=cloudCamF(H);cM.forEach(m=>m.opacity=Math.min(1,A*1.15)*CLOUD.op*camF);shM.opacity=.42*A;rimM.opacity=(.28+.08*Math.sin(tt*6))*A;
+    if(inA>.5&&rnd()<.35)emitS(0,{x:cx+CX+(rnd()-.5)*R*1.6,y:H+(rnd()-.3)*.3,z:cz+CZ+(rnd()-.5)*R*1.2,vx:(rnd()-.5)*.1,vy:.02,vz:(rnd()-.5)*.1,s:.35,s2:.7,c:0x3a4250,c2:0x1a1e26,a:.45*A*camF,life:1.4,turb:.3,drag:1});
     flick=Math.max(0,flick-dt*6);if(rnd()<.08*A)flick=Math.max(flick,.4+rnd()*.3);
     inner.opacity=flick*.55*A;cM.forEach(m=>m.emissiveIntensity=flick*1.3);
     if(A>.9&&rnd()<.25){const a=rnd()*6.28,d=rnd()*R*.7,p1={x:cx+CX+Math.cos(a)*d,y:H-.1+(rnd()-.5)*.2,z:cz+CZ+Math.sin(a)*d*.8},b=a+(rnd()-.5)*1.4;zap(p1,{x:cx+CX+Math.cos(b)*d*.9,y:p1.y+(rnd()-.5)*.2,z:cz+CZ+Math.sin(b)*d*.8},0xbfe0ff,.08);}
@@ -6840,7 +6841,9 @@ const nsResetCine=resetCine;resetCine=function(){NS_OWN.forEach(o=>scene.remove(
 const NS_WHITE=new THREE.MeshBasicMaterial({color:0xffffff});
 const NS_ICE=new THREE.MeshPhongMaterial({color:0xcfeeff,emissive:0x3a7ab0,emissiveIntensity:.4,specular:0xffffff,shininess:90,flatShading:true,transparent:true,opacity:.88});
 const NS_ICE2=new THREE.MeshPhongMaterial({color:0x8fcbf0,emissive:0x1a4a7a,emissiveIntensity:.35,specular:0xffffff,shininess:60,flatShading:true,transparent:true,opacity:.8});
-const CLOUD={left:0,op:.45},NSUN=[];
+/* v412 (Simon): the cloud floats twice as high (h; it was 2.55) and a little see-through (op) */
+const CLOUD={left:0,op:.45,h:5.2},NSUN=[];
+const cloudCamF=H=>clamp((camera.position.y-H-.8)/3,.2,1);
 const tpos2=e=>({x:e.x,y:(e.y||0)+(e.hitY||.4)*.5,z:e.z});
 const nsInSun=(x,z)=>NSUN.some(s=>s.until>time&&(s.x-x)**2+(s.z-z)**2<s.r*s.r);
 /* a soft, ragged-edged blot used for every ground decal (frost, scorch, coals, sunlight) */
@@ -14139,7 +14142,7 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
   {t:'Lightning Cloud masteries, reworked',d:'28 Oct',v:'v412',li:[
-    'The storm cloud is now a little see-through, like Stormcaller\'s, so you can see the road under it (at every mastery).',
+    'The storm cloud floats twice as high and is a little see-through, like Stormcaller\'s, so you can see the road under it (at every mastery).',
     'Stormseeker: after a strike hits, the next ones tend to land on that foe, more with each hit in a row; two misses reset it. Forked Tempest: every fourth strike splits into two bolts at foes nearby, 45% each.',
     'Supercharged Skies: every five strikes the cloud blazes and its next bolt is a Thunderclap, 175% at the centre. Stormlink: lightning arcs between the two clouds across the road for 0.8s, 90% to foes it crosses.',
     'Wrath of the Heavens: at the end each cloud compresses into a blazing core and lets loose three bolts, 160% each. Like every scroll above Uncommon, its masteries are only in developer mode for now.']},
@@ -25558,7 +25561,7 @@ function scmFinale(S,tt,dt){const K=S.K,F=S.fin||(S.fin={orb:null,shot:0,burst:f
   if(!F.orb){const om=blmMat('orb');om.uniforms.uCol.value.setHex(0x9fd0ff);om.uniforms.uOp.value=0;const orb=new THREE.Mesh(BLM_K().sphere,om);orb.position.copy(c0);orb.scale.setScalar(.01);
     const gl=blmGlow(0xcfe6ff,.4,0),gl2=blmGlow(0x6aa8ff,1,0);gl.position.copy(c0);gl2.position.copy(c0);K.root.add(gl2,orb,gl);F.orb=orb;F.om=om;F.gl=gl;F.gl2=gl2;scmLog({ev:'compress',ci:S.i});}
   /* the cloud contracts round the core */
-  const after=tt>last?Math.min(1,(tt-last)/.5):0;K.cloud.scale.setScalar(Math.max(.05,(1-.62*e)*(1+.9*after)));for(const m of K.cM){m.opacity=CLOUD.op*Math.min(1,tt/.6)*(1-after);m.emissiveIntensity=Math.min(m.emissiveIntensity,.15)+.45*e*(1-after);}
+  const after=tt>last?Math.min(1,(tt-last)/.5):0;K.cloud.scale.setScalar(Math.max(.05,(1-.62*e)*(1+.9*after)));for(const m of K.cM){m.opacity=CLOUD.op*cloudCamF(K.H)*Math.min(1,tt/.6)*(1-after);m.emissiveIntensity=Math.min(m.emissiveIntensity,.15)+.45*e*(1-after);}
   K.inner.opacity=(.12+.2*e)*(1-after);K.shM.opacity=.42*(1-after);
   const pulse=1+.1*Math.sin(time*40)*e;F.om.uniforms.uT.value+=dt*(1+3*e);F.om.uniforms.uOp.value=(.4+.8*e)*(1-after*2>0?1-after*2:0);F.orb.scale.setScalar((.06+.3*e)*pulse*(1-.6*Math.min(1,after*2)));
   F.gl.material.opacity=(.3+.6*e)*(F.burst?Math.max(0,1-after*2):1);F.gl.scale.setScalar((.4+.9*e)*pulse);F.gl2.material.opacity=(.15+.3*e)*(F.burst?Math.max(0,1-after*2):1);F.gl2.scale.setScalar(1+1.2*e);

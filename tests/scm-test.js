@@ -41,17 +41,13 @@ try{
     ok('Mastery 0: the old cloud (100 or 70 a strike, no hooks) and none of the masteries',!SCM.last&&!SCM.dbg.length&&!log.some(h=>h.smx)&&log.length>0&&log.every(h=>near(h.amt,100)||near(h.amt,70)),log.length);
     ok('the cloud is see-through now, masteries or not (like Stormcaller\'s)',CLOUD.op<.7&&ops.length>0&&ops.every(v=>v<=CLOUD.op+1e-6)&&Math.max(...ops)>CLOUD.op*.8,ops.length+' '+(ops.length?Math.max(...ops).toFixed(2):''));
     ok('and it leaves nothing behind',smLeft(added)===0);}
-  /* ---- M1 Stormseeker: a tough foe under a cloud draws the strikes ---- */
-  {let hitL0=0,nL0=0,hitL1=0,nL1=0,badSeek=0,badReset=0,seeks=0;
-    for(const L of [0,1,0,1,0,1]){const {lead,tough}=setup();SCM.dbg=[];log=[];wrapHurt();
-      try{setL(L);const t0=time;cast(L,lead,tough);/* the cloud over the lead: its foe stands at the cloud's centre, 0.7 off it */
-        if(L){const S=clouds()[0];put(lead,S.K.cx+.7,S.K.cz);}else{const p=posAt(Math.min(R0().len-.5,lead.dist+.7),R0());put(lead,p[0]+.7,p[1]);}run(6.5);}finally{hurt=H0;setL(0);}
-      const hits=log.filter(h=>h.e===lead&&!h.smx).length;
-      if(L){hitL1+=hits;let streak=0,miss=0;/* replay the rule on the first cloud's strikes */
-        for(const d of of(0,'strike')){nL1++;if(d.seek){seeks++;if(!streak)badSeek++;}if(d.hits){streak++;miss=0;}else if(++miss>=2){streak=0;miss=0;}}}
-      else{hitL0+=hits;nL0+=log.filter(h=>h.e===tough||h.e===lead).length?1:1;}}
-    ok('M1: a cloud whose strikes find a foe keeps striking it: the foe under it is hit far more often than at Mastery 0',hitL1>hitL0*1.5,'hits on it: '+hitL0+' at M0, '+hitL1+' at M1');
-    ok('M1: strikes only seek after a hit, and two misses in a row start it over',seeks>0&&badSeek===0,seeks+' seeking strikes, '+badSeek+' without a hit before');}
+  /* ---- M1 Stormseeker: a foe under a cloud draws its strikes once one finds it (the rule, replayed on the cloud's own strikes) ---- */
+  {let elig=0,seeks=0,badSeek=0,missSeek=0;
+    for(let r=0;r<3;r++){const {lead,tough}=setup();SCM.dbg=[];log=[];wrapHurt();
+      try{cast(1,lead,tough);const S=clouds()[0];put(lead,S.K.cx+.5,S.K.cz);run(6.5);}finally{hurt=H0;setL(0);}
+      let streak=0,miss=0;for(const d of of(0,'strike')){if(streak)elig++;if(d.seek){seeks++;if(!streak)badSeek++;if(!d.hits)missSeek++;}if(d.hits){streak++;miss=0;}else if(++miss>=2){streak=0;miss=0;}}}
+    ok('M1: once a strike has hit, the next ones seek its foe (40% after one hit, up to 85%)',seeks>0&&seeks/elig>=.3&&seeks/elig<=.95,seeks+' of '+elig+' strikes after a hit');
+    ok('M1: a seeking strike lands on its foe, and none seeks without a hit before it (two misses start it over)',!missSeek&&!badSeek,missSeek+' missed, '+badSeek+' without a hit');}
   /* ---- M2 Forked Tempest ---- */
   {const {lead,tough}=setup();SCM.dbg=[];log=[];const added=track();let ring=[];wrapHurt();
     try{cast(2,lead,tough);const S=clouds()[0];for(let i=0;i<6;i++){const a=i/6*6.28,r=.6+(i%2)*.7;ring.push(put(foe(5,1e9,i===3?'raven':'soldier'),S.K.cx+Math.cos(a)*r,S.K.cz+Math.sin(a)*r));}put(lead,S.K.cx,S.K.cz);run(7);}finally{hurt=H0;scene.add=S0;setL(0);}
