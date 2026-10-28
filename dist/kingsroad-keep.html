@@ -7269,38 +7269,42 @@ function nsBurnFeather(x,y,z){if(fx.length>280)return;if(!NS.featG){NS.featG=nsF
     const k=Math.min(1,f.life/.6);m.scale.setScalar(s0*k);if(rnd()<.5)emit(1,{x:m.position.x,y:m.position.y,z:m.position.z,vx:0,vy:.2,vz:0,s:.06,s2:0,c:0xffc060,c2:0xb02000,life:.3,turb:.6});if(m.position.y<gy(m.position.x,m.position.z)+.03)f.life=Math.min(f.life,.15);});}
 
 /* ---- Frostfall Comet (epic, ice): a comet of ice streaks across the sky and crashes into the road ---- */
-function castComet(t,c0,P,o){const c=nsLead(c0,1.45),cx=c.x,cz=c.z,cy=gy(cx,cz),R=1.6,mats=[],geos=[];const sd=rnd()<.5?-1:1,S=new THREE.Vector3(cx+sd*(6+rnd()*2),cy+7.5,cz-4.5-rnd()*1.5),E=new THREE.Vector3(cx,cy+.2,cz),TA=1.45;
+function castComet(t,c0,P,o){const c=nsLead(c0,1.45);let cx=c.x,cz=c.z,cy=gy(cx,cz);const R=1.6,mats=[],geos=[];const sd=rnd()<.5?-1:1,S=new THREE.Vector3(cx+sd*(6+rnd()*2),cy+7.5,cz-4.5-rnd()*1.5),E=new THREE.Vector3(cx,cy+.2,cz),TA=1.45;
+  /* the masteries (fcmStart; null at Mastery 0, for echoes and other casters, so they are exactly the old comet) may bring it in low along
+     the road (S), steer it as it falls (E, with the rune and its shadow: M.fly), and add to the impact (M.impact, with the foes it hit) and
+     the crater (M.after) */
+  const M=typeof fcmStart==='function'?fcmStart(o,{P,c0,R,TA,S,E}):null;
   const head=new THREE.Group();scene.add(head);head.position.copy(S);const rockG=jitterGeo(new THREE.IcosahedronGeometry(.34,1),.14);geos.push(rockG);const rock=new THREE.Mesh(rockG,NS_ICE);head.add(rock);
   const core=new THREE.Mesh(ico(.22,1),NS_WHITE);head.add(core);const h1=new THREE.Mesh(ico(.62,1),haloMat(0xcfeeff));head.add(h1);const h2=new THREE.Mesh(ico(.75,1),haloMat(0x3a8aff));head.add(h2);
   const tail=nsTrail(mats,[[0x2a6aff,.25,.34],[0x8fd8ff,.5,.15],[0xffffff,.9,.055]]);
   const rune=makeRune(R*1.08,0x9fdcff,{star:8,step:3,glyphs:30,fill:.3,fillCol:0x0a1a2a,fillNormal:true});rune.position.set(cx,cy+.03,cz);nsOwn(rune);rune.userData.fade(0);
-  const shadow=nsDecal(cx,cz,R*.8,0x0a1a2a,0,TA+.2,{manual:true});let tt=0,hit=false,zT=0;const spikes=[];const dir=new THREE.Vector3().subVectors(E,S).normalize(),tmp=new THREE.Vector3();
+  const shadow=nsDecal(cx,cz,R*.8,0x0a1a2a,0,TA+.2,{manual:true});if(M){M.K.rune=rune;M.K.shadow=shadow;M.K.head=head;}let tt=0,hit=false,zT=0;const spikes=[];const dir=new THREE.Vector3().subVectors(E,S).normalize(),tmp=new THREE.Vector3();
   vigTarget=Math.max(vigTarget,.25);darkTarget=Math.max(darkTarget,.22);NTOMB.forEach(T=>{if(!T.done&&(T.x-cx)**2+(T.z-cz)**2<R*R*1.4)T.wait=time+TA+.15;});
   addFx(head,TA+4.2,(f,dt)=>{tt+=dt;
     if(tt<TA){const k=tt/TA,ke=k*k*(.35+.65*k);head.position.lerpVectors(S,E,ke);rock.rotation.x+=dt*3;rock.rotation.y+=dt*2.2;h1.scale.setScalar(.9+rnd()*.2);h2.scale.setScalar(.9+rnd()*.15+.3*k);
-      rune.userData.fade(SMS(k,.1,.5));rune.rotation.y+=dt*(1+5*k);shadow.material.opacity=.5*k*k;shadow.scale.setScalar(.5+.8*k);
+      if(M){M.fly(k,dt);cx=E.x;cz=E.z;}rune.userData.fade(SMS(k,.1,.5));rune.rotation.y+=dt*(1+5*k);shadow.material.opacity=.5*k*k;shadow.scale.setScalar(.5+.8*k);
       tail.push(head.position,30);tail.draw(1+k*.5);tail.fade(1);
       const p=head.position;for(let i=0;i<22;i++){tmp.set(-dir.x*(rnd()*1.2),-dir.y*(rnd()*1.2),-dir.z*(rnd()*1.2));emit(1,{x:p.x+tmp.x+(rnd()-.5)*.3,y:p.y+tmp.y+(rnd()-.5)*.3,z:p.z+tmp.z+(rnd()-.5)*.3,vx:-dir.x*2+(rnd()-.5)*.8,vy:-dir.y*2+(rnd()-.5)*.8,vz:-dir.z*2+(rnd()-.5)*.8,s:.12+rnd()*.12,s2:.01,c:rnd()<.5?0xffffff:0xbfe8ff,c2:0x2a6aff,a:.95,life:.35+rnd()*.35,drag:1});}
       for(let i=0;i<4;i++)emit(0,{x:p.x+(rnd()-.5)*.5,y:p.y+(rnd()-.5)*.5,z:p.z+(rnd()-.5)*.5,vx:-dir.x*.6,vy:-dir.y*.6,vz:-dir.z*.6,s:.2,s2:.55,c:0xeaf6ff,c2:0xb0d0e8,a:.35,life:.9,turb:.4});
       if(rnd()<.35)nsSplinters(p.x,p.y,p.z,1,.6);
       for(let i=0;i<4;i++){const a=rnd()*6.28,r=R*(.9+rnd()*.25);emit(1,{x:cx+Math.cos(a)*r,y:cy+.04,z:cz+Math.sin(a)*r,vx:-Math.cos(a)*.6*k,vy:.15,vz:-Math.sin(a)*.6*k,s:.05,s2:0,c:0xffffff,c2:0x8fdcff,life:.5});}}
-    else{if(!hit){hit=true;head.visible=false;const x=cx,z=cz,y=cy+.2;darkTarget=0;vigTarget=0;
+    else{if(!hit){hit=true;head.visible=false;if(M){cx=E.x;cz=E.z;cy=gy(cx,cz);}const x=cx,z=cz,y=cy+.2,hitL=[];darkTarget=0;vigTarget=0;
         flash(x,y,z,0xffffff,1.5,.2);flash(x,y,z,0x9fdcff,2.6,.5);flashA=Math.max(flashA,.35);flashCol='#e8f6ff';camShake=Math.max(camShake,.24);shockwave(x,z,R*1.6,0xffffff,.55,0xc8dcec);shockwave(x,z,R*1.2,0x8fdcff,.8,0xa8c8e0);
         sprayP(1,x,y,z,130,{c:0xffffff,c2:0x6ab8f0,sp:4.2,up:1,s:.06,s2:0,life:.7,g:2.5,drag:.8,r:.5});nsSplinters(x,y+.2,z,40,2.6);
         for(let i=0;i<16;i++){const a=rnd()*6.28,sp=1.5+rnd()*2;emitS(0,{x:x+Math.cos(a)*.3,y:y+.1,z:z+Math.sin(a)*.3,vx:Math.cos(a)*sp,vy:.2+rnd()*.4,vz:Math.sin(a)*sp,s:.35,s2:1.3,c:0xf2f8ff,c2:0xc8dcec,a:.42,life:2+rnd(),lift:.05,drag:1.6,turb:.3});}
         nsDecal(x,z,R*1.3,0xe4f4ff,.72,5.4,{fin:.05,fout:1.8});nsDecal(x,z,.75,0x1a2a3a,.55,5.4,{fout:1.8});spikes.seam=nsSeams(x,z,1.35,10,0xcfefff,0x2a4a6a,mats,geos,.05);
         const G=nsIceGeos(),n=36;for(let i=0;i<n;i++){const a=i/n*6.28+(rnd()-.5)*.3,r=R*(.3+rnd()*.62),h=(.42+1*(1-r/R)*(.6+rnd()*.7)),w=.07+rnd()*.07;const piv=new THREE.Group();piv.position.set(x+Math.cos(a)*r,cy,z+Math.sin(a)*r);piv.rotation.y=-a;nsOwn(piv);
           const tilt=new THREE.Group();tilt.rotation.z=-(.18+rnd()*.38)*(.5+r/R);tilt.rotation.x=(rnd()-.5)*.3;piv.add(tilt);const m=new THREE.Mesh(G[2*(i%3)],rnd()<.6?NS_ICE:NS_ICE2);m.scale.set(w,h*.5,w*(.7+rnd()*.5));m.position.y=h*.45;tilt.add(m);tilt.scale.set(1,.001,1);spikes.push({piv,tilt,d:r/R*.18+rnd()*.05,cr:2.6+rnd()*.7,up:0});}
-        for(const e of enemies){if(e.dead)continue;if((e.x-cx)**2+(e.z-cz)**2<R*R){hurt(e,P*6,'magic',o);if(!e.dead){e.slow=Math.max(e.slow||0,.5);e.slowT=Math.max(e.slowT||0,3);}}}
-        NTOMB.slice().forEach(T=>{if(!T.done&&(T.x-cx)**2+(T.z-cz)**2<R*R)T.shatter(3);});}
+        for(const e of enemies){if(e.dead)continue;if((e.x-cx)**2+(e.z-cz)**2<R*R){hitL.push(e);hurt(e,P*6,'magic',o);if(!e.dead){e.slow=Math.max(e.slow||0,.5);e.slowT=Math.max(e.slowT||0,3);}}}
+        NTOMB.slice().forEach(T=>{if(!T.done&&(T.x-cx)**2+(T.z-cz)**2<R*R)T.shatter(3);});if(M)M.impact(x,z,cy,hitL,spikes);}
       const s=tt-TA;tail.hist.pop();if(tail.hist.length>2){tail.draw(1.4);tail.fade(Math.max(0,1-s*3));}else tail.fade(0);rune.userData.fade(Math.max(0,1-s*2));
       spikes.forEach(sp=>{if(sp.up<2&&s>=sp.d&&s<sp.cr){const k=Math.min(1,(s-sp.d)/.12),ob=k<1?k*1.15:1.15-.15*Math.min(1,(s-sp.d-.12)/.1);sp.tilt.scale.set(1,Math.max(.001,ob),1);sp.up=1;}
         else if(s>=sp.cr&&sp.up===1){sp.up=2;const wp=new THREE.Vector3();sp.tilt.getWorldPosition(wp);nsSplinters(wp.x,wp.y+.15,wp.z,3,.7);}if(sp.up===2){const v=Math.max(.001,sp.tilt.scale.x-dt*2.6);sp.tilt.scale.set(v,v,v);}});
-      if(spikes.seam){spikes.seam.grow(s/.3);spikes.seam.op(.55*Math.max(0,1-s/4.2),.9*Math.max(0,1-s/3.6));}
+      if(spikes.seam){spikes.seam.grow(s/.3);spikes.seam.op(.55*Math.max(0,1-s/4.2),.9*Math.max(0,1-s/3.6));}if(M)M.after(s,dt);
       if(rnd()<.6){const sp=spikes[Math.floor(rnd()*spikes.length)];if(sp&&sp.up===1){const wp=new THREE.Vector3();sp.tilt.getWorldPosition(wp);emit(1,{x:wp.x,y:wp.y+.2+rnd()*.3,z:wp.z,s:.06,s2:0,c:0xffffff,c2:0xbfe8ff,life:.25});}}
       zT-=dt;if(zT<=0){zT=.3;for(const e of enemies){if(e.dead||e.fly)continue;if((e.x-cx)**2+(e.z-cz)**2<R*R){e.slow=Math.max(e.slow||0,.4);e.slowT=Math.max(e.slowT||0,.5);}}}
       if(rnd()<.35)emit(0,{x:cx+(rnd()-.5)*R*2,y:cy+.05,z:cz+(rnd()-.5)*R*2,vy:.03,s:.18,s2:.45,c:0xf0f8ff,c2:0xd0e4f0,a:.22,life:1.3,turb:.2});}},
-    ()=>{tail.free();nsFree(rune);spikes.forEach(sp=>nsFree(sp.piv));if(spikes.seam)spikes.seam.free();if(!hit){darkTarget=0;vigTarget=0;}},{mats:mats.concat(rune.userData.mats),geos:geos.concat(rune.userData.geos)});}
+    ()=>{tail.free();nsFree(rune);spikes.forEach(sp=>nsFree(sp.piv));if(spikes.seam)spikes.seam.free();if(!hit){darkTarget=0;vigTarget=0;}if(M)M.end();},{mats:mats.concat(rune.userData.mats),geos:geos.concat(rune.userData.geos)});}
 
 /* ---- Thunder Wyrm (epic, lightning): a serpent of lightning rises from a storm rune, weaves back along the road and strikes ---- */
 function nsWyrmHead(mats,geos){const g=new THREE.Group(),mC=nsAM(mats,0xffffff,.95),mG=nsAM(mats,0x8fd8ff,.75),mH=nsAM(mats,0x2a6aff,.35);
@@ -14146,6 +14150,10 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Frostfall Comet masteries, redesigned',d:'28 Oct',v:'v419',li:[
+    'Comet\u2019s Eye: the comet steers as it falls, onto the thickest knot of foes it will land on. Frostfall Tail: it comes in low along the road and its tail rains ice onto the foes marching in, 50% each.',
+    'Crown of Spikes: a spike bursts up through every foe in the blast, 80% and pinned. Faultlines: foes it hits glow with fractures that the next ice hit (a scroll or a Frost Spire) shatters for 100% and a freeze, or that give way for 50%.',
+    'Rebound: the comet\u2019s heart wakes in the crater and bursts out onto the toughest foe nearby for 250%, then once more for 150%. The first set designed with the new mastery framework (MASTERY_DESIGN.md).']},
   {t:'Rare masteries for everyone',d:'28 Oct',v:'v417',li:[
     'The ten Rare scrolls now earn mastery XP and use their new masteries in every game, not only in developer mode. Scrolls above Rare come later.']},
   {t:'Entangling Roots masteries reworked',d:'28 Oct',v:'v416',li:[
@@ -28170,6 +28178,179 @@ function rtmRun(S,F){const L=S.L,a=S.a,T=F.map(f=>f.e);let t=0;const done={};
 /* ---- the hook ---- */
 const RTM_CAST0=castRoots;
 castRoots=function(t,list,P,o){const C=rtmC(o);if(!C)return RTM_CAST0.apply(this,arguments);return rtmCast(C,t,list,P,o);};
+
+/* ================= Frostfall Comet's masteries (v419), designed with Simon's framework (MASTERY_DESIGN.md) ================= */
+/* The first set designed in this session with Simon's framework rather than from Simon's own five. Its identity: one slow, telegraphed,
+   devastating strike from the sky (the sky dims, a rune and a growing shadow mark the spot, the comet falls on where the thickest knot
+   of foes will be, and lands in one blinding blow that raises a crown of ice spikes and leaves a frozen crater). Each mastery grows a
+   different part of it and asks its own question, and none takes another scroll's identity (Skyfall owns a rain of meteors, Glacial Rift
+   a wave of crystals racing along the road, Cataclysm a battlefield shockwave, Ice Tomb the ticking prison):
+   - M1 Comet's Eye (targeting; behaviour change: "what if it could correct its aim?"): while it falls the comet keeps steering for the
+     thickest knot of foes it will meet (their places when it lands), up to FCM.eyeMax tiles from its first aim at FCM.eyeSp a second;
+     the rune and the shadow slide with it, and a thin beam of cold light runs from the comet to the spot, a ring of crystals over it
+     closing as it locks. It mends the spell's weakness (a nuke that misses when the pack changes pace) and adds no damage of its own.
+   - M2 Frostfall Tail (the approach and the tail, which were only looks; a new phase: "what if the frost it trails actually fell?"):
+     the comet comes in low along the road, over the foes still marching in (FCM.tailLen tiles up the road, FCM.tailH high), and its
+     tail sheds shards of ice that fall onto the road under it: FCM.tail to each ground foe they land by (once a cast) and a chill.
+   - M3 Crown of Spikes (the crown, which was only looks: "what if the spikes impaled?"): a spike bursts up under every ground foe the
+     blast hits, through its body: FCM.spike and pinned FCM.pin s (Resolve applies, bosses less). The spikes crumble with the crown.
+   - M4 Faultlines (an interaction: "what if the impact set foes up for other ice?"): every foe the impact hits glows with ice fractures
+     for FCM.faultT s. The next ice hit from anything else (another scroll, a Frost Spire) shatters them: FCM.fault and frozen FCM.freeze
+     s (Resolve applies); if nothing does, they give way at the end for FCM.faultEnd. So it is worth something alone and more beside
+     other ice.
+   - M5 Rebound (the finale; a signature payoff: "what if the comet's energy were not spent?"): FCM.rebGlow s after the impact the comet's
+     heart wakes in the crater, glowing and pulsing faster, and at FCM.rebAt (as the crown gives way) it bursts out of the crater and arcs onto the toughest foe still standing within FCM.rebR tiles, FCM.reb, raising a small crown
+     of spikes; then it bounces once more onto the next toughest for FCM.reb2 and shatters. A durable foe or a boss feels it most.
+   Numbers: the comet hits about ten foes of a packed road for 600% each. The ladder (tests/sm-ladder.js: a pack, a churn of fresh foes
+   and a single foe) sets them; see SMG.comet below. Firestorm-like combos are untouched: Absolute Zero (an Ice Tomb in the blast) works
+   as before, and the masteries add nothing to it.
+   The looks are 3D: ice shards and splinters (nsIceGeos), crystal spikes, frost mist and snow, a beam and a ring of crystals for the
+   eye, the comet's heart (its rock, core and halo) with its own frost tail. No flat rings or shockwaves. FCM.dbg logs for the tests. */
+const FCM={dbg:null,last:null,
+  eyeR:2,eyeMax:1.4,eyeSp:2.6,
+  tail:.5,tailW:.55,tailSlow:.3,tailSlowT:1.5,tailLen:4.6,tailH:4.4,
+  spike:.8,pin:.5,
+  fault:1,faultEnd:.5,faultT:4,freeze:.4,
+  reb:2.5,reb2:1.5,rebR:4,rebAt:2.3,rebGlow:1.2};
+const fcmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='comet'?c:null;};
+const fcmLog=d=>{if(FCM.dbg){d.t=time;FCM.dbg.push(d);}};
+SM_D.comet=[
+  {n:'Comet\u2019s Eye',d:'The comet steers as it falls, tracking the thickest knot of foes it will land on (up to 1.4 tiles), its rune and shadow sliding with it.'},
+  {n:'Frostfall Tail',d:'The comet comes in low along the road, its tail shedding ice onto the foes marching in beneath it: {50}% to each and a chill.'},
+  {n:'Crown of Spikes',d:'The crown of ice impales: a spike bursts up through every foe in the blast, {80}% more and pinned for 0.5s (Resolve applies).'},
+  {n:'Faultlines',d:'Foes the impact hits glow with ice fractures for 4s. The next ice hit from anything else (a scroll or a Frost Spire) shatters them for {100}% and freezes them for 0.4s; if none comes, they give way for {50}%.'},
+  {n:'Rebound',d:'The comet\u2019s heart survives the impact: it bursts out of the crater and smashes into the toughest foe within 4 tiles for {250}%, then bounces once more for {150}%.'}];
+SMF.comet={m:1};
+SMA.comet=[1,1,1,1,1];
+/* the ladder (tests/sm-ladder.js, 4 runs) with these: 1.10 / 1.24 / 1.36 / 1.53 / 1.75 against the Epic (and Rare) ladder 1.09 / 1.23 / 1.35 /
+   1.52 / 1.74. Without them the masteries alone come to 1.00 / 1.03 / 1.12 / 1.17 / 1.36: the comet already kills a churn of 600-health
+   foes outright, so damage added on top of its blast counts for nothing there, and the Eye only pays when the pack changes pace (the
+   ladder's foes stand still). */
+SMG.comet=[1.15,1.3,1.3,1.42,1.37];
+
+const fcmHurt=(S,e,amt,ev,x)=>{if(!e||e.dead||state!=='playing')return false;hurt(e,amt,'magic',smO(S.o,{fcm:1}));fcmLog(Object.assign({ev,e,amt},x||{}));return true;};
+const FCM_CRACK=new THREE.MeshBasicMaterial({color:0x9fe8ff,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false});
+/* the eye's gaze: a faint shaft of cold light (its own materials, so it can breathe) */
+const FCM_GAZE=[new THREE.MeshBasicMaterial({color:0xbfeaff,transparent:true,opacity:.28,blending:THREE.AdditiveBlending,depthWrite:false}),new THREE.MeshBasicMaterial({color:0x4aa8ff,transparent:true,opacity:.1,blending:THREE.AdditiveBlending,depthWrite:false})];
+/* a puff of frost: white mist rolling out low, a few glittering motes */
+function fcmMist(x,y,z,n,R){for(let i=0;i<n;i++){const a=rnd()*6.283,sp=(.6+rnd()*1.2)*R;emitS(0,{x:x+Math.cos(a)*.15,y:y+.08,z:z+Math.sin(a)*.15,vx:Math.cos(a)*sp,vy:.15+rnd()*.25,vz:Math.sin(a)*sp,s:.18+.15*R,s2:.6+.6*R,c:0xf2f8ff,c2:0xc8dcec,a:.38,life:1.2+rnd()*.6,lift:.05,drag:1.6,turb:.3});}
+  for(let i=0;i<n;i++)emit(1,{x:x+(rnd()-.5)*.3*R,y:y+.1+rnd()*.3,z:z+(rnd()-.5)*.3*R,vx:(rnd()-.5)*.6,vy:.3+rnd()*.5,vz:(rnd()-.5)*.6,s:.05,s2:0,c:0xffffff,c2:0x8fdcff,life:.6+rnd()*.3});}
+/* spikes of ice bursting up out of the ground round a point, holding, then crumbling (Rebound's landings) */
+function fcmCrown(x,z,n,R,H,hold){const G=nsIceGeos(),y=gy(x,z),g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);const P=[];
+  for(let i=0;i<n;i++){const a=i/n*6.283+(rnd()-.5)*.4,r=R*(.25+rnd()*.75),h=H*(.5+.5*(1-r/R))*(.7+rnd()*.5),w=.05+rnd()*.05,piv=new THREE.Group();piv.position.set(Math.cos(a)*r,0,Math.sin(a)*r);piv.rotation.y=-a;g.add(piv);
+    const tl=new THREE.Group();tl.rotation.z=-(.2+rnd()*.4);piv.add(tl);const m=new THREE.Mesh(G[2*(i%3)],rnd()<.6?NS_ICE:NS_ICE2);m.scale.set(w,h*.5,w*(.7+rnd()*.5));m.position.y=h*.45;tl.add(m);tl.scale.set(1,.001,1);P.push({tl,d:r/R*.1+rnd()*.04});}
+  let t=0;addFx(g,hold+.5,(f,dt)=>{t+=dt;for(const p of P){const k=SMS(t,p.d,p.d+.1),out=SMS(t,hold,hold+.4);p.tl.scale.set(Math.max(.001,1-out),Math.max(.001,(k<1?k*1.15:1.15-.15*SMS(t,p.d+.1,p.d+.2))*(1-out)),Math.max(.001,1-out));}
+    if(t-dt<hold&&t>=hold)nsSplinters(x,y+.2,z,8,1);});}
+
+/* ---- the cast ---- */
+function fcmStart(o,K){const c=fcmC(o);if(!c)return null;const L=c.L,a=c.a;
+  const S={L,a,c,K,o:smO(o),P:K.P,E0:K.E.clone(),eyeT:0,goal:null,tdT:0,tailHit:new Set(),done:false,
+    fly(k,dt){if(L>=1)fcmEye(S,k,dt);if(L>=2)fcmTail(S,k,dt);},
+    impact(x,z,y,hitL,spikes){S.at={x,y,z};fcmLog({ev:'impact',x,z,n:hitL.length,dx:x-S.E0.x,dz:z-S.E0.z});if(S.eyeG){scene.remove(S.eyeG);S.eyeG=null;}
+      if(L>=3)for(const e of hitL)if(!e.dead&&!e.fake&&!e.fly)fcmImpale(S,e);
+      if(L>=4)for(const e of hitL)if(!e.dead&&!e.fake)fcmFault(S,e);},
+    after(s,dt){if(L>=5&&S.at){if(s>=FCM.rebGlow&&!S.rb)fcmHeartGlow(S,s,dt);if(!S.rb&&s>=FCM.rebAt){S.rb=true;if(S.hg){scene.remove(S.hg.g);S.hg=null;}fcmRebound(S,S.at,0,null);}}},
+    end(){S.done=true;if(S.eyeG){scene.remove(S.eyeG);S.eyeG=null;}if(S.hg){scene.remove(S.hg.g);S.hg=null;}}};
+  /* Frostfall Tail: it comes in low along the road, from up the road where the foes march in */
+  if(L>=2){const q=nsRouteNear(K.E.x,K.E.z),d0=Math.max(0,q.d-FCM.tailLen),p=posAt(d0,q.rt);K.S.set(p[0],gy(p[0],p[1])+FCM.tailH,p[1]);S.tr={rt:q.rt,d0,d1:q.d};}
+  FCM.last=S;fcmLog({ev:'comet',L});return S;}
+
+/* ---- M1 Comet's Eye ---- */
+function fcmEye(S,k,dt){const K=S.K,E=K.E,R2=(K.R*.95)**2;
+  if(k<.85){S.eyeT-=dt;if(S.eyeT<=0){S.eyeT=.08;const rem=(1-k)*K.TA;
+    /* where each foe will be when it lands; the spot with the most of them round it (within 3/4 of the blast) is the goal */
+    const pts=[];for(const q of enemies){if(q.dead||q.fake)continue;const p=rem>.05?nsLead(q,rem):{x:q.x,z:q.z};if((p.x-E.x)**2+(p.z-E.z)**2<(FCM.eyeR+K.R)**2)pts.push(p);}
+    /* the spot whose blast would take in the most of them (ties: the one nearest its aim), then centred on the foes it takes in, if that
+       loses none; it never moves for a spot no better than where it is aimed */
+    const cnt=(x,z)=>{let n=0;for(const q of pts)if((q.x-x)**2+(q.z-z)**2<R2)n++;return n;},M2=FCM.eyeMax*FCM.eyeMax;
+    /* a spot it cannot reach is taken as near as it can steer (FCM.eyeMax from its first aim) */
+    const reach=p=>{const dx=p.x-S.E0.x,dz=p.z-S.E0.z,l2=dx*dx+dz*dz;if(l2<=M2)return{x:p.x,z:p.z};const l=Math.sqrt(l2);return{x:S.E0.x+dx/l*FCM.eyeMax,z:S.E0.z+dz/l*FCM.eyeMax};};
+    let best={x:E.x,z:E.z},bn=cnt(E.x,E.z),bd=0;
+    for(const p0 of pts){const p=reach(p0),n=cnt(p.x,p.z),d=(p.x-E.x)**2+(p.z-E.z)**2;if(n>bn||(n===bn&&n>0&&d<bd&&best.x!==E.x)){bn=n;best=p;bd=d;}}
+    let sx=0,sz=0,m=0;for(const q of pts)if((q.x-best.x)**2+(q.z-best.z)**2<R2){sx+=q.x;sz+=q.z;m++;}const cg=m?reach({x:sx/m,z:sz/m}):best;S.goal=m&&cnt(cg.x,cg.z)>=bn?cg:best;fcmLog({ev:'eye',x:S.goal.x,z:S.goal.z,n:bn});}}
+  if(S.goal&&k<.92){const dx=S.goal.x-E.x,dz=S.goal.z-E.z,d=Math.hypot(dx,dz),st=Math.min(d,FCM.eyeSp*dt);if(d>1e-4){E.x+=dx/d*st;E.z+=dz/d*st;}
+    const ox=E.x-S.E0.x,oz=E.z-S.E0.z,ol=Math.hypot(ox,oz);if(ol>FCM.eyeMax){E.x=S.E0.x+ox/ol*FCM.eyeMax;E.z=S.E0.z+oz/ol*FCM.eyeMax;}E.y=gy(E.x,E.z)+.2;}
+  if(K.rune){K.rune.position.x=E.x;K.rune.position.z=E.z;K.rune.position.y=gy(E.x,E.z)+.03;}if(K.shadow){K.shadow.position.x=E.x;K.shadow.position.z=E.z;}
+  /* its gaze: a thin beam of cold light from the comet to the spot, and a ring of crystals over the spot closing as it locks on */
+  if(!S.eyeG){const g=smTag(new THREE.Group());scene.add(g);const bm=new THREE.Mesh(cyl(.01,.025,1,6),FCM_GAZE[0]),bg=new THREE.Mesh(cyl(.04,.1,1,8),FCM_GAZE[1]);g.add(bm,bg);
+    const ring=new THREE.Group();g.add(ring);const G=nsIceGeos();for(let i=0;i<8;i++){const m=new THREE.Mesh(G[i%6],NS_ICE);const a=i/8*6.283;m.position.set(Math.cos(a),0,Math.sin(a));m.scale.set(.035,.09,.035);m.rotation.z=Math.PI/2;m.rotation.y=-a;ring.add(m);}
+    S.eyeG=g;S.eye={bm,bg,ring};}
+  const H=K.head?K.head.position:K.S,gp=V3(E.x,gy(E.x,E.z)+.05,E.z),mid=gp.clone().add(H).multiplyScalar(.5),len=H.distanceTo(gp),q=new THREE.Quaternion().setFromUnitVectors(V3(0,1,0),H.clone().sub(gp).normalize());
+  for(const m of [S.eye.bm,S.eye.bg]){m.position.copy(mid);m.quaternion.copy(q);m.scale.set(1,len,1);}S.eye.bm.visible=S.eye.bg.visible=k<.97;FCM_GAZE[0].opacity=.16+.14*Math.sin(time*14)*.5+.12*k;FCM_GAZE[1].opacity=.06+.06*k;
+  const lock=SMS(k,.2,.9),rr=K.R*(1.1-.75*lock);S.eye.ring.position.set(E.x,gy(E.x,E.z)+.5+.4*(1-lock),E.z);S.eye.ring.scale.set(rr,rr,rr);S.eye.ring.rotation.y+=dt*(1.5+5*lock);
+  S.eye.ring.children.forEach(m=>{m.scale.set(.035/rr,.09/rr,.035/rr);});
+  if(rnd()<.6)emit(1,{x:E.x+(rnd()-.5)*.3,y:gy(E.x,E.z)+.05,z:E.z+(rnd()-.5)*.3,vx:0,vy:.6,vz:0,s:.05,s2:0,c:0xffffff,c2:0x8fdcff,life:.4});}
+
+/* ---- M2 Frostfall Tail ---- */
+function fcmTail(S,k,dt){if(k<.25||k>.97||!S.tr)return;S.tdT-=dt;if(S.tdT>0)return;S.tdT=.06;const K=S.K,H=K.head.position,G=nsIceGeos(),tr=S.tr;
+  /* shards break off the tail and fall onto the road below it: the stretch of road it is passing over (it follows the road's bends, so a
+     shard falls onto the road at the point matching how far the comet has come, even where its straight path cuts a corner) */
+  const u=clamp(H.distanceTo(K.S)/Math.max(.01,K.E.distanceTo(K.S)),0,1),rp=posAt(tr.d0+(tr.d1-tr.d0)*u,tr.rt);
+  for(let j=0;j<2;j++){const me=new THREE.Mesh(G[Math.floor(rnd()*6)],rnd()<.6?NS_ICE:NS_ICE2),s=.04+rnd()*.05;me.scale.set(s,s*1.8,s);me.position.set(H.x+(rnd()-.5)*.3,H.y-.1,H.z+(rnd()-.5)*.3);me.rotation.set(rnd()*6,rnd()*6,rnd()*6);scene.add(smTag(me));
+    const tx=rp[0]+(rnd()-.5)*.3,tz=rp[1]+(rnd()-.5)*.3,vy0=-1.5-rnd(),hh=Math.max(.05,me.position.y-gy(tx,tz)),tf=(-vy0+Math.sqrt(vy0*vy0+18*hh))/9;
+    const v=V3((tx-me.position.x)/tf,vy0,(tz-me.position.z)/tf),rs=(rnd()-.5)*10,dm=j===0;
+    addFx(me,1.2,(f,dt2)=>{v.y-=9*dt2;me.position.addScaledVector(v,dt2);me.rotation.x+=rs*dt2;const p=me.position;if(rnd()<.5)emit(1,{x:p.x,y:p.y,z:p.z,vx:0,vy:.2,vz:0,s:.05,s2:0,c:0xffffff,c2:0x8fdcff,life:.2});
+      const fl=gy(p.x,p.z);if(p.y<=fl+.03){f.life=0;nsSplinters(p.x,fl+.05,p.z,3,.6);emit(0,{x:p.x,y:fl+.08,z:p.z,vx:0,vy:.2,vz:0,s:.12,s2:.4,c:0xf2f8ff,c2:0xc8dcec,a:.35,life:.7,turb:.3});
+        if(dm)for(const e of enemies){if(e.dead||e.fake||e.fly||S.tailHit.has(e))continue;if((e.x-p.x)**2+(e.z-p.z)**2<FCM.tailW*FCM.tailW){S.tailHit.add(e);
+          if(fcmHurt(S,e,S.P*FCM.tail*S.a[1],'tail')){e.slow=Math.max(e.slow||0,FCM.tailSlow);e.slowT=Math.max(e.slowT||0,FCM.tailSlowT);const q=tpos2(e);nsSplinters(q.x,q.y,q.z,4,.8);}}}}});}}
+
+/* ---- M3 Crown of Spikes ---- */
+function fcmImpale(S,e){const G=nsIceGeos(),x=e.x,z=e.z,y=gy(x,z),piv=smTag(new THREE.Group());piv.position.set(x,y,z);piv.rotation.set((rnd()-.5)*.2,rnd()*6.28,(rnd()-.5)*.2);scene.add(piv);
+  const h=(e.hitY||.4)*1.6+.4,w=.09+rnd()*.03,sp=new THREE.Group();piv.add(sp);sp.scale.set(1,.001,1);
+  const m=new THREE.Mesh(G[2],NS_ICE);m.scale.set(w,h*.5,w*.8);m.position.y=h*.45;sp.add(m);
+  for(let i=0;i<2;i++){const m2=new THREE.Mesh(G[4+i],NS_ICE2),s2=(i?-1:1);m2.scale.set(w*.55,h*.28,w*.55);m2.position.set(s2*w*1.1,h*.22,0);m2.rotation.z=-s2*.45;sp.add(m2);}
+  const d=.04+rnd()*.06;let t=0,stab=false;
+  addFx(piv,2.9,(f,dt)=>{t+=dt;const k=SMS(t,d,d+.09),out=SMS(t,2.3,2.8);sp.scale.set(Math.max(.001,1-out),Math.max(.001,(k<1?k*1.15:1.15-.15*SMS(t,d+.09,d+.18))*(1-out)),Math.max(.001,1-out));
+    if(!stab&&t>=d+.06){stab=true;if(fcmHurt(S,e,S.P*FCM.spike*S.a[2],'impale')){smStun(e,FCM.pin);}const q=tpos2(e);nsSplinters(q.x,q.y,q.z,6,1.1);
+      for(let i=0;i<10;i++)emit(1,{x:q.x,y:q.y,z:q.z,vx:(rnd()-.5)*1.4,vy:.5+rnd()*1.2,vz:(rnd()-.5)*1.4,s:.05,s2:0,c:0xffffff,c2:0x8fdcff,life:.35,g:2});}
+    if(t-dt<2.3&&t>=2.3)nsSplinters(x,y+h*.5,z,5,.8);});}
+
+/* ---- M4 Faultlines ---- */
+function fcmFault(S,e){if(e.fcmF&&!e.fcmF.done)e.fcmF.drop();const G=nsIceGeos(),g=smTag(new THREE.Group());scene.add(g);const cr=[];
+  /* glowing cracks across the foe, plates of ice stuck to it, and a cold glow round it that swells before they give way */
+  const sz=Math.max(.8,Math.min(1.6,(e.hitY||.4)/.4));
+  for(let i=0;i<10;i++){const m=new THREE.Mesh(G[i%6],FCM_CRACK),a=i/10*6.283;m.position.set(Math.cos(a)*.14*sz,(rnd()-.5)*.32*sz,Math.sin(a)*.14*sz);m.scale.set(.014*sz,(.075+rnd()*.06)*sz,.014*sz);m.rotation.set(rnd()*3,rnd()*3,rnd()*3);g.add(m);cr.push(m);}
+  for(let i=0;i<3;i++){const m=new THREE.Mesh(G[(i*2)%6],NS_ICE),a=i/3*6.283+rnd();m.position.set(Math.cos(a)*.15*sz,(rnd()-.4)*.25*sz,Math.sin(a)*.15*sz);m.scale.set(.06*sz,.08*sz,.04*sz);m.rotation.set(rnd()*3,rnd()*3,rnd()*3);g.add(m);}
+  const gl=new THREE.Mesh(ico(.2*sz,1),haloMat(0x5ab8ff));g.add(gl);
+  const end=(ev,amt,fr)=>{if(F.done)return;F.done=true;if(e.fcmF===F)e.fcmF=null;const p=tpos2(e);g.visible=false;
+    if(fcmHurt(S,e,amt,ev)&&fr)smFreeze(e,fr);nsSplinters(p.x,p.y,p.z,fr?14:8,fr?1.6:1);fcmMist(p.x,p.y-.2,p.z,fr?5:3,fr?.8:.5);
+    for(let i=0;i<(fr?16:8);i++)emit(1,{x:p.x,y:p.y,z:p.z,vx:(rnd()-.5)*2.2,vy:(rnd()-.2)*1.6,vz:(rnd()-.5)*2.2,s:.06,s2:0,c:0xffffff,c2:0x6ab8ff,life:.4,g:2,drag:.8});};
+  const F={done:false,S,shatter(){end('faultShatter',S.P*FCM.fault*S.a[3],FCM.freeze);},give(){end('faultEnd',S.P*FCM.faultEnd*S.a[3],0);},drop(){F.done=true;if(e.fcmF===F)e.fcmF=null;g.visible=false;}};
+  e.fcmF=F;fcmLog({ev:'fault',e});let t=0;
+  addFx(g,FCM.faultT,(f,dt)=>{t+=dt;if(F.done){f.life=0;return;}if(e.dead){F.drop();f.life=0;return;}const p=tpos2(e);g.position.set(p.x,p.y,p.z);g.rotation.y+=dt*1.4;
+    const pu=.75+.25*Math.sin(t*9);gl.scale.setScalar(pu*(1+.2*SMS(t,FCM.faultT-.8,FCM.faultT)));cr.forEach((m,i)=>{m.scale.y=(.075+.035*Math.sin(t*6+i))*sz*(1+.5*SMS(t,FCM.faultT-.8,FCM.faultT));});
+    if(rnd()<.15)emit(1,{x:p.x+(rnd()-.5)*.2,y:p.y+(rnd()-.5)*.2,z:p.z+(rnd()-.5)*.2,vx:0,vy:.3,vz:0,s:.04,s2:0,c:0xffffff,c2:0x8fdcff,life:.3});},
+    ()=>{if(!F.done)F.give();});}
+/* the next ice hit from anything else shatters the fractures (the comet's own hits do not) */
+{const h0=hurt;hurt=function(e,amt,kind,o){const F=e&&e.fcmF,r=h0.apply(this,arguments);
+  if(F&&!F.done&&!e.dead&&o&&o.el==='ice'&&o.spell!=='comet'&&!o.dot&&!o.fcm&&amt>0)F.shatter();return r;};}
+
+/* ---- M5 Rebound ---- */
+/* the warning: as the crown starts to give way, the comet's heart wakes in the crater, glowing brighter and pulsing faster, frost drawn in */
+function fcmHeartGlow(S,s,dt){const A=S.at;if(!S.hg){const g=smTag(new THREE.Group());g.position.set(A.x,A.y+.12,A.z);scene.add(g);const core=new THREE.Mesh(ico(.1,1),NS_WHITE),h1=new THREE.Mesh(ico(.3,1),haloMat(0xcfeeff)),h2=new THREE.Mesh(ico(.45,1),haloMat(0x3a8aff));g.add(core,h1,h2);S.hg={g,core,h1,h2};fcmLog({ev:'heartWakes'});}
+  const k=SMS(s,FCM.rebGlow,FCM.rebAt),pu=.75+.25*Math.sin(s*(8+22*k));S.hg.core.scale.setScalar(.6+.7*k);S.hg.h1.scale.setScalar((.5+.8*k)*pu);S.hg.h2.scale.setScalar((.4+.9*k)*pu);S.hg.g.position.y=A.y+.12+.15*k;
+  if(rnd()<.3+.6*k){const a=rnd()*6.283,r=.6+rnd()*.5;emit(1,{x:A.x+Math.cos(a)*r,y:A.y+.1+rnd()*.3,z:A.z+Math.sin(a)*r,vx:-Math.cos(a)*r*2.2,vy:.1,vz:-Math.sin(a)*r*2.2,s:.05,s2:.02,c:0xffffff,c2:0x8fdcff,life:.4});}
+  blmLight(A.x,A.y+.5,A.z,.4+1*k,2.2,0xaad6ff);}
+function fcmRebound(S,from,n,last){if(state!=='playing')return;
+  const cand=enemies.filter(q=>!q.dead&&!q.fake&&Math.hypot(q.x-from.x,q.z-from.z)<FCM.rebR),pool=cand.filter(q=>q!==last),tg=(pool.length?pool:cand).reduce((p,q)=>!p||q.hp>p.hp?q:p,null);
+  if(!tg){nsSplinters(from.x,from.y+.2,from.z,12,1.4);fcmMist(from.x,from.y,from.z,4,.6);fcmLog({ev:'heartGone',n});return;}
+  /* the heart: the comet's rock, its white core and its halo, smaller, with a frost tail of its own */
+  const mats=[],g=smTag(new THREE.Group());scene.add(g);const rock=new THREE.Mesh(nsIceGeos()[1],NS_ICE);rock.scale.setScalar(.2);g.add(rock);g.add(new THREE.Mesh(ico(.12,1),NS_WHITE));
+  const h1=new THREE.Mesh(ico(.34,1),haloMat(0xcfeeff)),h2=new THREE.Mesh(ico(.45,1),haloMat(0x3a8aff));g.add(h1,h2);const tail=nsTrail(mats,[[0x2a6aff,.25,.2],[0x8fd8ff,.5,.09],[0xffffff,.9,.035]]);
+  const A=V3(from.x,from.y+.15,from.z),T=n?.42:.5,Hh=n?1.1:1.6,P=new THREE.Vector3();let t=0,landed=false,to=null;
+  if(!n){nsSplinters(A.x,A.y+.1,A.z,14,1.6);fcmMist(A.x,A.y,A.z,6,.7);sprayP(1,A.x,A.y+.1,A.z,30,{c:0xffffff,c2:0x6ab8f0,sp:2,up:2.2,s:.05,s2:0,life:.5,g:3});camShake=Math.max(camShake,.06);}
+  fcmLog({ev:'rebound',n,e:tg});
+  addFx(g,T+.6,(f,dt)=>{t+=dt;if(!landed){const live=!tg.dead;if(live||!to){const p=live?nsLead(tg,Math.max(0,T-t)):{x:tg.x,z:tg.z},yy=tg.fly?tpos2(tg).y:gy(p.x,p.z)+.1;to={x:p.x,y:yy,z:p.z};}
+      const k=Math.min(1,t/T),e2=k*k*(3-2*k);P.set(A.x+(to.x-A.x)*e2,A.y+(to.y-A.y)*k+Math.sin(k*Math.PI)*Hh,A.z+(to.z-A.z)*e2);g.position.copy(P);rock.rotation.x+=dt*9;rock.rotation.y+=dt*7;h1.scale.setScalar(.9+rnd()*.2);
+      tail.push(P,18);tail.draw(1);tail.fade(1);for(let i=0;i<5;i++)emit(1,{x:P.x+(rnd()-.5)*.12,y:P.y+(rnd()-.5)*.12,z:P.z+(rnd()-.5)*.12,vx:(rnd()-.5)*.4,vy:(rnd()-.5)*.4,vz:(rnd()-.5)*.4,s:.08+rnd()*.06,s2:.01,c:rnd()<.5?0xffffff:0xbfe8ff,c2:0x2a6aff,a:.9,life:.25+rnd()*.2,drag:1});
+      if(k>=1){landed=true;g.visible=false;const x=to.x,z=to.z,y=gy(x,z);
+        if(fcmHurt(S,tg,S.P*(n?FCM.reb2:FCM.reb)*S.a[4],'reboundHit',{n})){}
+        /* the landing: a burst of ice and a small crown of spikes, frost mist rolling out, a heavy thud */
+        nsSplinters(to.x,to.y+.1,to.z,n?16:24,n?1.6:2.1);fcmMist(x,y,z,n?6:9,n?.7:.9);sprayP(1,to.x,to.y+.1,to.z,n?40:60,{c:0xffffff,c2:0x6ab8f0,sp:n?2.6:3.4,up:1,s:.06,s2:0,life:.55,g:2.5,drag:.8,r:.2});
+        if(!tg.fly)fcmCrown(x,z,n?8:12,n?.55:.75,n?.7:.95,1.6);nsDecal(x,z,n?.5:.7,0xe4f4ff,.6,3.5,{fin:.05,fout:1.4});camShake=Math.max(camShake,n?.08:.12);
+        let lt=0;addFx(new THREE.Group(),.35,(f2,dt2)=>{lt+=dt2;blmLight(x,y+.6,z,1.2*(1-lt/.35),3,0xaad6ff);});
+        if(n<1)mxLater(.3,()=>fcmRebound(S,{x,y,z},n+1,tg));else mxLater(.25,()=>{nsSplinters(x,y+.3,z,10,1.2);fcmLog({ev:'heartGone',n:n+1});});}}
+    else{tail.hist.pop();if(tail.hist.length>2){tail.draw(1);tail.fade(Math.max(0,f.life/.6));}else tail.fade(0);}},()=>tail.free(),{mats});}
 
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
