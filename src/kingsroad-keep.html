@@ -14166,6 +14166,12 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Hundred-Year Bloom masteries, redesigned',d:'28 Oct',v:'v437',li:[
+    'Hundred-Year Bloom (Legendary) has five new masteries, for now in developer mode: Scent of Nectar (while the bud opens, golden scent streams out and draws foes up to 3.5 tiles away into the flower), Vine Lattice (thorned vines tie the held foes together, and a quarter of any other hit on one runs along them to the rest), Petal Storm (the burst throws 16 razor petals that whirl out and slice into the foes), Golden Haze (the pollen cloud is wider and thicker and drifts down the road with the foes in it) and A Hundred Years in a Breath (the fading flower goes to seed: ten glowing seeds drift onto the foes and sprout small blooms that grab them and burst).',
+    'Its burst now billows up as a golden cloud of pollen in 3D, and the shaft of light over it fades as it rises instead of standing as a flat white bar over the foes.']},
+  {t:'Glacial Rift masteries, redesigned',d:'28 Oct',v:'v436',li:[
+    'Glacial Rift (Legendary) has five new masteries, for now in developer mode: Frozen Sentinels (the frozen foes are left standing as ice statues that block the road), Undertow (the wave drags each foe a tile back up the road), Calving (slabs of ice break off the standing ridge and crash onto the road), Deep Cold (rime gathers on every foe out in the blizzard until it freezes solid) and Glacial Maw (as the ridge shatters the rift tears open and its fangs of ice slam shut on the foes along it).',
+    'Where the ridge shatters, a billowing frost cloud now rises in 3D with the flying crystals.']},
   {t:'Oakheart Treant masteries, redesigned',d:'28 Oct',v:'v426',li:[
     'Oakheart Treant (Epic) has five new masteries, for now in developer mode: Heavy Tread (its steps shake the road), Bark Bulwark (ground foes cannot get past it), Uprooted Boulder (every third slam it hurls a boulder at foes further off), Sap Harvest (it drains Overgrown foes and grows) and Timber! (at the end it topples forward along the road like a felled oak).',
     'Its slams now burst in 3D: clods and turf thrown in arcs and dust billowing up, instead of a flat ring.',
@@ -18792,22 +18798,27 @@ castBloom=function(t,c,P,o){const K=natKit(),F=nfxKit(),x=c.x,z=c.z,y0=gy(x,z),R
     o3.position.set(Math.cos(a)*(r+.06),.29,Math.sin(a)*(r+.06));o3.rotation.set(0,0,0);o3.scale.setScalar(.8);o3.updateMatrix();tpI.setMatrixAt(i,o3.matrix);}g.add(stI);g.add(tpI);geos.push(stI,tpI);
   const glow=new THREE.Mesh(G(new THREE.IcosahedronGeometry(.42,2)),haloMat(0xffe080));glow.position.y=.2;g.add(glow);
   g.scale.setScalar(.01);let tt=0,burst=false,hold=0;const vines=[],held=new Set();
+  const M=typeof hybStart==='function'?hybStart(o,{P,x,z,y0,R,LIFE,PG}):null;/* v437: the masteries (hybStart) */
   /* the flower and its vines hang off one holder, so a board cleared mid-bloom takes them all */
-  addFx(hb,LIFE,(f,dt)=>{tt+=dt;const gr=Math.min(1,tt/.45);g.scale.setScalar(Math.max(.01,(1-Math.pow(1-gr,3))*(1+.035*Math.sin(tt*8))));g.rotation.y+=dt*.12;
+  addFx(hb,LIFE,(f,dt)=>{tt+=dt;if(M)M.tick(tt,dt,burst);const gr=Math.min(1,tt/.45);g.scale.setScalar(Math.max(.01,(1-Math.pow(1-gr,3))*(1+.035*Math.sin(tt*8))));g.rotation.y+=dt*.12;
     for(const q of pets){const op=Math.max(0,Math.min(1,(tt-q.t0)/1.05)),e=op*op*(3-2*op);q.pe.rotation.x=-1.42+(1.3-q.ri*.18)*e;}glow.scale.setScalar(.8+.25*Math.sin(tt*6)+(burst?0:Math.min(1,tt/1.8)*.5));
     if(!burst){hold-=dt;if(hold<=0&&tt>.3){hold=.3;for(const e of enemies){if(e.dead||(e.x-x)**2+(e.z-z)**2>R*R)continue;e.slow=Math.max(e.slow||0,.6);e.slowT=Math.max(e.slowT||0,.4);if(!e.fly){stunE(e,.25);e.heldT=Math.max(e.heldT||0,.5);
         if(!held.has(e)&&vines.length<6){held.add(e);const p=tpos2(e),a=Math.atan2(e.z-z,e.x-x),V=natVine([nfxV(x+Math.cos(a)*.3,y0+.02,z+Math.sin(a)*.3),nfxV((x+e.x)/2,y0+.2,(z+e.z)/2),nfxV(p.x,p.y*.6+.05,p.z)],.03,6,'vine',{leaves:3,flowers:1,taper:.7});
           hb.add(V.g);geos.push(V.geo);V.t0=tt;vines.push(V);}}}}
       for(const V of vines)V.grow((tt-V.t0)/.3);
       if(rnd()<.7)emit(1,{x:x+(rnd()-.5)*.6,y:y0+.25,z:z+(rnd()-.5)*.6,vx:(rnd()-.5)*.2,vy:.5+rnd()*.4,vz:(rnd()-.5)*.2,s:.045,s2:0,c:0xffe890,c2:0xffb040,life:.8});
-      if(tt>=1.8){burst=true;const L=splashAt(x,z,R,P*7,'magic',o,true);for(const e of L)ovgApply(e,5);flash(x,y0+.5,z,0xffd8ec,1.4,.32);shockwave(x,z,R*1.05,0xf6a0c8,.55);ringFx(x,y0+.06,z,R,0xffe070,.5);
+      if(tt>=1.8){burst=true;const L=splashAt(x,z,R,P*7,'magic',o,true);for(const e of L)ovgApply(e,5);flash(x,y0+.5,z,0xffd8ec,.8,.22);
+        /* v437, the explosion rule: a billowing golden cloud of pollen bursts up with the petals (the flash is only an accent) */
+        if(typeof cfmBoom==='function'&&CFM_PAL.pollen)cfmBoom(x,y0+.3,z,.95,{pal:'pollen',lobes:5,T:1});shockwave(x,z,R*1.05,0xf6a0c8,.55);ringFx(x,y0+.06,z,R,0xffe070,.5);
         sprayP(1,x,y0+.4,z,44,{c:0xfff0a0,c2:0xffb040,sp:2.4,up:1.6,s:.05,s2:0,life:.9,g:1});nfxLeaves(x,y0+.5,z,26,[F.vcS],PG,.6);camShake=Math.max(camShake,.08);
-        const pc=G(new THREE.CylinderGeometry(.3,.45,5,16,1,true));pc.translate(0,2.5,0);const pm=new THREE.MeshBasicMaterial({color:0xffe0f0,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});mats.push(pm);
-        const pl=new THREE.Mesh(pc,pm);pl.position.set(x,y0,z);scene.add(pl);let pt=0;addFx(pl,.8,(f2,d2)=>{pt+=d2;pl.scale.set(1+pt*2,1,1+pt*2);pm.opacity=.6*Math.max(0,1-pt/.8);});
-        NAT.pollen.push({x,z,R:R*1.05,until:time+5,P,o:Object.assign({},o,{dot:true}),lit:false,acc:0});nfxPollenHaze(x,z,R*1.05,NAT.pollen[NAT.pollen.length-1]);}}
-    else{const k=Math.max(0,1-(tt-1.8)/1.2);g.scale.setScalar(Math.max(.01,k));for(const V of vines)V.grow(k);}},null,{geos,mats});};
+        /* v437: the shaft of light fades as it rises (vertex colours under additive light), so it reads as a soft beam, not a flat white bar over the foes */
+        const pc=G(new THREE.CylinderGeometry(.3,.45,5,16,6,true));pc.translate(0,2.5,0);{const ps=pc.attributes.position,cc=new Float32Array(ps.count*3);for(let i=0;i<ps.count;i++){const k=Math.pow(Math.max(0,1-ps.getY(i)/5),1.6);cc[i*3]=k;cc[i*3+1]=k*.92;cc[i*3+2]=k*.8;}pc.setAttribute('color',new THREE.BufferAttribute(cc,3));}
+        const pm=new THREE.MeshBasicMaterial({color:0xfff2d8,vertexColors:true,transparent:true,opacity:.42,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});mats.push(pm);
+        const pl=new THREE.Mesh(pc,pm);pl.position.set(x,y0,z);scene.add(pl);let pt=0;addFx(pl,.8,(f2,d2)=>{pt+=d2;pl.scale.set(1+pt*1.4,1,1+pt*1.4);pm.opacity=.42*Math.max(0,1-pt/.8);});
+        NAT.pollen.push({x,z,R:R*1.05,until:time+5,P,o:Object.assign({},o,{dot:true}),lit:false,acc:0});nfxPollenHaze(x,z,R*1.05,NAT.pollen[NAT.pollen.length-1]);if(M)M.burst(L);}}
+    else{const k=Math.max(0,1-(tt-1.8)/1.2);g.scale.setScalar(Math.max(.01,k));for(const V of vines)V.grow(k);}},()=>{if(M)M.end();},{geos,mats});};
 /* the pollen haze: soft golden puffs drifting over the cloud for as long as it lasts */
-function nfxPollenHaze(x,z,R,cl){const g=new THREE.Group();scene.add(g);const sp=[],y=gy(x,z);
+function nfxPollenHaze(x,z,R,cl){const g=new THREE.Group();scene.add(g);if(cl)cl.haze=g;const sp=[],y=gy(x,z);
   for(let i=0;i<7;i++){const m=new THREE.SpriteMaterial({map:nsBlot(),color:0xffe070,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const s=new THREE.Sprite(m);
     const a=i/7*6.28,r=R*(.25+rnd()*.5);s.position.set(x+Math.cos(a)*r,y+.35+rnd()*.4,z+Math.sin(a)*r);s.scale.setScalar(R*(.7+rnd()*.4));s.userData.ph=rnd()*6;g.add(s);sp.push(s);}
   let tt=0;addFx(g,5.2,(f,dt)=>{tt+=dt;const k=Math.min(1,tt/.6)*Math.min(1,f.life/.8)*(cl.lit?Math.max(0,1-(time-cl.until)*4):1);
@@ -20618,7 +20629,7 @@ SMA.skyfall=[1,1,1,1,1];SMG.skyfall=[1.09,1.22,1.29,1.44,1.55];
 SMA.glacialrift=[1,1,1,1,1];SMG.glacialrift=[1.08,1,1,1,1];
 SMA.harvest=[1,1,1,1,1];SMG.harvest=[1.02,1.15,1.26,1.42,1.63];
 SMA.dslash=[1,1,1,1,1];SMG.dslash=[1.02,1.15,1.25,1.41,1.6];
-SMA.bloom=[1,1,1,1,1];SMG.bloom=[1.09,1.2,1.31,1.48,1.67];
+SMA.bloom=[1,1,1,1,1];SMG.bloom=[1.094,1.234,1.234,1.234,1.234];
 
 /* ---------- mastery effects take the artifact set's colours ----------
    A set recolours its element's scrolls by casting them inside its colour context (asRun; effects made there keep it, addFx binds them).
@@ -29360,6 +29371,171 @@ function grmStart(o,K){const c=grmC(o);if(!c)return null;const L=c.L,a=c.a;
     end(){for(const [e,q] of S.cold)if(q.g&&q.g.parent)q.g.parent.remove(q.g);S.cold.clear();grmMawEnd(S);for(const q of S.pushes)if(q.crest)scene.remove(q.crest);for(const z of K.frozen)if(z.st&&z.st.g.parent)z.st.g.parent.remove(z.st.g);}};
   grmLog({ev:'cast',L});return S;}
 
+/* ================= Hundred-Year Bloom's masteries (v437), designed with Simon's framework (MASTERY_DESIGN.md) =================
+   (Simon, passed on by the Highlands session: "can you seperate all the legendary scrolls between the 3 parallel workers and you to finish
+   them all except the dimensional slash please"; then "you can start the legendary scrolls".)
+   Identity: a flower a hundred years in the making opening in one long breath among the foes. A giant bud pushes out of the earth, its
+   vines hold the foes while its petals open, then it bursts in a storm of petals and its golden pollen hangs in the air, choking what
+   walks in (and lightning sets it off). Its design space: the opening bud and its scent, the vines that hold, the petals of the burst, the
+   pollen, and the flower's own life (it grows, opens and goes to seed). Each mastery grows one of them and asks its own question; none takes
+   another scroll's identity (Bramble Patch owns the carnivorous flower that snaps shut, Entangling Roots the roots that hold five foes,
+   Thorn Whip the lashing vine, Catch Flame the fire that spreads from foe to foe, Rime Bloom the frozen patch):
+   - M1 Scent of Nectar (the opening bud; behaviour change, targeting: "what if the bloom called them in?"): from the moment the bud
+     breaks the ground until it bursts, its scent draws in foes up to HYB.lureR tiles away: they turn and walk to the flower (along the
+     road, at HYB.lureV tiles a second; bosses at half that) until its vines take them. Golden motes stream from the flower to each.
+     The burst catches the stragglers of a loose group too.
+   - M2 Vine Lattice (the vines; an interaction: "what if the vines bound them together?"): the vines reach every foe the bloom holds
+     and tie each to its nearest neighbours with thorned vines, for as long as it holds and HYB.bindT s after the burst. A hit from
+     anything else (a building, another scroll, the hero) on one bound foe runs HYB.share of it along the vines to every other bound
+     foe (up to HYB.shareN), a pulse of green light racing along them. The bloom's own hits (the burst, the pollen) do not run.
+   - M3 Petal Storm (the burst, whose petals were only looks; cosmetic made real: "what if the storm of petals was real?"): the burst
+     throws HYB.petals razor petals that whirl out in a rising spiral, then turn and slice into the foes within HYB.petalR tiles:
+     HYB.petal each, at most HYB.petalMax on a foe.
+   - M4 Golden Haze (the pollen; behaviour change: "what if the pollen chased them?"): the pollen cloud is HYB.hazeK times wider and
+     drifts down the road with the foes in it (HYB.hazeV tiles a second), choking them for its whole 5 seconds, and they are left
+     Overgrown while they breathe it.
+   - M5 A Hundred Years in a Breath (the flower's life; a signature payoff: "what if the bloom went to seed?"): as the flower fades, its
+     heart ripens into a glowing seed head that rises and bursts; HYB.seeds seeds drift out on the wind and settle on the foes nearest
+     them within HYB.seedR tiles (or on the road), and each sprouts a small bloom that grabs the foes around it (HYB.seedHold s,
+     Resolve applies, not bosses) and bursts for HYB.seed within HYB.seedBR.
+   The base burst is brought up to the explosion rule (in castBloom itself, so it is there with no mastery too): a billowing golden cloud
+   of pollen (cfmBoom, its new 'pollen' palette) bursts up with the petals, the flat flash is a small accent, and the shaft of light fades
+   as it rises instead of standing as a flat white bar over the foes.
+   Numbers: the base deals 700% to every foe in the flower (2.2 tiles) at 1.8s, then its pollen 50% a second for 5s. The ladder
+   (tests/sm-ladder.js, 3 runs: a pack, a churn of fresh 600-health foes and a single foe) comes to 1.06 / 1.16 / 1.27 / 1.54 / 1.79
+   against 1.09 / 1.23 / 1.35 / 1.52 / 1.74, with the hidden factor SMG.bloom [1.094,1.234,1.234,1.234,1.234]: the scent and the lattice
+   do no damage of their own (their worth is foes brought into the burst and hits shared along the vines, which the ladder cannot count),
+   so the factor carries them, and from the petals on the masteries' own damage climbs the rungs (the pack and the single foe land on
+   them; the churn lags while the burst already kills a fresh foe either way). HYB.dbg logs for the tests. */
+const HYB={dbg:null,lureR:3.5,lureV:1.1,bindT:3,share:.25,shareN:6,petals:16,petalR:3.2,petal:.8,petalMax:3,hazeK:1.3,hazeDmg:.4,hazeV:.7,seeds:10,seedR:5,seedHold:.6,seed:.5,seedBR:.65};
+const hybC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='bloom'?c:null;};
+const hybLog=d=>{if(HYB.dbg){d.t=time;HYB.dbg.push(d);}};
+SM_D.bloom=[
+  {n:'Scent of Nectar',d:'While the bud opens its scent draws in the foes up to 3.5 tiles away: they walk to the flower (turning back if they are past it) until its vines take them.'},
+  {n:'Vine Lattice',d:'The vines bind the foes it holds to each other, until 3s after the burst: {25}% of any hit on one from anything else runs along the vines to the others.'},
+  {n:'Petal Storm',d:'The burst throws 16 razor petals that whirl out, then slice into the foes within 3.2 tiles: {80}% each, at most 3 on a foe.'},
+  {n:'Golden Haze',d:'The pollen cloud is 30% wider and {40}% thicker, and it drifts down the road with the foes in it: they choke for all of its 5 seconds and are left Overgrown.'},
+  {n:'A Hundred Years in a Breath',d:'As it fades the flower goes to seed: 10 glowing seeds drift onto the foes within 5 tiles and sprout small blooms that grab them for 0.6s and burst for {50}%.'}];
+SMF.bloom={m:1};
+SMA.bloom=[1,1,1,1,1];
+/* ---- the golden pollen palette for the shared blast (cfmBoom): cream, gold, a warm white heart, a rose edge ---- */
+const CFM_BOOM_FS_POLLEN='uniform float uT,uHeat,uDis,uA,uSeed,uGlow;varying vec3 vP,vN,vV;varying float vD;'+CFM_N3+
+  'void main(){float n=fb3(vP*2.7+vec3(uSeed*1.7,uSeed,0.)+vec3(0.,-uT*1.5,0.));float f=abs(dot(normalize(vN),normalize(vV)));'+
+  'float h=uHeat*(.42+1.*n)*(.5+.5*f)+vD*.14*uHeat;'+
+  'vec3 c=vec3(.86,.8,.62)+vec3(.12,.1,.06)*n*(.55+.45*f);c=mix(c,vec3(.92,.5,.62),smoothstep(.1,.24,h));c=mix(c,vec3(1.,.86,.36),smoothstep(.24,.44,h));'+
+  'c=mix(c,vec3(1.,.93,.6),smoothstep(.44,.68,h));c=mix(c,vec3(1.,1.,.92),smoothstep(.76,.98,h));'+
+  'float a=uA*smoothstep(uDis,uDis+.18,n*.85+f*.32)*smoothstep(.0,.45,f)*mix(.5,1.,clamp(uHeat*2.5,0.,1.));if(a<.01)discard;'+
+  'if(uGlow>0.)gl_FragColor=vec4(c*smoothstep(.42,.95,h),a*uGlow);else gl_FragColor=vec4(c,a);}';
+CFM_PAL.pollen={s:[0xfff8d8,0xffb040],e:[0xffe080,0xd88a20],k:[0xfff4c0,0xff9ac8],d:[0xe8dcb0,0xc8b480],g:[0xf0d890,0xd0a040],w:[0xf4ecd0,0xe0d4b0]};
+{const bm0=cfmBoomMat;cfmBoomMat=function(glow,pal){const m=bm0.apply(this,arguments);if(pal==='pollen'){m.fragmentShader=CFM_BOOM_FS_POLLEN;m.needsUpdate=true;}return m;};}
+/* ---- shared pieces ---- */
+const hybV=(x,y,z)=>new THREE.Vector3(x,y,z);
+/* where on its own road a foe comes closest to (x,z): the distance along the road it walks to */
+function hybRoadNear(e,x,z){const rt=e.route||ROUTES[0];let best=e.dist,bd=1e9;for(let d=Math.max(0,e.dist-5);d<=Math.min(rt.len,e.dist+5);d+=.1){const p=posAt(d,rt),q=(p[0]-x)**2+(p[1]-z)**2;if(q<bd){bd=q;best=d;}}return{d:best,d2:bd};}
+let HYB_VINE=null,HYB_THORN=null;
+function hybMats(){if(!HYB_VINE){HYB_VINE=new THREE.MeshPhongMaterial({color:0x3e6a22,emissive:0x0e2008,flatShading:true,shininess:20});HYB_THORN=new THREE.MeshPhongMaterial({color:0x8a5a3a,emissive:0x1a0c04,flatShading:true});}return{vine:HYB_VINE,thorn:HYB_THORN};}
+/* M1's scent: a stream of golden motes flowing from the flower out to a foe it calls, weaving as it goes */
+function hybScent(par){const g=new THREE.Group(),m=[];for(let i=0;i<7;i++){const q=new THREE.Group();q.add(new THREE.Mesh(ico(.03,1),NS_WHITE));q.add(new THREE.Mesh(ico(.085,1),haloMat(0xffd860)));g.add(q);m.push(q);}par.add(g);return{g,m,ph:rnd()};}
+function hybScentTick(sc,K,e,t){const p=tpos2(e),ax=K.x,ay=K.y0+.5,az=K.z,bx=p.x,by=p.y*.7+.1,bz=p.z,dx=bx-ax,dz=bz-az,l=Math.hypot(dx,dz)||1,nx=-dz/l,nz=dx/l;
+  sc.m.forEach((q,i)=>{const u=(i/sc.m.length+t*.7+sc.ph)%1,s=Math.sin(u*Math.PI),w=Math.sin(u*6.283+t*4)*.2*s;q.position.set(ax+dx*u+nx*w,ay+(by-ay)*u+s*.4,az+dz*u+nz*w);q.scale.setScalar(.5+.7*s);});}
+/* a thorned vine between two foes, its ends following them every frame (it hangs off the lattice's holder) */
+function hybTether(par,a,b){const M=hybMats(),g=new THREE.Group(),body=new THREE.Mesh(cyl(.028,.028,1,5),M.vine);body.rotation.x=Math.PI/2;g.add(body);const th=[];
+  for(let i=0;i<4;i++){const t=new THREE.Mesh(cone(.016,.06,4),M.thorn),an=i*2.1;t.userData.an=an;t.rotation.set(Math.sin(an)*1.2,0,-Math.cos(an)*1.2);g.add(t);th.push(t);}
+  g.visible=false;par.add(g);return{a,b,g,body,th,par,k:0,pulse:[]};}
+function hybTetherTick(T,dt){const pa=tpos2(T.a),pb=tpos2(T.b),A=hybV(pa.x,pa.y*.6+.06,pa.z),B=hybV(pb.x,pb.y*.6+.06,pb.z);T.k=Math.min(1,T.k+dt/.3);
+  /* it grows from a toward b */
+  const E=A.clone().lerp(B,T.k),L=A.distanceTo(E);T.g.visible=L>.02;if(T.g.visible){T.g.position.copy(A).lerp(E,.5);T.g.lookAt(E);T.body.scale.y=L;
+    T.th.forEach((t,i)=>t.position.set(Math.cos(t.userData.an)*.03,Math.sin(t.userData.an)*.03,(-.5+(i+.5)/T.th.length)*L));}
+  for(let i=T.pulse.length-1;i>=0;i--){const p=T.pulse[i];p.t+=dt;const u=Math.min(1,p.t/.22);p.m.position.copy(A).lerp(B,p.fwd?u:1-u);if(u>=1){T.par.remove(p.m);T.pulse.splice(i,1);}}}
+function hybPulse(T,fromA){const m=new THREE.Group();m.add(new THREE.Mesh(ico(.035,1),NS_WHITE));m.add(new THREE.Mesh(ico(.09,1),haloMat(0x9aff60)));T.par.add(m);T.pulse.push({m,t:0,fwd:fromA});}
+const hybCut=T=>{if(T.g.parent)T.par.remove(T.g);T.pulse.forEach(p=>T.par.remove(p.m));T.pulse.length=0;};
+/* a razor petal: one of the flower's own petals, small, with a pink ribbon behind it */
+function hybPetal(S,i,n,P0,targets){const F=nfxKit(),mats=[],m=new THREE.Mesh(S.K.PG||F.petalG,F.vcS),g=smTag(new THREE.Group());m.scale.setScalar(.32);g.add(m);g.position.copy(P0);scene.add(g);
+  const tr=nsTrail(mats,[[0xff4a98,.5,.04],[0xffd0e6,.85,.012]]),a0=i/n*6.283;let t=0,tgt=null,from=null;const SP=.55,HOME=.32;
+  addFx(g,SP+HOME+.6,(f,dt)=>{t+=dt;if(t<SP){const k=t/SP,a=a0+k*4.2,r=.3+k*1.5;g.position.set(P0.x+Math.cos(a)*r,P0.y+.2+k*1.1,P0.z+Math.sin(a)*r);m.rotation.set(t*9,a,t*5);}
+    else{if(!tgt&&!from){tgt=targets(g.position);from=g.position.clone();if(!tgt){f.life=Math.min(f.life,.35);}}
+      if(tgt){const k=Math.min(1,(t-SP)/HOME),q=tpos2(tgt),E=hybV(q.x,q.y,q.z);g.position.copy(from).lerp(E,k*k);g.position.y+=Math.sin(k*Math.PI)*.25;m.rotation.y+=dt*14;
+        if(k>=1){if(!tgt.dead){hurt(tgt,S.P*HYB.petal*S.a[2],'magic',S.o);sprayP(1,q.x,q.y,q.z,8,{c:0xffd0e8,c2:0xff3a8a,sp:1.2,up:.4,s:.035,s2:0,life:.35,g:1.5});hybLog({ev:'petal',e:tgt});}tgt=null;f.life=Math.min(f.life,.3);from=from||g.position.clone();}}
+      else{g.position.y+=dt*.6;m.scale.multiplyScalar(Math.max(0,1-dt*3));}}
+    tr.push(g.position,10);tr.draw(1);tr.fade(Math.min(1,f.life/.3));},()=>tr.free(),{mats});}
+/* a seed of M5: a glowing tuft drifting on the wind to where it lands */
+function hybSeed(S,P0,land,onLand){const g=smTag(new THREE.Group()),core=new THREE.Mesh(ico(.035,1),NS_WHITE);g.add(core);g.add(new THREE.Mesh(ico(.11,1),haloMat(0xfff4c8)));
+  const tuft=new THREE.Group();for(let i=0;i<10;i++){const s=new THREE.Mesh(cyl(.004,.004,.12,3),NS_WHITE),a=i/10*6.283;s.position.set(Math.cos(a)*.04,.06,Math.sin(a)*.04);s.rotation.set(Math.sin(a)*.6,0,-Math.cos(a)*.6);tuft.add(s);}g.add(tuft);
+  g.position.copy(P0);scene.add(g);const mats=[],tr=nsTrail(mats,[[0xfff0b0,.35,.03]]),dur=1.1+rnd()*.5,C=hybV((P0.x+land.x)/2+(rnd()-.5)*1.2,P0.y+1+rnd()*.8,(P0.z+land.z)/2+(rnd()-.5)*1.2);let t=0;
+  addFx(g,dur,(f,dt)=>{t+=dt;const k=Math.min(1,t/dur),ke=k*k*(3-2*k),E=hybV(land.x,gy(land.x,land.z)+.05,land.z);g.position.set((1-ke)*(1-ke)*P0.x+2*(1-ke)*ke*C.x+ke*ke*E.x,(1-ke)*(1-ke)*P0.y+2*(1-ke)*ke*C.y+ke*ke*E.y+Math.sin(t*7)*.03,(1-ke)*(1-ke)*P0.z+2*(1-ke)*ke*C.z+ke*ke*E.z);
+    tuft.rotation.y+=dt*3;tr.push(g.position,12);tr.draw(1);tr.fade(1);if(rnd()<.3)emit(1,{x:g.position.x,y:g.position.y,z:g.position.z,vx:0,vy:.1,vz:0,s:.03,s2:0,c:0xfff4c8,c2:0xffd060,life:.5});},
+    ()=>{tr.free();onLand();},{mats});}
+/* a small bloom sprouting where a seed lands: grows, holds, bursts */
+function hybSprout(S,x,z){const F=nfxKit(),y=gy(x,z),g=smTag(new THREE.Group());g.position.set(x,y,z);scene.add(g);const pets=[],PG=S.K.PG||F.petalG;
+  for(let i=0;i<7;i++){const pv=new THREE.Group();pv.rotation.y=i/7*6.283;const pe=new THREE.Mesh(PG,F.vcS);pe.scale.setScalar(.42);pv.add(pe);pv.position.y=.04;g.add(pv);pets.push(pe);}
+  const ht=new THREE.Mesh(ico(.09,1),F.gold);ht.position.y=.08;g.add(ht);const gl=new THREE.Mesh(ico(.16,1),haloMat(0xffe080));gl.position.y=.1;g.add(gl);g.scale.setScalar(.01);
+  natDirt(x,z,6,.5);let t=0,burst=false;const GROW=.3,HOLD=HYB.seedHold+.05;const held=new Set();
+  addFx(g,GROW+HOLD+.5,(f,dt)=>{t+=dt;const gr=Math.min(1,t/GROW);g.scale.setScalar(Math.max(.01,1-Math.pow(1-gr,3)));for(const pe of pets)pe.rotation.x=-1.4+1.15*Math.min(1,t/(GROW+HOLD*.6));gl.scale.setScalar(.8+.4*Math.sin(t*12));
+    if(t>GROW*.6&&!burst){for(const e of enemies){if(e.dead||e.fake||held.has(e)||(e.x-x)**2+(e.z-z)**2>HYB.seedBR*HYB.seedBR)continue;held.add(e);if(!e.boss&&!e.fly){smStun(e,HYB.seedHold);e.heldT=Math.max(e.heldT||0,HYB.seedHold);hybLog({ev:'grab',e});}}}
+    if(!burst&&t>=GROW+HOLD){burst=true;let n=0;for(const e of enemies){if(e.dead||e.fake||(e.x-x)**2+(e.z-z)**2>HYB.seedBR*HYB.seedBR)continue;hurt(e,S.P*HYB.seed*S.a[4],'magic',S.o);n++;if(!e.dead)ovgApply(e,3);}
+      cfmBoom(x,y+.15,z,.42,{pal:'pollen',lobes:3,T:.7});sprayP(1,x,y+.25,z,12,{c:0xffd8ec,c2:0xff5aa0,sp:1.3,up:.9,s:.045,s2:.01,life:.6,g:1.6});hybLog({ev:'sprout',x,z,n});}
+    if(burst){const k=Math.min(1,(t-GROW-HOLD)/.5);g.scale.setScalar(Math.max(.01,1-k));}},null,{});}
+/* ---- M4: the pollen cloud drifting with the foes ---- */
+function hybHaze(S,cl){const R0=cl.R;cl.R=R0*HYB.hazeK;cl.P*=1+HYB.hazeDmg*S.a[3];const x0=cl.x,z0=cl.z;let t=0;hybLog({ev:'haze',R:cl.R});
+  addFx(new THREE.Group(),5.1,(f,dt)=>{t+=dt;if(!NAT.pollen.includes(cl))return;let sx=0,sz=0,n=0;for(const e of enemies){if(e.dead||e.fake)continue;const d2=(e.x-cl.x)**2+(e.z-cl.z)**2;if(d2>(cl.R+.6)**2)continue;sx+=e.x;sz+=e.z;n++;}
+    if(n){const tx=sx/n,tz=sz/n,dx=tx-cl.x,dz=tz-cl.z,dl=Math.hypot(dx,dz),st=Math.min(dl,HYB.hazeV*dt);if(dl>1e-4){cl.x+=dx/dl*st;cl.z+=dz/dl*st;}}
+    if(cl.haze)cl.haze.position.set(cl.x-x0,0,cl.z-z0);
+    for(const e of enemies){if(e.dead||e.fake||(e.x-cl.x)**2+(e.z-cl.z)**2>cl.R*cl.R)continue;ovgApply(e,.6);}
+    if(rnd()<dt*14){const a=rnd()*6.283,r=Math.sqrt(rnd())*cl.R;emitS(0,{x:cl.x+Math.cos(a)*r,y:gy(cl.x,cl.z)+.2+rnd()*.4,z:cl.z+Math.sin(a)*r,vx:0,vy:.05,vz:0,s:.14,s2:.4,c:0xffe070,c2:0xd0a020,a:.32,life:1.3,lift:.05,turb:.4});}},null,{});}
+/* ---- the hit wrapper of M2: a hit on a bound foe from anything else runs along the vines ---- */
+const HYB_BOUND=new Map();/* foe -> lattice */
+{const h0=hurt;hurt=function(e,amt,kind,o){const r=h0.apply(this,arguments);
+  if(HYB_BOUND.size&&e&&amt>0&&!(o&&(o.hybShare||o.dot||o.spell==='bloom'))){const Lt=HYB_BOUND.get(e);if(Lt&&time<Lt.until){let n=0;const oo=Object.assign({},o||{},{hybShare:1,smx:1,noReact:true});
+      for(const q of Lt.foes){if(q===e||q.dead||n>=HYB.shareN)continue;n++;h0.call(this,q,amt*HYB.share*Lt.a,kind,oo);}
+      for(const T of Lt.tethers)if(T.g.parent&&(T.a===e||T.b===e))hybPulse(T,T.a===e);if(n)hybLog({ev:'share',e,n,amt});}}
+  return r;};}
+{const rr=resetRun;resetRun=function(){HYB_BOUND.clear();return rr.apply(this,arguments);};}
+/* ---- the cast's hooks (castBloom calls them) ---- */
+function hybStart(o,K){const c=hybC(o);if(!c)return null;const L=c.L,a=c.a;
+  const S={L,a,c,K,o:smO(o),P:K.P,lured:new Set(),tgt:new Map(),pd:new Map(),scent:new Map(),sg:null,lat:null,hold:null,tt:0,
+    tick(tt,dt,burst){S.tt=tt;
+      /* M1: the scent draws them in (until the burst): a foe past the flower turns back up the road to it, one short of it hurries on */
+      if(L>=1&&!burst&&tt>.2){for(const e of enemies){if(e.dead||e.fake||e.dist==null)continue;let tg=S.tgt.get(e);
+          if(tg===undefined){const d2=(e.x-K.x)**2+(e.z-K.z)**2;if(d2>HYB.lureR*HYB.lureR||d2<(K.R*.8)**2)continue;const q=hybRoadNear(e,K.x,K.z);tg=q.d2<=K.R*K.R*.5?q.d:null;S.tgt.set(e,tg);if(tg!=null){S.lured.add(e);hybLog({ev:'lure',e});}}
+          if(tg==null)continue;if((e.x-K.x)**2+(e.z-K.z)**2<(K.R*.6)**2){S.pd.delete(e);continue;}
+          const v=HYB.lureV*(e.boss?.5:1)*dt,p0=S.pd.has(e)?S.pd.get(e):e.dist;
+          if(tg<p0)e.dist=Math.max(tg,p0-v);else if(e.dist<tg)e.dist=Math.min(tg,e.dist+v);S.pd.set(e,e.dist);moveEnemy(e,0);
+          let sc=S.scent.get(e);if(!sc&&S.scent.size<8){sc=hybScent(S.sg);S.scent.set(e,sc);}if(sc)hybScentTick(sc,K,e,tt);}
+        for(const [e,sc] of S.scent)if(e.dead||!S.pd.has(e)){S.sg.remove(sc.g);S.scent.delete(e);}}
+      if(burst&&S.sg&&S.scent.size){for(const sc of S.scent.values())S.sg.remove(sc.g);S.scent.clear();}
+      /* M2: the lattice of thorned vines between the held foes */
+      if(L>=2){if(!burst&&tt>.35){for(const e of enemies){if(e.dead||e.fake||e.fly||(e.x-K.x)**2+(e.z-K.z)**2>K.R*K.R||S.lat.foes.includes(e))continue;
+            const others=S.lat.foes.filter(q=>!q.dead).sort((p,q)=>((p.x-e.x)**2+(p.z-e.z)**2)-((q.x-e.x)**2+(q.z-e.z)**2)).slice(0,2);S.lat.foes.push(e);HYB_BOUND.set(e,S.lat);
+            for(const q of others)S.lat.tethers.push(hybTether(S.hold,e,q));hybLog({ev:'bind',e,n:S.lat.foes.length});}}}},
+    burst(hitL){const x=K.x,z=K.z,y=K.y0;
+      if(L>=2){S.lat.until=time+HYB.bindT;mxLater(HYB.bindT+.05,S.unbind);hybLog({ev:'lattice',n:S.lat.foes.length});}
+      if(L>=3){const n=HYB.petals,taken=new Map(),P0=hybV(x,y+.45,z);
+        const pick=pos=>{let best=null,bd=1e9;for(const e of enemies){if(e.dead||e.fake||(e.x-x)**2+(e.z-z)**2>HYB.petalR*HYB.petalR)continue;const c2=taken.get(e)||0;if(c2>=HYB.petalMax)continue;const d=(e.x-pos.x)**2+(e.z-pos.z)**2+c2*1.5;if(d<bd){bd=d;best=e;}}
+          if(best)taken.set(best,(taken.get(best)||0)+1);return best;};
+        for(let i=0;i<n;i++)mxLater(i*.02,()=>hybPetal(S,i,n,P0,pick));hybLog({ev:'storm',n});}
+      if(L>=4){const cl=NAT.pollen[NAT.pollen.length-1];if(cl&&Math.abs(cl.x-x)<1e-6&&Math.abs(cl.z-z)<1e-6)hybHaze(S,cl);}
+      if(L>=5)mxLater(.55,()=>hybSeedHead(S));},
+    end(){}};
+  if(L>=1){S.sg=smTag(new THREE.Group());scene.add(S.sg);addFx(S.sg,K.LIFE,null,null,{});}
+  /* the lattice outlives the flower (until HYB.bindT s after the burst): its holder ticks the vines and takes them all when it goes */
+  if(L>=2){S.hold=smTag(new THREE.Group());scene.add(S.hold);S.lat={foes:[],tethers:[],until:time+K.LIFE+HYB.bindT,a:a[1]};
+    addFx(S.hold,K.LIFE+HYB.bindT+.3,(f,dt)=>{for(const T of S.lat.tethers){if(T.a.dead||T.b.dead||time>S.lat.until){hybCut(T);continue;}hybTetherTick(T,dt);}if(time>S.lat.until)f.life=Math.min(f.life,.05);},
+      ()=>{},{});S.unbind=()=>{for(const e of S.lat.foes)if(HYB_BOUND.get(e)===S.lat)HYB_BOUND.delete(e);};mxLater(K.LIFE+HYB.bindT+.4,S.unbind);}
+  hybLog({ev:'cast',L});return S;}
+/* M5: the seed head rises out of the fading flower and bursts into seeds */
+function hybSeedHead(S){const K=S.K,x=K.x,z=K.z,y=K.y0,g=smTag(new THREE.Group());g.position.set(x,y+.3,z);scene.add(g);
+  const core=new THREE.Mesh(ico(.14,2),nfxKit().gold);g.add(core);const halo=new THREE.Mesh(ico(.32,2),haloMat(0xfff0b0));g.add(halo);
+  for(let i=0;i<24;i++){const u=rnd()*2-1,a=rnd()*6.283,r=Math.sqrt(1-u*u),dir=hybV(r*Math.cos(a),u,r*Math.sin(a)),s=new THREE.Mesh(cyl(.006,.006,.3,3),NS_WHITE);s.position.copy(dir.clone().multiplyScalar(.2));s.lookAt(dir.clone().multiplyScalar(2));s.rotateX(Math.PI/2);g.add(s);
+    const tip=new THREE.Mesh(ico(.04,1),haloMat(0xffffff));tip.position.copy(dir.clone().multiplyScalar(.36));g.add(tip);}
+  g.scale.setScalar(.01);hybLog({ev:'seedhead'});let t=0,popped=false;
+  addFx(g,1,(f,dt)=>{t+=dt;const k=Math.min(1,t/.55);g.scale.setScalar(Math.max(.01,1-Math.pow(1-k,3)));g.position.y=y+.3+.9*k;g.rotation.y+=dt*1.5;halo.scale.setScalar(1+.25*Math.sin(t*14));
+    if(!popped&&t>=.6){popped=true;const P0=g.position.clone();sprayP(1,P0.x,P0.y,P0.z,24,{c:0xffffff,c2:0xfff0b0,sp:1.4,up:.6,s:.035,s2:0,life:.6,g:.4});
+      /* the seeds go to the foes nearest them within HYB.seedR (one each), the rest to the road among them */
+      const foes=enemies.filter(e=>!e.dead&&!e.fake&&(e.x-x)**2+(e.z-z)**2<=HYB.seedR*HYB.seedR).sort((p,q)=>((p.x-x)**2+(p.z-z)**2)-((q.x-x)**2+(q.z-z)**2));
+      for(let i=0;i<HYB.seeds;i++){let land;const e=foes[i%Math.max(1,foes.length)];if(e&&i<foes.length){const ld=nsLead(e,1.3);land={x:ld.x,z:ld.z};}
+        else if(e){const a=rnd()*6.283,r=.7+rnd()*.8;land={x:e.x+Math.cos(a)*r,z:e.z+Math.sin(a)*r};}else{const a=rnd()*6.283,r=1+rnd()*2;land={x:x+Math.cos(a)*r,z:z+Math.sin(a)*r};}
+        hybSeed(S,P0,land,()=>hybSprout(S,land.x,land.z));}hybLog({ev:'seeds',n:HYB.seeds,on:Math.min(foes.length,HYB.seeds)});}
+    if(popped){g.scale.multiplyScalar(Math.max(0,1-dt*6));}},null,{});}
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();

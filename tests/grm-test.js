@@ -8,7 +8,8 @@ let errs=0;const ce=console.error;console.error=function(){errs++;return ce.appl
 const clean=()=>{for(const e of enemies.slice())removeEnemy(e);enemies=[];spawners.length=0;};
 const play=()=>{meta.arena='plains';meta.dev=true;meta.scrAuto=false;lsSet(KR,null);state='menu';clearWorld();buildMap(31);MAP.fresh=true;newGame(1);paused=true;auto=0;lives=1e9;clean();
   if(!heroU){const q=heroTileNear(meta.equipped,innerWidth/2,innerHeight*.45);spawnHero(q.c,q.r);}if(meta.arts&&meta.arts.eq)meta.arts.eq[heroU.hero]=[null,null,null];ART_V++;AS.k=null;if(typeof asEl==='function')asEl();};
-let walk=false;const run=sec=>{for(let i=0;i<Math.round(sec/.05);i++){if(walk)update(.05);updFx(.05);time+=.05;}};
+/* update moves the clock itself, so a walking row does not add to it */
+let walk=false;const run=sec=>{for(let i=0;i<Math.round(sec/.05);i++){if(walk)update(.05);else time+=.05;updFx(.05);}};
 const setL=L=>{meta.smast=meta.smast||{};if(L)meta.smast.glacialrift=SM_XP[L-1];else delete meta.smast.glacialrift;};
 const RT=()=>ROUTES[0];let D=0,T0=0;
 const foe=(d,type,hp,spd)=>{spawnEnemy({type:type||'soldier',v:0},20);const e=enemies[enemies.length-1];e.route=RT();e.dist=d;e.off=0;e.spd=spd||0;e.maxHp=e.hp=hp||1e9;e.armor=0;e.res={};e.shield=0;e.regen=0;moveEnemy(e,0);return e;};
