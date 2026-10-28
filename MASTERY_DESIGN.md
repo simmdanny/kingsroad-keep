@@ -69,11 +69,26 @@ them off the road edge is not supported), overlapping effects do not double-hit,
 bosses, Resolve and decoys, without clutter or performance trouble. Prefer ideas that are distinctive without being needlessly
 hard to build.
 
+## The explosion rule (Simon, 28 Oct): every explosion is 3D
+Simon: "theres gonna be a rule I have to set for all future and current explosion effects, no bland 2d effect, it should be 3d even if
+just a little bit, no too much to obstruct the entire vision but what we have right now just sucks".
+- **Applies to new and existing effects.** When you rework a scroll, bring its base cast's explosions up to this rule too.
+- **Flat is not enough on its own:** a flat ring or disc on the ground, a flat shockwave arc, a decal, a screen flash, a single
+  camera-facing sprite or a lone glowing blob must not be the explosion itself. They may accompany one, as an aftermath on the ground
+  (scorch, frost, cracks) or a quick accent.
+- **3D means volume and height:** noise-displaced fireballs and frost clouds that billow, rise and burn out (see `ftmBall`, `cfmBoom`);
+  shells and domes; jets of flame or frost streaming out in every direction (particles in streams); debris and chunks thrown in arcs
+  (`ftmChunk`, `nsSplinters`); spikes and crystals bursting up; rising columns; smoke that climbs; rings that have a wall or are made of 3D
+  pieces racing outward (a ring of fireballs, a band with height). Even a small effect gets a little of this.
+- **Do not block the view:** keep it brief and partly see-through, scale it to the effect, let heavy parts fade fast and never let it cover
+  the road or the foes for long (no whiteouts, no lingering black soot blots, no big glows stacking into a white sheet when many foes are
+  hit at once). Check it in screenshots at the game's normal zoom (camera zoom 1) and close up, with a crowd of foes.
+
 ## The checklist (every mastery, before presenting a set)
 - [ ] **Identity**: it clearly belongs to this spell.
 - [ ] **Novelty**: it is meaningfully different from the other four.
 - [ ] **Gameplay**: it changes behaviour, timing, targeting, coverage or interactions.
-- [ ] **Visuals**: the player can clearly see it happening.
+- [ ] **Visuals**: the player can clearly see it happening, and every explosion in it is 3D (the explosion rule).
 - [ ] **Balance**: damage, frequency, target count, bosses and synergies considered.
 - [ ] **Compatibility**: it respects pathing, status and targeting rules.
 - [ ] **Rarity**: its complexity and payoff suit its tier.
