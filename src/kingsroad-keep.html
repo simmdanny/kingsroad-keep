@@ -14134,7 +14134,7 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
-  {t:'Spatial Deflection masteries, reworked',d:'28 Oct',v:'v406',li:[
+  {t:'Spatial Deflection masteries, reworked',d:'28 Oct',v:'v407',li:[
     'Fractured Perspective: at the snap, fractures of light race across the zone and bend the ground beneath the foes, 35%. Echoes of Elsewhere: two ghostly copies of the zone collapse into it in turn, 50%.',
     'Folded Space: the zone folds along a glowing cross and draws the foes inside toward its centre, 75% at the snap. The Impossible Prison: a crystal cage closes round the zone and shatters inward, 100%.',
     'Paradox Collapse: the zone collapses into a singularity, ruptures into three rings of fractured light (60%) and snaps back in a blinding flash (150%). Rare masteries are still in developer mode.']},
@@ -25427,7 +25427,7 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
   const S={t,e,len,dmg,C,P:C.P,L:C.L,a:C.a,o:smO(o),o0:o,hits:[]};C.bem=S;bemLog({ev:'cast',L:C.L});
   if(C.L>=5){bemStar(S);mxLater(BEM.raT0,()=>{if(state==='playing')bemFire(S,true);});}
   else bemFire(S,false);};
-/* ================= Spatial Deflection's masteries, as Simon designed them (v406) ================= */
+/* ================= Spatial Deflection's masteries, as Simon designed them (v407) ================= */
 /* Simon (abridged; the "upgrade" notes left out): "Mastery 1 - Fractured Perspective: When the zone snaps back, thin fractures of light race
    outward from its centre, splitting into smaller cracks that briefly distort the ground beneath nearby enemies. Each affected enemy takes an
    additional 35% damage. Visual: on release, a luminous geometric fracture pattern spreads across the circle, and each crack briefly appears to

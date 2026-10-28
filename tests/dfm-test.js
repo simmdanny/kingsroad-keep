@@ -1,5 +1,5 @@
 (function(){
-/* Spatial Deflection's masteries as Simon designed them (v406). Run on the dev page: __kk.ev(await (await fetch('/tests/dfm-test.js')).text())
+/* Spatial Deflection's masteries as Simon designed them (v407). Run on the dev page: __kk.ev(await (await fetch('/tests/dfm-test.js')).text())
    returns [name, ok, detail] rows. Foes stand on the road where they are put (only the effects are stepped, updFx, with the game clock moved
    along), and hurt is wrapped to log the amount each hit is called with (the cast's power is 100, so the snap is 250). Times are counted
    from the zone's start (the crystal's flight comes first). Puts the account back afterwards. */
