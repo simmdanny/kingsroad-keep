@@ -43,7 +43,7 @@ P.hit=[];P.hx=[];{const h0=hurt;if(!h0.__pv){const w=function(e,amt){const R=win
 P.ev={};P.spy=(fn,key)=>{key=key||fn;let f;try{f=eval(fn);}catch(e){return;}if(typeof f!=='function'||f.__pv)return;const w=function(){P.ev[key]=(P.ev[key]||0)+1;return f.apply(this,arguments);};w.__pv=1;eval(fn+'=w');};
 /* the stage: a straight stretch of road running across the view, the hero standing in front of it, foes placed by hand and the scroll cast
    by the recorder (st: {seed, ri, d, c, r}: the map, the route, the spot on it facing the hero, the hero's tile) */
-P.setup=(k,L,s)=>{P.clearTags();P.T=0;P.ev={};P.hit=[];P.hx=[];meta.owned=meta.owned||{};meta.owned[s.hero]=true;meta.equipped=s.hero;const st=s.st;
+P.setup=(k,L,s)=>{P.clearTags();P.T=0;P.ev={};P.hit=[];P.hx=[];P.packAt=null;meta.owned=meta.owned||{};meta.owned[s.hero]=true;meta.equipped=s.hero;const st=s.st;
   meta.dev=true;meta.sfx=false;meta.scrAuto=false;meta.shake=false;meta.arena='plains';meta.smast={};if(L>0)meta.smast[k]=SM_XP[L-1];meta.spells={};meta.spells[k]={lvl:1,hero:null};
   for(const e of enemies.slice())removeEnemy(e);enemies=[];spawners.length=0;SMPV.on=false;
   state='menu';clearWorld();buildMap(st.seed);MAP.fresh=true;newGame(1);paused=true;auto=0;speed=1;lives=1e9;spawners.length=0;nextQ=null;
@@ -57,16 +57,16 @@ P.setup=(k,L,s)=>{P.clearTags();P.T=0;P.ev={};P.hit=[];P.hx=[];meta.owned=meta.o
     if(f.elite==='armored')e.armor=.35;if(f.fly!=null)e.fly=f.fly;moveEnemy(e,0);if(f.tag)P.tag(e,f.tag,f.tc||'#ffd070');e.pvT=!!f.target;P.foes.push(e);return e;};
   /* the pack is placed where it will be at the moment of the cast */
   for(const f of s.pack)add(f,d0-s.spd*s.castAt+(f.at||0));
-  for(const f of (s.trail||[]))add(f,d0-s.spd*s.castAt+(f.at||0));
+  for(const f of (s.trail||[]))add(f,d0-s.spd*s.castAt+(f.at||0)).pvTrail=1;
   /* the camera holds still on the hero and where the pack will be when the scroll lands */
   const pc=posAt(Math.max(.05,d0+s.spd*(s.look==null?.6:s.look)),rt),fwz=s.fwz==null?1:s.fwz,fx=heroU.x*(1-s.fw)+pc[0]*s.fw,fz=heroU.z*(1-fwz)+pc[1]*fwz;
   P.cam={x:fx+(s.cx||0),zz:fz+(s.cz==null?.12:s.cz),y:gy(fx,fz),z:s.zoom};P.camSet();
   for(const sp of (s.spy||[]))P.spy(sp);if(s.pre)eval(s.pre);return{Pw,n:P.foes.length};};
 P.targets=()=>{let l=enemies.filter(e=>!e.dead&&!e.fake);l.sort((a,b)=>(b.pvT?1e3:0)-(a.pvT?1e3:0)||b.dist-a.dist);if(P.s&&P.s.only&&l[0]&&l[0].pvT)l=[l[0]];return l;};
-P.cast=(k2)=>{const k=k2||P.k,H=heroU;H.scd={};H.gcd=0;if(!meta.spells[k])meta.spells[k]={lvl:1,hero:null};const l=P.targets();P.lastT=l[0]&&l[0].pvT;fireScroll(H,k,tStats(H),l);P.casts++;};
+P.cast=(k2)=>{const k=k2||P.k,H=heroU;H.scd={};H.gcd=0;if(!meta.spells[k])meta.spells[k]={lvl:1,hero:null};const l=P.targets();P.lastT=l[0]&&l[0].pvT;if(!P.casts)P.packAt=P.foes.filter(e=>!e.dead&&!e.pvTrail).map(e=>[e.x,e.z]);fireScroll(H,k,tStats(H),l);P.casts++;};
 P.fxN=()=>fx.length;
 /* the camera framing the hero and every place a foe was hit (from a run without pictures, the same as the recorded one: the random is seeded) */
-P.frame=(s)=>{const pts=P.hx.slice();pts.push([heroU.x,heroU.z]);let x0=1e9,x1=-1e9;for(const [x] of pts){x0=Math.min(x0,x);x1=Math.max(x1,x);}
+P.frame=(s)=>{const pts=P.hx.concat(P.packAt||[]);pts.push([heroU.x,heroU.z]);let x0=1e9,x1=-1e9;for(const [x] of pts){x0=Math.min(x0,x);x1=Math.max(x1,x);}
   /* the road stays across the middle of the view (effects rise up the screen, labels sit over the foes); left to right it frames every hit */
   const rz=posAt(s.st.d,ROUTES[s.st.ri])[1],cz=rz+(s.cz==null?.15:s.cz),cx=(x0+x1)/2+(s.cx||0);let hd=0;for(const [,z] of pts)hd=Math.max(hd,Math.abs(z-cz));
   const hw=(x1-x0)/2+(s.margin==null?.85:s.margin);hd+=.6;
@@ -85,7 +85,7 @@ async function openPage(browser) {
   /* a seeded random from the very start (the game keeps its own copy of Math.random, const rnd) */
   await ctx.addInitScript(() => { let s = 1; Math.random = function () { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; window.__seed = n => { s = n | 0; }; });
   const page = await ctx.newPage(); const errors = [];
-  page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !/ERR_FAILED/.test(m.text())) errors.push(m.text()); });
+  page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !/ERR_FAILED|Failed to load resource/.test(m.text())) errors.push(m.text()); });
   await page.goto('http://localhost:8771/src/kingsroad-keep.html', { waitUntil: 'load', timeout: 120000 });
   await page.waitForFunction(() => window.__kk && typeof THREE !== 'undefined', null, { timeout: 90000 });
   const ev = c => page.evaluate(c => __kk.ev(c), c);
