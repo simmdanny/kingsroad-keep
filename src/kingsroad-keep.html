@@ -28455,7 +28455,8 @@ function pvcHas(k,L){const m=pvcMan();return!!(m&&m.clips&&m.clips[pvcId(k,L)]);
 /* a clip already fetched plays from memory; one not fetched yet streams from where the list came from */
 function pvcUrl(k,L){const id=pvcId(k,L);return PVC.urls[id]||(PVC.man?PVC.base+id+'.mp4':null);}
 function pvcFetch(k,L){const id=pvcId(k,L);if(PVC.urls[id]||PVC.got[id]||!pvcHas(k,L))return;
-  PVC.got[id]=fetch(PVC.base+id+'.mp4').then(r=>r.ok?r.blob():null).then(b=>{if(b&&b.size)PVC.urls[id]=URL.createObjectURL(b.type?b:new Blob([b],{type:'video/mp4'}));}).catch(()=>{PVC.got[id]=null;});}
+  PVC.got[id]=fetch(PVC.base+id+'.mp4').then(r=>r.ok?r.blob():null).then(b=>{if(b&&b.size)PVC.urls[id]=URL.createObjectURL(/^video\//.test(b.type)?b:new Blob([b],{type:'video/mp4'}));}).catch(()=>{PVC.got[id]=null;});}
+/* (raw GitHub sends the clips as plain bytes: they are labelled video/mp4 so every browser plays them) */
 /* the clips of one scroll that can be watched (opening its mastery card) */
 function pvcPrefetch(k){if(!pvcMan())return;for(let L=0;L<=5;L++)if(smPvCan('scroll',k,L))pvcFetch(k,L);}
 setTimeout(()=>{try{pvcMan();}catch(e){}},2500);
