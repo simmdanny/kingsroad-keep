@@ -47,7 +47,8 @@ try{
       const b=pw(0),r=[3,5].map(L=>{const v=pw(L);let f=0;for(const m in W)f+=W[m]*v[m]/Math.max(1,b[m]);return f;});res[k]=r.map(v=>+v.toFixed(2));
       /* the noisy ones (riftfang: one run swings with how the foes happen to stand, e.g. how many a piercing shard lines up) are measured
          on 3 runs and only have to come out clearly stronger */
-      if(['riftfang'].includes(k)?(r[0]<1.05||r[1]<1.15):(Math.abs(r[0]/smTarget(k,3)-1)>.35||Math.abs(r[1]/smTarget(k,5)-1)>.35))off.push(k);}
+      /* a scroll on its designer's own numbers (SM.free) only has to reach 3/4 of the ladder, as in smast-test and smast2-test */
+      if(SM.free&&SM.free[k]?(r[0]<.75*smTarget(k,3)||r[1]<.75*smTarget(k,5)):['riftfang'].includes(k)?(r[0]<1.05||r[1]<1.15):(Math.abs(r[0]/smTarget(k,3)-1)>.35||Math.abs(r[1]/smTarget(k,5)-1)>.35))off.push(k);}
     ok('Mastery 3 lands near an Epic and Mastery 5 near a Legendary (within 35%; noisy ones clearly stronger)',!off.length,'targets '+smTarget('riftfang',3).toFixed(2)+'/'+smTarget('riftfang',5).toFixed(2)+' '+JSON.stringify(res));}
   ok('no errors',errs===0,errs);
 }catch(e){ok('exception',false,e.message+' '+(e.stack||'').split('\n')[1]);}
