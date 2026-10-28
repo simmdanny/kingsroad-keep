@@ -29,8 +29,8 @@ const go=(L,list,sec)=>{const added=track();wrapHurt();try{cast(L,list);run(sec|
 try{
   /* ---- the card ---- */
   ok('the five masteries and their names',SM_D.stormcaller.map(x=>x.n).join('|')==='Seeking Bolts|Downpour|Rolling Thunder|Storm Front|Last Thunder',SM_D.stormcaller.map(x=>x.n).join('|'));
-  ok('the numbers on the card match the code',/45%/.test(smDesc('stormcaller',1))&&/40%/.test(smDesc('stormcaller',2))&&/110%/.test(smDesc('stormcaller',3))&&/40%/.test(smDesc('stormcaller',4))&&/250%/.test(smDesc('stormcaller',4))&&/100%/.test(smDesc('stormcaller',4))&&
-    STC.soak===.45&&STC.roll===.4&&STC.front===1.1&&STC.cage===.4&&STC.last===2.5&&STC.lastR===1&&STC.soakR===2&&STC.rollLen===1.6,[1,2,3,4].map(i=>smDesc('stormcaller',i)).join(' / '));
+  ok('the numbers on the card match the code',/45%/.test(smDesc('stormcaller',1))&&/40%/.test(smDesc('stormcaller',2))&&/110%/.test(smDesc('stormcaller',3))&&/30%/.test(smDesc('stormcaller',4))&&/180%/.test(smDesc('stormcaller',4))&&/70%/.test(smDesc('stormcaller',4))&&
+    STC.soak===.45&&STC.roll===.4&&STC.front===1.1&&STC.cage===.3&&STC.last===1.8&&STC.lastR===.7&&STC.soakR===2&&STC.rollLen===1.6,[1,2,3,4].map(i=>smDesc('stormcaller',i)).join(' / '));
   ok('the old masteries are gone, SMA is 1 and the numbers are tuned (no SM.free)',!SMF.stormcaller.cast&&!SMF.stormcaller.hit&&SMA.stormcaller.every(x=>x===1)&&!(SM.free&&SM.free.stormcaller));
   ok('no mastery name is also a scroll\'s name',!SM_D.stormcaller.some(x=>Object.values(SPELLS_S).some(s=>s.n===x.n)));
   /* ---- Mastery 0 ---- */
@@ -59,7 +59,7 @@ try{
   /* ---- M5 Last Thunder ---- */
   {play();STC.dbg=[];log=[];const F=crowd();const Far=foe(-6,0);const added=go(5,null,22);const li=ev('lastIn').map(x=>x.e),lo=ev('lastOut').map(x=>x.e);
     ok('M5: at its end a thunderhead gathers, a ring of bolts closes in, then the colossal bolt',!!ev('last0')[0]&&ev('cage').length>=0&&!!ev('last')[0]&&ev('last0')[0].time>=ev('cast')[0].time+17.3);
-    ok('M5: 250% within 1.4 (stunned), 100% out to 2.6, 40% from the ring',li.length>0&&li.every(e=>sm(e,250).length===1)&&lo.every(e=>sm(e,100).length===1)&&ev('cage').every(x=>sm(x.e,40).length>0)&&!li.includes(Far)&&!lo.includes(Far),li.length+' in, '+lo.length+' out, '+ev('cage').length+' caged');
+    ok('M5: 180% within 1.4 (stunned), 70% out to 2.6, 30% from the ring',li.length>0&&li.every(e=>sm(e,180).length===1)&&lo.every(e=>sm(e,70).length===1)&&ev('cage').every(x=>sm(x.e,30).length>0)&&!li.includes(Far)&&!lo.includes(Far),li.length+' in, '+lo.length+' out, '+ev('cage').length+' caged');
     ok('M5: Masteries 1-4 ride it',ev('seek').length>0&&ev('roll').length>0&&!!ev('front0')[0]);
     ok('M5: everything is gone afterwards',smLeft(added)===0,smLeft(added));}
   /* ---- other casters ---- */

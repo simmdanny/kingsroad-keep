@@ -14164,6 +14164,9 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Stormcaller masteries, redesigned',d:'28 Oct',v:'v434',li:[
+    'Stormcaller (Legendary) has five new masteries, for now in developer mode: Seeking Bolts (a bolt that would fall near a foe bends onto it, marked by a sigil), Downpour (its clouds rain on the road and a bolt on a Soaked foe runs through the water to the others), Rolling Thunder (the thunder of each strike rolls along the road), Storm Front (from 8s to 11s the storm marches down every road as a front of bolts) and Last Thunder (at its end the clouds draw into one thunderhead: a ring of bolts closes in, then a colossal bolt).',
+    'Each of its strikes now throws forks of lightning up and out and tears stones from the road.']},
   {t:'Oakheart Treant masteries, redesigned',d:'28 Oct',v:'v426',li:[
     'Oakheart Treant (Epic) has five new masteries, for now in developer mode: Heavy Tread (its steps shake the road), Bark Bulwark (ground foes cannot get past it), Uprooted Boulder (every third slam it hurls a boulder at foes further off), Sap Harvest (it drains Overgrown foes and grows) and Timber! (at the end it topples forward along the road like a felled oak).',
     'Its slams now burst in 3D: clods and turf thrown in arcs and dust billowing up, instead of a flat ring.',
@@ -29246,7 +29249,7 @@ function trmTimber(g,yaw,sz,dmg,O){const x0=g.position.x,z0=g.position.z,dx=-Mat
      STC.last within 1.4, STC.lastR out to 2.6, and the foes in the middle are stunned 0.6s (Resolve applies).
    The base cast follows the explosion rule (every cast): each strike now throws forks of lightning up and out and tears stones from the
    road (on top of its shockwave, which rises as a wall since v420). STC.dbg (an array) logs the events for the tests. */
-const STC={dbg:null,seekT:.3,seekR:1.2,soak:.45,soakR:2,soakT:2,roll:.4,rollLen:1.6,rollW:.55,front:1.1,frontR:.9,frontT0:8,frontT1:11,frontIv:.12,cage:.4,cageR:.7,last:2.5,lastR:1,lastIn:1.4,lastOut:2.6,stun:.6};
+const STC={dbg:null,seekT:.3,seekR:1.2,soak:.45,soakR:2,soakT:2,roll:.4,rollLen:1.6,rollW:.55,front:1.1,frontR:.9,frontT0:8,frontT1:11,frontIv:.12,cage:.3,cageR:.7,last:1.8,lastR:.7,lastIn:1.4,lastOut:2.6,stun:.6};
 const stcC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='stormcaller'?c:null;};
 const stcLog=d=>{if(STC.dbg){d.time=time;STC.dbg.push(d);}};
 SM_D.stormcaller=[
@@ -29254,10 +29257,10 @@ SM_D.stormcaller=[
   {n:'Downpour',d:'Its clouds rain on the road beneath them, Soaking foes for 2s. A bolt on a Soaked foe runs through the water to every Soaked foe within 2 tiles: {45}%.'},
   {n:'Rolling Thunder',d:'The thunder of each strike rolls 1.6 tiles along the road both ways: {40}% and a small knock back to the foes it rolls over.'},
   {n:'Storm Front',d:'From 8s to 11s the storm marches down every road toward the keep as a front of bolts: {110}% each.'},
-  {n:'Last Thunder',d:'At its end its clouds draw into one thunderhead over the thickest pack: a ring of bolts closes in ({40}% each), then a colossal bolt: {250}% within 1.4, {100}% out to 2.6, stunned 0.6s.'}];
+  {n:'Last Thunder',d:'At its end its clouds draw into one thunderhead over the thickest pack: a ring of bolts closes in ({30}% each), then a colossal bolt: {180}% within 1.4, {70}% out to 2.6, stunned 0.6s.'}];
 SMF.stormcaller={m:1};
 SMA.stormcaller=[1,1,1,1,1];
-SMG.stormcaller=[1,1,1,1,1];
+SMG.stormcaller=[.88,1.04,.87,.95,.8];
 
 /* a sigil of crackling light on the road: where a seeking bolt will fall */
 function stcSigil(x,z,T){const y=gy(x,z),g=new THREE.Group();g.position.set(x,y+.05,z);scene.add(smTag(g));const m=new THREE.MeshBasicMaterial({color:0xbfe0ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
