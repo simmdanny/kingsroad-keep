@@ -14158,6 +14158,10 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Recorded mastery previews',d:'28 Oct',v:'v428',li:[
+    'Mastery previews of every Common, Uncommon and Rare scroll are recorded clips now: they play the moment you hover or tap a mastery, with no loading.',
+    'Each clip is set up to show its mastery: a 1 HP foe for the ones that trigger on a kill, a ram for the ones that go for the toughest foe, a raven where flyers matter, the 3rd cast for the every-3rd-cast ones. Labels mark the foes that matter.',
+    'A new preview panel: the clip with its progress, tabs to switch between no mastery and Masteries I to V, the mastery\u2019s text and what the clip shows. A tap pins it open.']},
   {t:'Every explosion is 3D',d:'28 Oct',v:'v420',li:[
     'Shockwaves no longer just lie flat on the ground: a wall of light rises and races out with them (big ones kick up stones), and the rings of fire and light that many spells and masteries use rise too.',
     'Flashes of light are soft glowing balls, bright at the heart and clear at the edge, instead of hard white discs that hid what they lit. Thunderclap\u2019s strike is a bolt, a wall of thunder and flying stones rather than a white ball.',
@@ -28418,6 +28422,102 @@ function xfxFrostBoom(x,y,z,R,o){o=o||{};const nb=o.n==null?4:o.n,nt=o.t==null?1
     for(let j=0;j<5;j++){const f=.35+j*.15;emit(j%2,{x:x+dx*R*.12,y:y+dy*R*.12,z:z+dz*R*.12,vx:dx*sp*f,vy:dy*sp*f+.25,vz:dz*sp*f,s:(.07+.12*R)*(1.15-j*.1),s2:.02,c:j%2?0xffffff:0xd8f2ff,c2:j%2?0x6ab8ff:0x9ac8e8,a:.85,life:.3+.12*R+Math.random()*.1,drag:2.4,turb:.8});}}
   nsSplinters(x,y,z,o.sp==null?Math.round(8+12*R):o.sp,1+1.2*R);
   for(let i=0;i<Math.round(3+5*R);i++){const a=Math.random()*6.283,sp=(.8+Math.random())*R;emitS(0,{x:x+Math.cos(a)*.1,y:y-.1,z:z+Math.sin(a)*.1,vx:Math.cos(a)*sp,vy:.12+Math.random()*.2,vz:Math.sin(a)*sp,s:.2+.25*R,s2:.7+.9*R,c:0xf2f8ff,c2:0xc8dcec,a:.32,life:1.1+Math.random()*.6,lift:.05,drag:1.6,turb:.3});}}
+
+/* ================= v428 (Simon): recorded scroll mastery previews =================
+   Simon: "the previes needs to be recorded not happened in realtime when clicked - this reduces the long loading time and we can make a much
+   nicer UI for it aswell", "if a mastery says something like "on kill effect" ... spawn one or two enemies and one will be the targeted one
+   that will spawn with 1hp so the ability kills him so we can demonstrate the on kill effect" and "if a mastery says something like "targets
+   the toughest enemy" you need to spawn a ram or just a tougher enemy so its distinct which one is being targeted".
+   The live previews of v367/v374 started a second copy of the whole game in a frame the first time a mastery was hovered (a few seconds of
+   loading). Now every published scroll mastery (Common, Uncommon and Rare: 32 scrolls, no mastery and Masteries 1-5) is a short clip recorded
+   ahead of time from the real game by tools/previews/record.js, each on a stage set up for that mastery (tools/previews/scenarios.js): a 1 HP
+   foe for the on-kill masteries, a ram for "the toughest foe", a raven where flyers matter, the 3rd or 4th cast for "every 3rd cast", a Frost
+   Shard after Rime Bloom's Brittle, and so on, with labels over the foes that matter.
+   Where the clips live (Simon chose "Load from GitHub"): in the repository's previews/ folder, not in the page, so the game file stays small.
+   The clip list (previews/manifest.json) is read a few seconds after the game starts: from previews/ beside the page when it is served from
+   the repository (the dev page, a githack link), else from the jsDelivr copy of the main branch, else straight from GitHub. Opening a scroll's
+   mastery card fetches its clips, so they play at once. Offline (no list), the live preview works as before.
+   The panel: the scroll and the mastery, the clip (looping, with its progress), tabs for no mastery and Masteries I-V (the ones you can watch
+   lit), the mastery's text and what the clip sets up. Hovering a mastery shows it; a click (or a tap) pins it open, with a close button.
+   Scrolls without clips (Epic and up, in developer mode) keep the live preview. smPvCan still decides which masteries you may watch. */
+const PVC={man:null,load:null,base:'',urls:{},got:{},el:null,k:null,L:0,pin:false,hideT:0,raf:0,anchor:null};
+const PVC_ROM=['','I','II','III','IV','V'];
+const PVC_SRC=['../previews/','https://cdn.jsdelivr.net/gh/simmdanny/kingsroad-keep@main/previews/','https://raw.githubusercontent.com/simmdanny/kingsroad-keep/main/previews/'];
+/* the clip list, from the first place that has it (see above); null until it has arrived */
+function pvcMan(){if(PVC.man)return PVC.man;if(!PVC.load&&typeof fetch==='function'){
+  const bases=PVC_SRC.filter(b=>/^https?:/.test(b)||/^https?:$/.test(location.protocol));
+  PVC.load=(async()=>{for(const b of bases){try{const r=await fetch(b+'manifest.json',{cache:'no-cache'});if(!r.ok)continue;const m=await r.json();if(m&&m.clips){PVC.base=b;PVC.man=m;return m;}}catch(e){}}return null;})();}
+  return null;}
+const pvcId=(k,L)=>k+'-'+L;
+function pvcHas(k,L){const m=pvcMan();return!!(m&&m.clips&&m.clips[pvcId(k,L)]);}
+/* a clip already fetched plays from memory; one not fetched yet streams from where the list came from */
+function pvcUrl(k,L){const id=pvcId(k,L);return PVC.urls[id]||(PVC.man?PVC.base+id+'.mp4':null);}
+function pvcFetch(k,L){const id=pvcId(k,L);if(PVC.urls[id]||PVC.got[id]||!pvcHas(k,L))return;
+  PVC.got[id]=fetch(PVC.base+id+'.mp4').then(r=>r.ok?r.blob():null).then(b=>{if(b&&b.size)PVC.urls[id]=URL.createObjectURL(b.type?b:new Blob([b],{type:'video/mp4'}));}).catch(()=>{PVC.got[id]=null;});}
+/* the clips of one scroll that can be watched (opening its mastery card) */
+function pvcPrefetch(k){if(!pvcMan())return;for(let L=0;L<=5;L++)if(smPvCan('scroll',k,L))pvcFetch(k,L);}
+setTimeout(()=>{try{pvcMan();}catch(e){}},2500);
+const pvcHex=c=>'#'+c.toString(16).padStart(6,'0');
+function pvcBox(){if(PVC.el&&PVC.el.isConnected)return PVC.el;const b=document.createElement('div');b.id='pvc';b.hidden=true;
+  b.innerHTML='<div class="pvc-hd"><span class="pvc-art"></span><div class="pvc-ttl"><small></small><b></b></div><button class="pvc-x" aria-label="Close">\u00d7</button></div>'+
+    '<div class="pvc-vid"><video muted playsinline loop autoplay disablepictureinpicture preload="auto"></video><span class="pvc-badge"></span><div class="pvc-bar"><i></i></div></div>'+
+    '<div class="pvc-tabs"></div><p class="pvc-d"></p><p class="pvc-note"></p>';
+  document.body.appendChild(b);PVC.el=b;const v=b.querySelector('video');v.muted=true;
+  b.querySelector('.pvc-x').addEventListener('click',e=>{e.stopPropagation();pvcHide(true);});
+  b.querySelector('.pvc-tabs').addEventListener('click',e=>{const t=e.target.closest('button[data-l]');if(!t||t.disabled)return;e.stopPropagation();PVC.pin=true;pvcShow(PVC.k,+t.dataset.l,null);});
+  b.addEventListener('pointerenter',()=>clearTimeout(PVC.hideT));b.addEventListener('pointerleave',()=>{if(!PVC.pin)pvcHideSoon();});
+  b.addEventListener('click',e=>e.stopPropagation());
+  return b;}
+function pvcTick(){const b=PVC.el;if(!b||b.hidden){PVC.raf=0;return;}const v=b.querySelector('video'),i=b.querySelector('.pvc-bar i');
+  if(v.duration>0)i.style.width=(v.currentTime/v.duration*100).toFixed(1)+'%';PVC.raf=requestAnimationFrame(pvcTick);}
+/* show scroll k at mastery L (L 0: no mastery) next to anchor (a mastery row or the scroll's picture; null keeps where it is) */
+function pvcShow(k,L,anchor){if(!pvcHas(k,L))return false;const b=pvcBox(),S=SPELLS_S[k],D=SM_D[k],r=smRB(k),m=pvcMan(),c=m.clips[pvcId(k,L)];
+  clearTimeout(PVC.hideT);const same=PVC.k===k&&PVC.L===L&&!b.hidden;PVC.k=k;PVC.L=L;
+  b.style.setProperty('--rc',r.c);b.style.setProperty('--mc',L?pvcHex(MAST_COL[L-1]):'#c8b89a');
+  b.querySelector('.pvc-art').innerHTML=scrollArt(k);b.querySelector('.pvc-ttl small').textContent=r.n+' scroll \u00b7 '+S.n;
+  b.querySelector('.pvc-ttl b').textContent=L?'Mastery '+PVC_ROM[L]+' \u00b7 '+D[L-1].n:'No mastery';
+  b.querySelector('.pvc-badge').textContent=L?'Mastery '+PVC_ROM[L]+(L>1?' (with I'+(L>2?'\u2013'+PVC_ROM[L-1]:'')+')':''):'No mastery';
+  b.querySelector('.pvc-d').textContent=L?smDesc(k,L-1):S.d;
+  const nt=b.querySelector('.pvc-note');nt.textContent=c.note||'';nt.hidden=!c.note;
+  b.querySelector('.pvc-tabs').innerHTML=[0,1,2,3,4,5].map(l=>{const ok=pvcHas(k,l)&&smPvCan('scroll',k,l);
+    return`<button data-l="${l}" class="${l===L?'on':''}" ${ok?'':'disabled'} style="--mc:${l?pvcHex(MAST_COL[l-1]):'#c8b89a'}" title="${ok?(l?'Mastery '+l+': '+D[l-1].n:'No mastery'):'Reach Mastery '+l+' to watch it'}">${l?PVC_ROM[l]:'Base'}</button>`;}).join('');
+  const v=b.querySelector('video');if(!same){const u=pvcUrl(k,L);if(u&&v.getAttribute('src')!==u){v.setAttribute('src',u);}try{v.currentTime=0;}catch(e){}const p=v.play();if(p&&p.catch)p.catch(()=>{});}
+  b.hidden=false;if(anchor!==null)pvcPlace(anchor||PVC.anchor);if(anchor)PVC.anchor=anchor;if(!PVC.raf)PVC.raf=requestAnimationFrame(pvcTick);return true;}
+function pvcPlace(anchor){const b=PVC.el;if(!b)return;const W=Math.min(440,innerWidth-16);b.style.width=W+'px';const bh=b.offsetHeight||W;
+  const r=anchor&&anchor.isConnected?anchor.getBoundingClientRect():{left:innerWidth/2,right:innerWidth/2,top:innerHeight/2,bottom:innerHeight/2,height:0};let x,y;
+  if(innerWidth>=900){const card=anchor&&anchor.closest&&anchor.closest('.mst-panel'),cr=card?card.getBoundingClientRect():r;x=cr.left-W-14;if(x<8)x=cr.right+14;y=r.top+r.height/2-bh/2;}
+  else{x=(innerWidth-W)/2;y=r.top>innerHeight*.5?Math.max(8,r.top-bh-10):Math.min(innerHeight-bh-8,r.bottom+10);if(y<8||y+bh>innerHeight-8)y=innerHeight-bh-8;}
+  b.style.left=Math.max(8,Math.min(innerWidth-W-8,x))+'px';b.style.top=Math.max(8,Math.min(innerHeight-bh-8,y))+'px';}
+function pvcHideSoon(){clearTimeout(PVC.hideT);PVC.hideT=setTimeout(()=>pvcHide(false),220);}
+function pvcHide(force){clearTimeout(PVC.hideT);if(!PVC.el||PVC.el.hidden)return;if(PVC.pin&&!force)return;PVC.pin=false;PVC.el.hidden=true;
+  const v=PVC.el.querySelector('video');try{v.pause();}catch(e){}}
+/* the mastery card's preview calls: a recorded clip if there is one, else the live preview as before */
+{const s0=smPvShow,h0=smPvHide,d0=smPvDrop;
+  smPvShow=function(k,L,anchor){if(pvcHas(k,L)&&smPvCan('scroll',k,L)){h0();return pvcShow(k,L,anchor);}pvcHide(true);return s0.apply(this,arguments);};
+  smPvHide=function(){if(PVC.el&&!PVC.el.hidden){if(!PVC.pin)pvcHideSoon();return;}return h0.apply(this,arguments);};
+  smPvDrop=function(){pvcHide(true);return d0.apply(this,arguments);};}
+/* a click (or tap) on a mastery pins its clip open; a second click on the same one closes it */
+{const o0=smOpen;smOpen=function(k){pvcPrefetch(k);const r=o0.apply(this,arguments);try{const md=$('#smModal');if(!md)return r;
+  md.addEventListener('click',e=>{const el=e.target.closest('[data-smpv]');if(!el||!pvcHas(k,+el.dataset.smpv))return;
+    if(PVC.pin&&PVC.k===k&&PVC.L===+el.dataset.smpv&&PVC.el&&!PVC.el.hidden){pvcHide(true);e.stopImmediatePropagation();return;}
+    PVC.pin=true;if(!smPvShow(k,+el.dataset.smpv,el))PVC.pin=false;e.stopImmediatePropagation();},true);}catch(err){console.error(err);}return r;};}
+addEventListener('resize',()=>{if(PVC.el&&!PVC.el.hidden)pvcPlace(PVC.anchor);});
+{const st=document.createElement('style');st.textContent=
+  '#pvc{position:fixed;z-index:72;background:linear-gradient(#2c2119,#140f0b);border-radius:14px;box-shadow:inset 0 0 0 1px var(--gold),0 16px 40px #000d;padding:10px 10px 9px;color:#f2e6cc}'+
+  '.pvc-hd{display:flex;align-items:center;gap:9px;margin-bottom:8px}.pvc-art{width:34px;height:34px;flex:none;display:grid;place-items:center}.pvc-art svg{width:34px;height:34px}'+
+  '.pvc-ttl{flex:1;min-width:0}.pvc-ttl small{display:block;font-size:11px;color:var(--rc,var(--muted));letter-spacing:.02em}.pvc-ttl b{display:block;font-size:15px;color:var(--gold);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
+  '.pvc-x{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid #6a5238;background:#1d1510;color:var(--gold);font-size:18px;line-height:1;cursor:pointer}.pvc-x:hover{background:#2e2218}'+
+  '.pvc-vid{position:relative;aspect-ratio:3/2;border-radius:10px;overflow:hidden;background:#0b0806;box-shadow:inset 0 0 0 1px #0008,0 0 0 1px color-mix(in srgb,var(--mc) 55%,transparent)}'+
+  '.pvc-vid video{display:block;width:100%;height:100%;object-fit:cover}'+
+  '.pvc-badge{position:absolute;left:8px;top:8px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#0c0907d0;color:var(--mc);box-shadow:inset 0 0 0 1px var(--mc)}'+
+  '.pvc-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:#0006}.pvc-bar i{display:block;height:100%;width:0;background:var(--mc);box-shadow:0 0 6px var(--mc)}'+
+  '.pvc-tabs{display:flex;gap:5px;margin:9px 0 7px}.pvc-tabs button{flex:1;min-width:0;height:28px;border-radius:8px;border:1px solid color-mix(in srgb,var(--mc) 45%,#3a2c1e);background:#1a130e;color:var(--mc);font-weight:700;font-size:12.5px;cursor:pointer;padding:0}'+
+  '.pvc-tabs button:hover:not(:disabled){background:#2a1f16}.pvc-tabs button.on{background:var(--mc);color:#140f0b;border-color:var(--mc);box-shadow:0 0 10px -2px var(--mc)}'+
+  '.pvc-tabs button:disabled{opacity:.32;cursor:default}'+
+  '.pvc-d{margin:0;font-size:12.5px;line-height:1.38;color:#e8dcc2}.pvc-note{margin:6px 0 0;font-size:11.5px;line-height:1.35;color:var(--muted);padding-left:16px;position:relative}'+
+  '.pvc-note::before{content:"";position:absolute;left:2px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--mc);box-shadow:0 0 6px var(--mc)}'+
+  '@media (max-width:899px){#pvc{padding:8px}.pvc-ttl b{font-size:14px}}';
+  document.head.appendChild(st);}
 
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
