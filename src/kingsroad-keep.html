@@ -28176,7 +28176,7 @@ showOverlay('menu');updSpells();
 if(GAME.setAside)setTimeout(()=>toast('Your open-world run now belongs to Kingsgaard. It is safe: More > Kingsgaard transfer','big'),1500);
 requestAnimationFrame(frame);
 /* ---- What's new: shown once per notes version (per account), on the first open after an update ---- */
-const NOTES_V='masteries-2';
+const NOTES_V='masteries-3';
 const NOTES_HTML=`<h3>\u2726 Hall of Champions, and profiles</h3><ul>
 <li>A leaderboard for you and your friends: tap the gold trophy on the land card to see everyone&rsquo;s best wave on every land, carve your name in and climb the podium. New records go up by themselves.</li>
 <li>Your profile: tap your portrait at the top left to pick a portrait (a Knight or a Mage), rename your account and see your records.</li></ul>
@@ -28184,10 +28184,8 @@ const NOTES_HTML=`<h3>\u2726 Hall of Champions, and profiles</h3><ul>
 <li><b>Common scrolls:</b> masteries reworked for Hexspark, Light Bolt, Basic Wither, Ember Bolt, Gravebind, Frost Shard, Static Spark, Cinder Scatter, Flame Lash, Thunderclap and Thorn Whip.</li>
 <li><b>Uncommon scrolls:</b> masteries reworked for Dark Pulse, Basic Beam, Grasping Shadows, Soul Lantern, Graveburst, Rime Bloom, Ball Lightning, Sunflare, Catch Flame, Wall of Fire and Bramble Patch.</li>
 <li><b>Uncommon masteries are open to everyone:</b> cast an Uncommon scroll in any game and it earns mastery XP, all the way to Mastery 5. Scrolls above Uncommon follow in a later update.</li>
-<li><b>Spatial Deflection</b> (Rare) has reworked masteries too, for now in developer mode: fractures of light, ghostly echoes of the zone, a folding cross, a crystal prison and a paradox collapse.</li></ul>`;
-<li><b>Murder of Crows</b> (Rare) has reworked masteries too, for now in developer mode: savage double-pecks, omen circles of feathers, crows that call their kin, a black gale and a last omen.</li></ul>`;
-<li><b>Ice Tomb</b> (Rare) has reworked masteries too, for now in developer mode: a tomb that keeps growing, a heart of winter, a storm of shards, frost fissures and an absolute cataclysm.</li></ul>`;
-<li><b>Entangling Roots</b> (Rare) has reworked masteries too, for now in developer mode: thorns, a root network, thorny patches, the earth striking back and the heart of the wildwood.</li></ul>`;
+<li><b>Rare scrolls:</b> masteries reworked for Spatial Deflection, Riftfang, Piercing Verdict, Magma Geyser, Murder of Crows, Lightning Cloud, Ice Tomb, Fire Tornado, Frost Wolves and Entangling Roots. For now they are in developer mode; they open to everyone in a later update.</li>
+<li><b>Lightning Cloud:</b> its storm cloud floats twice as high and is a little see-through, so you can see the road under it.</li></ul>`;
 function showNotes(force){if(!force&&meta.notesSeen===NOTES_V)return;let o=$('#notesPop');if(!o){o=document.createElement('div');o.id='notesPop';document.body.appendChild(o);}
   o.innerHTML=`<div class="np-card"><div class="np-top"><small>Update</small><h2>What's new</h2></div><div class="np-body">${NOTES_HTML}</div><button class="np-log">See the full changelog</button><button class="np-ok">Got it</button></div>`;
   o.classList.add('on');o.querySelector('.np-ok').onclick=()=>{o.classList.remove('on');meta.notesSeen=NOTES_V;saveMeta();};{const lb=o.querySelector('.np-log');if(lb)lb.onclick=()=>{o.classList.remove('on');meta.notesSeen=NOTES_V;saveMeta();showChangelog();};}}

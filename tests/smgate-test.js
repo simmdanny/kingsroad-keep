@@ -32,15 +32,18 @@ try{
   smOpen(RA);ok('and its mastery card does not open',!document.getElementById('smModal'));{const m=document.getElementById('smModal');if(m)m.remove();}
   for(const k of [CO,UN]){smOpen(k);const md=document.getElementById('smModal');ok(SPELLS_S[k].r+' scroll\'s card opens',!!md);if(md)md.remove();}
   meta.dev=true;ok('back in developer mode they are all there again',smLv(RA)===3&&smLv(MY)===5);
-  /* ---- v405: the patch notes start afresh (masteries-2), short: only the Common and Uncommon mastery reworks ---- */
+  /* ---- v405: the patch notes start afresh (masteries-2), short: only the mastery reworks; the update with v406-v416 (masteries-3) adds the
+     Hall of Champions above them and one line for the Rare reworks ---- */
   {const NS=SCROLL_IDS.filter(k=>/^(common|uncommon)$/.test(SPELLS_S[k].r)&&SM_D[k]&&!SPELLS_S[k].ev),miss=NS.filter(k=>!NOTES_HTML.includes(SPELLS_S[k].n));
-    ok('new patch notes (masteries-2) name every Common and Uncommon scroll',NOTES_V==='masteries-2'&&NS.length>=22&&!miss.length,NS.length+' scrolls; missing: '+miss.join(', '));
+    ok('new patch notes (masteries-3) name every Common and Uncommon scroll',NOTES_V==='masteries-3'&&NS.length>=22&&!miss.length,NS.length+' scrolls; missing: '+miss.join(', '));
     {const MS=NOTES_HTML.slice(NOTES_HTML.indexOf('Scroll masteries reworked'));ok('and short: no mastery-by-mastery text, no older sections after it',!/\(Mastery \d\)/.test(NOTES_HTML)&&!/<h3>/.test(MS)&&MS.length<1500,MS.length+' chars');}
     ok('they say the Uncommon masteries are open to everyone',/Uncommon masteries are open to everyone/.test(NOTES_HTML));
+    {const RS=SCROLL_IDS.filter(k=>SPELLS_S[k].r==='rare'&&SM_D[k]),rl=(NOTES_HTML.match(/<li><b>Rare scrolls:<\/b>[^<]*<\/li>/)||[''])[0];
+      ok('and one line names every reworked Rare scroll, in developer mode for now',RS.length>=10&&RS.every(k=>rl.includes(SPELLS_S[k].n))&&/developer mode/.test(rl)&&(NOTES_HTML.match(/\(Rare\)/g)||[]).length===0,RS.length+' Rare scrolls');}
     ok('the changelog keeps the history, with this update in it',CLOG.some(c=>c.v==='v405')&&CLOG.some(c=>c.v==='v404')&&CLOG.some(c=>c.v==='v375'),CLOG[0].v);
     meta.notesSeen='masteries-1';showNotes();const np=document.getElementById('notesPop');
     ok('a player who saw the old notes gets the new ones once',!!np&&np.classList.contains('on')&&np.textContent.includes('Scroll masteries reworked'));
-    if(np){np.querySelector('.np-ok').click();ok('and not again',meta.notesSeen==='masteries-2'&&(showNotes(),!np.classList.contains('on')));}}
+    if(np){np.querySelector('.np-ok').click();ok('and not again',meta.notesSeen===NOTES_V&&(showNotes(),!np.classList.contains('on')));}}
   /* ---- Frost Spire assists ---- */
   play();state='playing';meta.mast={};gold=1e9;const sp=smPvSpot(),fz=placeTower('frost',sp.c,sp.r),s2=smPvSpot(sp),ar=placeTower('archer',s2.c,s2.r);
   const assist=(e0,by)=>{const e=foe(e0);e.chillBy=fz;const m0=meta.mast.frost||0;kill(e,by);return +((meta.mast.frost||0)-m0).toFixed(3);};
