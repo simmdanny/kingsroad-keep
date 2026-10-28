@@ -29220,7 +29220,7 @@ function glGroundMat(){const c=new THREE.Color(),sum=new THREE.Color(0,0,0);let 
 function glLevel(){const T=TERRAIN;if(!T||!TILES)return;const m4=new THREE.Matrix4(),p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3();
   for(const o of T.children.slice()){if(o===TILES||o.userData.glBase||o.userData.gl)continue;
     if(o.isMesh&&o.geometry&&o.geometry.type==='PlaneGeometry'&&o.geometry.parameters&&o.geometry.parameters.width>=400){o.visible=false;o.userData.glOld=1;continue;}
-    if(o.isInstancedMesh){let ch=false;for(let i=0;i<o.count;i++){o.getMatrixAt(i,m4);m4.decompose(p,q,s);if(p.y<-.6&&s.x>0){p.y+=GLY;m4.compose(p,q,s);o.setMatrixAt(i,m4);ch=true;}}if(ch){o.instanceMatrix.needsUpdate=true;o.computeBoundingSphere&&o.computeBoundingSphere();}continue;}
+    if(o.isInstancedMesh){let ch=false;const lift=GLY-(o.userData.ww==='ridge'?.3:0);for(let i=0;i<o.count;i++){o.getMatrixAt(i,m4);m4.decompose(p,q,s);if(p.y<-.6&&s.x>0){p.y+=lift;m4.compose(p,q,s);o.setMatrixAt(i,m4);ch=true;}}if(ch){o.instanceMatrix.needsUpdate=true;o.computeBoundingSphere&&o.computeBoundingSphere();}continue;}
     const u=o.userData;if(o.position.y<-.6||u.tg==='mist'||u.hl==='mist'||u.glOuter)o.position.y+=GLY;}
   const sh=new THREE.Shape([new THREE.Vector2(-210,-210),new THREE.Vector2(210,-210),new THREE.Vector2(210,210),new THREE.Vector2(-210,210)]);
   sh.holes.push(new THREE.Path(glHoleLoop().map(([x,y])=>new THREE.Vector2(x,y))));
