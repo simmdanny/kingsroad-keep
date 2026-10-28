@@ -14134,7 +14134,7 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
-  {t:'Murder of Crows masteries, reworked',d:'28 Oct',v:'v409',li:[
+  {t:'Murder of Crows masteries, reworked',d:'28 Oct',v:'v411',li:[
     'Ravenous Beaks: every fifth peck of the flock, that crow snaps its wings shut and dives again, 8%. Omen Circles: a cyclone of feathers forms round a foe three crows circle and bursts on the next peck, 35% and 20% around.',
     'Unkindness: a crow caws and calls two others; they dive in formation, the two called dealing 8% more. Black Gale: every second half the flock sweeps out from the hero in a spiral of wings, 40%.',
     'The Last Omen: at the end the crows rise into a violet haze and dive in waves, three pecks each (8%), marking the foes three of them strike with a raven sigil. Rare masteries are still in developer mode.']},
@@ -25427,7 +25427,7 @@ castBeam=function(t,e,len,dmg,o){const C=bemC(o);if(!C||!t||!e)return BEM_CAST0.
   const S={t,e,len,dmg,C,P:C.P,L:C.L,a:C.a,o:smO(o),o0:o,hits:[]};C.bem=S;bemLog({ev:'cast',L:C.L});
   if(C.L>=5){bemStar(S);mxLater(BEM.raT0,()=>{if(state==='playing')bemFire(S,true);});}
   else bemFire(S,false);};
-/* ================= Murder of Crows' masteries, as Simon designed them (v409) ================= */
+/* ================= Murder of Crows' masteries, as Simon designed them (v411) ================= */
 /* Simon (abridged; the "why it works" notes left out): "Mastery 1 - Ravenous Beaks: Every fifth successful peck from a crow triggers a savage
    double-peck. The crow immediately folds its wings and dives again, dealing an additional 8% damage to its current target. Visual: The crow's
    eyes flash violet, its wings snap shut, and it performs a rapid second dive before climbing back into the swarm. Tiny black feathers scatter

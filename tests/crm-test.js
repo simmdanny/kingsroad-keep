@@ -1,5 +1,5 @@
 (function(){
-/* Murder of Crows' masteries as Simon designed them (v409). Run on the dev page: __kk.ev(await (await fetch('/tests/crm-test.js')).text())
+/* Murder of Crows' masteries as Simon designed them (v411). Run on the dev page: __kk.ev(await (await fetch('/tests/crm-test.js')).text())
    returns [name, ok, detail] rows. The hero stands 0.7 beside the middle of the first road and foes stand on it near the hero (only the
    effects are stepped, updFx, with the game clock moved along); hurt is wrapped to log the amount each hit is called with (the cast's power
    is 100, so a peck is 8). The crows choose their foes at random, so the rows check the rules on what the log shows. Puts the account back. */
