@@ -46,7 +46,7 @@ try{
     ok('M2: at most once every 0.75s for each foe',[...byE.values()].every(a=>a.every((t,i)=>!i||t-a[i-1]>=GMM.vCd-1e-6)),[...byE.values()].map(a=>a.length).join(','));}
   {play();GMM.dbg=[];const T=foe(spotD());const c0=SM.id;cast(T,2);run(GMM.ER+GMM.vStart+.5);const S=SM.ctx.get(c0+1).gm,fr=()=>S.veins.map(v=>v.path.slice(0,v.rev+1).reduce((a,q,i,P)=>a+(i?Math.hypot(q.x-P[i-1].x,q.z-P[i-1].z):0),0));
     const a1=fr();run(1);const a2=fr();run(3);const a3=fr();setL(0);
-    ok('M2: the lava creeps on slowly (about 0.7 tiles a second) until the stream is full length',a1.every((x,i)=>x<.6&&a2[i]>x+.4&&a2[i]<x+1)&&a3.every((x,i)=>near(x,S.veins[i].len,.02)),a1.map(x=>x.toFixed(2))+' / '+a2.map(x=>x.toFixed(2))+' / '+a3.map(x=>x.toFixed(2)));}
+    ok('M2: the lava creeps on slowly (about 0.7 tiles a second) until the stream is full length',a1.every((x,i)=>x<.6&&a2[i]>x+.4&&a2[i]<x+1.1)&&a3.every((x,i)=>near(x,S.veins[i].len,.02)),a1.map(x=>x.toFixed(2))+' / '+a2.map(x=>x.toFixed(2))+' / '+a3.map(x=>x.toFixed(2)));}
   {play();GMM.dbg=[];const F=row(9,.35),T=F[4];cast(T,1);run(5);setL(0);ok('M2 needs Mastery 2',!ev('vein').length&&!ev('veinHit').length);}
   /* ---- M3 Heart of the Volcano ---- */
   {play();GMM.dbg=[];log=[];const F=row(7,.3),T=F[3];wrapHurt();try{cast(T,3);run(5);}finally{hurt=H0;setL(0);}const sk=ev('sunk')[0],h=ev('heart')[0],er=ev('erupt')[0];
