@@ -14148,6 +14148,13 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'The Stormcrag Highlands',d:'28 Oct',v:'v418',li:[
+    'Arena 6, the last land: the Stormcrag Highlands, high moor of heather and granite beyond the Greywind Tundra. Win wave 200 in the Deep Taiga to open it (an account that already has opens it now).',
+    'Tougher: troops have 35% more health and run 5% faster, bosses 60% more health. Gems pay 2.5 times and rare scrolls come a little more often. Lightning spells deal 20% more on the storm-charged crags. Three gates.',
+    'The haar: every 32 to 44 seconds a cold sea fog gathers at one side of the board and rolls across it on the wind. Towers inside the fog see 30% less far. Light the Beacon Cairn to keep it off the towers near it.',
+    'The people of the hills: every troop has its own look up here, ordinary folk dressed for the cold in leather coats, sheepskin collars, scarves, bonnets and kilts (crofters, shepherds, Highland spearmen, Lochaber axemen, Gallowglass, Culdee monks, garron riders and more), with their own Bestiary pages, Gem Carriers and Scroll Bearers. Every boss that climbs up here is withered by the cold.',
+    'Wave 100: the Grey Man, who stares towers into dread, walks in the mist and calls the haar. Wave 200: the Cailleach, who hurls boulders from her creel, freezes towers with her staff of winter and drinks from the well of youth (hit her hard to stop her).',
+    "Six new landmarks (Old Broch, Beacon Cairn, Standing Stones, Bothy Still, Seer's Bothy, Clootie Well), six lore props and a Highlands chest."]},
   {t:'Rare masteries for everyone',d:'28 Oct',v:'v417',li:[
     'The ten Rare scrolls now earn mastery XP and use their new masteries in every game, not only in developer mode. Scrolls above Rare come later.']},
   {t:'Entangling Roots masteries reworked',d:'28 Oct',v:'v416',li:[
@@ -28301,9 +28308,9 @@ function highlandsBoard(){const T=TERRAIN;if(!T||!TILES)return;const R=mulberry(
   for(let n=0;n<300;n++){const[cx,cz]=outPt(.3,11,true),k=1+Math.floor(R()*3);for(let j=0;j<k;j++)near(cx,cz,0,.7,(x,z)=>HE.push({x,z,s:.45+R()*.4,c:[0xffffff,0xd8d0d4,0xb8b0a8][Math.floor(R()*3)]}));}
   for(let n=0;n<55;n++){const[cx,cz]=outPt(.4,10,true),k=2+Math.floor(R()*3);for(let j=0;j<k;j++)near(cx,cz,0,.8,(x,z)=>BK.push({x,z,s:.5+R()*.45}));}
   for(let n=0;n<26;n++){const[x,z]=outPt(.6,9,true);GO.push({x,z,s:.8+R()*.7});}
-  for(let n=0;n<16;n++){const[x,z]=outPt(1,9);PN.push({x,z,s:.85+R()*.5});if(R()<.4){const[x2,z2]=[x+(R()-.5)*1.4,z+(R()-.5)*1.4];if(outOk(x2,z2))PN.push({x:x2,z:z2,s:.6+R()*.4});}}
+  for(let n=0;n<16;n++){const[x,z]=outPt(1,9);PN.push({x,z,s:.85+R()*.5});if(R()<.4){const[x2,z2]=[x+(R()-.5)*1.4,z+(R()-.5)*1.4];if(outOk(x2,z2)&&z2<zBot+.3)PN.push({x:x2,z:z2,s:.6+R()*.4});}}
   for(let n=0;n<26;n++){const[cx,cz]=outPt(.5,10,true),k=1+Math.floor(R()*3);for(let j=0;j<k;j++){const s=.18+R()*.35*(j?1:1.5);near(cx,cz,0,1,(x,z)=>BL.push({x,y:Y0+s*.12,z,s,c:[0x8e8c86,0x86847e,0x9a968e][j%3]}));}}
-  for(let n=0;n<7;n++){const[x,z]=outPt(.8,8,true);CA.push({x,z,s:.8+R()*.6});}
+  for(let n=0;n<7;n++){const[x,z]=outPt(.8,8);CA.push({x,z,s:.8+R()*.6});}
   /* dry-stone walls: a few long runs across the moor (gaps where they fell), and the old field walls along the sides of the board */
   const wallRun=(x0,z0,ang,len)=>{let x=x0,z=z0;for(let i=0;i<len;i++){const a=ang+(R()-.5)*.1;x+=Math.cos(a)*.98;z+=Math.sin(a)*.98;ang=a;if(R()<.08)continue;if(!outOk(x,z)||(Math.abs(x)<xE+.6&&z>zTop-.6&&z<zBot+.6))continue;WL.push({x,z,ry:-a,s:1});}};
   for(const sd of[-1,1]){wallRun(sd*(xE+1.6+R()*.8),zTop-3,Math.PI/2+(R()-.5)*.08,Math.round(zBot-zTop+3));wallRun(sd*(xE+5+R()*2),zTop-2,Math.PI/2+sd*.12,Math.round((zBot-zTop)*.8));}
