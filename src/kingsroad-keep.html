@@ -4395,7 +4395,9 @@ function castStormcaller(t,P,o){
   shT.repeat.set(10,11);
   const nearCloud=(x,z)=>{let best=null,bd=1e9;for(const g of clouds){const d=(g.position.x-x)**2+(g.position.z-z)**2;if(d<bd){bd=d;best=g;}}return bd<64?best:null;};
   let tt=0,next=ARR+.2;
-  addFx(root,END,(e,dt)=>{tt+=dt;const inA=SMS(tt,0,ARR),outA=1-SMS(tt,ARR+DUR,END),A=inA*outA;
+  /* the masteries (stcStart; null at Mastery 0, for echoes and other casters: the old storm) */
+  const S=typeof stcStart==='function'?stcStart(o,{P,clouds,ARR,DUR}):null;
+  addFx(root,END,(e,dt)=>{tt+=dt;const inA=SMS(tt,0,ARR),outA=1-SMS(tt,ARR+DUR,END),A=inA*outA;if(S)S.frame(tt,dt,next,A);
     darkTarget=Math.max(darkTarget,.66*A);vigTarget=Math.max(vigTarget,.42*A);
     shM.opacity=.55*A;shT.offset.x-=dt*.035;shT.offset.y+=dt*.05;
     const cy=camera.position.y;
@@ -4408,13 +4410,13 @@ function castStormcaller(t,P,o){
     if(tt<ARR+DUR&&rnd()<.07*A){const g=pick(clouds);if(g.visible){const p=g.position,S=g.userData.S;zap({x:p.x+(rnd()-.5)*S,y:p.y+(rnd()-.5)*.4,z:p.z+(rnd()-.5)*S*.7},{x:p.x+(rnd()-.5)*S*1.2,y:p.y-.3-rnd()*.5,z:p.z+(rnd()-.5)*S*.7},0xcfe6ff,.1);g.userData.fl=1;}}
     if(tt<ARR*.9&&rnd()<.04){flashA=Math.max(flashA,.12);flashCol='#9fbfff';flashDecay=5;}
     /* strikes on random sections of the path, each one from the cloud overhead */
-    if(tt>=next&&tt<ARR+DUR){next=tt+.36+rnd()*.3;const n=rnd()<.18?2:1;
-      for(let s=0;s<n;s++){const rt=pick(ROUTES),q=posAt(rnd()*rt.len,rt),x=q[0]+(rnd()-.5)*.5,z=q[1]+(rnd()-.5)*.5,c=nearCloud(x,z);
+    if(tt>=next&&tt<ARR+DUR&&!(S&&S.front(tt))){next=tt+.36+rnd()*.3;const n=rnd()<.18?2:1;
+      for(let s=0;s<n;s++){const rt=pick(ROUTES),q=posAt(rnd()*rt.len,rt);let x=q[0]+(rnd()-.5)*.5,z=q[1]+(rnd()-.5)*.5;if(S&&!s){const a=S.aim(x,z);x=a.x;z=a.z;}const c=nearCloud(x,z);
         if(c){c.userData.fl=1.4;lightningBolt(c.position.x+(rnd()-.5)*c.userData.S*.6,c.position.y-.3*c.userData.S,c.position.z+(rnd()-.5)*c.userData.S*.4,x,z,true,0x8ec4ff);}
         else lightningBolt(x+(rnd()-.5)*3,10,z-2-rnd()*2,x,z,true,0x8ec4ff);
-        stormImpact(x,z,true);stormHit(x,z,1.05,P*2.5,o);shockwave(x,z,1.35,0xbfe0ff,.45,0x0a0c14);}
+        stormImpact(x,z,true);if(typeof wymForks==='function'){wymForks(x,gy(x,z)+.1,z,1.3,5,.9);wymRocks(x,z,8,1.1,.05);}stormHit(x,z,1.05,P*2.5,o);shockwave(x,z,1.35,0xbfe0ff,.45,0x0a0c14);if(S)S.struck(x,z,1.05);}
       flashA=Math.max(flashA,.38);flashCol='#dcecff';flashDecay=6;camShake=Math.max(camShake,.14);}
-  },()=>{darkTarget=0;vigTarget=0;shT.dispose();},{mats,geos});
+  },()=>{darkTarget=0;vigTarget=0;shT.dispose();if(S)S.end();},{mats,geos});
 }
 
 var SG_ACTIVE=new Set();
@@ -29217,6 +29219,104 @@ function trmTimber(g,yaw,sz,dmg,O){const x0=g.position.x,z0=g.position.z,dx=-Mat
   const pts=[];for(let i=1;i<=6;i++){const u=i/6*len,x=x0+dx*u,z=z0+dz*u;pts.push(new THREE.Vector3(x,gy(x,z)+.25,z));mxLater(i*.025,()=>trmQuake(x,z,.7));}
   if(typeof rtmSplinters==='function')rtmSplinters(pts,x0,z0,90,1.6);const K=natKit(),F=nfxKit();nfxLeaves(x0+dx*len*.7,gy(x0,z0)+.6,z0+dz*len*.7,18,[K.leaf,K.leaf2,K.crown[1],F.leafD],null,1.2);
   if(state!=='playing')return;for(const e of enemies){if(e.dead||e.fake)continue;const px=e.x-x0,pz=e.z-z0,u=px*dx+pz*dz,v=Math.abs(px*dz-pz*dx);if(u<-.2||u>len+.2||v>W2)continue;hurt(e,dmg,'magic',O);if(!e.dead)ovgApply(e,3);trmLog({ev:'crush',e});}}
+
+/* ================= Stormcaller's masteries (v434), designed with Simon's framework (MASTERY_DESIGN.md) ================= */
+/* Identity: the sky itself turns against the enemy. A vast storm rolls in over the whole battlefield, darkens it, and for 15 seconds
+   hurls giant bolts (250% within 1.05) at random stretches of the road from the clouds drifting overhead. Design space: where the bolts
+   fall (blind chance so far), the clouds that drift over the map (only looks so far), the thunder of each strike, the storm's long life
+   (one even rain of bolts), and its end (it simply drifts away). Roster: no serpent (Thunder Wyrm), no single cloud over a pack
+   (Lightning Cloud), no chain hopping foe to foe at will (Ball Lightning), no first storm of the world (the Primordial Tempest): every
+   mastery is about a storm that covers the whole battlefield.
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Seeking Bolts | what if the storm saw them? | where the bolts fall | behaviour change, targeting |
+   | 2 | Downpour | what if its clouds rained? | the clouds (only looks before) | cosmetic made real, interaction |
+   | 3 | Rolling Thunder | what if the thunder followed the road? | each strike's thunder | new effect |
+   | 4 | Storm Front | what if the storm marched? | its long life | a new phase |
+   | 5 | Last Thunder | what if it ended in one blow? | its end | signature payoff |
+   - M1 Seeking Bolts: the bolts still fall at random, but one that would land within 1.2 tiles of a foe bends onto it: 0.3s before, a
+     crackling sigil marks the foe and sparks climb from it, and the bolt lands on it. No damage of its own: near misses become hits.
+     (Aiming every other bolt at a foe outright made it six times stronger on the ladder, whose foes stand in one small knot.)
+   - M2 Downpour: the clouds that drift over the road rain on it (streaks falling from the cloud to the ground, splashes); foes in the
+     rain are Soaked for 2s (drips of water on them). A bolt that hits a Soaked foe runs through the water to every other Soaked foe
+     within 2 tiles: STC.soak each.
+   - M3 Rolling Thunder: the thunder of each strike rolls along the road both ways for 1.6 tiles, tearing the road up as it goes (dust
+     and stones bursting up along it): STC.roll to each ground foe it rolls over, and a small knock back (not bosses).
+   - M4 Storm Front: from 8s to 11s the random strikes stop and the storm gathers into a front that marches down every road from its
+     start to the keep in those 3s, a bolt every 0.12s on the road under it: STC.front within 0.9 each.
+   - M5 Last Thunder: when the storm ends, its clouds draw together into one great thunderhead over the thickest pack (a dark, turning
+     mass flickering from inside), eight bolts fall in a ring that closes in on it (STC.cage each within 0.7), then a colossal bolt:
+     STC.last within 1.4, STC.lastR out to 2.6, and the foes in the middle are stunned 0.6s (Resolve applies).
+   The base cast follows the explosion rule (every cast): each strike now throws forks of lightning up and out and tears stones from the
+   road (on top of its shockwave, which rises as a wall since v420). STC.dbg (an array) logs the events for the tests. */
+const STC={dbg:null,seekT:.3,seekR:1.2,soak:.45,soakR:2,soakT:2,roll:.4,rollLen:1.6,rollW:.55,front:1.1,frontR:.9,frontT0:8,frontT1:11,frontIv:.12,cage:.4,cageR:.7,last:2.5,lastR:1,lastIn:1.4,lastOut:2.6,stun:.6};
+const stcC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='stormcaller'?c:null;};
+const stcLog=d=>{if(STC.dbg){d.time=time;STC.dbg.push(d);}};
+SM_D.stormcaller=[
+  {n:'Seeking Bolts',d:'A bolt that would fall within 1.2 tiles of a foe bends onto it: a crackling sigil marks the foe just before it lands.'},
+  {n:'Downpour',d:'Its clouds rain on the road beneath them, Soaking foes for 2s. A bolt on a Soaked foe runs through the water to every Soaked foe within 2 tiles: {45}%.'},
+  {n:'Rolling Thunder',d:'The thunder of each strike rolls 1.6 tiles along the road both ways: {40}% and a small knock back to the foes it rolls over.'},
+  {n:'Storm Front',d:'From 8s to 11s the storm marches down every road toward the keep as a front of bolts: {110}% each.'},
+  {n:'Last Thunder',d:'At its end its clouds draw into one thunderhead over the thickest pack: a ring of bolts closes in ({40}% each), then a colossal bolt: {250}% within 1.4, {100}% out to 2.6, stunned 0.6s.'}];
+SMF.stormcaller={m:1};
+SMA.stormcaller=[1,1,1,1,1];
+SMG.stormcaller=[1,1,1,1,1];
+
+/* a sigil of crackling light on the road: where a seeking bolt will fall */
+function stcSigil(x,z,T){const y=gy(x,z),g=new THREE.Group();g.position.set(x,y+.05,z);scene.add(smTag(g));const m=new THREE.MeshBasicMaterial({color:0xbfe0ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const rg=new THREE.RingGeometry(.3,.36,6);rg.rotateX(-Math.PI/2);const r1=new THREE.Mesh(rg,m),r2=new THREE.Mesh(rg,m);r2.scale.setScalar(.55);r2.rotation.y=.5;g.add(r1,r2);let t=0;
+  addFx(g,T,(f,dt)=>{t+=dt;const k=t/T;m.opacity=.8*Math.min(1,k*4);r1.rotation.y+=dt*4;r2.rotation.y-=dt*6;g.scale.setScalar(1.3-.5*k);
+    if(rnd()<.8)emit(1,{x:x+(rnd()-.5)*.5,y:y+.05,z:z+(rnd()-.5)*.5,vx:0,vy:1.5+rnd()*1.5,vz:0,s:.04,s2:0,c:0xffffff,c2:0x6aa0ff,life:.35});if(rnd()<.4)nsCrackle({x,y:y+.08,z},.4,0xbfe0ff);},null,{mat:m,geo:rg});}
+/* M3: thunder rolling along the road from a strike */
+function stcRoll(x,z,dmg,O){const st=nsRouteNear(x,z),rt=st.rt,d0=st.d,hit=new Set();stcLog({ev:'roll'});let t=0;const T=.4;
+  addFx(new THREE.Group(),T+.05,(f,dt)=>{const t0=t;t+=dt;for(const sg of [-1,1]){const u0=STC.rollLen*Math.min(1,t0/T),u1=STC.rollLen*Math.min(1,t/T);
+      for(let u=u0;u<u1;u+=.18){const dd=Math.max(0,Math.min(rt.len,d0+sg*u)),p=posAt(dd,rt),px=p[0],pz=p[1],py=gy(px,pz);
+        for(let i=0;i<2;i++)emitS(0,{x:px+(rnd()-.5)*.4,y:py+.06,z:pz+(rnd()-.5)*.4,vx:(rnd()-.5)*.4,vy:.6+rnd()*.6,vz:(rnd()-.5)*.4,s:.14,s2:.42,c:0x8a7e6e,c2:0x4a4440,a:.35,life:.7,drag:1.6,lift:.2,turb:.3});
+        sprayP(0,px,py+.05,pz,3,{c:0x6a5a48,c2:0x3a3028,sp:.6,up:1.6,s:.035,s2:0,life:.5,g:7});if(rnd()<.35)nsCrackle({x:px,y:py+.08,z:pz},.3,0xbfe0ff);
+        if(state==='playing')for(const e of enemies){if(e.dead||e.fake||e.fly||hit.has(e))continue;if((e.x-px)**2+(e.z-pz)**2>STC.rollW*STC.rollW)continue;hit.add(e);hurt(e,dmg,'magic',O);if(!e.dead&&!e.boss)pushE(e,.25);stcLog({ev:'rolled',e});}}}});}
+/* M5: the thunderhead, its cage and the colossal bolt */
+function stcLast(cx,cz,P,a,O){const y=gy(cx,cz),H=9.5;stcLog({ev:'last0'});darkTarget=Math.max(darkTarget,.5);
+  const g=new THREE.Group();g.position.set(cx,y+H,cz);scene.add(smTag(g));const pg=new THREE.IcosahedronGeometry(1,1),pm=new THREE.MeshPhongMaterial({color:0x3a4250,emissive:0x5a78b0,emissiveIntensity:0,flatShading:true,shininess:0,transparent:true,opacity:0,depthWrite:false});
+  const P2=[];for(let i=0;i<16;i++){const m=new THREE.Mesh(pg,pm),an=rnd()*6.28,r=.4+rnd()*1.8;m.position.set(Math.cos(an)*r,(rnd()-.5)*.5,Math.sin(an)*r);m.scale.set(.8+rnd()*.6,.35+rnd()*.25,.8+rnd()*.6);m.renderOrder=40;g.add(m);P2.push({m,an,r,sp:(.6+rnd()*.6)*(rnd()<.5?1:-1)});}
+  let t=0,cageN=0,done=false;const T0=.8,TC=.8;
+  addFx(g,T0+TC+1.4,(f,dt)=>{t+=dt;const k=Math.min(1,t/T0),out=Math.max(0,1-(t-T0-TC-.3)/1);const camF=clamp((camera.position.y-(y+H)-2.5)/6,0,1);pm.opacity=.4*k*out*camF;g.rotation.y+=dt*(.5+1.5*k);for(const q of P2){q.an+=dt*q.sp;const r=q.r*(1.6-.6*k);q.m.position.x=Math.cos(q.an)*r;q.m.position.z=Math.sin(q.an)*r;}
+    pm.emissiveIntensity=(rnd()<.12?.6:.08)*k;if(k>.3&&rnd()<.3)nsArc(new THREE.Vector3(cx+(rnd()-.5)*2,y+H+(rnd()-.5)*.4,cz+(rnd()-.5)*2),new THREE.Vector3(cx+(rnd()-.5)*2,y+H-.3,cz+(rnd()-.5)*2),{w:.8,life:.08,disp:.3,depth:3});
+    /* the cage: eight bolts in a ring closing in */
+    while(t>=T0&&cageN<8&&t>=T0+cageN*TC/8){const an=cageN/8*6.28,r=2.4*(1-cageN/10),x=cx+Math.cos(an)*r,z=cz+Math.sin(an)*r;cageN++;lightningBolt(cx+(rnd()-.5)*.8,y+H-.3,cz+(rnd()-.5)*.8,x,z,false,0x8ec4ff);if(typeof wymForks==='function')wymForks(x,gy(x,z)+.1,z,.8,4,.7);
+      sprayP(1,x,gy(x,z)+.1,z,14,{c:0xffffff,c2:0x5aa0ff,sp:2,up:1,s:.05,s2:0,life:.4,g:4});camShake=Math.max(camShake,.05);
+      if(state==='playing')for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-x)**2+(e.z-z)**2<STC.cageR*STC.cageR){hurt(e,P*STC.cage*a[4],'magic',O);stcLog({ev:'cage',e});}}}
+    if(!done&&t>=T0+TC){done=true;stcLog({ev:'last'});darkTarget=0;for(let i=0;i<3;i++)nsArc(new THREE.Vector3(cx+(rnd()-.5)*.6,y+H,cz+(rnd()-.5)*.6),new THREE.Vector3(cx,y+.05,cz),{w:3+rnd(),br:6,life:.35,disp:.45,depth:5});
+      if(typeof wymBurst==='function')wymBurst(cx,y,cz,1.6);camShake=Math.max(camShake,.3);flashA=Math.max(flashA,.25);flashCol='#dcecff';flashDecay=5;
+      if(state==='playing')for(const e of enemies){if(e.dead||e.fake)continue;const d2=(e.x-cx)**2+(e.z-cz)**2;if(d2<STC.lastIn*STC.lastIn){hurt(e,P*STC.last*a[4],'magic',O);if(!e.dead)smStun(e,STC.stun);stcLog({ev:'lastIn',e});}else if(d2<STC.lastOut*STC.lastOut){hurt(e,P*STC.lastR*a[4],'magic',O);stcLog({ev:'lastOut',e});}}}},null,{mat:pm,geo:pg});}
+
+function stcStart(o,K){const C=stcC(o);if(!C)return null;const L=C.L,a=C.a,P=K.P,O=smO(o),clouds=K.clouds,ARR=K.ARR,DUR=K.DUR;stcLog({ev:'cast',L});
+  let pend=null,rainT=0,rainy=[],frontOn=false,frontT=0,frontD=0,lastDone=false;const wet=new Map();
+    const M={
+    soakFoe(e){wet.set(e,time+STC.soakT);},
+    aim(x,z){if(L<1||!pend)return{x,z};const P0=pend;pend=null;if(P0.e&&!P0.e.dead){stcLog({ev:'seek',e:P0.e});return{x:P0.e.x,z:P0.e.z};}return{x:P0.x,z:P0.z};},
+    front(tt){return L>=4&&tt>=ARR+STC.frontT0&&tt<ARR+STC.frontT1;},
+    struck(x,z,R){/* M2: through the water */if(L>=2){const hit=enemies.filter(e=>!e.dead&&!e.fake&&(e.x-x)**2+(e.z-z)**2<=R*R&&(wet.get(e)||0)>time);if(hit.length){const done=new Set(hit);
+          for(const h of hit)for(const q of enemies){if(q.dead||q.fake||done.has(q)||!((wet.get(q)||0)>time))continue;if((q.x-h.x)**2+(q.z-h.z)**2>STC.soakR*STC.soakR)continue;done.add(q);const A=tpos2(h),B=tpos2(q);
+            nsArc(new THREE.Vector3(A.x,gy(A.x,A.z)+.06,A.z),new THREE.Vector3(B.x,gy(B.x,B.z)+.06,B.z),{w:.9,br:2,life:.18,disp:.15,depth:3,col:0xa8e8ff});if(state==='playing'){hurt(q,P*STC.soak*a[1],'magic',O);stcLog({ev:'soakArc',e:q});}
+            sprayP(1,B.x,gy(B.x,B.z)+.1,B.z,8,{c:0xd8f4ff,c2:0x4a90d8,sp:1,up:1.2,s:.035,s2:0,life:.4,g:5});}}}
+      /* M3: the thunder rolls along the road */if(L>=3)stcRoll(x,z,P*STC.roll*a[2],O);},
+    frame(tt,dt,next,A){
+      /* M1: mark the next seeking bolt 0.3s before it falls */
+      if(L>=1&&tt<ARR+DUR&&!pend&&next-tt<=STC.seekT&&next-tt>0){const rt=pick(ROUTES),q=posAt(rnd()*rt.len,rt),x=q[0]+(rnd()-.5)*.5,z=q[1]+(rnd()-.5)*.5;let e=null,bd=STC.seekR*STC.seekR;
+        for(const f of enemies){if(f.dead||f.fake)continue;const d2=(f.x-x)**2+(f.z-z)**2;if(d2<bd){bd=d2;e=f;}}pend={x,z,e};if(e)stcSigil(e.x,e.z,Math.max(.05,next-tt));}
+      /* M2: rain from the clouds over the road */
+      if(L>=2&&A>.5){rainT-=dt;if(rainT<=0){rainT=1;rainy=clouds.filter(g=>g.visible).filter(g=>{const s=nsRouteNear(g.position.x,g.position.z),p=posAt(s.d,s.rt);return (p[0]-g.position.x)**2+(p[1]-g.position.z)**2<1.5*1.5;}).slice(0,4);if(rainy.length)stcLog({ev:'rain',n:rainy.length});}
+        for(const g of rainy){const p=g.position,S=g.userData.S;for(let i=0;i<10;i++){const x=p.x+(rnd()-.5)*S*1.4,z=p.z+(rnd()-.5)*S*1.1;emit(0,{x,y:p.y-.3*S,z,vx:.3,vy:-14,vz:0,s:.04,s2:.03,c:0xd0e4f8,c2:0x9ab8d8,a:.75,life:(p.y-gy(x,z))/14});
+            if(rnd()<.3)emit(0,{x,y:gy(x,z)+.04,z,vx:(rnd()-.5)*.6,vy:.5,vz:(rnd()-.5)*.6,s:.03,s2:0,c:0xd8ecff,c2:0x8aa8c8,a:.7,life:.25,g:5});}
+          for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-p.x)**2+(e.z-p.z)**2<(S*.85)**2){if(!((wet.get(e)||0)>time))stcLog({ev:'soak',e});wet.set(e,time+STC.soakT);}}}
+        for(const [e,t] of wet){if(e.dead||t<=time){wet.delete(e);continue;}if(rnd()<.15){const q=tpos2(e);emit(0,{x:q.x+(rnd()-.5)*.2,y:q.y,z:q.z+(rnd()-.5)*.2,vx:0,vy:-.8,vz:0,s:.03,s2:.02,c:0xb8e0ff,c2:0x6aa0d8,a:.8,life:.4});}}}
+      /* M4: the storm front marching down every road */
+      if(L>=4&&this.front(tt)){if(!frontOn){frontOn=true;frontD=0;stcLog({ev:'front0'});}frontD=Math.min(1,frontD+dt/(STC.frontT1-STC.frontT0));frontT-=dt;if(frontT<=0){frontT=STC.frontIv;for(const rt of ROUTES){const q=posAt(frontD*rt.len,rt),x=q[0]+(rnd()-.5)*.4,z=q[1]+(rnd()-.5)*.4;
+            lightningBolt(x+(rnd()-.5)*2,9,z-1.5,x,z,false,0x8ec4ff);stormImpact(x,z,false);if(typeof wymForks==='function')wymForks(x,gy(x,z)+.1,z,.8,3,.7);
+            if(state==='playing')for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-x)**2+(e.z-z)**2<STC.frontR*STC.frontR){hurt(e,P*STC.front*a[3],'magic',O);stcLog({ev:'frontHit',e});}}}camShake=Math.max(camShake,.05);flashA=Math.max(flashA,.12);flashCol='#dcecff';flashDecay=8;}}
+      /* M5: the last thunder */
+      if(L>=5&&!lastDone&&tt>=ARR+DUR){lastDone=true;const L2=enemies.filter(e=>!e.dead&&!e.fake);const c=L2.length?densest(L2):null;if(c)stcLast(c.x,c.z,P,a,O);else stcLog({ev:'last0',none:true});}},
+    end(){}};
+  if(STC.dbg)STC.cur=M;return M;}
 
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
