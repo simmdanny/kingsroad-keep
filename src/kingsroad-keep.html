@@ -4395,7 +4395,9 @@ function castStormcaller(t,P,o){
   shT.repeat.set(10,11);
   const nearCloud=(x,z)=>{let best=null,bd=1e9;for(const g of clouds){const d=(g.position.x-x)**2+(g.position.z-z)**2;if(d<bd){bd=d;best=g;}}return bd<64?best:null;};
   let tt=0,next=ARR+.2;
-  addFx(root,END,(e,dt)=>{tt+=dt;const inA=SMS(tt,0,ARR),outA=1-SMS(tt,ARR+DUR,END),A=inA*outA;
+  /* the masteries (stcStart; null at Mastery 0, for echoes and other casters: the old storm) */
+  const S=typeof stcStart==='function'?stcStart(o,{P,clouds,ARR,DUR}):null;
+  addFx(root,END,(e,dt)=>{tt+=dt;const inA=SMS(tt,0,ARR),outA=1-SMS(tt,ARR+DUR,END),A=inA*outA;if(S)S.frame(tt,dt,next,A);
     darkTarget=Math.max(darkTarget,.66*A);vigTarget=Math.max(vigTarget,.42*A);
     shM.opacity=.55*A;shT.offset.x-=dt*.035;shT.offset.y+=dt*.05;
     const cy=camera.position.y;
@@ -4408,13 +4410,13 @@ function castStormcaller(t,P,o){
     if(tt<ARR+DUR&&rnd()<.07*A){const g=pick(clouds);if(g.visible){const p=g.position,S=g.userData.S;zap({x:p.x+(rnd()-.5)*S,y:p.y+(rnd()-.5)*.4,z:p.z+(rnd()-.5)*S*.7},{x:p.x+(rnd()-.5)*S*1.2,y:p.y-.3-rnd()*.5,z:p.z+(rnd()-.5)*S*.7},0xcfe6ff,.1);g.userData.fl=1;}}
     if(tt<ARR*.9&&rnd()<.04){flashA=Math.max(flashA,.12);flashCol='#9fbfff';flashDecay=5;}
     /* strikes on random sections of the path, each one from the cloud overhead */
-    if(tt>=next&&tt<ARR+DUR){next=tt+.36+rnd()*.3;const n=rnd()<.18?2:1;
-      for(let s=0;s<n;s++){const rt=pick(ROUTES),q=posAt(rnd()*rt.len,rt),x=q[0]+(rnd()-.5)*.5,z=q[1]+(rnd()-.5)*.5,c=nearCloud(x,z);
+    if(tt>=next&&tt<ARR+DUR&&!(S&&S.front(tt))){next=tt+.36+rnd()*.3;const n=rnd()<.18?2:1;
+      for(let s=0;s<n;s++){const rt=pick(ROUTES),q=posAt(rnd()*rt.len,rt);let x=q[0]+(rnd()-.5)*.5,z=q[1]+(rnd()-.5)*.5;if(S&&!s){const a=S.aim(x,z);x=a.x;z=a.z;}const c=nearCloud(x,z);
         if(c){c.userData.fl=1.4;lightningBolt(c.position.x+(rnd()-.5)*c.userData.S*.6,c.position.y-.3*c.userData.S,c.position.z+(rnd()-.5)*c.userData.S*.4,x,z,true,0x8ec4ff);}
         else lightningBolt(x+(rnd()-.5)*3,10,z-2-rnd()*2,x,z,true,0x8ec4ff);
-        stormImpact(x,z,true);stormHit(x,z,1.05,P*2.5,o);shockwave(x,z,1.35,0xbfe0ff,.45,0x0a0c14);}
+        stormImpact(x,z,true);if(typeof wymForks==='function'){wymForks(x,gy(x,z)+.1,z,1.3,5,.9);wymRocks(x,z,8,1.1,.05);}stormHit(x,z,1.05,P*2.5,o);shockwave(x,z,1.35,0xbfe0ff,.45,0x0a0c14);if(S)S.struck(x,z,1.05);}
       flashA=Math.max(flashA,.38);flashCol='#dcecff';flashDecay=6;camShake=Math.max(camShake,.14);}
-  },()=>{darkTarget=0;vigTarget=0;shT.dispose();},{mats,geos});
+  },()=>{darkTarget=0;vigTarget=0;shT.dispose();if(S)S.end();},{mats,geos});
 }
 
 var SG_ACTIVE=new Set();
@@ -7415,21 +7417,25 @@ function nsMeteorHit(tx,tz,P,o,big){const y=gy(tx,tz),R=big?2:1,s=big?2:1;
   shockwave(tx,tz,R*1.4,0xff4a10,.45,0x2a1408);if(big)shockwave(tx,tz,R*2,0xff6a20,.7,0x1a0c06);nsSeamFx(tx,tz,R*1.1,big?12:7,0xffa040,0x1a0804,.05,big?5:3.4);
   nsDecal(tx,tz,R*.95,0x140a06,.7,big?6:4.5,{fout:1.6});nsDecal(tx,tz,R*.45,0xff6a14,.75,big?2.4:1.4,{add:true,fout:1});
   sprayP(1,tx,y+.2,tz,Math.round(50*s),{c:0xfff0a0,c2:0xff3a00,sp:2.8*s,up:1.2,s:.1,s2:.01,life:.6,g:2,drag:.9,r:.3*s});sprayP(0,tx,y+.2,tz,Math.round(16*s),{c:0x4a2a14,c2:0x1a0e08,sp:2*s,up:1.4,s:.07,s2:.03,a:.95,life:.9,g:5});debris(tx,tz,big?12:6,0x3a2a1a);
-  for(let i=0;i<(big?16:6);i++)emitS(0,{x:tx+(rnd()-.5)*.5*s,y:y+.2+rnd()*.4*s,z:tz+(rnd()-.5)*.5*s,vx:(rnd()-.5)*(big?2.2:1),vy:.6+rnd()*(big?1.4:.6),vz:(rnd()-.5)*(big?2.2:1),s:.3*s,s2:1.1*s,c:0x3a2418,c2:0x1a1210,a:.45,life:2+rnd(),lift:big?.5:.25,drag:1.2,turb:.4});
+  /* the explosion rule (v435): billowing fireballs with jets of flame, and lighter smoke gone in about a second and a half */
+  skmBoom(tx,tz,big?1.25:.55);
+  for(let i=0;i<(big?12:4);i++)emitS(0,{x:tx+(rnd()-.5)*.5*s,y:y+.2+rnd()*.4*s,z:tz+(rnd()-.5)*.5*s,vx:(rnd()-.5)*(big?2.2:1),vy:.6+rnd()*(big?1.4:.6),vz:(rnd()-.5)*(big?2.2:1),s:.3*s,s2:1*s,c:0x8a7464,c2:0x5a4c42,a:.3,life:1.2+rnd()*.4,lift:big?.5:.25,drag:1.2,turb:.4});
   if(big)for(let i=0;i<8;i++)emitS(1,{x:tx+(rnd()-.5)*.6,y:y+.3+rnd()*.6,z:tz+(rnd()-.5)*.6,vx:(rnd()-.5)*1.4,vy:.8+rnd(),vz:(rnd()-.5)*1.4,s:.35,s2:1.2,c:0xffa040,c2:0x8a2a08,a:.32,life:1.2,lift:.4,turb:.5});
   for(const e of enemies){if(e.dead)continue;if((e.x-tx)**2+(e.z-tz)**2<R*R){hurt(e,P*(big?4.2:.9),'magic',o);if(!e.dead)applyBurn(e,P*(big?.4:.25),3,o);}}
   const nP=big?3:1;for(let i=0;i<nP;i++){const a=rnd()*6.28,r=i?R*(.4+rnd()*.5):0;nsFireTrail(tx+Math.cos(a)*r,tz+Math.sin(a)*r,P,o);}}
 function castSkyfall(t,list,P,o){const real=enemies.filter(e=>!e.dead),c0=densest(list.filter(e=>!e.fake).length?list.filter(e=>!e.fake):list),cx=c0.x,cz=c0.z,cy=gy(cx,cz),mats=[],geos=[];
   const rockG=jitterGeo(new THREE.DodecahedronGeometry(1,0),.32);geos.push(rockG);const rockM=new THREE.MeshPhongMaterial({color:0x2a140a,emissive:0x7a2206,emissiveIntensity:.8,flatShading:true});mats.push(rockM);const K={rockG,rockM};
+  /* the masteries (skmStart; null at Mastery 0, for echoes and other casters: the old barrage) */
+  const SK=typeof skmStart==='function'?skmStart(o,{P,cx,cz,K}):null;
   const rune=makeRune(1.35,0xff5a14,{star:9,step:4,glyphs:30,fill:.35,fillCol:0x2a0802,fillNormal:true});rune.position.set(cx,cy+.03,cz);nsOwn(rune);rune.userData.fade(0);
   const side=rnd()<.5?-1:1;cineLock=Math.max(cineLock,5.4);darkTarget=Math.max(darkTarget,.34);vigTarget=Math.max(vigTarget,.32);
   const T0=[.8,1.25,1.65,2,2.3,2.6,2.85,3.1,3.35],FL=.7,near=real.filter(e=>(e.x-cx)**2+(e.z-cz)**2<7*7);let fired=0,big=false,tt=0;
   const sky=(x,z,h)=>new THREE.Vector3(x+side*(5+rnd()*2.2),gy(x,z)+h,z-(3+rnd()*2));
-  addFx(new THREE.Group(),7,(f,dt)=>{tt+=dt;rune.userData.fade(tt<1.6?.65*Math.min(1,tt/.5):Math.max(0,.65*(1-(tt-1.6)/1.2)));rune.rotation.y+=dt*(.6+tt*.25);
+  addFx(new THREE.Group(),7,(f,dt)=>{tt+=dt;if(SK)SK.frame(tt,dt);rune.userData.fade(tt<1.6?.65*Math.min(1,tt/.5):Math.max(0,.65*(1-(tt-1.6)/1.2)));rune.rotation.y+=dt*(.6+tt*.25);
     if(tt<5.4)for(let i=0;i<4;i++)emit(1,{x:cx+(rnd()-.5)*12,y:cy+4+rnd()*2,z:cz+(rnd()-.5)*12,vx:side*.4,vy:-1.4-rnd(),vz:.2,s:.06+rnd()*.05,s2:.02,c:0xffa040,c2:0x8a1400,a:.85,life:2.2,turb:.4});
     while(fired<T0.length&&tt>=T0[fired]){const pool=near.filter(e=>!e.dead);let tx,tz;if(pool.length){const e=pool[Math.floor(rnd()*pool.length)],L=nsLead(e,FL);const a=rnd()*6.28,r=rnd()*(pool.length<3?1.3:.5);tx=L.x+Math.cos(a)*r;tz=L.z+Math.sin(a)*r;}else{tx=cx+(rnd()-.5)*3;tz=cz+(rnd()-.5)*3;}
-      nsMeteor(sky(tx,tz,7+rnd()*1.5),tx,tz,FL,.9+rnd()*.35,(x,z)=>nsMeteorHit(x,z,P,o,false),K);fired++;}
-    if(!big&&tt>=3.9){big=true;const pool=real.filter(e=>!e.dead),d=pool.length?densest(pool):c0,L=nsLead(d,1.1);nsMeteor(sky(L.x,L.z,9),L.x,L.z,1.1,2.4,(x,z)=>nsMeteorHit(x,z,P,o,true),K);}
+      const Q=SK?SK.next():{size:1,mult:1},S0=sky(tx,tz,7+rnd()*1.5);nsMeteor(S0,tx,tz,FL,(.9+rnd()*.35)*Q.size,(x,z)=>{nsMeteorHit(x,z,P*Q.mult,o,false);if(SK)SK.landed(S0.x,S0.z,x,z,false);},K);fired++;}
+    if(!big&&tt>=3.9){big=true;const pool=real.filter(e=>!e.dead),d=pool.length?densest(pool):c0,L=nsLead(d,1.1);const S1=sky(L.x,L.z,9);nsMeteor(S1,L.x,L.z,1.1,2.4,(x,z)=>{nsMeteorHit(x,z,P,o,true);if(SK)SK.landed(S1.x,S1.z,x,z,true);},K);}
     if(tt>5.6){darkTarget=Math.max(0,darkTarget-dt*.4);vigTarget=Math.max(0,vigTarget-dt*.4);}},
     ()=>{nsFree(rune);darkTarget=0;vigTarget=0;},{mats:mats.concat(rune.userData.mats),geos:geos.concat(rune.userData.geos)});}
 
@@ -14164,6 +14170,12 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Skyfall masteries, redesigned',d:'28 Oct',v:'v435',li:[
+    'Skyfall (Legendary) has five new masteries, for now in developer mode: Ember Rain (the burning sky sheds real embers onto the foes), Crescendo (each meteor bigger and harder than the last), Ricochet (each meteor bounces on and crashes again), Shockfall (the impacts knock foes flat) and Extinction (the giant meteor\u2019s heart bursts up in a mushroom of fire and a ring of fireballs races out).',
+    'Its impacts now billow as 3D fireballs with jets of flame, and their smoke is lighter and gone in about a second and a half.']},
+  {t:'Stormcaller masteries, redesigned',d:'28 Oct',v:'v434',li:[
+    'Stormcaller (Legendary) has five new masteries, for now in developer mode: Seeking Bolts (a bolt that would fall near a foe bends onto it, marked by a sigil), Downpour (its clouds rain on the road and a bolt on a Soaked foe runs through the water to the others), Rolling Thunder (the thunder of each strike rolls along the road), Storm Front (from 8s to 11s the storm marches down every road as a front of bolts) and Last Thunder (at its end the clouds draw into one thunderhead: a ring of bolts closes in, then a colossal bolt).',
+    'Each of its strikes now throws forks of lightning up and out and tears stones from the road.']},
   {t:'Grim Harvest masteries, redesigned',d:'28 Oct',v:'v431',li:[
     'Culling Edge: a foe the scythe leaves under 15% of its health is reaped outright, its soul torn out of it; bosses take more from the scythe instead.',
     'Soul Swarm: the souls of the foes the first sweep reaps circle the reaper and hurl out at the foes in reach on the backhand.',
@@ -29230,8 +29242,7 @@ function trmTimber(g,yaw,sz,dmg,O){const x0=g.position.x,z0=g.position.z,dx=-Mat
   if(typeof rtmSplinters==='function')rtmSplinters(pts,x0,z0,90,1.6);const K=natKit(),F=nfxKit();nfxLeaves(x0+dx*len*.7,gy(x0,z0)+.6,z0+dz*len*.7,18,[K.leaf,K.leaf2,K.crown[1],F.leafD],null,1.2);
   if(state!=='playing')return;for(const e of enemies){if(e.dead||e.fake)continue;const px=e.x-x0,pz=e.z-z0,u=px*dx+pz*dz,v=Math.abs(px*dz-pz*dx);if(u<-.2||u>len+.2||v>W2)continue;hurt(e,dmg,'magic',O);if(!e.dead)ovgApply(e,3);trmLog({ev:'crush',e});}}
 
-/* ================= Voidfall's masteries (v430), designed with the framework (MASTERY_DESIGN.md) =================
-   Identity: the world falls silent, a black sphere swallows the ground, collapses, and a pillar of void crashes down and throws the foes
+/* ================= Voidfall's masteries (v430), designed with the framework (MASTERY_DESIGN.md) ==========   Identity: the world falls silent, a black sphere swallows the ground, collapses, and a pillar of void crashes down and throws the foes
    under it into the air. Design space: the sphere's hunger (the earth it drags in was only looks), the foes thrown up, the shards of void
    that orbit them (only looks), the fall back to earth, and what the void leaves inside the foes it touched.
    - M1 Gravity Well (the sphere; cosmetic made real: 'what if the sphere swallowed foes, not just stones?'): while the sphere forms, foes
@@ -29510,6 +29521,184 @@ function ghmShard(A,e,dmg,o,i){const mats=[],W=ghmWispMesh(mats),g=W.g,tr=W.tr;s
 /* a new world: no clouds, souls or hollows carry over */
 {const cw0=clearWorld;clearWorld=function(){GHM_CLOUD.length=0;GHM_BT.clear();if(typeof VFM_HOL!=='undefined')VFM_HOL.clear();return cw0.apply(this,arguments);};}
 /* ---- end of Grim Harvest's masteries (v431) ---- */
+/* ================= Stormcaller's masteries (v434), designed with Simon's framework (MASTERY_DESIGN.md) ================= */
+/* Identity: the sky itself turns against the enemy. A vast storm rolls in over the whole battlefield, darkens it, and for 15 seconds
+   hurls giant bolts (250% within 1.05) at random stretches of the road from the clouds drifting overhead. Design space: where the bolts
+   fall (blind chance so far), the clouds that drift over the map (only looks so far), the thunder of each strike, the storm's long life
+   (one even rain of bolts), and its end (it simply drifts away). Roster: no serpent (Thunder Wyrm), no single cloud over a pack
+   (Lightning Cloud), no chain hopping foe to foe at will (Ball Lightning), no first storm of the world (the Primordial Tempest): every
+   mastery is about a storm that covers the whole battlefield.
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Seeking Bolts | what if the storm saw them? | where the bolts fall | behaviour change, targeting |
+   | 2 | Downpour | what if its clouds rained? | the clouds (only looks before) | cosmetic made real, interaction |
+   | 3 | Rolling Thunder | what if the thunder followed the road? | each strike's thunder | new effect |
+   | 4 | Storm Front | what if the storm marched? | its long life | a new phase |
+   | 5 | Last Thunder | what if it ended in one blow? | its end | signature payoff |
+   - M1 Seeking Bolts: the bolts still fall at random, but one that would land within 1.2 tiles of a foe bends onto it: 0.3s before, a
+     crackling sigil marks the foe and sparks climb from it, and the bolt lands on it. No damage of its own: near misses become hits.
+     (Aiming every other bolt at a foe outright made it six times stronger on the ladder, whose foes stand in one small knot.)
+   - M2 Downpour: the clouds that drift over the road rain on it (streaks falling from the cloud to the ground, splashes); foes in the
+     rain are Soaked for 2s (drips of water on them). A bolt that hits a Soaked foe runs through the water to every other Soaked foe
+     within 2 tiles: STC.soak each.
+   - M3 Rolling Thunder: the thunder of each strike rolls along the road both ways for 1.6 tiles, tearing the road up as it goes (dust
+     and stones bursting up along it): STC.roll to each ground foe it rolls over, and a small knock back (not bosses).
+   - M4 Storm Front: from 8s to 11s the random strikes stop and the storm gathers into a front that marches down every road from its
+     start to the keep in those 3s, a bolt every 0.12s on the road under it: STC.front within 0.9 each.
+   - M5 Last Thunder: when the storm ends, its clouds draw together into one great thunderhead over the thickest pack (a dark, turning
+     mass flickering from inside), eight bolts fall in a ring that closes in on it (STC.cage each within 0.7), then a colossal bolt:
+     STC.last within 1.4, STC.lastR out to 2.6, and the foes in the middle are stunned 0.6s (Resolve applies).
+   The base cast follows the explosion rule (every cast): each strike now throws forks of lightning up and out and tears stones from the
+   road (on top of its shockwave, which rises as a wall since v420). STC.dbg (an array) logs the events for the tests. */
+const STC={dbg:null,seekT:.3,seekR:1.2,soak:.45,soakR:2,soakT:2,roll:.4,rollLen:1.6,rollW:.55,front:1.1,frontR:.9,frontT0:8,frontT1:11,frontIv:.12,cage:.3,cageR:.7,last:1.8,lastR:.7,lastIn:1.4,lastOut:2.6,stun:.6};
+const stcC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='stormcaller'?c:null;};
+const stcLog=d=>{if(STC.dbg){d.time=time;STC.dbg.push(d);}};
+SM_D.stormcaller=[
+  {n:'Seeking Bolts',d:'A bolt that would fall within 1.2 tiles of a foe bends onto it: a crackling sigil marks the foe just before it lands.'},
+  {n:'Downpour',d:'Its clouds rain on the road beneath them, Soaking foes for 2s. A bolt on a Soaked foe runs through the water to every Soaked foe within 2 tiles: {45}%.'},
+  {n:'Rolling Thunder',d:'The thunder of each strike rolls 1.6 tiles along the road both ways: {40}% and a small knock back to the foes it rolls over.'},
+  {n:'Storm Front',d:'From 8s to 11s the storm marches down every road toward the keep as a front of bolts: {110}% each.'},
+  {n:'Last Thunder',d:'At its end its clouds draw into one thunderhead over the thickest pack: a ring of bolts closes in ({30}% each), then a colossal bolt: {180}% within 1.4, {70}% out to 2.6, stunned 0.6s.'}];
+SMF.stormcaller={m:1};
+SMA.stormcaller=[1,1,1,1,1];
+/* the ladder (tests/sm-ladder.js, 2-3 runs; its bolts fall at random, so one run swings by 10-15%): the masteries alone come to about 1.25 / 1.3 /
+   1.7 / 1.75 / 2.3 (Seeking Bolts, Rolling Thunder and Last Thunder land well on the ladder's one knot of foes); these bring it onto 1.09 / 1.23 / 1.35 / 1.52 / 1.74 */
+SMG.stormcaller=[.83,.92,.78,.87,.75];
+
+/* a sigil of crackling light on the road: where a seeking bolt will fall */
+function stcSigil(x,z,T){const y=gy(x,z),g=new THREE.Group();g.position.set(x,y+.05,z);scene.add(smTag(g));const m=new THREE.MeshBasicMaterial({color:0xbfe0ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const rg=new THREE.RingGeometry(.3,.36,6);rg.rotateX(-Math.PI/2);const r1=new THREE.Mesh(rg,m),r2=new THREE.Mesh(rg,m);r2.scale.setScalar(.55);r2.rotation.y=.5;g.add(r1,r2);let t=0;
+  addFx(g,T,(f,dt)=>{t+=dt;const k=t/T;m.opacity=.8*Math.min(1,k*4);r1.rotation.y+=dt*4;r2.rotation.y-=dt*6;g.scale.setScalar(1.3-.5*k);
+    if(rnd()<.8)emit(1,{x:x+(rnd()-.5)*.5,y:y+.05,z:z+(rnd()-.5)*.5,vx:0,vy:1.5+rnd()*1.5,vz:0,s:.04,s2:0,c:0xffffff,c2:0x6aa0ff,life:.35});if(rnd()<.4)nsCrackle({x,y:y+.08,z},.4,0xbfe0ff);},null,{mat:m,geo:rg});}
+/* M3: thunder rolling along the road from a strike */
+function stcRoll(x,z,dmg,O){const st=nsRouteNear(x,z),rt=st.rt,d0=st.d,hit=new Set();stcLog({ev:'roll'});let t=0;const T=.4;
+  addFx(new THREE.Group(),T+.05,(f,dt)=>{const t0=t;t+=dt;for(const sg of [-1,1]){const u0=STC.rollLen*Math.min(1,t0/T),u1=STC.rollLen*Math.min(1,t/T);
+      for(let u=u0;u<u1;u+=.18){const dd=Math.max(0,Math.min(rt.len,d0+sg*u)),p=posAt(dd,rt),px=p[0],pz=p[1],py=gy(px,pz);
+        for(let i=0;i<2;i++)emitS(0,{x:px+(rnd()-.5)*.4,y:py+.06,z:pz+(rnd()-.5)*.4,vx:(rnd()-.5)*.4,vy:.6+rnd()*.6,vz:(rnd()-.5)*.4,s:.14,s2:.42,c:0x8a7e6e,c2:0x4a4440,a:.35,life:.7,drag:1.6,lift:.2,turb:.3});
+        sprayP(0,px,py+.05,pz,3,{c:0x6a5a48,c2:0x3a3028,sp:.6,up:1.6,s:.035,s2:0,life:.5,g:7});if(rnd()<.35)nsCrackle({x:px,y:py+.08,z:pz},.3,0xbfe0ff);
+        if(state==='playing')for(const e of enemies){if(e.dead||e.fake||e.fly||hit.has(e))continue;if((e.x-px)**2+(e.z-pz)**2>STC.rollW*STC.rollW)continue;hit.add(e);hurt(e,dmg,'magic',O);if(!e.dead&&!e.boss)pushE(e,.25);stcLog({ev:'rolled',e});}}}});}
+/* M5: the thunderhead, its cage and the colossal bolt */
+function stcLast(cx,cz,P,a,O){const y=gy(cx,cz),H=9.5;stcLog({ev:'last0'});darkTarget=Math.max(darkTarget,.5);
+  const g=new THREE.Group();g.position.set(cx,y+H,cz);scene.add(smTag(g));const pg=new THREE.IcosahedronGeometry(1,1),pm=new THREE.MeshPhongMaterial({color:0x3a4250,emissive:0x5a78b0,emissiveIntensity:0,flatShading:true,shininess:0,transparent:true,opacity:0,depthWrite:false});
+  const P2=[];for(let i=0;i<16;i++){const m=new THREE.Mesh(pg,pm),an=rnd()*6.28,r=.4+rnd()*1.8;m.position.set(Math.cos(an)*r,(rnd()-.5)*.5,Math.sin(an)*r);m.scale.set(.8+rnd()*.6,.35+rnd()*.25,.8+rnd()*.6);m.renderOrder=40;g.add(m);P2.push({m,an,r,sp:(.6+rnd()*.6)*(rnd()<.5?1:-1)});}
+  let t=0,cageN=0,done=false;const T0=.8,TC=.8;
+  addFx(g,T0+TC+1.4,(f,dt)=>{t+=dt;const k=Math.min(1,t/T0),out=Math.max(0,1-(t-T0-TC-.3)/1);const camF=clamp((camera.position.y-(y+H)-2.5)/6,0,1);pm.opacity=.4*k*out*camF;g.rotation.y+=dt*(.5+1.5*k);for(const q of P2){q.an+=dt*q.sp;const r=q.r*(1.6-.6*k);q.m.position.x=Math.cos(q.an)*r;q.m.position.z=Math.sin(q.an)*r;}
+    pm.emissiveIntensity=(rnd()<.12?.6:.08)*k;if(k>.3&&rnd()<.3)nsArc(new THREE.Vector3(cx+(rnd()-.5)*2,y+H+(rnd()-.5)*.4,cz+(rnd()-.5)*2),new THREE.Vector3(cx+(rnd()-.5)*2,y+H-.3,cz+(rnd()-.5)*2),{w:.8,life:.08,disp:.3,depth:3});
+    /* the cage: eight bolts in a ring closing in */
+    while(t>=T0&&cageN<8&&t>=T0+cageN*TC/8){const an=cageN/8*6.28,r=2.4*(1-cageN/10),x=cx+Math.cos(an)*r,z=cz+Math.sin(an)*r;cageN++;lightningBolt(cx+(rnd()-.5)*.8,y+H-.3,cz+(rnd()-.5)*.8,x,z,false,0x8ec4ff);if(typeof wymForks==='function')wymForks(x,gy(x,z)+.1,z,.8,4,.7);
+      sprayP(1,x,gy(x,z)+.1,z,14,{c:0xffffff,c2:0x5aa0ff,sp:2,up:1,s:.05,s2:0,life:.4,g:4});camShake=Math.max(camShake,.05);
+      if(state==='playing')for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-x)**2+(e.z-z)**2<STC.cageR*STC.cageR){hurt(e,P*STC.cage*a[4],'magic',O);stcLog({ev:'cage',e});}}}
+    if(!done&&t>=T0+TC){done=true;stcLog({ev:'last'});darkTarget=0;for(let i=0;i<3;i++)nsArc(new THREE.Vector3(cx+(rnd()-.5)*.6,y+H,cz+(rnd()-.5)*.6),new THREE.Vector3(cx,y+.05,cz),{w:3+rnd(),br:6,life:.35,disp:.45,depth:5});
+      if(typeof wymBurst==='function')wymBurst(cx,y,cz,1.6);camShake=Math.max(camShake,.3);flashA=Math.max(flashA,.25);flashCol='#dcecff';flashDecay=5;
+      if(state==='playing')for(const e of enemies){if(e.dead||e.fake)continue;const d2=(e.x-cx)**2+(e.z-cz)**2;if(d2<STC.lastIn*STC.lastIn){hurt(e,P*STC.last*a[4],'magic',O);if(!e.dead)smStun(e,STC.stun);stcLog({ev:'lastIn',e});}else if(d2<STC.lastOut*STC.lastOut){hurt(e,P*STC.lastR*a[4],'magic',O);stcLog({ev:'lastOut',e});}}}},null,{mat:pm,geo:pg});}
+
+function stcStart(o,K){const C=stcC(o);if(!C)return null;const L=C.L,a=C.a,P=K.P,O=smO(o),clouds=K.clouds,ARR=K.ARR,DUR=K.DUR;stcLog({ev:'cast',L});
+  let pend=null,rainT=0,rainy=[],frontOn=false,frontT=0,frontD=0,lastDone=false;const wet=new Map();
+    const M={
+    soakFoe(e){wet.set(e,time+STC.soakT);},
+    aim(x,z){if(L<1||!pend)return{x,z};const P0=pend;pend=null;if(P0.e&&!P0.e.dead){stcLog({ev:'seek',e:P0.e});return{x:P0.e.x,z:P0.e.z};}return{x:P0.x,z:P0.z};},
+    front(tt){return L>=4&&tt>=ARR+STC.frontT0&&tt<ARR+STC.frontT1;},
+    struck(x,z,R){/* M2: through the water */if(L>=2){const hit=enemies.filter(e=>!e.dead&&!e.fake&&(e.x-x)**2+(e.z-z)**2<=R*R&&(wet.get(e)||0)>time);if(hit.length){const done=new Set(hit);
+          for(const h of hit)for(const q of enemies){if(q.dead||q.fake||done.has(q)||!((wet.get(q)||0)>time))continue;if((q.x-h.x)**2+(q.z-h.z)**2>STC.soakR*STC.soakR)continue;done.add(q);const A=tpos2(h),B=tpos2(q);
+            nsArc(new THREE.Vector3(A.x,gy(A.x,A.z)+.06,A.z),new THREE.Vector3(B.x,gy(B.x,B.z)+.06,B.z),{w:.9,br:2,life:.18,disp:.15,depth:3,col:0xa8e8ff});if(state==='playing'){hurt(q,P*STC.soak*a[1],'magic',O);stcLog({ev:'soakArc',e:q});}
+            sprayP(1,B.x,gy(B.x,B.z)+.1,B.z,8,{c:0xd8f4ff,c2:0x4a90d8,sp:1,up:1.2,s:.035,s2:0,life:.4,g:5});}}}
+      /* M3: the thunder rolls along the road */if(L>=3)stcRoll(x,z,P*STC.roll*a[2],O);},
+    frame(tt,dt,next,A){
+      /* M1: mark the next seeking bolt 0.3s before it falls */
+      if(L>=1&&tt<ARR+DUR&&!pend&&next-tt<=STC.seekT&&next-tt>0){const rt=pick(ROUTES),q=posAt(rnd()*rt.len,rt),x=q[0]+(rnd()-.5)*.5,z=q[1]+(rnd()-.5)*.5;let e=null,bd=STC.seekR*STC.seekR;
+        for(const f of enemies){if(f.dead||f.fake)continue;const d2=(f.x-x)**2+(f.z-z)**2;if(d2<bd){bd=d2;e=f;}}pend={x,z,e};if(e)stcSigil(e.x,e.z,Math.max(.05,next-tt));}
+      /* M2: rain from the clouds over the road */
+      if(L>=2&&A>.5){rainT-=dt;if(rainT<=0){rainT=1;rainy=clouds.filter(g=>g.visible).filter(g=>{const s=nsRouteNear(g.position.x,g.position.z),p=posAt(s.d,s.rt);return (p[0]-g.position.x)**2+(p[1]-g.position.z)**2<1.5*1.5;}).slice(0,4);if(rainy.length)stcLog({ev:'rain',n:rainy.length});}
+        for(const g of rainy){const p=g.position,S=g.userData.S;for(let i=0;i<10;i++){const x=p.x+(rnd()-.5)*S*1.4,z=p.z+(rnd()-.5)*S*1.1;emit(0,{x,y:p.y-.3*S,z,vx:.3,vy:-14,vz:0,s:.04,s2:.03,c:0xd0e4f8,c2:0x9ab8d8,a:.75,life:(p.y-gy(x,z))/14});
+            if(rnd()<.3)emit(0,{x,y:gy(x,z)+.04,z,vx:(rnd()-.5)*.6,vy:.5,vz:(rnd()-.5)*.6,s:.03,s2:0,c:0xd8ecff,c2:0x8aa8c8,a:.7,life:.25,g:5});}
+          for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-p.x)**2+(e.z-p.z)**2<(S*.85)**2){if(!((wet.get(e)||0)>time))stcLog({ev:'soak',e});wet.set(e,time+STC.soakT);}}}
+        for(const [e,t] of wet){if(e.dead||t<=time){wet.delete(e);continue;}if(rnd()<.15){const q=tpos2(e);emit(0,{x:q.x+(rnd()-.5)*.2,y:q.y,z:q.z+(rnd()-.5)*.2,vx:0,vy:-.8,vz:0,s:.03,s2:.02,c:0xb8e0ff,c2:0x6aa0d8,a:.8,life:.4});}}}
+      /* M4: the storm front marching down every road */
+      if(L>=4&&this.front(tt)){if(!frontOn){frontOn=true;frontD=0;stcLog({ev:'front0'});}frontD=Math.min(1,frontD+dt/(STC.frontT1-STC.frontT0));frontT-=dt;if(frontT<=0){frontT=STC.frontIv;for(const rt of ROUTES){const q=posAt(frontD*rt.len,rt),x=q[0]+(rnd()-.5)*.4,z=q[1]+(rnd()-.5)*.4;
+            lightningBolt(x+(rnd()-.5)*2,9,z-1.5,x,z,false,0x8ec4ff);stormImpact(x,z,false);if(typeof wymForks==='function')wymForks(x,gy(x,z)+.1,z,.8,3,.7);
+            if(state==='playing')for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-x)**2+(e.z-z)**2<STC.frontR*STC.frontR){hurt(e,P*STC.front*a[3],'magic',O);stcLog({ev:'frontHit',e});}}}camShake=Math.max(camShake,.05);flashA=Math.max(flashA,.12);flashCol='#dcecff';flashDecay=8;}}
+      /* M5: the last thunder */
+      if(L>=5&&!lastDone&&tt>=ARR+DUR){lastDone=true;const L2=enemies.filter(e=>!e.dead&&!e.fake);const c=L2.length?densest(L2):null;if(c)stcLast(c.x,c.z,P,a,O);else stcLog({ev:'last0',none:true});}},
+    end(){}};
+  if(STC.dbg)STC.cur=M;return M;}
+
+/* ================= Skyfall's masteries (v435), designed with Simon's framework (MASTERY_DESIGN.md) ================= */
+/* Identity: the burning sky itself falls on the enemy. The sky darkens and begins to burn (embers drift down over the whole field), nine
+   meteors tear through it and hammer the foes one after another, faster and faster (90% within 1 and a burn each), and a giant meteor falls
+   last (420% within 2) in a storm of fire. Design space: the burning sky (its embers only look so far), the quickening rhythm (only
+   timing so far), each meteor's flight and impact, the impacts' force, and the giant meteor at the end. Roster: no single telegraphed
+   comet with a crater (Frostfall Comet), no obsidian meteors breaking off a rune (Cataclysm's Falling Sky), no bursting of burning foes
+   (Rite of the Phoenix's Pyre), no battlefield storm (Stormcaller): every mastery is about a barrage that quickens to its end.
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Ember Rain | what if the burning sky really burned? | the embers falling everywhere (only looks before) | cosmetic made real |
+   | 2 | Crescendo | what if the quickening meant something? | the rhythm of the barrage | build-up |
+   | 3 | Ricochet | what if a meteor did not stop where it hit? | each meteor's flight | behaviour change |
+   | 4 | Shockfall | what if the impacts knocked them flat? | the force of each impact | control |
+   | 5 | Extinction | what if the last one ended the world? | the giant meteor | signature payoff |
+   - M1 Ember Rain: the embers the burning sky sheds are real: every 0.4s while it burns, each foe within 6 tiles of the barrage has a
+     one-in-three chance that a burning ember lands on it (a glowing ember dropping onto it, a puff of sparks): SKM.ember and Burning
+     1.5s, so the fire scrolls and combos find it alight.
+   - M2 Crescendo: each meteor hits harder than the last, SKM.cresc more per meteor before it (the ninth +SKM.cresc x8), and grows with
+     it (a bigger rock, a bigger fireball), so the barrage swells to the giant.
+   - M3 Ricochet: a meteor does not stop where it lands: its rock bounces on along its line of flight, 1.3 tiles further, and crashes
+     again (a smaller burst): SKM.rico within 0.8.
+   - M4 Shockfall: each impact knocks the foes within 1 flat: stunned 0.35s (Resolve applies, bosses 40%), dust and stones thrown up
+     round them; the giant meteor knocks down everything within 2 for 0.8s.
+   - M5 Extinction: the giant meteor's crash is not the end: its molten heart bursts up in a column of fire that billows into a
+     mushroom cloud, and a ring of fireballs races out along the ground to 3.5 tiles: SKM.ext more within 2, SKM.extR to the foes from
+     2 to 3.5 as the ring reaches them.
+   The base cast follows the explosion rule (every cast): each impact bursts as billowing fireballs with jets of flame (ftmBoom, from
+   Fire Tornado) on top of its shockwave (a rising wall since v420), and its smoke is lighter and gone in about a second and a half
+   instead of dark soot hanging for three. SKM.dbg (an array) logs the events for the tests. */
+const SKM={dbg:null,ember:.15,emberR:6,emberIv:.4,cresc:.15,rico:.5,ricoD:1.3,ricoR:.8,stun:.35,stunR:1,stunBig:.8,ext:1.5,extR:1,extOut:3.5};
+const skmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='skyfall'?c:null;};
+const skmLog=d=>{if(SKM.dbg){d.time=time;SKM.dbg.push(d);}};
+SM_D.skyfall=[
+  {n:'Ember Rain',d:'The burning sky sheds real embers: every 0.4s each foe near the barrage may be hit by one: {15}% and Burning.'},
+  {n:'Crescendo',d:'Each meteor hits harder than the last ({15}% more per meteor before it) and grows with it.'},
+  {n:'Ricochet',d:'A meteor bounces on 1.3 tiles along its flight and crashes again: {50}%.'},
+  {n:'Shockfall',d:'Each impact knocks the foes within 1 flat for 0.35s (Resolve applies); the giant knocks down everything within 2 for 0.8s.'},
+  {n:'Extinction',d:'The giant meteor\u2019s heart bursts up in a mushroom of fire and a ring of fireballs races out: {150}% more within 2, {100}% out to 3.5.'}];
+SMF.skyfall={m:1};
+SMA.skyfall=[1,1,1,1,1];
+/* the ladder (tests/sm-ladder.js, 3 runs): the masteries alone come to 1.06 / 1.40 / 1.45 / 1.45 / 1.58 (Crescendo swells the whole barrage; Shockfall
+   is control the ladder does not count); these bring it onto 1.09 / 1.23 / 1.35 / 1.52 / 1.74 */
+SMG.skyfall=[1.04,.88,.93,1.05,1.1];
+
+/* the impact's 3D fire (the base cast and the masteries): billowing fireballs and jets of flame */
+function skmBoom(x,z,S){skmLog({ev:'boom',S});const y=gy(x,z);if(typeof ftmBoom==='function')ftmBoom(x,y+.15,z,S,{n:S>1?5:3,t:S>1?12:7,up:.6,sm:S>1?6:2});}
+/* M3: the rock bouncing on and crashing again */
+function skmRicochet(sx,sz,tx,tz,K,dmg,O){const dx=tx-sx,dz=tz-sz,dl=Math.hypot(dx,dz)||1,ex=tx+dx/dl*SKM.ricoD,ez=tz+dz/dl*SKM.ricoD,y0=gy(tx,tz);
+  const g=new THREE.Group();scene.add(smTag(g));const rock=new THREE.Mesh(K.rockG,K.rockM);rock.scale.setScalar(.14);g.add(rock);let t=0;const T=.42;skmLog({ev:'rico0'});
+  addFx(g,T+.05,(f,dt)=>{t+=dt;const k=Math.min(1,t/T);g.position.set(tx+(ex-tx)*k,y0+.1+Math.sin(k*Math.PI)*.9,tz+(ez-tz)*k);rock.rotation.x+=dt*9;
+    emit(1,{x:g.position.x,y:g.position.y,z:g.position.z,vx:0,vy:.2,vz:0,s:.09,s2:.01,c:0xffc060,c2:0xb01a00,life:.3});if(rnd()<.3)emitS(0,{x:g.position.x,y:g.position.y,z:g.position.z,vx:0,vy:.3,vz:0,s:.08,s2:.25,c:0x6a5a4a,c2:0x3a3028,a:.25,life:.6,turb:.3});
+    if(k>=1&&!g.userData.hit){g.userData.hit=1;f.life=0;skmBoom(ex,ez,.45);if(typeof nsSeamFx==='function')nsSeamFx(ex,ez,.6,5,0xffa040,0x1a0804,.04,2.4);camShake=Math.max(camShake,.05);
+      if(state==='playing')for(const e of enemies){if(e.dead||e.fake||e.fly)continue;if((e.x-ex)**2+(e.z-ez)**2<SKM.ricoR*SKM.ricoR){hurt(e,dmg,'magic',O);skmLog({ev:'rico',e});}}}},null,{});}
+/* M4: knocked flat */
+function skmShock(x,z,R,sec){if(state!=='playing')return;for(const e of enemies){if(e.dead||e.fake||e.fly)continue;if((e.x-x)**2+(e.z-z)**2>=R*R)continue;{smStun(e,sec);skmLog({ev:'shock',e,sec});const p=tpos2(e);
+    sprayP(0,p.x,gy(e.x,e.z)+.06,p.z,6,{c:0x6a5a48,c2:0x3a3028,sp:.9,up:1.4,s:.035,s2:0,life:.5,g:7});emitS(0,{x:p.x,y:gy(e.x,e.z)+.06,z:p.z,vx:0,vy:.25,vz:0,s:.14,s2:.4,c:0x8a7e6e,c2:0x4a4440,a:.3,life:.7,lift:.1});}}}
+/* M5: the heart bursts up, a mushroom of fire, and a ring of fireballs racing out */
+function skmExtinction(x,z,dIn,dOut,O){const y=gy(x,z);skmLog({ev:'ext0'});
+  mxLater(.25,()=>{skmLog({ev:'ext'});if(typeof cfmBoom==='function')cfmBoom(x,y+.2,z,.85,{mush:true,lobes:4,shake:.3,T:1.1});camShake=Math.max(camShake,.3);
+    if(state==='playing')for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-x)**2+(e.z-z)**2<4){hurt(e,dIn,'magic',O);skmLog({ev:'extIn',e});}}
+    /* the ring: fireballs racing out along the ground */
+    const N=16,hit=new Set();let t=0;const T=.7;const F=[];for(let i=0;i<N;i++)F.push({a:i/N*6.28+rnd()*.15,last:0});
+    addFx(new THREE.Group(),T+.05,(f,dt)=>{t+=dt;const r=2+(SKM.extOut-2)*Math.min(1,t/T);for(const q of F){if(t-q.last<.07)continue;q.last=t;const px=x+Math.cos(q.a)*r,pz=z+Math.sin(q.a)*r;if(typeof ftmBall==='function')ftmBall(px,gy(px,pz)+.25,pz,.28+rnd()*.1,.45,.6);
+        emit(1,{x:px,y:gy(px,pz)+.2,z:pz,vx:Math.cos(q.a)*1.5,vy:1,vz:Math.sin(q.a)*1.5,s:.08,s2:0,c:0xffd080,c2:0xff3a00,life:.4,g:2});}
+      if(state==='playing')for(const e of enemies){if(e.dead||e.fake||hit.has(e))continue;const d=Math.hypot(e.x-x,e.z-z);if(d<2||d>r)continue;hit.add(e);hurt(e,dOut,'magic',O);skmLog({ev:'extOut',e});}});});}
+
+function skmStart(o,K){const C=skmC(o);if(!C)return null;const L=C.L,a=C.a,P=K.P,O=smO(o),cx=K.cx,cz=K.cz;skmLog({ev:'cast',L});let n=0,emT=0;
+  return{
+    /* M2: each meteor launched is bigger and hits harder than the one before */
+    next(){const i=n++;return L>=2?{size:1+.06*i,mult:1+SKM.cresc*a[1]*i}:{size:1,mult:1};},
+    landed(sx,sz,tx,tz,big){
+      if(L>=3&&!big)skmRicochet(sx,sz,tx,tz,K.K,P*SKM.rico*a[2],O);
+      if(L>=4)skmShock(tx,tz,big?2:SKM.stunR,big?SKM.stunBig:SKM.stun);
+      if(L>=5&&big)skmExtinction(tx,tz,P*SKM.ext*a[4],P*SKM.extR*a[4],O);},
+    frame(tt,dt){/* M1: the embers land */if(L<1||tt>5.4)return;emT-=dt;if(emT>0)return;emT=SKM.emberIv;
+      for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-cx)**2+(e.z-cz)**2>SKM.emberR*SKM.emberR||rnd()>1/3)continue;const p=tpos2(e);
+        emit(1,{x:p.x,y:p.y+1.4,z:p.z,vx:0,vy:-3.6,vz:0,s:.09,s2:.05,c:0xffd070,c2:0xff4a00,life:.38});mxLater(.36,()=>{if(e.dead||state!=='playing')return;hurt(e,P*SKM.ember*a[0],'magic',O);applyBurn(e,P*SKM.ember*a[0]/1.5*.5,1.5,smO(o,{dot:true}));skmLog({ev:'ember',e});
+          const q=tpos2(e);sprayP(1,q.x,q.y,q.z,6,{c:0xfff0a0,c2:0xff3a00,sp:.8,up:.6,s:.04,s2:0,life:.35,g:2});});}}};}
+
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
