@@ -14132,6 +14132,10 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Spatial Deflection masteries, reworked',d:'28 Oct',v:'v407',li:[
+    'Fractured Perspective: at the snap, fractures of light race across the zone and bend the ground beneath the foes, 35%. Echoes of Elsewhere: two ghostly copies of the zone collapse into it in turn, 50%.',
+    'Folded Space: the zone folds along a glowing cross and draws the foes inside toward its centre, 75% at the snap. The Impossible Prison: a crystal cage closes round the zone and shatters inward, 100%.',
+    'Paradox Collapse: the zone collapses into a singularity, ruptures into three rings of fractured light (60%) and snaps back in a blinding flash (150%). Rare masteries are still in developer mode.']},
   {t:'The Hall of Champions, and profiles',d:'28 Oct',v:'v406',li:[
     'A leaderboard for you and your friends: the gold trophy on the land card opens it. The best wave on every land, a podium for the top three and everyone else below.',
     'Carve your name in once; every new best wave goes up by itself. Passing a friend shows a toast, and the last board stays readable offline. Runs in developer mode never count.',
@@ -25767,6 +25771,324 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElement
 .pf-foot{padding:8px 14px 14px}.pf-hall{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:0}.pf-hall svg{width:18px;height:18px}
 @media (max-width:360px){.pf-stats b{font-size:18px}.pf-name span{font-size:27px}}`;document.head.appendChild(st);}
 profBtn();profSync();
+/* ================= Spatial Deflection's masteries, as Simon designed them (v407) ================= */
+/* Simon (abridged; the "upgrade" notes left out): "Mastery 1 - Fractured Perspective: When the zone snaps back, thin fractures of light race
+   outward from its centre, splitting into smaller cracks that briefly distort the ground beneath nearby enemies. Each affected enemy takes an
+   additional 35% damage. Visual: on release, a luminous geometric fracture pattern spreads across the circle, and each crack briefly appears to
+   bend the world beneath it. / Mastery 2 - Echoes of Elsewhere: During the final two seconds, the affected area develops two ghostly copies of
+   itself, each offset slightly in a different direction. When space snaps back, the copies collapse into the real battlefield in sequence. Each
+   collapse deals 50% damage to enemies still inside the zone. An enemy can be hit by only one copy. Visual: Trees, road markings, towers and
+   enemies appear in multiple translucent positions. The copies flicker out one after another, each producing a pale-blue distortion wave. /
+   Mastery 3 - Folded Space: Halfway through the spell, the affected zone folds inward along two perpendicular axes, forming a visible
+   cross-shaped crease. For the remaining duration, enemies inside are gradually drawn toward the centre of the distortion. When space snaps
+   back, enemies caught in the fold take an additional 75% damage. Bosses resist the inward displacement but still take the damage. Visual: The
+   road appears to fold like a sheet of paper, with its edges rising into impossible angles. The creases glow white-blue, and nearby scenery
+   stretches toward the centre. / Mastery 4 - The Impossible Prison: The distorted circle develops a transparent geometric shell around its
+   boundary. During the final three seconds, the shell closes into a crystalline enclosure. When the spell ends, the shell shatters inward and
+   releases a powerful spatial shockwave, dealing an additional 100% damage to enemies inside. The enclosure does not block the road or tower
+   projectiles. Visual: Large translucent planes appear around the zone, connecting into an angular cage. The enclosure contracts, turns almost
+   completely white, then fractures into hundreds of geometric shards. / Mastery 5 - Paradox Collapse: At the end of the seven-second
+   distortion, the affected section of reality folds into itself, briefly forming a three-dimensional geometric singularity. 1. Compression:
+   the area folds toward a tiny point; enemies are pulled toward the centre (bosses resist). 2. Rupture: the singularity fractures into three
+   overlapping spatial shockwaves, each dealing 60% damage to enemies it reaches; each enemy can be struck by only one. 3. Restoration: reality
+   snaps back in a blinding white-blue flash, dealing a final 150% damage to every enemy remaining in the original zone. Visual: The road bends
+   into impossible angles, scenery stretches into geometric ribbons, the zone collapses into a brilliant point, which splits into three
+   enormous rings of fractured light racing outward before the scene slams back into alignment." He also asked: "NO LOW EFFORT EFFECTS ARE
+   ACCEPTABLE, no bland 2d explosions etc, this is about making something that 'feels' worth unlocking".
+   Percentages are of the scroll's power (the snap itself is 250%). Mastery 0, echoes and other casters are the old spell (dfmC(o): the SM.ctx
+   entry of o.smId, not o.smx). castDeflectZone is wrapped: the old zone still bends and snaps (radius 2.3, snap at 7.12s, DFM.SNAP); the
+   masteries are timed from the zone's start. The world-space warp pass (SDP) gets two new fields through an sdpInit wrapper that patches its
+   shader: ghost copies of the world (uEc/uEo/uEa, DFM.ec) and a fold field (uFd/uFe/uFf, DFM.fd: a pinch toward the centre with a twist, and
+   a cross of creases with shear). A dfmWarp counter keeps the pass running while they are in use (SDP.n).
+   - M1 Fractured Perspective: dfmFracture, a network of glowing cracks (dfmCrackNet: jagged radial cracks with branches and broken polygonal
+     rings, one mesh revealed outward by a shader, dfmCrackMat) racing out from the centre at the snap; four main cracks bend the world along
+     them (SDP.sl slashes) and the ground under each foe they reach twists (SDP.pl): 35% to every foe inside as the front reaches it.
+   - M2 Echoes of Elsewhere: dfmEchoes, two translucent copies of the zone's world, offset 0.4 in different directions, fading in over the
+     last two seconds and flickering, each with a ghostly rim; after the snap they collapse into the real one, 0.08s and 0.3s later, each
+     with a distortion wave (spaceQuake) and a pale-blue wave of light (dfmWave): 50% to the foes inside that no copy has hit yet.
+   - M3 Folded Space: dfmFold, from half time (3.56s) the zone folds along two perpendicular creases (the zone's own shift axis and its
+     normal), the sides sheared like a folded sheet and pinched toward the centre, the creases glowing, with sheets of light rising along
+     them; every 0.2s ground foes inside that are already past the centre on the road are drawn back toward it (at most 0.07 a step, pushE,
+     so Resolve applies; pulling the ones before it forward would help them) and the others are slowed 50% (bosses are not moved). At the
+     snap the fold springs open: 75% to every foe inside.
+   - M4 The Impossible Prison: dfmPrison, a decagonal shell of translucent crystal panels (dfmPanelMat: glinting faces, bright edges) rising
+     round the zone from 1.2s; over the last three seconds its roof of ten triangular panels closes into a point, the cage contracts and turns
+     white; at the snap it shatters inward into 320 glass shards (instanced) and a spatial shockwave: 100% to every foe inside. It blocks
+     nothing.
+   - M5 Paradox Collapse: dfmParadox, from 6.45s the fold field collapses the whole zone toward its centre in a twist (scenery pulled into
+     ribbons) while foes are drawn in (as Folded Space, harder; bosses resist); a geometric singularity (nested turning polyhedra, a white star)
+     burns at the centre; at 7.32s it ruptures into three tilted rings of fractured light (instanced shards) racing out with their distortion
+     waves: 60% to each foe the first ring to reach it touches, once; at 7.82s restoration: a blinding white-blue flash and a great distortion
+     wave, 150% to every foe still in the zone.
+   DFM.dbg (an array) logs the events for the tests. */
+const DFM={dbg:null,R:2.3,SNAP:7.12,fr:.35,ec:.5,fo:.75,pr:1,px:.6,pz:1.5,ecT:5.12,foT:3.56,prT:1.2,pxT:6.45,pxRup:7.32,pxRes:7.82,ecS:null,fdS:null};
+const DFC={W:0xffffff,I:0xeaf4ff,B:0xa8d4ff,D:0x4a78c8};
+const dfmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='deflect'?c:null;};
+const dfmLog=d=>{if(DFM.dbg)DFM.dbg.push(d);};
+SM_D.deflect=[
+  {n:'Fractured Perspective',d:'When space snaps back, fractures of light race out across the zone, splitting into cracks that bend the ground beneath the foes: {35}% more to each.'},
+  {n:'Echoes of Elsewhere',d:'In the last two seconds two ghostly copies of the zone appear, offset in different directions; after the snap they collapse into the real one in turn: {50}% to each foe inside (once).'},
+  {n:'Folded Space',d:'Halfway through, the zone folds along a glowing cross-shaped crease and draws the foes inside toward its centre (not bosses). At the snap they take {75}% more.'},
+  {n:'The Impossible Prison',d:'A crystal shell rises round the zone and closes into an enclosure over the last three seconds; at the snap it shatters inward in a spatial shockwave: {100}% more.'},
+  {n:'Paradox Collapse',d:'At the end the zone collapses into a geometric singularity, drawing the foes in, then ruptures into three rings of fractured light ({60}%, once) before reality snaps back: {150}% to everything still inside.'}];
+SMF.deflect={m:2.5};
+SMA.deflect=[1,1,1,1,1];
+SMG.deflect=[1,1,1,1,1];
+SM.free=SM.free||{};SM.free.deflect='Simon'+String.fromCharCode(8217)+'s own numbers for Spatial Deflection';
+
+/* ---- the warp pass: two new fields ---- */
+DFM.shS=null;DFM.shU={a:new THREE.Vector4(),b:new THREE.Vector4()};DFM.rw=[null,null,null,null];DFM.rwU=[0,1,2,3].map(()=>new THREE.Vector4());DFM.ecU={c:new THREE.Vector4(),o:new THREE.Vector4(),a:new THREE.Vector4()};DFM.fdU={d:new THREE.Vector4(),e:new THREE.Vector4(),f:new THREE.Vector4()};
+{const si0=sdpInit;sdpInit=function(){const was=!!SDP.mat;si0.apply(this,arguments);if(was&&SDP.mat.userData.dfm)return;const m=SDP.mat;if(!m||m.userData.dfm)return;m.userData.dfm=1;
+  Object.assign(m.uniforms,{uSh:{value:DFM.shU.a},uSs:{value:DFM.shU.b},uRw:{value:DFM.rwU},uEc:{value:DFM.ecU.c},uEo:{value:DFM.ecU.o},uEa:{value:DFM.ecU.a},uFd:{value:DFM.fdU.d},uFe:{value:DFM.fdU.e},uFf:{value:DFM.fdU.f}});
+  let fs=m.fragmentShader;const A='uniform float uT,uK;',B='b0=mix(G.xz,b0,uK);',C='gl_FragColor=vec4(col*(1.-clamp(dk,0.,.88))+glow,1.);}';
+  if(fs.indexOf(A)<0||fs.indexOf(B)<0||fs.indexOf(C)<0){console.error('dfm: warp shader not found');return;}
+  fs=fs.replace(A,A+'uniform vec4 uEc,uEo,uEa,uFd,uFe,uFf,uRw[4],uSh,uSs;');
+  /* the fold field: a pinch toward the centre with a twist (uFd.w, uFe.w), and a cross of creases along uFe.xy and its normal with shear (uFe.z) */
+  /* shattered space (Fractured Perspective): the zone breaks into long shards (cells of a polar Voronoi pattern, revealed outward to uSh.z),
+     each shifting the world behind it a little in its own direction and outward, with a chromatic split; only the seams glow, faintly */
+  fs=fs.replace(B,'if(uSh.w>0.){vec2 q=G.xz-uSh.xy;float d=length(q),Rs=uSs.x;float mk=(1.-smoothstep(Rs*.8,Rs*1.02,d))*smoothstep(uSh.z+.02,uSh.z-.35,d);if(mk>0.){'+
+    'vec2 rq=vec2(atan(q.y,q.x)*1.25,log(d+.25)*2.6)*vec2(2.2,1.5)+uSs.y;vec2 ip=floor(rq),fp=fract(rq);float f1=8.,f2=8.;vec2 cid=ip;'+
+    'for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 g=vec2(float(i),float(j));vec2 o=vec2(h21(ip+g),h21(ip+g+7.3))*.85+.075;float dd=length(g+o-fp);if(dd<f1){f2=f1;f1=dd;cid=ip+g;}else if(dd<f2)f2=dd;}'+
+    'float e=f2-f1;vec2 r2=vec2(h21(cid*1.7+3.1),h21(cid*2.3-1.9))-.5,ra=q/(d+1e-3);vec2 D=-(r2*.3+ra*(.08+.12*h21(cid)))*uSh.w*mk;sh[0]+=D*.8;sh[1]+=D;sh[2]+=D*1.2;'+
+    'float seam=1.-smoothstep(0.,.045,e);glow+=vec3(.62,.8,1.)*seam*mk*uSs.z*.3+vec3(.5,.7,1.)*exp(-pow((d-uSh.z)/.12,2.))*mk*uSs.z*.12;anyZ=1.;}}'+B);
+  /* smooth ripples: a ring pushing the world outward as it passes, with a chromatic split and a faint cold glow (x, z, front radius, amount) */
+  fs=fs.replace(B,'for(int i=0;i<4;i++){vec4 Rw=uRw[i];if(Rw.w<=0.)continue;vec2 q=G.xz-Rw.xy;float l=length(q),x=l-Rw.z,env=exp(-x*x/.16);vec2 rd=q/(l+1e-3);vec2 D=rd*Rw.w*env*(x>0.?1.:-.55);sh[0]+=D*.86;sh[1]+=D;sh[2]+=D*1.14;glow+=vec3(.55,.75,1.)*env*Rw.w*.3;anyZ=1.;}'+B);
+  fs=fs.replace(B,'if(uFd.z>0.){vec2 q=G.xz-uFd.xy;float d=length(q)/uFd.z;float mk=1.-smoothstep(.6,1.,d);vec2 u=uFe.xy,v=vec2(-u.y,u.x);float a=dot(q,u),b=dot(q,v);'+
+    'float tw=uFe.w*pow(max(0.,1.-d),1.6);float stp=floor((atan(q.y,q.x)+tw)*3./3.14159)*3.14159/3.;tw+=uFe.w*.12*sin(stp*2.+d*9.);float cs=cos(tw),sn=sin(tw);vec2 qr=vec2(q.x*cs-q.y*sn,q.x*sn+q.y*cs);'+
+    'vec2 qs=qr*(1.+uFd.w);float ls=length(qs);if(ls>uFd.z*.98)qs*=uFd.z*.98/ls;vec2 X=(qs-q)*mk;float cr=uFe.z,fa=exp(-abs(a)/(.3*uFd.z)),fb=exp(-abs(b)/(.3*uFd.z));'+
+    'X+=(u*sign(a)*fa+v*sign(b)*fb)*cr*mk*uFd.z*.34+(v*a*fb*.9+u*b*fa*.9)*cr*mk+(u*sign(a)*sign(b)*abs(b)+v*sign(a)*sign(b)*abs(a))*cr*mk*.18;vec2 D=-X;sh[0]+=D*.95;sh[1]+=D;sh[2]+=D*1.05;'+
+    'float cl=(exp(-pow(a/.022,2.))+exp(-pow(b/.022,2.)))*mk*cr,ch=(exp(-pow(a/.14,2.))+exp(-pow(b/.14,2.)))*mk*cr;glow+=vec3(.82,.92,1.)*cl*uFf.x*1.3+vec3(.45,.65,1.)*ch*uFf.x*.22;'+
+    'glow+=vec3(.9,.95,1.)*exp(-d*d*90.)*uFf.y+vec3(.55,.75,1.)*exp(-d*d*12.)*uFf.y*.35;anyZ=1.;}'+B);
+  /* ghost copies: the zone's world sampled again at two offsets and blended in, pale and cold */
+  fs=fs.replace(C,'if(uEc.z>0.){vec2 q=G.xz-uEc.xy;float m=1.-smoothstep(.82,1.04,length(q)/uEc.z);if(m>0.){vec2 Bq=b1-sh[1];vec3 g1=texture2D(tD,clamp(toUv(vec3(Bq.x-uEo.x,.35,Bq.y-uEo.y)),.001,.999)).rgb,g2=texture2D(tD,clamp(toUv(vec3(Bq.x-uEo.z,.35,Bq.y-uEo.w)),.001,.999)).rgb;'+
+    'float a1=uEa.x*m*uK,a2=uEa.y*m*uK;col=col*(1.-.36*(a1+a2))+(g1*a1+g2*a2)*.36*vec3(.82,.92,1.12)+vec3(.1,.16,.28)*(a1+a2)*.22;}}'+C);
+  m.fragmentShader=fs;m.needsUpdate=true;};}
+{const sr0=sdpRender;sdpRender=function(){if(SDP.mat&&SDP.mat.uniforms.uEc){const E=DFM.ecS,F=DFM.fdS,U=DFM.ecU,V=DFM.fdU;
+    if(E){U.c.set(E.x,E.z,E.R,0);U.o.set(E.o1x,E.o1z,E.o2x,E.o2z);U.a.set(E.a1,E.a2,0,0);}else U.c.set(0,0,0,0);
+    if(F){V.d.set(F.x,F.z,F.R,F.pinch);V.e.set(F.ux,F.uz,F.crease,F.twist);V.f.set(F.glow,F.point,0,0);}else V.d.set(0,0,0,0);
+    {const Q=DFM.shS;if(Q){DFM.shU.a.set(Q.x,Q.z,Q.front,Q.amt);DFM.shU.b.set(Q.R,Q.seed,Q.edge,0);}else DFM.shU.a.set(0,0,0,0);}
+    for(let i=0;i<4;i++){const q=DFM.rw[i];if(q&&q.amp>0)DFM.rwU[i].set(q.x,q.z,q.r,q.amp);else DFM.rwU[i].set(0,0,0,0);}}
+  return sr0.apply(this,arguments);};}
+/* a smooth ripple of space racing out from (x,z) to RM in T seconds (the oldest is replaced when all four are in use) */
+function dfmRipple(x,z,RM,T,amp){let i=DFM.rw.findIndex(q=>!q);if(i<0)i=0;const q={x,z,r:.1,amp:0};DFM.rw[i]=q;dfmWarp(true);let t=0,on=true;const off=()=>{if(DFM.rw[i]===q)DFM.rw[i]=null;if(on){on=false;dfmWarp(false);}};SG_ACTIVE.add(off);
+  addFx(new THREE.Group(),T+.05,(f,dt)=>{t+=dt;const k=Math.min(1,t/T);q.r=.1+(RM-.1)*(1-Math.pow(1-k,1.7));q.amp=amp*Math.min(1,t/.05)*(1-k)*(1-k*.3);if(f.life<=dt+1e-6)off();},()=>{SG_ACTIVE.delete(off);off();});}
+/* keep the warp pass running while a field is in use */
+function dfmWarp(on){if(on){sdpInit();SDP.n++;}else SDP.n=Math.max(0,SDP.n-1);}
+
+/* ---- shared pieces ---- */
+const DFMQ={},DFMO=new THREE.Object3D(),DFMV={up:new THREE.Vector3(0,1,0),a:new THREE.Vector3()};
+DFMQ.plane=()=>DFMQ._pl||(DFMQ._pl=new THREE.PlaneGeometry(2,2).rotateX(-Math.PI/2));
+DFMQ.cyl=()=>DFMQ._cy||(DFMQ._cy=new THREE.CylinderGeometry(1,1,1,96,1,true).translate(0,.5,0));
+DFMQ.shard=()=>DFMQ._sh||(DFMQ._sh=(()=>{const g=new THREE.TetrahedronGeometry(1,0);g.scale(.5,1,.18);const j=jitterGeo(g,.15);g.dispose();return j;})());
+const dfmAM=(col,op)=>new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+const dfmSM=(col,op,map)=>new THREE.SpriteMaterial({map:map||softDiscTex(),color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false});
+const dfmGlass=()=>new THREE.MeshPhongMaterial({color:0xeef6ff,emissive:0x5a8ad8,emissiveIntensity:.9,specular:0xffffff,shininess:140,flatShading:true,transparent:true,opacity:.9});
+/* a new InstancedMesh draws every instance at full size until its matrices are set: start them all hidden */
+const dfmHideI=im=>{DFMO.position.set(0,0,0);DFMO.rotation.set(0,0,0);DFMO.scale.setScalar(.0001);DFMO.updateMatrix();for(let i=0;i<im.count;i++)im.setMatrixAt(i,DFMO.matrix);im.instanceMatrix.needsUpdate=true;im.frustumCulled=false;return im;};
+/* the shared effects light, cold white (FXL through jvLight): every effect asks each frame, the brightest wins */
+const DFML={on:false,I:0,x:0,y:0,z:0,d:5};
+function dfmLight(x,y,z,I,d){if(!(I>0))return;if(I>DFML.I){DFML.I=I;DFML.x=x;DFML.y=y;DFML.z=z;DFML.d=d;}
+  if(DFML.on&&fx.indexOf(DFML.e)>=0)return;DFML.on=true;let idle=0;
+  DFML.e=addFx(new THREE.Group(),1e4,f=>{if(DFML.I>0){idle=0;if(typeof jvLight==='function')jvLight(DFML.x,DFML.y,DFML.z,0xdceaff,DFML.I,DFML.d);DFML.I=0;}
+    else if(++idle>2||f.life<1){f.life=0;DFML.on=false;DFML.I=0;if(typeof jvLightOff==='function')jvLightOff();}});}
+const dfmInZ=(S,e)=>(e.x-S.cx)**2+(e.z-S.cz)**2<=S.R*S.R;
+const dfmFoes=S=>enemies.filter(e=>!e.dead&&dfmInZ(S,e));
+/* a free slot in one of the warp pass's lists (slashes SDP.sl, 4; pinches SDP.pl, 12) */
+function dfmSlot(key,n){SDP[key]=SDP[key]||[];for(let i=0;i<n;i++)if(!SDP[key][i])return i;return -1;}
+/* a pale-blue wave of light racing over the ground (a band on a plane: p = metres from the centre), painted with an additive hot line */
+function dfmWaveMat(S,M){return new THREE.ShaderMaterial({uniforms:{uR:{value:.2},uT:{value:rnd()*9},uA:{value:0},uS:{value:S}},transparent:true,depthWrite:false,
+  blending:M?THREE.AdditiveBlending:THREE.NormalBlending,polygonOffset:true,polygonOffsetFactor:-4-M,polygonOffsetUnits:-4-M,
+  vertexShader:'varying vec2 vP;void main(){vP=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uR,uT,uA,uS;varying vec2 vP;'+SLM_N+'void main(){vec2 p=vP*uS;float d=length(p),a=atan(p.y,p.x);float x=d-uR;float n=fb(vec2(a*14.,d*2.-uT*3.)),n2=n1(vec2(a*40.,d*6.));'+
+    'float front=exp(-pow(x/.05,2.))*(.7+.3*n2);float wake=step(x,0.)*smoothstep(-.55-.3*n,-.05,x)*(.35+.65*n);float facet=step(x,0.)*smoothstep(-.4,0.,x)*pow(abs(sin(a*9.+floor(d*6.))),18.);'+
+    (M?'gl_FragColor=vec4(vec3(.6,.8,1.),clamp(front*.28+facet*.18,0.,1.)*uA);}':'gl_FragColor=vec4(mix(vec3(.12,.24,.5),vec3(.5,.7,1.),front),clamp(wake*.2+front*.3,0.,.6)*uA);}')});}
+function dfmWave(x,z,R,T,col){const y=gy(x,z),g=new THREE.Group();g.position.set(x,y,z);scene.add(smTag(g));const S=R+.4,mp=dfmWaveMat(S,0),mg=dfmWaveMat(S,1);
+  for(const[m,yy,ro]of[[mp,.04,5],[mg,.045,6]]){const me=new THREE.Mesh(DFMQ.plane(),m);me.scale.setScalar(S);me.position.y=yy;me.renderOrder=ro;g.add(me);}
+  let t=0;addFx(g,T+.3,(f,dt)=>{t+=dt;const k=Math.min(1,t/T),r=.2+(R-.2)*(1-Math.pow(1-k,2)),fd=t<T?1:Math.max(0,1-(t-T)/.3);for(const m of[mp,mg]){m.uniforms.uR.value=r;m.uniforms.uT.value+=dt;m.uniforms.uA.value=fd*Math.min(1,t/.04);}
+    let n=dt*35*fd;while(n>0){if(n<1&&rnd()>n)break;n--;const a=rnd()*6.28;emit(1,{x:x+Math.cos(a)*r,y:y+.06,z:z+Math.sin(a)*r,vx:Math.cos(a)*.5,vy:.2+rnd()*.3,vz:Math.sin(a)*.5,s:.03,s2:0,c:DFC.B,c2:DFC.D,life:.3});}},null,{mats:[mp,mg]});}
+
+/* ---- M1 Fractured Perspective: a network of cracks of light racing out at the snap ---- */
+/* the cracks: jagged radial cracks from the centre with branches, and broken polygonal rings joining them (each segment: A, B, the distance
+   from the centre where it is reached, its width) */
+function dfmCrackNet(R){const seg=[],rad=[],N=9,a0=rnd()*6.28;
+  for(let i=0;i<N;i++){let a=a0+i/N*6.2832+(rnd()-.5)*.35,x=Math.cos(a)*.06,z=Math.sin(a)*.06,d=.06;const pts=[[x,z,d]];
+    while(Math.hypot(x,z)<R*.98){const L=.16+rnd()*.16;a+=(rnd()-.5)*.55;const nx=x+Math.cos(a)*L,nz=z+Math.sin(a)*L,nd=d+L;seg.push([x,z,nx,nz,d,nd,.042]);
+      if(rnd()<.28&&Math.hypot(nx,nz)<R*.8){let ba=a+(rnd()<.5?1:-1)*(.5+rnd()*.5),bx=nx,bz=nz,bd=nd;for(let k=0;k<2+Math.floor(rnd()*3);k++){const bl=.12+rnd()*.12;ba+=(rnd()-.5)*.6;const ex=bx+Math.cos(ba)*bl,ez=bz+Math.sin(ba)*bl;if(Math.hypot(ex,ez)>R)break;seg.push([bx,bz,ex,ez,bd,bd+bl,.026]);bx=ex;bz=ez;bd+=bl;}}
+      x=nx;z=nz;d=nd;pts.push([x,z,d]);}rad.push(pts);}
+  /* broken rings at three radii, between neighbouring radial cracks */
+  for(const fr of[.42,.78]){const rr=R*fr;for(let i=0;i<N;i++){if(rnd()<.35)continue;const p=rad[i],q=rad[(i+1)%N];const near=P=>P.reduce((b,c)=>Math.abs(Math.hypot(c[0],c[1])-rr)<Math.abs(Math.hypot(b[0],b[1])-rr)?c:b,P[0]);
+      const A=near(p),B=near(q),mx=(A[0]+B[0])/2*(1+(rnd()-.5)*.12),mz=(A[1]+B[1])/2*(1+(rnd()-.5)*.12),d=Math.max(A[2],B[2]);seg.push([A[0],A[1],mx,mz,d,d+.15,.018]);seg.push([mx,mz,B[0],B[1],d+.15,d+.3,.018]);}}
+  return{seg,rad};}
+/* revealed outward from the centre (aD: distance where it is reached, uR: the front); uM 0 a soft cold shadow along it (normal), uM 1 the light */
+function dfmCrackMat(M){return new THREE.ShaderMaterial({uniforms:{uR:{value:0},uA:{value:0},uG:{value:1},uT:{value:rnd()*9}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
+  blending:M?THREE.AdditiveBlending:THREE.NormalBlending,polygonOffset:true,polygonOffsetFactor:-5-M,polygonOffsetUnits:-5-M,
+  vertexShader:'attribute float aD,aS;varying float vD,vS;void main(){vD=aD;vS=aS;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uR,uA,uG,uT;varying float vD,vS;void main(){float rev=smoothstep(uR+.02,uR-.06,vD);if(rev<=0.)discard;float front=exp(-pow((vD-uR)/.12,2.));'+
+    (M?'float core=exp(-vS*vS*11.),halo=exp(-vS*vS*2.2)*.32;vec3 c=mix(vec3(.55,.75,1.),vec3(1.),core);gl_FragColor=vec4(c,clamp((core+halo)*(uG+front*2.)*rev,0.,1.)*uA);}':
+     'gl_FragColor=vec4(vec3(.04,.08,.22),clamp(exp(-vS*vS*1.6)*.55*rev,0.,1.)*uA);}')});}
+function dfmCrackGeo(seg,W){const pos=[],aD=[],aS=[],idx=[];let n=0;
+  for(const[ax,az,bx,bz,da,db,w]of seg){const dx=bx-ax,dz=bz-az,L=Math.hypot(dx,dz)||1,nx=-dz/L*w*W,nz=dx/L*w*W;
+    pos.push(ax+nx,0,az+nz,ax-nx,0,az-nz,bx+nx,0,bz+nz,bx-nx,0,bz-nz);aD.push(da,da,db,db);aS.push(1,-1,1,-1);idx.push(n,n+1,n+2,n+1,n+3,n+2);n+=4;}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('aD',new THREE.Float32BufferAttribute(aD,1));g.setAttribute('aS',new THREE.Float32BufferAttribute(aS,1));g.setIndex(idx);return g;}
+function dfmFracture(S,dmg){const cx=S.cx,cz=S.cz,R=S.R,g0=gy(cx,cz),net=dfmCrackNet(R),g=new THREE.Group();g.position.set(cx,g0+.075,cz);scene.add(smTag(g));dfmLog({ev:'fracture',n:net.seg.length});
+  const geo=dfmCrackGeo(net.seg,2.6),m0=dfmCrackMat(0),m1=dfmCrackMat(1);const a=new THREE.Mesh(geo,m0),b=new THREE.Mesh(geo,m1);a.renderOrder=5;b.renderOrder=6;g.add(a,b);
+  const Q={x:cx,z:cz,front:0,amt:0,R,seed:rnd()*40,edge:1};DFM.shS=Q;
+  const maxD=net.seg.reduce((m,q)=>Math.max(m,q[5]),0),SPD=R/.38,SPP=maxD/.42,hit=new Set(),warps=[];let t=0;dfmWarp(true);let warpOn=true;
+  /* four main cracks bend the world along them (SDP.sl) */
+  for(let i=0;i<4;i++){const p=net.rad[Math.floor(i*net.rad.length/4)],A=p[0],B=p[p.length-1],s=dfmSlot('sl',4);if(s<0)break;const q={ax:cx+A[0],az:cz+A[1],bx:cx+B[0],bz:cz+B[1],w2:.07,amp2:0,curve:(rnd()-.5)*.2,seed:rnd()*9};SDP.sl[s]=q;warps.push({k:'sl',s,q,max:.16});}
+  const cleanup=()=>{if(DFM.shS===Q)DFM.shS=null;for(const w of warps)if(SDP[w.k][w.s]===w.q)SDP[w.k][w.s]=null;if(warpOn){warpOn=false;dfmWarp(false);}};SG_ACTIVE.add(cleanup);
+  addFx(g,1.7,(f,dt)=>{t+=dt;const r=Math.min(R*1.02,t*SPD),rp=Math.min(maxD+.2,t*SPP);m0.uniforms.uR.value=m1.uniforms.uR.value=rp;m0.uniforms.uA.value=0;m1.uniforms.uA.value=Math.min(1,f.life/.55)*.3;m1.uniforms.uG.value=.4+.9*Math.exp(-t*4);
+    /* the shards: they break out with the front, hold, then ease back into place */
+    Q.front=r*1.08+.1;Q.amt=Math.min(1,t/.12)*(t<.55?1:Math.max(0,1-(t-.55)/.9))*(1+.15*Math.sin(t*30)*Math.exp(-t*4));Q.edge=Math.max(0,1-t/1.2);
+    for(const w of warps){const k=w.k==='sl'?Math.min(1,t/.2)*Math.max(0,1-(t-.25)/.5):Math.max(0,1-(t-w.t0)/.35);if(w.k==='sl')w.q.amp2=w.max*k;else w.q.amp=w.max*k;}
+    /* the front reaches the foes: 35%, and the ground beneath each twists */
+    if(state==='playing')for(const e of enemies){if(e.dead||hit.has(e))continue;const d=Math.hypot(e.x-cx,e.z-cz);if(d>R||d>r)continue;hit.add(e);hurt(e,dmg,'magic',S.o);dfmLog({ev:'crack',e});
+      const p=tpos2(e);flash(p.x,p.y,p.z,DFC.B,.12,.08);sprayP(1,p.x,g0+.08,p.z,4,{c:DFC.I,c2:DFC.D,sp:.9,up:.4,s:.03,s2:0,life:.3,g:2});
+      const s=dfmSlot('pl',12);if(s>=0){const q={x:e.x,z:e.z,r:.55,amp:.0001};SDP.pl[s]=q;warps.push({k:'pl',s,q,max:.32,t0:t});}}
+    if(t<.45){let n=dt*25;while(n>0){if(n<1&&rnd()>n)break;n--;const sg=net.seg[Math.floor(rnd()*net.seg.length)];if(Math.abs(sg[5]-rp)>.3)continue;emit(1,{x:cx+sg[2],y:g0+.06,z:cz+sg[3],vx:(rnd()-.5)*.5,vy:.3+rnd()*.4,vz:(rnd()-.5)*.5,s:.035,s2:0,c:0xffffff,c2:DFC.B,life:.3});}}
+    dfmLight(cx,g0+.8,cz,.6*Math.exp(-t*3),R+2);
+    /* (an effect's end callback only runs during a battle, so it also cleans up in its last frame) */
+    if(f.life<=dt+1e-6)cleanup();},()=>{SG_ACTIVE.delete(cleanup);cleanup();},{mats:[m0,m1],geos:[geo]});}
+
+/* ---- M2 Echoes of Elsewhere: two ghostly copies of the zone, collapsing in turn ---- */
+function dfmEchoes(S,dmg){const cx=S.cx,cz=S.cz,R=S.R,g0=gy(cx,cz),th=Math.atan2(S.Z.dz,S.Z.dx),o1=[Math.cos(th+.95)*.42,Math.sin(th+.95)*.42],o2=[Math.cos(th+.95+2.5)*.38,Math.sin(th+.95+2.5)*.38];
+  const E={x:cx,z:cz,R,o1x:0,o1z:0,o2x:0,o2z:0,a1:0,a2:0};DFM.ecS=E;dfmWarp(true);let warpOn=true;dfmLog({ev:'echo0'});
+  /* a ghostly rim round each copy: a low curtain of cold light, flickering */
+  const mats=[],root=new THREE.Group();scene.add(smTag(root));const rims=[o1,o2].map(o=>{const m=new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:rnd()*9}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+      vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader:'uniform float uA,uT;varying vec2 vU;'+SLM_N+'void main(){float n=n1(vec2(vU.x*70.,vU.y*3.-uT*4.)),sc=step(.5,fract(vU.y*14.+uT*2.));float k=pow(1.-vU.y,2.)*(.5+.5*n)*(.75+.25*sc);gl_FragColor=vec4(vec3(.7,.86,1.),k*uA);}'});
+    mats.push(m);const c=new THREE.Mesh(DFMQ.cyl(),m);c.position.set(cx,g0,cz);c.scale.set(R,.45,R);root.add(c);return{c,m,o};});
+  const T0=DFM.ecT,TS=DFM.SNAP,C1=TS+.08,C2=TS+.3,hit=new Set();let t=0,c1=false,c2=false;
+  const cleanup=()=>{if(DFM.ecS===E)DFM.ecS=null;if(warpOn){warpOn=false;dfmWarp(false);}};SG_ACTIVE.add(cleanup);
+  const collapse=(i)=>{const o=i?o2:o1;dfmLog({ev:'collapse',i});dfmRipple(cx+o[0]*.5,cz+o[1]*.5,R*1.3,.55,.55);dfmWave(cx,cz,R+.3,.45,DFC.B);camShake=Math.max(camShake,.05);
+    if(state==='playing')for(const e of dfmFoes(S)){if(hit.has(e))continue;hit.add(e);hurt(e,dmg,'magic',S.o);dfmLog({ev:'echoHit',e,i});const p=tpos2(e);flash(p.x,p.y,p.z,DFC.B,.12,.08);}};
+  addFx(root,C2+.5,(f,dt)=>{t+=dt;for(const r of rims)r.m.uniforms.uT.value+=dt;if(t<T0)return;
+    const k=SMS(t,T0,T0+.9),fl1=.82+.18*Math.sin(t*31)*Math.sin(t*7.3),fl2=.82+.18*Math.sin(t*27+1)*Math.sin(t*5.1);
+    /* each copy collapses into the real world: its offset shrinks to nothing as it fades */
+    const s1=t<C1?1:Math.max(0,1-(t-C1)/.12),s2=t<C2?1:Math.max(0,1-(t-C2)/.12);
+    E.o1x=o1[0]*k*s1;E.o1z=o1[1]*k*s1;E.o2x=o2[0]*k*s2;E.o2z=o2[1]*k*s2;E.a1=.95*k*fl1*(t<C1?1:s1);E.a2=.9*k*fl2*(t<C2?1:s2);
+    rims[0].c.position.set(cx+E.o1x,g0,cz+E.o1z);rims[1].c.position.set(cx+E.o2x,g0,cz+E.o2z);rims[0].m.uniforms.uA.value=.55*E.a1;rims[1].m.uniforms.uA.value=.55*E.a2;
+    if(!c1&&t>=C1){c1=true;collapse(0);}if(!c2&&t>=C2){c2=true;collapse(1);}
+    if(t>=C2+.13&&DFM.ecS===E)DFM.ecS=null;
+    if(k>0&&rnd()<dt*16*k){const i=rnd()<.5?0:1,o=i?o2:o1,a=rnd()*6.28;emit(1,{x:cx+o[0]*k+Math.cos(a)*R,y:g0+.1+rnd()*.3,z:cz+o[1]*k+Math.sin(a)*R,vx:0,vy:.25,vz:0,s:.035,s2:0,c:0xffffff,c2:DFC.B,life:.5});}
+    if(f.life<=dt+1e-6)cleanup();},()=>{SG_ACTIVE.delete(cleanup);cleanup();},{mats});}
+
+/* ---- M3 Folded Space: a cross-shaped fold, foes drawn to its centre ---- */
+/* the road distance nearest (x,z) on route rt */
+function dfmRoadD(rt,x,z){let bd=1e9,b=0;for(let d=0;d<rt.len;d+=.1){const p=posAt(d,rt),q=(p[0]-x)**2+(p[1]-z)**2;if(q<bd){bd=q;b=d;}}return b;}
+/* draw ground foes inside toward the centre along the road: only ones already past it are pulled back (at most max); others are slowed */
+function dfmDraw(S,max,slow){const dh=S.dh||(S.dh=new Map()),out=[];for(const e of dfmFoes(S)){if(e.fly||e.boss||e.dist==null||e.fake)continue;const rt=e.route||ROUTES[0];if(!dh.has(rt))dh.set(rt,dfmRoadD(rt,S.cx,S.cz));
+    const gap=e.dist-dh.get(rt);if(gap>.02){const u=pushE(e,Math.min(max,gap));if(u>0)out.push({e,u});}else{e.slow=Math.max(e.slow||0,slow);e.slowT=Math.max(e.slowT||0,.3);}}return out;}
+function dfmFold(S,dmg){const cx=S.cx,cz=S.cz,R=S.R,g0=gy(cx,cz),u=[S.Z.dx,S.Z.dz],T0=DFM.foT,TS=DFM.SNAP;
+  const F={x:cx,z:cz,R:R*1.05,ux:u[0],uz:u[1],crease:0,pinch:0,twist:0,glow:0,point:0};let mine=false;dfmLog({ev:'fold0'});
+  /* sheets of light rising along the creases, like the edges of a folded page */
+  const mats=[],root=new THREE.Group();root.position.set(cx,g0,cz);scene.add(smTag(root));const sheets=[];
+  for(const[ax,az]of[[u[0],u[1]],[-u[1],u[0]]]){const m=new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:rnd()*9}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+      vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader:'uniform float uA,uT;varying vec2 vU;'+SLM_N+'void main(){float x=abs(vU.x-.5)*2.,y=vU.y;float n=n1(vec2(vU.x*40.-uT*3.,y*4.));float k=pow(1.-y,2.4)*(1.-x*x)*(.55+.45*n);gl_FragColor=vec4(mix(vec3(.6,.8,1.),vec3(1.),pow(1.-y,4.)),k*uA);}'});
+    mats.push(m);const p=new THREE.Mesh(new THREE.PlaneGeometry(1,1).translate(0,.5,0),m);p.rotation.y=Math.atan2(-az,ax);p.scale.set(R*2,.01,1);root.add(p);sheets.push({p,m});}
+  const geos=sheets.map(s=>s.p.geometry);let t=0,tick=0,sprung=false;const caught=new Set();
+  const cleanup=()=>{if(DFM.fdS===F)DFM.fdS=null;if(mine){mine=false;dfmWarp(false);}};SG_ACTIVE.add(cleanup);
+  addFx(root,TS+.9,(f,dt)=>{t+=dt;for(const s of sheets)s.m.uniforms.uT.value+=dt;if(t<T0)return;if(!mine){mine=true;dfmWarp(true);}
+    if(!S.px||t<DFM.pxT){if(!DFM.fdS||DFM.fdS===F)DFM.fdS=F;}
+    if(t<TS){const k=SMS(t,T0,T0+.8),pulse=.85+.15*Math.sin(t*9);F.crease=1.1*k;F.pinch=(.06+.16*SMS(t,T0,TS))*k;F.glow=k*pulse;
+      for(const s of sheets){s.p.scale.y=Math.max(.01,.55*k*(1+.1*Math.sin(t*4)));s.m.uniforms.uA.value=.55*k*pulse;}
+      tick-=dt;if(tick<=0){tick=.2;if(state==='playing'){const L=dfmDraw(S,.07,.5);for(const q of L)caught.add(q.e);if(L.length)dfmLog({ev:'draw',n:L.length});}}
+      if(rnd()<dt*30*k){const a=rnd()<.5,s=(rnd()-.5)*2*R,ax=a?u[0]:-u[1],az=a?u[1]:u[0];emit(1,{x:cx+ax*s,y:g0+.06,z:cz+az*s,vx:-ax*s*.6,vy:.3,vz:-az*s*.6,s:.035,s2:0,c:0xffffff,c2:DFC.B,life:.5});}
+      dfmLight(cx,g0+.6,cz,.5*k,R+1.5);}
+    else{/* it springs open at the snap */if(!sprung){sprung=true;dfmLog({ev:'unfold'});if(state==='playing')for(const e of dfmFoes(S)){hurt(e,dmg,'magic',S.o);dfmLog({ev:'foldHit',e});const p=tpos2(e);flash(p.x,p.y,p.z,DFC.B,.12,.08);}}
+      const r=t-TS;F.crease=1.1*Math.exp(-r*9)*Math.cos(r*30);F.pinch=.22*Math.exp(-r*8)*Math.cos(r*26);F.glow=Math.max(0,1-r*3);for(const s of sheets){s.m.uniforms.uA.value=Math.max(0,.55-r*1.5);s.p.scale.y=Math.max(.01,.55+r*2);}
+      if(r>.5&&DFM.fdS===F)DFM.fdS=null;}
+    if(f.life<=dt+1e-6)cleanup();},()=>{SG_ACTIVE.delete(cleanup);cleanup();},{mats,geos});}
+
+/* ---- M4 The Impossible Prison: a crystal cage round the zone, closing, then shattering inward ---- */
+/* a crystal panel (uv): a cold glassy face with a sheen and a glint sweeping over it, bright edges; uW turns it white */
+function dfmPanelMat(){return new THREE.ShaderMaterial({uniforms:{uA:{value:0},uW:{value:0},uG:{value:-1},uT:{value:rnd()*9}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+  vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uA,uW,uG,uT;varying vec2 vU;void main(){float e=min(min(vU.x,1.-vU.x),min(vU.y,1.-vU.y));float edge=exp(-e*40.)+exp(-e*9.)*.25;float glint=exp(-pow((vU.x*.7+vU.y-uG)*6.,2.));'+
+    'float sheen=.07+.05*sin(vU.x*13.+vU.y*7.+uT*1.6);vec3 c=mix(vec3(.55,.75,1.),vec3(1.),clamp(edge*.6+glint+uW,0.,1.));gl_FragColor=vec4(c,clamp((sheen+edge*.85+glint*.5)*(1.+uW*2.)+uW*.35,0.,1.)*uA);}'});}
+function dfmPrison(S,dmg){const cx=S.cx,cz=S.cz,R=S.R*1.04,g0=gy(cx,cz),N=10,H=1.25,AP=2.35,T0=DFM.prT,TC=DFM.SNAP-3,TS=DFM.SNAP,root=new THREE.Group();root.position.set(cx,g0,cz);scene.add(smTag(root));
+  const mats=[],geos=[],sides=[],roofs=[];dfmLog({ev:'prison0'});
+  /* the side panels: a decagonal prism, each rising and turning into place */
+  const sg=new THREE.PlaneGeometry(1,1).translate(0,.5,0);geos.push(sg);
+  for(let i=0;i<N;i++){const a0=i/N*6.2832,a1=(i+1)/N*6.2832,mx=(Math.cos(a0)+Math.cos(a1))/2*R,mz=(Math.sin(a0)+Math.sin(a1))/2*R,w=2*R*Math.sin(Math.PI/N);
+    const m=dfmPanelMat();mats.push(m);const piv=new THREE.Group();piv.position.set(mx,0,mz);piv.rotation.y=-((a0+a1)/2)+Math.PI/2;root.add(piv);const p=new THREE.Mesh(sg,m);p.scale.set(w,H,1);piv.add(p);sides.push({piv,p,m,d:i*.06});}
+  /* the roof: ten triangles from the top edge to the apex, folded flat outward until they close */
+  for(let i=0;i<N;i++){const a0=i/N*6.2832,a1=(i+1)/N*6.2832,g=new THREE.BufferGeometry();
+    const A=[Math.cos(a0)*R,0,Math.sin(a0)*R],B=[Math.cos(a1)*R,0,Math.sin(a1)*R];g.setAttribute('position',new THREE.Float32BufferAttribute([...A,...B,0,0,0],3));g.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,.5,1],2));geos.push(g);
+    const m=dfmPanelMat();mats.push(m);const tri=new THREE.Mesh(g,m);tri.position.y=H;root.add(tri);roofs.push({tri,m,g,A,B});}
+  const lm=new THREE.LineBasicMaterial({color:0xeaf4ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(lm);
+  let t=0,broke=false;
+  addFx(root,TS+.4,(f,dt)=>{t+=dt;if(t<T0)return;const cl=SMS(t,TC,TS-.35),con=SMS(t,TS-.5,TS),wh=.5*SMS(t,TS-.6,TS);
+    root.scale.set(1-.14*con,1+.05*con,1-.14*con);
+    for(const s of sides){const k=SMS(t,T0+s.d,T0+s.d+.6);s.p.scale.y=Math.max(.001,H*k);s.piv.rotation.x=(1-k)*.6;s.m.uniforms.uA.value=.85*k;s.m.uniforms.uW.value=wh;s.m.uniforms.uT.value+=dt;s.m.uniforms.uG.value=-1+3*((t*.35+s.d)%1);}
+    /* the roof closes: each triangle's apex rises from flat out beyond the rim to the point above the centre */
+    for(const r of roofs){const ap=cl,ox=(r.A[0]+r.B[0])*.5,oz=(r.A[2]+r.B[2])*.5;const P=r.g.attributes.position;P.setXYZ(2,ox*(1-ap),(AP-H)*ap,oz*(1-ap));P.needsUpdate=true;
+      r.m.uniforms.uA.value=.8*SMS(t,TC,TC+.4);r.m.uniforms.uW.value=wh;r.m.uniforms.uT.value+=dt;r.m.uniforms.uG.value=-1+3*((t*.3)%1);}
+    if(cl>0&&rnd()<dt*40){const a=rnd()*6.28;emit(1,{x:cx+Math.cos(a)*R,y:g0+H+rnd()*.6*cl,z:cz+Math.sin(a)*R,vx:-Math.cos(a)*.3,vy:.3,vz:-Math.sin(a)*.3,s:.04,s2:0,c:0xffffff,c2:DFC.B,life:.5});}
+    dfmLight(cx,g0+1.4,cz,.25+1.2*wh,R+2);
+    if(t>=TS&&!broke){broke=true;root.visible=false;dfmShatter(S,root,sides,roofs,R*(1-.14),H*1.05,AP);dfmLog({ev:'prison'});
+      dfmRipple(cx,cz,R*1.8,.65,.95);camShake=Math.max(camShake,.14);flashA=Math.max(flashA,.1);flashCol='#eef6ff';flashDecay=4;
+      if(state==='playing')for(const e of dfmFoes(S)){hurt(e,dmg,'magic',S.o);dfmLog({ev:'prisonHit',e});const p=tpos2(e);flash(p.x,p.y,p.z,DFC.B,.14,.08);}}},null,{mats,geos});}
+/* the cage breaking into glass: shards from the walls and roof flying inward, crossing, then scattering and falling */
+function dfmShatter(S,root,sides,roofs,R,H,AP){const cx=S.cx,cz=S.cz,g0=gy(cx,cz),N=320,mt=dfmGlass(),im=dfmHideI(new THREE.InstancedMesh(DFMQ.shard(),mt,N)),g=new THREE.Group();g.position.set(cx,g0,cz);g.add(im);scene.add(smTag(g));
+  const F=[];for(let i=0;i<N;i++){let x,y,z;if(i<N*.7){const a=rnd()*6.28;x=Math.cos(a)*R;z=Math.sin(a)*R;y=rnd()*H;}else{const a=rnd()*6.28,u=rnd();x=Math.cos(a)*R*(1-u);z=Math.sin(a)*R*(1-u);y=H+(AP-H)*u;}
+    const tx=(rnd()-.5)*.5,tz=(rnd()-.5)*.5,ty=.5+rnd()*.5,sp=4+rnd()*4,dl=Math.hypot(tx-x,ty-y,tz-z)||1;F.push({x,y,z,vx:(tx-x)/dl*sp,vy:(ty-y)/dl*sp,vz:(tz-z)/dl*sp,rx:rnd()*6,ry:rnd()*6,wx:(rnd()-.5)*20,wy:(rnd()-.5)*20,s:.08+rnd()*.1});}
+  sprayP(1,cx,g0+.8,cz,14,{c:DFC.I,c2:DFC.D,sp:2.4,s:.04,s2:0,life:.45,g:1});
+  let t=0;addFx(g,1.1,(f,dt)=>{t+=dt;const k=t/1.1;for(let i=0;i<N;i++){const q=F[i];if(t>.18){q.vy-=dt*6;q.vx*=1-dt*.8;q.vz*=1-dt*.8;}q.x+=q.vx*dt;q.y=Math.max(.02,q.y+q.vy*dt);q.z+=q.vz*dt;q.rx+=q.wx*dt;q.ry+=q.wy*dt;
+      DFMO.position.set(q.x,q.y,q.z);DFMO.rotation.set(q.rx,q.ry,0);DFMO.scale.setScalar(q.s*(1-k*.7));DFMO.updateMatrix();im.setMatrixAt(i,DFMO.matrix);if(rnd()<dt*2)emit(1,{x:cx+q.x,y:g0+q.y,z:cz+q.z,vx:0,vy:0,vz:0,s:.04,s2:0,c:0xffffff,c2:DFC.B,life:.2});}
+    im.instanceMatrix.needsUpdate=true;mt.opacity=.95*(1-k*k);mt.emissiveIntensity=.8+2.2*Math.exp(-t*3);},null,{mat:mt});}
+
+/* ---- M5 Paradox Collapse ---- */
+/* the singularity: nested polyhedra turning against each other, a glass core and a white star */
+function dfmSingularity(x,y,z,life){const g=new THREE.Group();g.position.set(x,y,z);g.scale.setScalar(.01);scene.add(smTag(g));const mats=[],geos=[];
+  const ig=new THREE.IcosahedronGeometry(.42,0),og=new THREE.OctahedronGeometry(.3,0),dg=new THREE.DodecahedronGeometry(.56,0);geos.push(ig,og,dg);
+  const em=(geo,col,op)=>{const e=new THREE.EdgesGeometry(geo);geos.push(e);const m=new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(m);return new THREE.LineSegments(e,m);};
+  const l1=em(ig,0xffffff,.95),l2=em(dg,DFC.B,.7),l3=em(og,0xffffff,.9);const gm=dfmGlass();gm.opacity=.45;mats.push(gm);const core=new THREE.Mesh(og,gm);g.add(l2,l1,core,l3);
+  const sm=dfmSM(0xffffff,0,typeof bemStarTex==='function'?bemStarTex():null),hm=dfmSM(DFC.B,0);mats.push(sm,hm);const st=new THREE.Sprite(sm),ha=new THREE.Sprite(hm);g.add(ha,st);
+  let t=0;addFx(g,life,(f,dt)=>{t+=dt;const k=Math.min(1,t/.35),fd=Math.min(1,f.life/.12);g.scale.setScalar((.01+.99*k*fd)*1.6);l1.rotation.x+=dt*2.2;l1.rotation.y+=dt*1.4;l2.rotation.y-=dt*1.1;l2.rotation.z+=dt*.8;l3.rotation.x-=dt*3;core.rotation.y+=dt*2;
+    sm.opacity=k;st.scale.setScalar(1.1+.15*Math.sin(t*40));sm.rotation+=dt*2;hm.opacity=.4*k;ha.scale.setScalar(1.8);dfmLight(x,y,z,2.2*k,4);},null,{mats,geos});return g;}
+/* a ring of fractured light: shards in a circle, tilted, expanding */
+function dfmRing(S,tilt,T,RM,delay){const cx=S.cx,cz=S.cz,g0=gy(cx,cz),N=54,mt=new THREE.MeshBasicMaterial({color:0x9cc6ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}),im=dfmHideI(new THREE.InstancedMesh(DFMQ.shard(),mt,N));
+  const piv=new THREE.Group();piv.position.set(cx,g0+.35,cz);piv.rotation.set(tilt[0],tilt[1],tilt[2]);piv.add(im);scene.add(smTag(piv));const F=[];for(let i=0;i<N;i++)F.push({a:i/N*6.2832+(rnd()-.5)*.08,j:(rnd()-.5)*.14,h:(rnd()-.5)*.1,s:.06+rnd()*.07,sp:rnd()*6});
+  const gm=dfmSM(DFC.B,0);let t=-delay;
+  addFx(piv,delay+T+.25,(f,dt)=>{t+=dt;if(t<0)return;const k=Math.min(1,t/T),r=.15+(RM-.15)*(1-Math.pow(1-k,1.8)),fd=t<T?1:Math.max(0,1-(t-T)/.25);mt.opacity=.55*fd*(t<.05?t/.05:1);
+    for(let i=0;i<N;i++){const q=F[i],rr=r*(1+q.j);DFMO.position.set(Math.cos(q.a)*rr,q.h,Math.sin(q.a)*rr);DFMO.rotation.set(q.sp+t*6,-q.a,Math.PI/2);DFMO.scale.set(q.s*(1+r*.25),q.s*2.6*(1+r*.3),q.s);DFMO.updateMatrix();im.setMatrixAt(i,DFMO.matrix);}
+    im.instanceMatrix.needsUpdate=true;if(rnd()<dt*80*fd){const a=rnd()*6.28;DFMV.a.set(Math.cos(a)*r,0,Math.sin(a)*r).applyEuler(piv.rotation);emit(1,{x:cx+DFMV.a.x,y:g0+.35+DFMV.a.y,z:cz+DFMV.a.z,vx:0,vy:.2,vz:0,s:.04,s2:0,c:0xffffff,c2:DFC.B,life:.3});}},null,{mats:[mt,gm]});
+  return{r:()=>t<0?0:.15+(RM-.15)*(1-Math.pow(1-Math.min(1,t/T),1.8)),live:()=>t>=0&&t<T};}
+function dfmParadox(S,dRing,dRes){const cx=S.cx,cz=S.cz,R=S.R,g0=gy(cx,cz),T0=DFM.pxT,TS=DFM.SNAP,TR=DFM.pxRup,TE=DFM.pxRes;
+  const F={x:cx,z:cz,R:R*1.08,ux:S.Z.dx,uz:S.Z.dz,crease:0,pinch:0,twist:0,glow:0,point:0};let mine=false,t=0,tick=0,sing=null,rup=false,res=false,rings=null;const hitR=new Set();dfmLog({ev:'paradox0'});
+  const cleanup=()=>{if(DFM.fdS===F)DFM.fdS=null;if(mine){mine=false;dfmWarp(false);}};SG_ACTIVE.add(cleanup);
+  addFx(new THREE.Group(),TE+.6,(f,dt)=>{t+=dt;if(t<T0)return;if(!mine){mine=true;dfmWarp(true);}DFM.fdS=F;
+    if(t<TR){/* compression: the zone folds toward a point, twisting into ribbons */const k=SMS(t,T0,TS-.05);F.pinch=5.5*k*k;F.twist=3.2*k;F.crease=.6*(1-k);F.glow=.6*(1-k);F.point=k;
+      tick-=dt;if(tick<=0){tick=.12;if(state==='playing'){const L=dfmDraw(S,.16,.75);if(L.length)dfmLog({ev:'pull',n:L.length});}}
+      if(!sing&&t>=TS-.4)sing=dfmSingularity(cx,g0+.55,cz,TR-t+.12);
+      let n=dt*120*k;while(n>0){if(n<1&&rnd()>n)break;n--;const a=rnd()*6.28,r=R*(.3+rnd()*.7);emit(1,{x:cx+Math.cos(a)*r,y:g0+.1+rnd()*.4,z:cz+Math.sin(a)*r,vx:-Math.cos(a)*r*2.2-Math.sin(a)*1.5,vy:.4,vz:-Math.sin(a)*r*2.2+Math.cos(a)*1.5,s:.035,s2:0,c:0xffffff,c2:DFC.B,life:.4});}
+      darkTarget=Math.max(darkTarget,.18*k);dfmLight(cx,g0+.6,cz,.5+1.5*k,R+2);}
+    else if(t<TE){/* rupture: three rings of fractured light race out */if(!rup){rup=true;dfmLog({ev:'rupture'});if(Math.abs(darkTarget-.18)<.02)darkTarget=0;
+        flash(cx,g0+.55,cz,DFC.I,.35,.1);camShake=Math.max(camShake,.12);
+        rings=[[[0,0,0],.5,0],[[.42,0,.18],.6,.06],[[-.38,0,-.3],.7,.12]].map(([tl,T,dl])=>{const g=dfmRing(S,tl,T,R+1.1,dl);mxLater(dl,()=>{if(state==='playing'){dfmRipple(cx,cz,R+1.2,T,.55);dfmWave(cx,cz,R+1.1,T,DFC.B);}});return g;});}
+      const u=t-TR;F.pinch=-.6*Math.exp(-u*7)*Math.cos(u*22);F.twist=-1.2*Math.exp(-u*6);F.point=Math.max(0,1-u*6);F.crease=0;F.glow=0;
+      /* each foe is struck by the first ring to reach it, once */
+      if(state==='playing'&&rings)for(const e of enemies){if(e.dead||hitR.has(e))continue;const d=Math.hypot(e.x-cx,e.z-cz);if(rings.some(g=>g.live()&&d<=g.r())){hitR.add(e);hurt(e,dRing,'magic',S.o);dfmLog({ev:'ring',e});const p=tpos2(e);flash(p.x,p.y,p.z,DFC.B,.12,.08);}}}
+    else if(!res){/* restoration: the scene slams back into alignment */res=true;dfmLog({ev:'restore'});F.pinch=0;F.twist=0;F.point=0;
+      dfmRipple(cx,cz,R*2.1,.8,1.3);flashA=Math.max(flashA,.2);flashCol='#e6f0ff';flashDecay=2.6;camShake=Math.max(camShake,.22);
+      if(typeof snfGlowDisc==='function')snfGlowDisc(cx,cz,g0,R*1.2,DFC.D,.3,.5,.03);sprayP(1,cx,g0+.4,cz,20,{c:DFC.I,c2:DFC.D,sp:3.4,s:.045,s2:0,life:.5,drag:1.6,flat:true});
+      if(state==='playing')for(const e of dfmFoes(S)){hurt(e,dRes,'magic',S.o);dfmLog({ev:'restoreHit',e});const p=tpos2(e);flash(p.x,p.y,p.z,DFC.B,.15,.08);}
+      if(DFM.fdS===F)DFM.fdS=null;}
+    else dfmLight(cx,g0+1,cz,1.2*Math.max(0,1-(t-TE)/.5),R+4);
+    if(f.life<=dt+1e-6)cleanup();},()=>{SG_ACTIVE.delete(cleanup);cleanup();});}
+
+/* ---- the hook ---- */
+const DFM_ZONE0=castDeflectZone;
+castDeflectZone=function(t,c,P,o){const C=dfmC(o),r=DFM_ZONE0.apply(this,arguments);if(!C||!c)return r;const L=C.L,a=C.a;
+  const Z=SDP.z.filter(Boolean).find(z=>z.x===c.x&&z.z===c.z)||{dx:1,dz:0};const S={cx:c.x,cz:c.z,R:DFM.R,Z,C,P,L,o:smO(o),px:L>=5};dfmLog({ev:'cast',L,cx:c.x,cz:c.z});
+  if(L>=1)mxLater(DFM.SNAP,()=>{if(state==='playing')dfmFracture(S,P*DFM.fr*a[0]);});
+  if(L>=2)dfmEchoes(S,P*DFM.ec*a[1]);
+  if(L>=3)dfmFold(S,P*DFM.fo*a[2]);
+  if(L>=4)dfmPrison(S,P*DFM.pr*a[3]);
+  if(L>=5)dfmParadox(S,P*DFM.px*a[4],P*DFM.pz*a[4]);
+  return r;};
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
@@ -25780,7 +26102,8 @@ const NOTES_HTML=`<h3>\u2726 Hall of Champions, and profiles</h3><ul>
 <h3>\u2726 Scroll masteries reworked</h3><ul>
 <li><b>Common scrolls:</b> masteries reworked for Hexspark, Light Bolt, Basic Wither, Ember Bolt, Gravebind, Frost Shard, Static Spark, Cinder Scatter, Flame Lash, Thunderclap and Thorn Whip.</li>
 <li><b>Uncommon scrolls:</b> masteries reworked for Dark Pulse, Basic Beam, Grasping Shadows, Soul Lantern, Graveburst, Rime Bloom, Ball Lightning, Sunflare, Catch Flame, Wall of Fire and Bramble Patch.</li>
-<li><b>Uncommon masteries are open to everyone:</b> cast an Uncommon scroll in any game and it earns mastery XP, all the way to Mastery 5. Scrolls above Uncommon follow in a later update.</li></ul>`;
+<li><b>Uncommon masteries are open to everyone:</b> cast an Uncommon scroll in any game and it earns mastery XP, all the way to Mastery 5. Scrolls above Uncommon follow in a later update.</li>
+<li><b>Spatial Deflection</b> (Rare) has reworked masteries too, for now in developer mode: fractures of light, ghostly echoes of the zone, a folding cross, a crystal prison and a paradox collapse.</li></ul>`;
 function showNotes(force){if(!force&&meta.notesSeen===NOTES_V)return;let o=$('#notesPop');if(!o){o=document.createElement('div');o.id='notesPop';document.body.appendChild(o);}
   o.innerHTML=`<div class="np-card"><div class="np-top"><small>Update</small><h2>What's new</h2></div><div class="np-body">${NOTES_HTML}</div><button class="np-log">See the full changelog</button><button class="np-ok">Got it</button></div>`;
   o.classList.add('on');o.querySelector('.np-ok').onclick=()=>{o.classList.remove('on');meta.notesSeen=NOTES_V;saveMeta();};{const lb=o.querySelector('.np-log');if(lb)lb.onclick=()=>{o.classList.remove('on');meta.notesSeen=NOTES_V;saveMeta();showChangelog();};}}
