@@ -21,12 +21,12 @@ try{
   meta.dev=true;meta.spells.hexspark=meta.spells.hexspark||{lvl:1,hero:null};close();smOpen('hexspark');
   const md=$('#smModal'),rows=md.querySelectorAll('.mst-lvl');rows[3].dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(150);
   const b=PVC.el,v=b&&b.querySelector('video');
-  ok('hovering Mastery 4 opens the panel with its clip',b&&!b.hidden&&PVC.k==='hexspark'&&PVC.L===4&&/hexspark-4/.test(v.getAttribute('src')||''),v&&v.getAttribute('src'));
+  ok('hovering Mastery 4 opens the panel with its clip',b&&!b.hidden&&PVC.k==='hexspark'&&PVC.L===4&&((v.getAttribute('src')||'')===pvcUrl('hexspark',4)||/hexspark-4/.test(v.getAttribute('src')||'')),v&&v.getAttribute('src'));
   ok('without starting a second copy of the game (no preview frame)',!document.querySelector('.smpv-fr')&&!(SMPW.el&&!SMPW.el.hidden));
   ok('it shows the mastery, its text and what the clip sets up',/Mastery IV/.test(b.querySelector('.pvc-ttl b').textContent)&&b.querySelector('.pvc-d').textContent===smDesc('hexspark',3)&&!b.querySelector('.pvc-note').hidden,b.querySelector('.pvc-ttl b').textContent);
   {let t=0;for(let i=0;i<40&&!(v.readyState>=2&&v.currentTime>0);i++){await wait(100);t+=100;}ok('the clip plays at once (no loading)',v.readyState>=2&&v.currentTime>0&&!v.paused,'ready '+v.readyState+' after '+t+' ms');}
   const tabs=b.querySelectorAll('.pvc-tabs button');ok('six tabs: no mastery and Masteries I-V, the shown one lit',tabs.length===6&&tabs[4].classList.contains('on')&&[...tabs].every(x=>!x.disabled));
-  tabs[1].click();await wait(50);ok('a tab switches the clip at once and pins the panel',PVC.L===1&&/hexspark-1/.test(v.getAttribute('src'))&&PVC.pin);
+  tabs[1].click();await wait(50);ok('a tab switches the clip at once and pins the panel',PVC.L===1&&v.getAttribute('src')===pvcUrl('hexspark',1)&&PVC.pin,v.getAttribute('src'));
   md.querySelector('.mst-head').dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(320);ok('a pinned panel stays open when the pointer leaves the masteries',!b.hidden);
   b.querySelector('.pvc-x').click();ok('the close button closes it',b.hidden&&!PVC.pin);
   rows[1].dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(60);md.querySelector('.mst-head').dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(320);
