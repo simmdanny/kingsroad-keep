@@ -28310,12 +28310,12 @@ function highlandsBoard(){const T=TERRAIN;if(!T||!TILES)return;const R=mulberry(
   for(let n=0;n<26;n++){const[cx,cz]=outPt(.5,10,true),k=1+Math.floor(R()*3);for(let j=0;j<k;j++){const s=.18+R()*.35*(j?1:1.5);near(cx,cz,0,1,(x,z)=>BL.push({x,y:Y0+s*.12,z,s,c:[0x8e8c86,0x86847e,0x9a968e][j%3]}));}}
   for(let n=0;n<7;n++){const[x,z]=outPt(.8,8);CA.push({x,z,s:.8+R()*.6});}
   /* dry-stone walls: a few long runs across the moor (gaps where they fell), and the old field walls along the sides of the board */
-  const wallRun=(x0,z0,ang,len)=>{let x=x0,z=z0;for(let i=0;i<len;i++){const a=ang+(R()-.5)*.1;x+=Math.cos(a)*.98;z+=Math.sin(a)*.98;ang=a;if(R()<.08)continue;if(!outOk(x,z)||(Math.abs(x)<xE+.6&&z>zTop-.6&&z<zBot+.6))continue;WL.push({x,z,ry:-a,s:1});}};
-  for(const sd of[-1,1]){wallRun(sd*(xE+1.6+R()*.8),zTop-3,Math.PI/2+(R()-.5)*.08,Math.round(zBot-zTop+3));wallRun(sd*(xE+5+R()*2),zTop-2,Math.PI/2+sd*.12,Math.round((zBot-zTop)*.8));}
+  const wallRun=(x0,z0,ang,len)=>{let x=x0,z=z0;const a0=ang;for(let i=0;i<len;i++){const a=a0+(ang-a0)*.6+(R()-.5)*.08;x+=Math.cos(a)*.98;z+=Math.sin(a)*.98;ang=a;if(R()<.08)continue;if(!outOk(x,z)||(Math.abs(x)<xE+.6&&z>zTop-.6&&z<zBot+.6))continue;WL.push({x,z,ry:-a,s:1});}};
+  for(const sd of[-1,1]){wallRun(sd*(xE+1.6+R()*.8),zTop-3,Math.PI/2+(R()-.5)*.08,Math.round(zBot-zTop+3));wallRun(sd*(xE+5.5+R()*2),zTop-2,Math.PI/2+sd*.04,Math.round((zBot-zTop)*.8));}
   wallRun(-xE-12,zTop-2.4,(R()-.5)*.05,Math.round(2*xE+24));
   /* the far bens with snow in their corries */
   for(let n=0;n<13;n++){const x=-xE-26+n*(2*xE+52)/12+(R()-.5)*4,z=zTop-24-R()*10,s=6+R()*5;BN.push({x,z,k:n%3,s,sy:1.1+R()*.6,ry:R()*6.28});}
-  for(const sd of[-1,1])for(let n=0;n<3;n++){BN.push({x:sd*(xE+24+R()*6),z:zTop-6+n*9+R()*3,k:(n+1)%3,s:6+R()*3,sy:1+R()*.5,ry:R()*6.28});}
+  for(const sd of[-1,1])for(let n=0;n<3;n++){BN.push({x:sd*(xE+34+R()*6),z:zTop-10+n*9+R()*3,k:(n+1)%3,s:7+R()*3,sy:1.3+R()*.5,ry:R()*6.28});}
   const inst=(geo,mat,L,fn,tag)=>{if(!L.length)return null;const im=new THREE.InstancedMesh(geo,mat,L.length);L.forEach((d,j)=>{fn(d);im.setMatrixAt(j,m4.compose(pv.set(d.x,d.y==null?Y0:d.y,d.z),qt.setFromEuler(eu),sv));
     col.set(d.c!=null?d.c:0xffffff);col.multiplyScalar(1+(R()-.5)*.08);im.setColorAt(j,col);if(d.tile)(HLD.deco[d.tile]=HLD.deco[d.tile]||[]).push([im,j]);});im.receiveShadow=true;im.userData.keep=1;im.userData.hl=tag;T.add(im);return im;};
   const phong=o=>new THREE.MeshPhongMaterial(Object.assign({color:0xffffff,flatShading:true,shininess:3},o||{}));
