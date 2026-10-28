@@ -7469,7 +7469,8 @@ function castGlacialRift(t,list,P,o){const lead=nsDiveLead(list.find(q=>!q.fake&
     slots.push({d,x:p[0],z:p[1],grp,up:0,sh:0});}
   const decals=[],frozen=[],pm=posAt((d0+d1)/2,rt),WX0=Math.cos(pm[2])*.8+Math.sin(pm[2])*.6,WZ0=-Math.sin(pm[2])*.8+Math.cos(pm[2])*.6,WN=Math.hypot(WX0,WZ0)||1,WX=WX0/WN,WZ=WZ0/WN;cineLock=Math.max(cineLock,4.2);darkTarget=Math.max(darkTarget,.3);vigTarget=Math.max(vigTarget,.34);
   let tt=0,zT=0,shook=false;const WV=9,SV=12,TS=3.7;
-  addFx(new THREE.Group(),7.5,(f,dt)=>{tt+=dt;nsBlizzard(tt,dt,TS,rt,d0,d1,L,WX,WZ,frozen);
+  /* v436: the masteries (GRM) */const M=typeof grmStart==='function'?grmStart(o,{P,rt,d0,d1,L,slots,frozen,TS}):null;
+  addFx(new THREE.Group(),7.5,(f,dt)=>{tt+=dt;nsBlizzard(tt,dt,TS,rt,d0,d1,L,WX,WZ,frozen);if(M)M.tick(tt,dt);
     if(tt<.9){const k=tt/.9;seam.grow(k);seam.op(.6*k,.9*k);const dd=d0-L*k;if(decals.length<Math.floor(k*16)){const p=posAt(dd,rt);decals.push(nsDecal(p[0],p[1],.7,0xe0f2ff,.6,5.2-tt,{fin:.2,fout:1.4,sx:1.3}));}
       for(let i=0;i<5;i++){const d=d1+rnd()*L*k,p=posAt(d0-(d-d1),rt);emit(0,{x:p[0]+(rnd()-.5)*.8,y:gy(p[0],p[1])+.05,z:p[1]+(rnd()-.5)*.8,vx:(rnd()-.5)*.3,vy:.05,vz:(rnd()-.5)*.3,s:.14,s2:.4,c:0xf0f8ff,c2:0xc8dcec,a:.3,life:1,turb:.3});}
       if(rnd()<.6){const p=posAt(d0-L*k,rt);emit(1,{x:p[0],y:gy(p[0],p[1])+.05,z:p[1],vy:.4,s:.06,s2:0,c:0xffffff,c2:0x8fdcff,life:.4});}}
@@ -7477,19 +7478,20 @@ function castGlacialRift(t,list,P,o){const lead=nsDiveLead(list.find(q=>!q.fake&
     const dW=d0-(tt-.9)*WV;if(tt>=.9){if(!shook){shook=true;camShake=Math.max(camShake,.2);flash(slots[0].x,.3,slots[0].z,0xdff4ff,.8,.18);worldSlow=.4;slowT=.18;flashA=Math.max(flashA,.24);flashCol='#e6f6ff';if(typeof sfxRumble==='function')sfxRumble(2,.35);if(typeof sfxWind==='function')sfxWind(3.4,.28);}
       if(tt<.9+L/WV)camShake=Math.max(camShake,.05);
       for(const s of slots){if(!s.up&&s.d>=dW){s.up=1;s.t0=tt;sprayP(1,s.x,gy(s.x,s.z)+.1,s.z,10,{c:0xffffff,c2:0x7fc8f0,sp:1.8,up:.9,s:.05,s2:0,life:.45,g:3,r:.5});if(rnd()<.6)emitS(0,{x:s.x,y:gy(s.x,s.z)+.2,z:s.z,vx:(rnd()-.5)*.6,vy:.25,vz:(rnd()-.5)*.6,s:.3,s2:.9,c:0xf0f8ff,c2:0xcfe4f0,a:.32,life:1.8,lift:.05,turb:.3});if(rnd()<.4)nsSplinters(s.x,gy(s.x,s.z)+.2,s.z,2,.8);}}
-      if(tt<.9+L/WV+.2){const p=posAt(Math.max(d1,dW),rt);for(const e of enemies){if(e.dead||hit.has(e))continue;if((e.x-p[0])**2+(e.z-p[1])**2<1.15*1.15){hit.add(e);hurt(e,P*5.5,'magic',o);if(!e.dead){e.slow=Math.max(e.slow||0,.7);e.slowT=Math.max(e.slowT||0,3.5);if(!e.boss)stunE(e,.8);nsFreezeFoe(e,e.boss?.6:1.5,frozen);}else{const q=tpos2(e);nsSplinters(q.x,q.y,q.z,5,1.4);}}}}}
+      if(tt<.9+L/WV+.2){const p=posAt(Math.max(d1,dW),rt);for(const e of enemies){if(e.dead||hit.has(e))continue;if((e.x-p[0])**2+(e.z-p[1])**2<1.15*1.15){hit.add(e);hurt(e,P*5.5,'magic',o);if(!e.dead){e.slow=Math.max(e.slow||0,.7);e.slowT=Math.max(e.slowT||0,3.5);if(!e.boss)stunE(e,.8);const n0=frozen.length;nsFreezeFoe(e,e.boss?.6:1.5,frozen);if(M)M.hit(e,frozen.length>n0?frozen[frozen.length-1]:null);}else{const q=tpos2(e);nsSplinters(q.x,q.y,q.z,5,1.4);}}}}}
     for(const s of slots){if(s.up===1){const k=Math.min(1,(tt-s.t0)/.2),e=nsBackE(k);s.grp.forEach(c=>{c.piv.visible=true;c.tilt.position.y=-c.h*1.1*(1-e);});if(k>=1)s.up=2;}}
     if(tt>1&&tt<TS){if(rnd()<.8){const s=slots[Math.floor(rnd()*slots.length)];if(s.up)emit(1,{x:s.x+(rnd()-.5)*.5,y:gy(s.x,s.z)+.3+rnd()*1.2,z:s.z+(rnd()-.5)*.5,s:.06,s2:0,c:0xffffff,c2:0xbfe8ff,life:.25});}
       zT-=dt;if(zT<=0){zT=.3;for(const e of enemies){if(e.dead||e.fly)continue;if((e.route||ROUTES[0])===rt&&e.dist>d1-.4&&e.dist<d0+.4){e.slow=Math.max(e.slow||0,.6);e.slowT=Math.max(e.slowT||0,.5);}}}}
-    if(tt>=TS){const dS=d0-(tt-TS)*SV;if(tt-dt<TS){camShake=Math.max(camShake,.26);flashA=Math.max(flashA,.3);flashCol='#eef8ff';worldSlow=.45;slowT=.16;if(typeof sfxBoom==='function')sfxBoom(.45);frozen.forEach(z=>z.hold=Math.min(z.hold,z.t));}
+    if(tt>=TS){const dS=d0-(tt-TS)*SV;if(tt-dt<TS){camShake=Math.max(camShake,.26);flashA=Math.max(flashA,.3);flashCol='#eef8ff';worldSlow=.45;slowT=.16;if(typeof sfxBoom==='function')sfxBoom(.45);frozen.forEach(z=>z.hold=Math.min(z.hold,z.t));if(M)M.shatter();}
       for(const s of slots){if(!s.sh&&s.d>=dS){s.sh=1;s.grp.forEach(c=>{const wp=new THREE.Vector3();c.tilt.getWorldPosition(wp);c.v=new THREE.Vector3((wp.x-s.x)*3+(rnd()-.5)*1.2,2+rnd()*2.4,(wp.z-s.z)*3+(rnd()-.5)*1.2);c.rs=[(rnd()-.5)*12,(rnd()-.5)*12];});
           nsSplinters(s.x,gy(s.x,s.z)+.4,s.z,5,1.5);sprayP(1,s.x,gy(s.x,s.z)+.5,s.z,16,{c:0xffffff,c2:0x7fc8f0,sp:2.4,up:.6,s:.05,s2:0,life:.5,g:2.5});emitS(0,{x:s.x,y:gy(s.x,s.z)+.4,z:s.z,vx:(rnd()-.5)*1.2,vy:.3,vz:(rnd()-.5)*1.2,s:.35,s2:1.1,c:0xf0f8ff,c2:0xcfe4f0,a:.38,life:1.8,lift:.05,turb:.3});
-          if(slots.indexOf(s)%5===0)shockwave(s.x,s.z,1.2,0xcfefff,.4,0xb8d4e4);
+          /* v436 (the explosion rule): where the ridge bursts, a billowing cloud of frost rises with the flying crystals */
+          if(slots.indexOf(s)%5===0){shockwave(s.x,s.z,1.2,0xcfefff,.4,0xb8d4e4);if(typeof xfxFrostBoom==='function')xfxFrostBoom(s.x,gy(s.x,s.z)+.35,s.z,.6,{n:2,t:6,up:.8,sp:0});}
           for(const e of enemies){if(e.dead||hit2.has(e))continue;if((e.x-s.x)**2+(e.z-s.z)**2<1.05*1.05){hit2.add(e);hurt(e,P*4,'magic',o);}}}}
       seam.op(Math.max(0,.6-(tt-TS)*.4),Math.max(0,.9-(tt-TS)*.6));}
     for(const s of slots){if(!s.sh)continue;s.grp.forEach(c=>{if(!c.v)return;c.v.y-=7*dt;c.piv.position.addScaledVector(c.v,dt);c.tilt.rotation.x+=c.rs[0]*dt;c.tilt.rotation.z+=c.rs[1]*dt;const sc=Math.max(.001,c.tilt.scale.x-dt*1.1);c.tilt.scale.set(sc,sc*Math.max(1,c.tilt.scale.y),sc);const fl=gy(c.piv.position.x,c.piv.position.z);if(c.piv.position.y<fl){c.piv.position.y=fl;c.v.y=Math.abs(c.v.y)*.25;c.v.x*=.5;c.v.z*=.5;}});}
     if(tt>4.6){darkTarget=Math.max(0,darkTarget-dt*.5);vigTarget=Math.max(0,vigTarget-dt*.5);}},
-    ()=>{seam.free();slots.forEach(s=>s.grp.forEach(c=>nsFree(c.piv)));darkTarget=0;vigTarget=0;nsFrostVeil(0);frozen.forEach(z=>{if(z.g.parent)z.g.parent.remove(z.g);});},{mats,geos});}
+    ()=>{if(M)M.end();seam.free();slots.forEach(s=>s.grp.forEach(c=>nsFree(c.piv)));darkTarget=0;vigTarget=0;nsFrostVeil(0);frozen.forEach(z=>{if(z.g.parent)z.g.parent.remove(z.g);});},{mats,geos});}
 
 /* ---- Grim Harvest (legendary, dark): a giant reaper rises on the road ahead of the strongest foe, facing up the path the enemy comes
    down, and reaps the field twice. If the first sweep kills its mark he turns to the next strong foe in reach before the second. ---- */
@@ -20613,7 +20615,7 @@ SMA.voidfall=[1,1,1,1,1];SMG.voidfall=[1.07,1.21,1.31,1.48,1.67];
 SMA.stormcaller=[1,1,1,1,1];SMG.stormcaller=[1.09,1.23,1.15,1.3,1.36];
 SMA.chronostasis=[1,1,1,1,1];SMG.chronostasis=[1.07,1.2,1.27,1.44,1.59];
 SMA.skyfall=[1,1,1,1,1];SMG.skyfall=[1.09,1.22,1.29,1.44,1.55];
-SMA.glacialrift=[1,1,1,1,1];SMG.glacialrift=[1.06,1.19,1.3,1.47,1.57];
+SMA.glacialrift=[1,1,1,1,1];SMG.glacialrift=[1.08,1,1,1,1];
 SMA.harvest=[1,1,1,1,1];SMG.harvest=[1.02,1.15,1.26,1.42,1.63];
 SMA.dslash=[1,1,1,1,1];SMG.dslash=[1.02,1.15,1.25,1.41,1.6];
 SMA.bloom=[1,1,1,1,1];SMG.bloom=[1.09,1.2,1.31,1.48,1.67];
@@ -29217,6 +29219,146 @@ function trmTimber(g,yaw,sz,dmg,O){const x0=g.position.x,z0=g.position.z,dx=-Mat
   const pts=[];for(let i=1;i<=6;i++){const u=i/6*len,x=x0+dx*u,z=z0+dz*u;pts.push(new THREE.Vector3(x,gy(x,z)+.25,z));mxLater(i*.025,()=>trmQuake(x,z,.7));}
   if(typeof rtmSplinters==='function')rtmSplinters(pts,x0,z0,90,1.6);const K=natKit(),F=nfxKit();nfxLeaves(x0+dx*len*.7,gy(x0,z0)+.6,z0+dz*len*.7,18,[K.leaf,K.leaf2,K.crown[1],F.leafD],null,1.2);
   if(state!=='playing')return;for(const e of enemies){if(e.dead||e.fake)continue;const px=e.x-x0,pz=e.z-z0,u=px*dx+pz*dz,v=Math.abs(px*dz-pz*dx);if(u<-.2||u>len+.2||v>W2)continue;hurt(e,dmg,'magic',O);if(!e.dead)ovgApply(e,3);trmLog({ev:'crush',e});}}
+
+/* ================= Glacial Rift's masteries (v436), designed with Simon's framework (MASTERY_DESIGN.md) =================
+   Simon: "can you seperate all the legendary scrolls between the 3 parallel workers and you to finish them all except the dimensional
+   slash please" (passed on by the Highlands session; Simon confirmed "you can start the legendary scrolls").
+   Identity: the road itself turns to glacier. A seam cracks down a long stretch of road, a wave of towering crystals erupts out of it and
+   races back through the enemy, freezing the foes where they stand, a blizzard sweeps the field while the ridge stands, then the whole
+   ridge shatters from the front to the back. Its design space: the seam, the wave, the frozen foes, the standing ridge, the blizzard and
+   the shatter. Each mastery grows one of them and asks its own question; none takes another scroll's identity (Frostfall Comet owns the
+   falling strike and its crater, Ice Tomb the single prison, Rime Bloom the frozen patch, Frost Wolves the hunt):
+   - M1 Frozen Sentinels (the frozen foes; behaviour change, "what if the frozen foes became part of the glacier?"): the foes the wave
+     freezes (not bosses) stay frozen until the ridge shatters, and are left standing on the bare road as ice statues for GRM.statueX s
+     more, crystals bursting out of them: while one stands, ground foes behind it on the road cannot walk past it (they stop GRM.gap
+     behind it; bosses push through). The rift no longer just freezes a line of foes, it leaves them as a wall against the rest. (The
+     statues come out of the ridge as it shatters, where they can be seen: inside the standing ridge nothing is.)
+   - M2 Undertow (the wave; behaviour change, "what if the wave carried them?"): the wave surges under each foe it reaches and drags it
+     GRM.push tiles back up the road (over GRM.pushT s, not bosses or flyers), lifted on a crest of ice above the rising crystals and
+     grinding it for GRM.grind, before it freezes there. Pushed back into the foes behind it, the statues of M1 hold a longer queue.
+   - M3 Calving (the standing ridge, which only looked; a new phase, "what if the ridge didn't just stand there?"): while the ridge
+     stands, a great glowing slab of ice breaks off it every GRM.calveDt s and topples across the road, picked where foes are:
+     GRM.calve to the ground foes under it (a foe at most every GRM.calveCd s), with ice chunks, a frost burst and snow.
+   - M4 Deep Cold (the blizzard; an interaction with the whole field, "what if the blizzard really froze things?"): rime gathers on
+     every foe out in the blizzard, anywhere on the map, a white crust growing over it; after GRM.coldT s it freezes solid for
+     GRM.coldFrz s (bosses less, Resolve applies), and as it thaws the ice cracks off it for GRM.thaw. Once a foe each cast.
+   - M5 Glacial Maw (the shatter; a signature payoff, "what if the rift swallowed them?"): just after the ridge shatters (GRM.mawAt s,
+     once its crystals are flying) the rift tears wide open along the whole stretch, a dark crevasse with rows of great ice fangs rising
+     along its lips and leaning over it; the ground foes along it are dragged over it, sinking, and held GRM.mawHold s (bosses are not
+     held), then the fangs slam shut from the front to the back: GRM.maw to each.
+   The base cast is brought up to the explosion rule too: where the ridge bursts, a billowing frost cloud (xfxFrostBoom) rises with
+   the flying crystals. Numbers: the base deals 550% to every foe the wave reaches and 400% when the ridge shatters (950% to a foe on the
+   stretch). The ladder (tests/sm-ladder.js, 4 runs: a pack, a churn of fresh 600-health foes and a single foe) comes to 1.05 / 1.01 /
+   1.30 / 1.51 / 1.79 against 1.09 / 1.23 / 1.35 / 1.52 / 1.74, with the hidden factor SMG.glacialrift [1.08,1,1,1,1]. Its churn is a step
+   for this two-phase nuke: once the wave (with anything that lands before the shatter) reaches a churn foe's 600, a fresh foe walks in for
+   the shatter and the churn doubles, so the factors stay at 1 and the masteries' own damage carries the ladder, mostly where it lands after
+   the wave or on some foes only (the slabs, the thaw, the maw). Undertow stays under its rung (its grind would cross the step): its worth is
+   a tile of road regained on every foe the wave reaches, which the ladder does not count, like the statues and the map-wide freeze.
+   GRM.dbg logs for the tests. */
+const GRM={dbg:null,statueX:1.5,gap:.38,push:1,pushT:.3,lift:.42,grind:.45,calve:2,calveR:.7,calveDt:.4,calveCd:.7,coldT:2,coldFrz:.6,thaw:1.2,maw:4,mawHold:1,mawAt:.3,mawOpen:.95};
+const grmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='glacialrift'?c:null;};
+const grmLog=d=>{if(GRM.dbg){d.t=time;GRM.dbg.push(d);}};
+SM_D.glacialrift=[
+  {n:'Frozen Sentinels',d:'Foes the glacier freezes stay frozen until the ridge shatters, then stand on the road as ice statues for 1.5s: ground foes behind a statue cannot walk past it (bosses push through).'},
+  {n:'Undertow',d:'The wave surges under each foe it reaches and drags it a tile back up the road before it freezes, grinding it for {45}% (not bosses or flyers).'},
+  {n:'Calving',d:'While the ridge stands, slabs of ice break off its tallest crystals and crash onto the road: {200}% to the foes under each.'},
+  {n:'Deep Cold',d:'Rime gathers on every foe out in the blizzard. After 2s it freezes solid for 0.6s (Resolve applies, bosses less), and the ice cracks off it for {120}%.'},
+  {n:'Glacial Maw',d:'As the ridge shatters the rift tears wide open: the ground foes along it are dragged to its edge and held for 1s, then its fangs of ice slam shut for {400}%.'}];
+SMF.glacialrift={m:1};
+SMA.glacialrift=[1,1,1,1,1];SMG.glacialrift=[1.08,1,1,1,1];
+/* ---- shared pieces ---- */
+let GRM_CRUST=null,GRM_DARK=null,GRM_SLAB=null;
+function grmMats(){if(!GRM_CRUST){GRM_CRUST=new THREE.MeshPhongMaterial({color:0xf4fbff,emissive:0x6a9cc4,emissiveIntensity:.35,specular:0xffffff,shininess:70,flatShading:true,transparent:true,opacity:.55,depthWrite:false});
+  GRM_DARK=new THREE.MeshBasicMaterial({color:0x061220,transparent:true,opacity:.92,depthWrite:false});
+  GRM_SLAB=new THREE.MeshPhongMaterial({color:0xeaf8ff,emissive:0x3a8ad0,emissiveIntensity:.6,specular:0xffffff,shininess:100,flatShading:true});}return{crust:GRM_CRUST,dark:GRM_DARK,slab:GRM_SLAB};}
+/* an ice shard standing on the ground at (x,z), h tall, w thick (a pivot at its foot: rotate it to tip it over) */
+function grmShard(x,z,h,w,mat,gi){const G=nsIceGeos(),piv=smTag(new THREE.Group());piv.position.set(x,gy(x,z),z);const m=new THREE.Mesh(G[gi==null?2:gi],mat||NS_ICE);m.scale.set(w,h*.5,w*.8);m.position.y=h*.45;piv.add(m);scene.add(piv);return piv;}
+/* a small burst of ice where something cracked or landed: chunks, splinters, a frost cloud and snow */
+function grmBurst(x,y,z,R){nsSplinters(x,y+.1,z,Math.round(5+R*8),1+R*1.4);xfxFrostBoom(x,y+.12,z,R,{n:2+Math.round(R*2),t:Math.round(4+R*6),up:.7,sp:0});
+  for(let i=0;i<4;i++){const a=rnd()*6.283;emitS(0,{x:x+Math.cos(a)*.15,y:y+.1,z:z+Math.sin(a)*.15,vx:Math.cos(a)*.6*R,vy:.18,vz:Math.sin(a)*.6*R,s:.25+.3*R,s2:.8+R,c:0xf2f8ff,c2:0xcfe0ee,a:.32,life:1.2,lift:.05,turb:.3});}}
+/* ---- M1: an ice statue: the freeze block grows crystals, and the foes behind it stop ---- */
+function grmStatue(S,z){const e=z.e;if(!e.g)return;const G=nsIceGeos(),h=(e.hitY||.4)/(e.g.scale.y||1)*1.3,g=new THREE.Group();
+  for(let i=0;i<5;i++){const a=i/5*6.283+rnd()*.5,m=new THREE.Mesh(G[2*(i%3)],i%2?NS_ICE:NS_ICE2),w=h*(.1+rnd()*.05),hh=h*(.75+rnd()*.5);m.scale.set(w,hh*.5,w);m.position.set(Math.sin(a)*h*.42,hh*.3,Math.cos(a)*h*.42);m.rotation.set(Math.sin(a)*.35,a,Math.cos(a)*.35);g.add(m);}
+  g.scale.setScalar(.001);e.g.add(g);z.st={g,t:0};grmLog({ev:'statue',e});}
+/* ---- M2: the crest of ice that carries a foe back up the road ---- */
+function grmCrest(e){const G=nsIceGeos(),g=smTag(new THREE.Group());for(let i=0;i<5;i++){const a=i/5*6.283,m=new THREE.Mesh(G[2*(i%3)],i%2?NS_ICE:grmMats().slab),w=.07+rnd()*.03,h=.35+rnd()*.25;
+    m.scale.set(w,h*.5,w);m.position.set(Math.cos(a)*.2,h*.3,Math.sin(a)*.2);m.rotation.set(Math.sin(a)*.6,0,-Math.cos(a)*.6);g.add(m);}g.position.set(e.x,gy(e.x,e.z),e.z);g.scale.setScalar(.001);scene.add(g);return g;}
+/* ---- M3: a slab breaking off the ridge and toppling onto the road ---- */
+function grmCalve(S,slot){const K=S.K,rt=K.rt,p=posAt(slot.d,rt),a=p[2],side=rnd()<.5?1:-1,sd=side*(.6+rnd()*.2);
+  const bx=p[0]+Math.cos(a)*sd,bz=p[1]-Math.sin(a)*sd,h=1.9+rnd()*.6,w=.27+rnd()*.06;
+  const piv=grmShard(bx,bz,h,w,grmMats().slab,2*Math.floor(rnd()*3));piv.scale.set(1,.001,1);
+  /* it falls toward the far side of the road: its top lands about h from its foot, across the road */
+  const dx=-Math.cos(a)*side,dz=Math.sin(a)*side,yaw=Math.atan2(dx,dz);piv.rotation.y=yaw;const land={x:bx+dx*h*.62,z:bz+dz*h*.62};
+  emitS(0,{x:bx,y:gy(bx,bz)+h*.8,z:bz,vx:0,vy:.1,vz:0,s:.25,s2:.6,c:0xf4faff,c2:0xd4e6f4,a:.4,life:.9,lift:.05,turb:.3});
+  /* it breaks free (rises out of the ridge with a crack of light), then topples */
+  let t=0,landed=false;const UP=.16,T=.55;
+  addFx(piv,1.8,(f,dt)=>{t+=dt;if(t<UP){piv.scale.set(1,Math.max(.001,nsBackE(t/UP)),1);if(rnd()<.6)emit(1,{x:bx,y:gy(bx,bz)+.2,z:bz,vx:(rnd()-.5)*.6,vy:.8,vz:(rnd()-.5)*.6,s:.05,s2:0,c:0xffffff,c2:0x7fc8f0,life:.35});return;}piv.scale.set(1,1,1);
+    if(!landed){const k=Math.min(1,(t-UP)/T),ang=1.5*k*k;piv.rotation.x=ang;if(rnd()<.5)emit(1,{x:bx+dx*h*.5*Math.sin(ang),y:gy(bx,bz)+h*Math.cos(ang)*.8,z:bz+dz*h*.5*Math.sin(ang),vx:(rnd()-.5)*.3,vy:-.2,vz:(rnd()-.5)*.3,s:.04,s2:0,c:0xffffff,c2:0xbfe4ff,life:.4});
+      if(k>=1){landed=true;const y=gy(land.x,land.z);grmBurst(land.x,y,land.z,.75);nsDecal(land.x,land.z,.7,0xdff2ff,.55,2.4,{fout:1.2});camShake=Math.max(camShake,.08);
+        let n=0;for(const e of enemies){if(e.dead||e.fake||e.fly)continue;if((e.x-land.x)**2+(e.z-land.z)**2>GRM.calveR*GRM.calveR)continue;if((S.calveAt.get(e)||-9)>time-GRM.calveCd)continue;S.calveAt.set(e,time);n++;hurt(e,S.P*GRM.calve*S.a[2],'magic',S.o);}
+        grmLog({ev:'calve',x:land.x,z:land.z,n});}}
+    else{const k=Math.min(1,(t-UP-T)/.9);const sc=Math.max(.001,1-k);piv.scale.set(sc,sc,sc);piv.position.y-=dt*.25;}},null,{});}
+/* ---- M4: the rime crust on a foe out in the blizzard ---- */
+function grmCrust(e){if(!e.g)return null;const M=grmMats(),h=(e.hitY||.4)/(e.g.scale.y||1),g=new THREE.Group();const b=new THREE.Mesh(ico(.5,1),M.crust);b.scale.set(h*.95,h*1.35,h*.95);b.position.y=h*.62;g.add(b);
+  const G=nsIceGeos();for(let i=0;i<3;i++){const a=i/3*6.283+rnd(),m=new THREE.Mesh(G[2*i],NS_ICE2),w=h*.07;m.scale.set(w,h*.18,w);m.position.set(Math.sin(a)*h*.35,h*(1.1+rnd()*.3),Math.cos(a)*h*.35);m.rotation.set(Math.sin(a)*.6,a,Math.cos(a)*.6);g.add(m);}
+  g.scale.setScalar(.001);e.g.add(g);return g;}
+/* ---- M5: the maw: the crevasse, the fangs along its lips, the drag, the hold and the slam ---- */
+function grmMaw(S){const K=S.K,rt=K.rt,d0=K.d0,d1=K.d1,M=grmMats(),mats=[],geos=[];S.maw={fangs:[],t:0,slam:false,hit:new Set(),held:[]};
+  const gap=nsPathSeams(rt,d0,d1,0x5ab8ff,0x02060c,mats,geos,.5);gap.grow(1);gap.op(0,0);S.maw.gap=gap;
+  for(let d=d0;d>d1;d-=.5){const p=posAt(d,rt),a=p[2];for(const side of[-1,1]){const sd=side*(.5+rnd()*.08),x=p[0]+Math.cos(a)*sd,z=p[1]-Math.sin(a)*sd,h=.95+rnd()*.5,w=.17+rnd()*.05;
+      const piv=grmShard(x,z,h,w,rnd()<.5?grmMats().slab:NS_ICE,2*Math.floor(rnd()*3));piv.rotation.y=Math.atan2(-Math.cos(a)*side,Math.sin(a)*side);piv.scale.set(1,.001,1);piv.position.y-=.05;S.maw.fangs.push({piv,d,side,h,lean:.32+rnd()*.18});}}
+  /* the ground foes along the stretch are dragged to the crevasse and held (not bosses) */
+  for(const e of enemies){if(e.dead||e.fake||e.fly||(e.route||ROUTES[0])!==rt||e.dist==null||e.dist<d1-.4||e.dist>d0+.4)continue;S.maw.held.push({e,off0:e.off||0});if(!e.boss)smStun(e,GRM.mawHold+GRM.mawOpen*.4);}
+  S.maw.mats=mats;S.maw.geos=geos;grmLog({ev:'maw',n:S.maw.held.length});camShake=Math.max(camShake,.12);if(typeof sfxRumble==='function')sfxRumble(1.2,.3);}
+function grmMawTick(S,dt){const W=S.maw,K=S.K,rt=K.rt;W.t+=dt;const op=Math.min(1,W.t/.35);W.gap.op(.85*op*(W.slam?Math.max(0,1-(W.t-GRM.mawOpen)/.5):1),.95*op*(W.slam?Math.max(0,1-(W.t-GRM.mawOpen)/.5):1));
+  /* the fangs rise along the lips, leaning in over the crevasse */
+  for(const f of W.fangs){if(!W.slam){const k=Math.min(1,W.t/.4);f.piv.scale.set(1,Math.max(.001,nsBackE(k)),1);f.piv.rotation.x=f.lean*k;}}
+  /* the drag: the held foes slide to the middle of the road, over the crevasse */
+  for(const q of W.held){const e=q.e;if(e.dead)continue;const k=Math.min(1,W.t/.3);e.off=q.off0*(1-k);if(typeof moveEnemy==='function')moveEnemy(e,0);if(!e.boss&&!W.hit.has(e)&&e.g)e.g.position.y-=.22*Math.min(1,W.t/.5);if(!W.slam&&rnd()<dt*5){const p=tpos2(e);emit(1,{x:p.x+(rnd()-.5)*.2,y:p.y*.4,z:p.z+(rnd()-.5)*.2,vx:0,vy:-.3,vz:0,s:.05,s2:0,c:0xffffff,c2:0x6ab8ff,life:.4});}}
+  if(!W.slam&&W.t>=GRM.mawOpen){W.slam=true;W.ts=W.t;camShake=Math.max(camShake,.22);if(typeof sfxBoom==='function')sfxBoom(.4);grmLog({ev:'slam'});}
+  if(W.slam){const dS=K.d0-(W.t-W.ts)*16;
+    for(const f of W.fangs){if(f.d<dS)continue;if(!f.shut){f.shut=true;f.st=W.t;if(W.fangs.indexOf(f)%4===0){const p=posAt(f.d,rt);grmBurst(p[0],gy(p[0],p[1]),p[1],.7);}}
+      const k=Math.min(1,(W.t-f.st)/.12);f.piv.rotation.x=f.lean+(1.3-f.lean)*k;if(W.t-f.st>.35){const s2=Math.max(.001,1-(W.t-f.st-.35)/.5);f.piv.scale.set(s2,s2,s2);}}
+    for(const q of W.held){const e=q.e;if(e.dead||W.hit.has(e)||e.dist==null||e.dist<dS)continue;W.hit.add(e);hurt(e,S.P*GRM.maw*S.a[4],'magic',S.o);if(!e.dead){const p=tpos2(e);nsSplinters(p.x,p.y,p.z,6,1.4);}}}}
+function grmMawEnd(S){const W=S.maw;if(!W)return;W.fangs.forEach(f=>{if(f.piv.parent)f.piv.parent.remove(f.piv);});W.gap.free();W.mats.forEach(m=>m.dispose());W.geos.forEach(g=>g.dispose());S.maw=null;}
+/* ---- the cast's hooks (castGlacialRift calls them) ---- */
+function grmStart(o,K){const c=grmC(o);if(!c)return null;const L=c.L,a=c.a;
+  const S={L,a,c,K,o:smO(o),P:K.P,calveAt:new Map(),calveT:0,cold:new Map(),pushes:[],tt:0,mawAt:null,pd:new Map(),frz:new Set(),
+    /* the wave reached e (alive) and froze it: z is its entry in the frozen list */
+    hit(e,z){if(L>=2&&!e.boss&&!e.fly&&e.dist!=null){S.pushes.push({e,from:e.dist,to:Math.max(.05,e.dist-GRM.push),t:0,crest:grmCrest(e)});hurt(e,S.P*GRM.grind*a[1],'magic',S.o);grmLog({ev:'push',e});}
+      /* M1: frozen until the ridge shatters (then the statues, in shatter()) */
+      if(L>=1&&z&&!e.boss){z.statue=true;z.hold=Math.max(z.hold,K.TS-S.tt+.05);if(!e.dead)smStun(e,z.hold);}},
+    tick(tt,dt){const rt=K.rt;S.tt=tt;
+      /* M2: the undertow drags them back up the road */
+      for(let i=S.pushes.length-1;i>=0;i--){const q=S.pushes[i],e=q.e;q.t+=dt;if(e.dead){S.pushes.splice(i,1);continue;}const k=Math.min(1,q.t/GRM.pushT),ke=1-Math.pow(1-k,2);e.dist=q.from+(q.to-q.from)*ke;if(typeof moveEnemy==='function')moveEnemy(e,0);
+        if(e.g)e.g.position.y+=Math.sin(k*Math.PI)*GRM.lift;if(q.crest){const c=q.crest;c.position.set(e.x,gy(e.x,e.z),e.z);c.rotation.y+=dt*2;c.scale.setScalar(Math.max(.001,Math.sin(Math.min(1,k*1.15)*Math.PI)));if(k>=1){scene.remove(c);q.crest=null;}}
+        const p=tpos2(e);for(let j=0;j<2;j++)emit(0,{x:p.x+(rnd()-.5)*.25,y:gy(p.x,p.z)+.06,z:p.z+(rnd()-.5)*.25,vx:(rnd()-.5)*.5,vy:.35+rnd()*.3,vz:(rnd()-.5)*.5,s:.08,s2:.2,c:0xf4faff,c2:0xc8e2f4,a:.7,life:.5,turb:.4});
+        if(k>=1){S.pushes.splice(i,1);nsSplinters(p.x,gy(p.x,p.z)+.15,p.z,4,1.1);}}
+      /* M1: the statues hold the foes behind them */
+      if(L>=1){S.frz=new Set(K.frozen.filter(z=>z.t<z.hold).map(z=>z.e));}
+      if(L>=1)for(const z of K.frozen){if(!z.st||z.e.dead||z.t>=z.hold)continue;const st=z.e;z.st.t+=dt;z.st.g.scale.setScalar(Math.max(.001,nsBackE(Math.min(1,z.st.t/.25))));if(st.dist==null)continue;
+        for(const e of enemies){if(e===st||e.dead||e.fake||e.fly||e.boss||(e.route||ROUTES[0])!==(st.route||ROUTES[0])||e.dist==null||S.frz.has(e))continue;if(e.dist>st.dist+.05||e.dist<st.dist-GRM.gap-.3)continue;
+          /* a foe cannot walk on past the statue (one already standing closer is kept where it was, never shoved back) */
+          const lim=st.dist-GRM.gap,pd=S.pd.get(e);if(e.dist>lim&&pd!=null&&e.dist>pd){e.dist=Math.max(lim,pd);if(typeof moveEnemy==='function')moveEnemy(e,0);if(!e.grmHeldLog){e.grmHeldLog=1;grmLog({ev:'held',e,by:st});}if(rnd()<dt*4){const p=tpos2(e);emit(0,{x:p.x,y:p.y*.6,z:p.z,vx:(rnd()-.5)*.2,vy:.2,vz:(rnd()-.5)*.2,s:.06,s2:.15,c:0xffffff,c2:0xcfe6f6,a:.6,life:.5});}}}}
+      /* M3: a slab calves off the ridge, where foes are */
+      if(L>=3&&tt>1.15&&tt<K.TS-.1){S.calveT-=dt;if(S.calveT<=0){S.calveT=GRM.calveDt;const up=K.slots.filter(s=>s.up===2&&!s.sh);if(up.length){let s=null;
+          const on=enemies.filter(e=>!e.dead&&!e.fake&&!e.fly&&(e.route||ROUTES[0])===rt&&e.dist!=null&&e.dist>K.d1&&e.dist<K.d0);
+          if(on.length&&rnd()<.8){const e=on[Math.floor(rnd()*on.length)];s=up.reduce((b,q)=>Math.abs(q.d-e.dist)<Math.abs(b.d-e.dist)?q:b);}else s=up[Math.floor(rnd()*up.length)];grmCalve(S,s);}}}
+      /* M4: rime gathers on every foe in the blizzard (tt .9 to 6.3 s, as nsBlizzard blows) */
+      if(L>=4&&tt>.95&&tt<6.3){for(const e of enemies){if(e.dead||e.fake)continue;let q=S.cold.get(e);if(!q){q={t:0,g:grmCrust(e),done:false};S.cold.set(e,q);}if(q.done)continue;q.t+=dt;
+          if(q.g)q.g.scale.setScalar(Math.max(.001,Math.min(1,q.t/GRM.coldT)*.9+.1));
+          if(q.t>=GRM.coldT){q.done=true;const sec=smStun(e,GRM.coldFrz)||0;grmLog({ev:'cold',e,sec});const p=tpos2(e);sprayP(1,p.x,p.y,p.z,10,{c:0xffffff,c2:0x9fdcff,sp:1.1,up:.4,s:.045,s2:0,life:.4,g:1.5});
+            if(q.g){q.g.scale.setScalar(1.12);q.g.children[0].material=NS_FRZ||q.g.children[0].material;}
+            const hold=Math.max(.25,sec||GRM.coldFrz);mxLater(hold,()=>{if(q.g&&q.g.parent)q.g.parent.remove(q.g);q.g=null;if(e.dead)return;const p2=tpos2(e);grmBurst(p2.x,p2.y*.6,p2.z,.35);hurt(e,S.P*GRM.thaw*a[3],'magic',S.o);grmLog({ev:'thaw',e});});}}}
+      if(L>=4&&tt>=6.3&&!S.coldEnd){S.coldEnd=true;for(const [e,q] of S.cold)if(!q.done&&q.g){if(q.g.parent)q.g.parent.remove(q.g);q.g=null;}}
+      if(L>=1)for(const e of enemies)if(!e.dead&&e.dist!=null)S.pd.set(e,e.dist);
+      if(L>=5&&S.mawAt!=null&&!S.maw&&tt>=S.mawAt)grmMaw(S);
+      if(S.maw)grmMawTick(S,dt);},
+    /* the ridge shatters: M1's statues are left standing, M5's maw opens just after */
+    shatter(){if(L>=1)for(const z of K.frozen){if(!z.statue||z.e.dead||!z.e.g)continue;z.hold=z.t+GRM.statueX;smStun(z.e,GRM.statueX);grmStatue(S,z);}
+      if(L>=5)S.mawAt=S.tt+GRM.mawAt;},
+    end(){for(const [e,q] of S.cold)if(q.g&&q.g.parent)q.g.parent.remove(q.g);S.cold.clear();grmMawEnd(S);for(const q of S.pushes)if(q.crest)scene.remove(q.crest);for(const z of K.frozen)if(z.st&&z.st.g.parent)z.st.g.parent.remove(z.st.g);}};
+  grmLog({ev:'cast',L});return S;}
 
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
