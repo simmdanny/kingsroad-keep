@@ -19,16 +19,25 @@ try{
   /* v439: the Epic and Legendary scrolls have their clips too (recorded with the tracking camera, which follows the action) */
   {const EL=SCROLL_IDS.filter(k=>['epic','legendary'].includes(SPELLS_S[k].r)&&SM_D[k]),miss=[];for(const k of EL)for(let L=0;L<=5;L++)if(!pvcHas(k,L))miss.push(k+'-'+L);
     ok('v439: every Epic and Legendary scroll has its clips too ('+EL.length+' scrolls)',EL.length>=17&&!miss.length,miss.slice(0,8).join(' '));}
+  /* v438: the clips of the scrolls the player owns are fetched into memory in the background */
+  {meta.spells.cinders=meta.spells.cinders||{lvl:1,hero:null};for(const L of [0,1,2,3,4,5]){const id='cinders-'+L;if(PVC.urls[id])URL.revokeObjectURL(PVC.urls[id]);delete PVC.urls[id];delete PVC.got[id];}
+    PVC.warm=0;pvcWarm();const want=PVC.warmN.filter(id=>/^cinders-/.test(id)).length;for(let i=0;i<60&&!['cinders-0'].every(id=>PVC.urls[id]);i++)await wait(100);
+    ok('the clips of every scroll the player owns are fetched into memory in the background',want>=1&&/^blob:/.test(PVC.urls['cinders-0']||''),want+' queued; '+(PVC.urls['cinders-0']||'none'));}
   /* the card in developer mode: hovering a mastery plays its clip, without the live preview's frame */
   meta.dev=true;meta.spells.hexspark=meta.spells.hexspark||{lvl:1,hero:null};close();smOpen('hexspark');
   const md=$('#smModal'),rows=md.querySelectorAll('.mst-lvl');rows[3].dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(150);
-  const b=PVC.el,v=b&&b.querySelector('video');
-  ok('hovering Mastery 4 opens the panel with its clip',b&&!b.hidden&&PVC.k==='hexspark'&&PVC.L===4&&((v.getAttribute('src')||'')===pvcUrl('hexspark',4)||/hexspark-4/.test(v.getAttribute('src')||'')),v&&v.getAttribute('src'));
+  const b=PVC.el,v=b&&b.querySelector('video');{for(let i=0;i<40&&!/^blob:/.test(v.getAttribute('src')||'');i++)await wait(100);}
+  ok('hovering Mastery 4 opens the panel with its clip, played from memory (v438)',b&&!b.hidden&&PVC.k==='hexspark'&&PVC.L===4&&(v.getAttribute('src')||'')===pvcUrl('hexspark',4)&&/^blob:/.test(v.getAttribute('src')||''),v&&v.getAttribute('src'));
   ok('without starting a second copy of the game (no preview frame)',!document.querySelector('.smpv-fr')&&!(SMPW.el&&!SMPW.el.hidden));
   ok('it shows the mastery, its text and what the clip sets up',/Mastery IV/.test(b.querySelector('.pvc-ttl b').textContent)&&b.querySelector('.pvc-d').textContent===smDesc('hexspark',3)&&!b.querySelector('.pvc-note').hidden,b.querySelector('.pvc-ttl b').textContent);
   {let t=0;for(let i=0;i<40&&!(v.readyState>=2&&v.currentTime>0);i++){await wait(100);t+=100;}ok('the clip plays at once (no loading)',v.readyState>=2&&v.currentTime>0&&!v.paused,'ready '+v.readyState+' after '+t+' ms');}
   const tabs=b.querySelectorAll('.pvc-tabs button');ok('six tabs: no mastery and Masteries I-V, the shown one lit',tabs.length===6&&tabs[4].classList.contains('on')&&[...tabs].every(x=>!x.disabled));
-  tabs[1].click();await wait(50);ok('a tab switches the clip at once and pins the panel',PVC.L===1&&v.getAttribute('src')===pvcUrl('hexspark',1)&&PVC.pin,v.getAttribute('src'));
+  tabs[1].click();{for(let i=0;i<40&&!/^blob:/.test(pvcUrl('hexspark',1)||'');i++)await wait(100);}await wait(30);ok('a tab switches the clip and pins the panel',PVC.L===1&&v.getAttribute('src')===pvcUrl('hexspark',1)&&PVC.pin,v.getAttribute('src'));
+  /* v438: a clip not in memory yet is never streamed: the panel shows it is loading, then plays it from memory */
+  {const id='hexspark-2';if(PVC.urls[id])URL.revokeObjectURL(PVC.urls[id]);delete PVC.urls[id];delete PVC.got[id];pvcShow('hexspark',2,null);const s0=v.getAttribute('src')||'',w0=b.classList.contains('pvc-wait');
+    for(let i=0;i<40&&!/^blob:/.test(v.getAttribute('src')||'');i++)await wait(100);
+    ok('a clip not in memory yet waits for its download (a loading ring), never streams, then plays from memory',w0&&!/^https?:|\.mp4$/.test(s0)&&/^blob:/.test(v.getAttribute('src')||'')&&!b.classList.contains('pvc-wait'),JSON.stringify([w0,s0,v.getAttribute('src')]));}
+  pvcShow('hexspark',1,null);await wait(50);
   md.querySelector('.mst-head').dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(320);ok('a pinned panel stays open when the pointer leaves the masteries',!b.hidden);
   b.querySelector('.pvc-x').click();ok('the close button closes it',b.hidden&&!PVC.pin);
   rows[1].dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(60);md.querySelector('.mst-head').dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(320);
@@ -55,6 +64,15 @@ try{
     ok('opening a scroll\u2019s mastery card fetches its clips, so they play from memory',[0,1,2,3,4,5].every(L=>/^blob:/.test(pvcUrl('thornwhip',L)||'')),pvcUrl('thornwhip',5));close();}
   {const keep={man:PVC.man,load:PVC.load,base:PVC.base};PVC.man=null;PVC.load=null;const f0=window.fetch;window.fetch=()=>Promise.reject(new Error('offline'));
     try{pvcMan();await PVC.load;ok('offline (no clip list) the masteries keep the live preview',!pvcHas('hexspark',1)&&PVC.man===null);}finally{window.fetch=f0;PVC.man=keep.man;PVC.load=keep.load;PVC.base=keep.base;}}
+  /* v438 (Simon: "still laggy"): nothing else draws while a clip plays: the map is not drawn behind the menus (they cover it), the menu
+     previews under a playing clip wait, and the live preview's copy of the game sleeps while no live preview is showing */
+  {const h0=$('#home').hidden;$('#home').hidden=false;const hw=hideWorld();$('#home').hidden=true;const pl=hideWorld();$('#home').hidden=h0;
+    pvcShow('hexspark',1,null);let dp=0;const d0=drawPreview;drawPreview=function(){dp++;return d0.apply(this,arguments);};const t0=curTab;curTab='battle';const hh=$('#home').hidden;$('#home').hidden=false;
+    await wait(300);drawPreview=d0;curTab=t0;$('#home').hidden=hh;pvcHide(true);
+    ok('the map is not drawn behind the menus (they cover it), and drawn in battle',hw&&!pl,JSON.stringify([hw,pl]));
+    ok('the battle tab’s map preview waits while a clip plays over it',dp===0,dp+' draws');}
+  {const r=await (await fetch(location.href)).text();const n=(r.match(/if\(SMPV\.mode&&!SMPV\.on\)\{last=now;return;\}/g)||[]).length;
+    ok('the live preview’s copy of the game sleeps while no live preview shows',n===1&&SMPV.mode===false,n);}
   ok('no errors',errs===0,errs);
 }catch(e){ok('threw',false,e.stack);}
 finally{console.error=ce;try{close();pvcHide(true);}catch(e){}meta=migrateMeta(JSON.parse(m0));meta.dev=dev0;saveMeta();}

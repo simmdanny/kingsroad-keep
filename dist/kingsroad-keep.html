@@ -11061,8 +11061,12 @@ function anim(dt,rt){
 }
 let errToastT=0;window.addEventListener('error',ev=>{const n=performance.now();if(n-errToastT<4000)return;errToastT=n;try{toast('Error: '+String(ev.message).slice(0,90),'bad');}catch(_){}});
 let last=performance.now(),uiT=0,saveT=0,lastPz=false;
+/* (also while a preview clip plays over a paused battle: the world behind stands still then) */
+const hideWorld=()=>(!$('#home').hidden&&!CAM.gal&&!(typeof OW!=='undefined'&&OW.on))||(typeof PVC!=='undefined'&&PVC.el&&!PVC.el.hidden&&!(state==='playing'&&!paused));
 function frame(now){
   requestAnimationFrame(frame);
+  /* v438: the live-preview copy of the game (an iframe) sleeps while no preview is showing, instead of drawing its arena unseen */
+  if(SMPV.mode&&!SMPV.on){last=now;return;}
   const rdt0=Math.min(batDt(),(now-last)/1000);last=now;const pz=state==='playing'&&paused,rdt=pz?0:rdt0;
   if(pz!==lastPz){lastPz=pz;try{if(typeof SFX!=='undefined'&&SFX.ctx)pz?SFX.ctx.suspend():SFX.ctx.resume();}catch(e){}}
   if(state==='playing'&&!paused){{const sw=Math.floor(speed),sf=speed-sw;for(let i=0;i<sw;i++)update(rdt*worldSlow);if(sf>1e-3)update(rdt*worldSlow*sf);}if(!enemies.length&&!spawners.length&&moon)moon=null;}
@@ -11072,12 +11076,15 @@ function frame(now){
   uiT+=rdt;if(uiT>.15&&state==='playing'){uiT=0;updHud();updSpells();updScrollBar();if(sel||buildTile)refreshSheet();}
   saveT+=rdt;if(saveT>10){saveT=0;if(metaDirty)saveMeta();}
   updPlaceUI(now);
-  if(!$('#home').hidden&&curTab==='battle')drawPreview(now);
-  if(!$('#home').hidden&&curTab==='heroes')renderPreview(rdt);
+  const pvOn=typeof PVC!=='undefined'&&PVC.el&&!PVC.el.hidden;/* (the menu previews under a playing clip wait: the window over them blurs what is behind it) */
+  if(!$('#home').hidden&&curTab==='battle'&&!pvOn)drawPreview(now);
+  if(!$('#home').hidden&&curTab==='heroes'&&!pvOn)renderPreview(rdt);
   const shk=meta.shake===false?0:camShake*SPACE_K,shx=(rnd()-.5)*shk,shy=(rnd()-.5)*shk;camera.position.x+=shx;camera.position.y+=shy;
   bmAtmos(rdt);sfAtmos(rdt);galFrame(now/1000);if(OW.on){owFrame();owView();}
-  if(LENS.on)lensRender();else if(DOM.post&&DOM.post.on)DOM.post.render();else if(SDP.n>0)sdpRender();else renderer.render(scene,camera);
-  if(SGL.n>0)sglPass();
+  /* v438: the menus cover the whole map (an opaque background): drawing the world behind them every frame only took the time a mastery preview
+     clip needs to play smoothly (and the overlays blur what is behind them). The last frame stays on the canvas; it draws again on leaving. */
+  if(!hideWorld()){if(LENS.on)lensRender();else if(DOM.post&&DOM.post.on)DOM.post.render();else if(SDP.n>0)sdpRender();else renderer.render(scene,camera);}
+  if(SGL.n>0&&!hideWorld())sglPass();
   camera.position.x-=shx;camera.position.y-=shy;
 }
 
@@ -14193,6 +14200,10 @@ const CLOG=[
     'The clips follow the action: the camera tracks what each mastery does (the Phoenix reborn skimming down the road and diving, the Comet\u2019s rebound, the Storm Front marching on, the Loop sending foes 8 tiles back) instead of holding one view the action could run out of.',
     'Each clip is set up for its mastery: a ram as the toughest foe, low-health foes for Harsh Sentence, Severed and Culling Edge, towers for Sundered, Hollow, Stolen Time and the Vine Lattice, foes walking up behind Glacial Rift\u2019s statues, and the late moments (the Storm Front, the Last Thunder, the second collapse) shown when they happen.',
     'The Stormcaller\u2019s Downpour now rains while a cloud is over the road even with the camera zoomed in close (it used to stop when the clouds faded from a close view).']},
+  {t:'Mastery previews load ahead',d:'29 Oct',v:'v438',li:[
+    'The preview clips of the scrolls you own now download in the background a moment after the game opens, so hovering a mastery plays its clip at once instead of stuttering while it streams.',
+    'A clip that is not downloaded yet is never streamed: a loading ring shows for a moment, then it plays smoothly from memory.',
+    'While a clip plays nothing else competes with it: the map is no longer drawn behind the menus (they cover it completely), the map preview under the clip waits, and the hidden copy of the game that runs the live previews sleeps when no live preview is showing (it used to keep drawing unseen once one had been opened).']},
   {t:'Hundred-Year Bloom masteries, redesigned',d:'28 Oct',v:'v437',li:[
     'Hundred-Year Bloom (Legendary) has five new masteries, for now in developer mode: Scent of Nectar (while the bud opens, golden scent streams out and draws foes up to 3.5 tiles away into the flower), Vine Lattice (thorned vines tie the held foes together, and a quarter of any other hit on one runs along them to the rest), Petal Storm (the burst throws 16 razor petals that whirl out and slice into the foes), Golden Haze (the pollen cloud is wider and thicker and drifts down the road with the foes in it) and A Hundred Years in a Breath (the fading flower goes to seed: ten glowing seeds drift onto the foes and sprout small blooms that grab them and burst).',
     'Its burst now billows up as a golden cloud of pollen in 3D, and the shaft of light over it fades as it rises instead of standing as a flat white bar over the foes.']},
@@ -31693,14 +31704,21 @@ const PVC_SRC=['../previews/','https://cdn.jsdelivr.net/gh/simmdanny/kingsroad-k
 /* the clip list, from the first place that has it (see above); null until it has arrived */
 function pvcMan(){if(PVC.man)return PVC.man;if(!PVC.load&&typeof fetch==='function'){
   const bases=PVC_SRC.filter(b=>/^https?:/.test(b)||/^https?:$/.test(location.protocol));
-  PVC.load=(async()=>{for(const b of bases){try{const r=await fetch(b+'manifest.json',{cache:'no-cache'});if(!r.ok)continue;const m=await r.json();if(m&&m.clips){PVC.base=b;PVC.man=m;return m;}}catch(e){}}return null;})();}
+  PVC.load=(async()=>{for(const b of bases){try{const r=await fetch(b+'manifest.json',{cache:'no-cache'});if(!r.ok)continue;const m=await r.json();if(m&&m.clips){PVC.base=b;PVC.man=m;setTimeout(()=>{try{pvcWarm();}catch(e){}},1500);return m;}}catch(e){}}return null;})();}
   return null;}
 const pvcId=(k,L)=>k+'-'+L;
 function pvcHas(k,L){const m=pvcMan();return!!(m&&m.clips&&m.clips[pvcId(k,L)]);}
 /* a clip already fetched plays from memory; one not fetched yet streams from where the list came from */
 function pvcUrl(k,L){const id=pvcId(k,L);return PVC.urls[id]||(PVC.man?PVC.base+id+'.mp4':null);}
-function pvcFetch(k,L){const id=pvcId(k,L);if(PVC.urls[id]||PVC.got[id]||!pvcHas(k,L))return;
-  PVC.got[id]=fetch(PVC.base+id+'.mp4').then(r=>r.ok?r.blob():null).then(b=>{if(b&&b.size)PVC.urls[id]=URL.createObjectURL(/^video\//.test(b.type)?b:new Blob([b],{type:'video/mp4'}));}).catch(()=>{PVC.got[id]=null;});}
+/* fetch a clip into memory (once); the promise gives its blob URL, or null if it could not be had */
+function pvcFetch(k,L){const id=pvcId(k,L);if(PVC.urls[id])return Promise.resolve(PVC.urls[id]);if(PVC.got[id])return PVC.got[id];if(!pvcHas(k,L))return Promise.resolve(null);
+  PVC.got[id]=fetch(PVC.base+id+'.mp4').then(r=>r.ok?r.blob():null).then(b=>{if(b&&b.size){PVC.urls[id]=URL.createObjectURL(/^video\//.test(b.type)?b:new Blob([b],{type:'video/mp4'}));return PVC.urls[id];}PVC.got[id]=null;return null;})
+    .catch(()=>{PVC.got[id]=null;return null;});return PVC.got[id];}
+/* v438 (Simon: "they should be pre-loaded so it just plays"): once the clip list is in, the clips of every scroll the player owns (the
+   masteries they may watch) are fetched into memory in the background, two at a time, so a preview plays from memory at once. A clip not
+   in memory yet is never streamed (that stuttered, above all at 720p): the panel shows that it is loading and plays it once it has arrived. */
+function pvcWarm(){if(PVC.warm||!PVC.man)return;PVC.warm=1;const Q=[];for(const k of Object.keys((meta&&meta.spells)||{}))for(let L=0;L<=5;L++)if(pvcHas(k,L)&&smPvCan('scroll',k,L))Q.push([k,L]);
+  PVC.warmQ=Q;PVC.warmN=Q.map(q=>pvcId(q[0],q[1]));const next=()=>{const q=Q.shift();if(!q)return;pvcFetch(q[0],q[1]).then(()=>setTimeout(next,60));};next();next();}
 /* (raw GitHub sends the clips as plain bytes: they are labelled video/mp4 so every browser plays them) */
 /* the clips of one scroll that can be watched (opening its mastery card) */
 function pvcPrefetch(k){if(!pvcMan())return;for(let L=0;L<=5;L++)if(smPvCan('scroll',k,L))pvcFetch(k,L);}
@@ -31729,9 +31747,13 @@ function pvcShow(k,L,anchor){if(!pvcHas(k,L))return false;const b=pvcBox(),S=SPE
   const nt=b.querySelector('.pvc-note');nt.textContent=c.note||'';nt.hidden=!c.note;
   b.querySelector('.pvc-tabs').innerHTML=[0,1,2,3,4,5].map(l=>{const ok=pvcHas(k,l)&&smPvCan('scroll',k,l);
     return`<button data-l="${l}" class="${l===L?'on':''}" ${ok?'':'disabled'} style="--mc:${l?pvcHex(MAST_COL[l-1]):'#c8b89a'}" title="${ok?(l?'Mastery '+l+': '+D[l-1].n:'No mastery'):'Reach Mastery '+l+' to watch it'}">${l?PVC_ROM[l]:'Base'}</button>`;}).join('');
-  const v=b.querySelector('video');if(!same){const u=pvcUrl(k,L);if(u&&v.getAttribute('src')!==u){v.setAttribute('src',u);}try{v.currentTime=0;}catch(e){}const p=v.play();if(p&&p.catch)p.catch(()=>{});
-      /* a bigger clip (720p) can still be loading when play() is called, and the call is then dropped: start it again once it can play */
-      v.oncanplay=()=>{if(v.paused&&v.isConnected&&PVC.el&&!PVC.el.hidden){const q=v.play();if(q&&q.catch)q.catch(()=>{});}};}
+  const v=b.querySelector('video');if(!same){const id=pvcId(k,L);
+      const play=u=>{b.classList.remove('pvc-wait');if(v.getAttribute('src')!==u)v.setAttribute('src',u);try{v.currentTime=0;}catch(e){}const p=v.play();if(p&&p.catch)p.catch(()=>{});
+        /* play() can be dropped while the clip is still being read: start it again once it can play */
+        v.oncanplay=()=>{if(v.paused&&v.isConnected&&PVC.el&&!PVC.el.hidden){const q=v.play();if(q&&q.catch)q.catch(()=>{});}};};
+      if(PVC.urls[id])play(PVC.urls[id]);
+      else{b.classList.add('pvc-wait');v.removeAttribute('src');try{v.load();}catch(e){}
+        pvcFetch(k,L).then(u=>{if(PVC.k!==k||PVC.L!==L||!PVC.el||PVC.el.hidden)return;play(u||PVC.base+id+'.mp4');});}}
   b.hidden=false;if(anchor!==null)pvcPlace(anchor||PVC.anchor);if(anchor)PVC.anchor=anchor;if(!PVC.raf)PVC.raf=requestAnimationFrame(pvcTick);return true;}
 function pvcPlace(anchor){const b=PVC.el;if(!b)return;
   const r=anchor&&anchor.isConnected?anchor.getBoundingClientRect():{left:innerWidth/2,right:innerWidth/2,top:innerHeight/2,bottom:innerHeight/2,height:0};let x,y,W=Math.min(440,innerWidth-16);
@@ -31761,6 +31783,8 @@ addEventListener('resize',()=>{if(PVC.el&&!PVC.el.hidden)pvcPlace(PVC.anchor);})
   '.pvc-hd{display:flex;align-items:center;gap:9px;margin-bottom:8px}.pvc-art{width:34px;height:34px;flex:none;display:grid;place-items:center}.pvc-art svg{width:34px;height:34px}'+
   '.pvc-ttl{flex:1;min-width:0}.pvc-ttl small{display:block;font-size:11px;color:var(--rc,var(--muted));letter-spacing:.02em}.pvc-ttl b{display:block;font-size:15px;color:var(--gold);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
   '.pvc-x{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid #6a5238;background:#1d1510;color:var(--gold);font-size:18px;line-height:1;cursor:pointer}.pvc-x:hover{background:#2e2218}'+
+  '.pvc-vid::after{content:"";position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:3px solid #ffffff22;border-top-color:var(--mc);opacity:0;transition:opacity .2s;pointer-events:none}'+
+  '#pvc.pvc-wait .pvc-vid::after{opacity:1;animation:pvcSpin .8s linear infinite}@keyframes pvcSpin{to{transform:rotate(360deg)}}'+
   '.pvc-vid{position:relative;aspect-ratio:3/2;border-radius:10px;overflow:hidden;background:#0b0806;box-shadow:inset 0 0 0 1px #0008,0 0 0 1px color-mix(in srgb,var(--mc) 55%,transparent)}'+
   '.pvc-vid video{display:block;width:100%;height:100%;object-fit:cover}'+
   '.pvc-badge{position:absolute;left:8px;top:8px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#0c0907d0;color:var(--mc);box-shadow:inset 0 0 0 1px var(--mc)}'+
