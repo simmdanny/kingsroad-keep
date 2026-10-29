@@ -14166,13 +14166,13 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Smoother frames',d:'29 Oct',v:'v446',li:[
+    'The game draws the same picture with about half the work: the forest round the board, the grass and pebbles, the lore props and the still parts of every tower are drawn together instead of piece by piece, so phones and slower computers keep a steadier frame rate (and use less battery).']},
   {t:'Recorded previews for the Epic and Legendary masteries',d:'29 Oct',v:'v439',li:[
     'Every Epic and Legendary scroll now has a short recorded clip for no mastery and each of its five masteries, like the Common to Rare scrolls: 102 clips that play at once in developer mode, instead of the slow live preview.',
     'The clips follow the action: the camera tracks what each mastery does (the Phoenix reborn skimming down the road and diving, the Comet\u2019s rebound, the Storm Front marching on, the Loop sending foes 8 tiles back) instead of holding one view the action could run out of.',
     'Each clip is set up for its mastery: a ram as the toughest foe, low-health foes for Harsh Sentence, Severed and Culling Edge, towers for Sundered, Hollow, Stolen Time and the Vine Lattice, foes walking up behind Glacial Rift\u2019s statues, and the late moments (the Storm Front, the Last Thunder, the second collapse) shown when they happen.',
     'The Stormcaller\u2019s Downpour now rains while a cloud is over the road even with the camera zoomed in close (it used to stop when the clouds faded from a close view).']},
-  {t:'Smoother frames',d:'29 Oct',v:'v438',li:[
-    'The game draws the same picture with about half the work: the forest round the board, the grass and pebbles, the lore props and the still parts of every tower are drawn together instead of piece by piece, so phones and slower computers keep a steadier frame rate (and use less battery).']},
   {t:'Hundred-Year Bloom masteries, redesigned',d:'28 Oct',v:'v437',li:[
     'Hundred-Year Bloom (Legendary) has five new masteries, for now in developer mode: Scent of Nectar (while the bud opens, golden scent streams out and draws foes up to 3.5 tiles away into the flower), Vine Lattice (thorned vines tie the held foes together, and a quarter of any other hit on one runs along them to the rest), Petal Storm (the burst throws 16 razor petals that whirl out and slice into the foes), Golden Haze (the pollen cloud is wider and thicker and drifts down the road with the foes in it) and A Hundred Years in a Breath (the fading flower goes to seed: ten glowing seeds drift onto the foes and sprout small blooms that grab them and burst).',
     'Its burst now billows up as a golden cloud of pollen in 3D, and the shaft of light over it fades as it rises instead of standing as a flat white bar over the foes.']},
@@ -31564,7 +31564,7 @@ addEventListener('resize',()=>{if(PVC.el&&!PVC.el.hidden)pvcPlace(PVC.anchor);})
   '@media (max-width:899px){#pvc{padding:8px}.pvc-ttl b{font-size:14px}}';
   document.head.appendChild(st);}
 
-/* ================= Performance (v438) =================
+/* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
    1) Static batching of the outer forest: the ~150 conifers round the board were three meshes each (trunk and two cones), about 450 draw
@@ -31696,7 +31696,7 @@ function pfHeroFreeze(root){if(!PF.on||!root||root.userData.pfHero)return 0;root
       me.userData.pfBatch=1;me.userData.hero=true;me.matrixAutoUpdate=false;node.add(me);PF.made.add(me);for(const c of list)c.visible=false;saved+=list.length-1;}}
   return saved;}
 {const sh=spawnHero;spawnHero=function(){const r=sh.apply(this,arguments);try{if(heroU&&heroU.g)PF.stat.hero=pfHeroFreeze(heroU.g);}catch(e){console.error(e);}return r;};}
-/* ---- end of performance (v438) ---- */
+/* ---- end of performance (v446) ---- */
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
