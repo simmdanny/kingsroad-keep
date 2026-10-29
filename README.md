@@ -1742,3 +1742,18 @@ Like a magnifying glass on a sunny day, and a row of tuning forks: Heliotrope ho
 - The look: the sunbeam (`prmSunbeam`) is a white-hot core in a gold glow with a cone of light narrowing onto the foe; a pool of light at its feet draws in to a point as it heats (a flattened sphere, with a ring of light round it), sparks and smoke rise and a scorch grows. A first version ran the beam from the prism itself, and from the game's camera it was lost in the prism's own glare; bent down from the shaft of sunlight above, it spans the screen. The bells (`prmBell`) are two hoops of gold light humming round the foe; the toll (`prmToll`) swells a ring of light out of it and throws a ribbon of light to each foe beside it.
 - Power on the Epic ladder (5 runs) at the old factors: 1.09 / 1.27 / 1.44 / 1.60 / 1.81; the hidden factors are now `SMG.prism` = 0.87 / 0.862 / 0.901 / 0.93 / 0.807 (targets 1.094 / 1.234 / 1.35 / 1.522 / 1.742).
 - Tests: `tests/prm-test.js` (31 rows): the sunbeam locks the toughest foe, ticks every 0.25s with a rate rising from 10% to 40%, only while the wheel turns, relocks cool on the next toughest when its foe dies; only the folding beams set foes ringing, each once; every ringing foe tolls when the lance lands; 50% to each foe within 1 tile of a ringing foe, once a foe.
+
+## Oakheart Treant: Battering Trunk and Growth Rings (v445)
+After Simon's review, two Treant masteries are replaced.
+
+| Mastery | Was | Now |
+|---|---|---|
+| 2 | Bark Bulwark: foes held against its bark for up to 2s | **Battering Trunk**: when 3 or more ground foes stand within a tile in front of it, it lowers its trunk and charges 1.5 tiles through them (0.45s): 60% each, and they are thrown up and over to the sides of the road; bosses take the blow but hold their ground. 2.5s before it can charge again |
+| 4 | Sap Harvest: Overgrown foes drained for 60%, the oak grows up to 40% | **Growth Rings**: each Overgrown foe its slam hits adds a ring of glowing sap round its trunk (up to 4), and it grows 8% a ring. At 4 rings its next slam is a Grove Slam: roots burst up in a 2.2-tile circle and hold the ground foes 0.8s (Resolve applies; bosses 40%) for 120%; then the rings are spent |
+
+Like a bull through a hedge, and the rings of a tree trunk: the oak shoulders its way through and leaves the pack on the verges, and every Overgrown foe it crushes adds a ring until the ground itself answers.
+
+- Found on the ladder: after charging through a pack the foes are beside and behind the oak, and from Mastery 2 its slam always landed in front of it, so it swung at empty road (0.62 of Mastery 0's power where foes keep coming). From Mastery 2 the slam now lands on whichever side the foes are thickest, in front or behind (`side()`).
+- The base model was 1.25 times its size and the masteries used to set it back to 1; the oak now keeps its size at every mastery (`s0`), and Growth Rings grow it from there.
+- Power on the Epic ladder (5 runs) at the old factors: 1.09 / 1.55 / 1.78 / 2.05 / 1.59; the hidden factors are now `SMG.treant` = 0.95 / 0.958 / 0.92 / 0.886 / 0.965 (targets 1.094 / 1.234 / 1.35 / 1.522 / 1.742).
+- Tests: `tests/trm-test.js` (33 rows): it charges with 3 or more foes in front (not 2), 60% to each foe it runs through, they end on the verge (0.85 off the middle) and a boss does not; rings 1 to 4, then a Grove Slam, 120% to the foes in it and holding them, and the rings start again from one.

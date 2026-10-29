@@ -14166,6 +14166,10 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Oakheart Treant: Battering Trunk and Growth Rings',d:'29 Oct',v:'v445',li:[
+    'Mastery 2 is now Battering Trunk (it was Bark Bulwark, holding foes against its bark): when 3 or more ground foes stand within a tile in front of it, the treant lowers its trunk and charges 1.5 tiles through them for 60%, throwing them to the sides of the road (bosses take the blow but hold their ground). Its slam now lands on whichever side the foes are thickest, so it turns on the foes it charged through.',
+    'Mastery 4 is now Growth Rings (it was Sap Harvest): each Overgrown foe its slam hits adds a ring of glowing sap round its trunk, and it grows. At 4 rings its next slam is a Grove Slam: roots burst up in a 2.2-tile circle and hold the ground foes for 0.8s (Resolve applies) for 120%.',
+    'Its power still matches the Epic ladder at every mastery.']},
   {t:'Prism of Dawn: Heliotrope and Resonant Fold',d:'29 Oct',v:'v444',li:[
     'Mastery 2 is now Heliotrope (it was Sun-Tracking, the prism drifting after the foes): while the wheel turns, a seventh, white sunbeam bends down out of the shaft of sunlight over the prism and locks onto the toughest foe under the wheel. It burns hotter the longer it holds, 10% a second rising to 40%, its pool of light drawing in to a point at the foe\u2019s feet.',
     'Mastery 3 is now Resonant Fold (it was Blinding Fold, a hold and a slow): foes the folding beams cross ring like bells, two hoops of gold light humming round them. When the lance lands, its power runs through each ringing foe into the foes beside it, 50% each.',
@@ -18840,11 +18844,11 @@ castTreant=function(t,P,o){const K=natKit(),st=nsRouteNear(t.x,t.z),rt=st.rt;let
   const T=typeof trmStart==='function'?trmStart(o,{P,W,g,rt}):null;
   const spike=(x,z)=>{const y=gy(x,z),a=rnd()*6.28,V=natVine([nfxV(x,y-.1,z),nfxV(x+Math.cos(a)*.05,y+.2,z+Math.sin(a)*.05),nfxV(x+Math.cos(a)*.1,y+.42+rnd()*.15,z+Math.sin(a)*.1)],.05,3,'root',{leaves:0,taper:.95});
     scene.add(V.g);let s=0;addFx(V.g,.55,(f,dt)=>{s+=dt;V.grow(s<.12?s/.12:1-(s-.25)/.3);},null,{geo:V.geo});};
-  const slam=()=>{/* (from Bark Bulwark on it slams the foes held at its bark, in front of it; the old slam lands behind it) */const fs=T&&T.L>=2?-.45:.45,fx=Math.sin(g.rotation.y)*fs,fz=Math.cos(g.rotation.y)*fs,cx=g.position.x+fx,cz=g.position.z+fz,was=new Set(enemies.filter(e=>e.ovgT>0));
+  const slam=()=>{/* (from Mastery 2 on it slams on whichever side the foes are thickest, in front or behind; the old slam lands behind it) */const fs=T&&T.L>=2?T.side():.45,fx=Math.sin(g.rotation.y)*fs,fz=Math.cos(g.rotation.y)*fs,cx=g.position.x+fx,cz=g.position.z+fz,was=new Set(enemies.filter(e=>e.ovgT>0));
     const L=splashAt(cx,cz,1.25*(T?T.size():1),P*2.4,'magic',o,false);if(T)T.slam(cx,cz,L,was);for(const q of L){if(q.dead)continue;if(was.has(q)){if(stunE(q,q.boss?.3:1)>0)comboFire('wardenoak',q);}else pushE(q,.5);ovgApply(q,3);}
     trmQuake(cx,cz,1.1*(T?T.size():1));nfxBurst(cx,cz,1,{cracks:8,n:20,s:1.3,life:1.3});for(let i=0;i<4;i++){const a=i/4*6.28+rnd(),r=.5+rnd()*.5;spike(cx+Math.cos(a)*r,cz+Math.sin(a)*r);}
     nfxLeaves(cx,gy(cx,cz)+.5,cz,6,[K.leaf,K.leaf2,K.crown[2]]);camShake=Math.max(camShake,.05);};
-  addFx(g,LIFE,(f,dt)=>{tt+=dt;if(T&&T.fall(f,dt,d))return;const rise=Math.min(1,tt/.9);if(tt>.9&&slK<0)d=Math.max(0,d-.55*dt);const p=posAt(d,rt),q=posAt(Math.max(0,d-.3),rt);
+  addFx(g,LIFE,(f,dt)=>{tt+=dt;if(T&&T.fall(f,dt,d))return;const rise=Math.min(1,tt/.9);if(tt>.9&&slK<0)d=Math.max(0,d-.55*dt);if(T&&T.push)d=T.push(tt,dt,d,slK<0&&tt>.9&&f.life>.8);const p=posAt(d,rt),q=posAt(Math.max(0,d-.3),rt);
     const sink=f.life<.8?(1-f.life/.8):0;g.position.set(p[0],gy(p[0],p[1])-(1-rise)*1.6-sink*1.5,p[1]);g.lookAt(q[0],g.position.y,q[1]);const wk=slK<0&&tt>.9&&sink===0?1:0,s=Math.sin(tt*4.2);
     W.legs[0].rotation.x=s*.42*wk;W.legs[1].rotation.x=-s*.42*wk;W.body.position.y=Math.abs(s)*.03*wk;W.body.rotation.z=s*.045*wk;for(const h of W.eyes)h.scale.setScalar(1.2+.25*Math.sin(tt*7));
     if(T)T.frame(tt,dt,d);if(wk&&Math.sign(s)!==stepS){stepS=Math.sign(s);if(T)T.step(g.position.x,g.position.z);emitS(0,{x:g.position.x+(rnd()-.5)*.2,y:gy(g.position.x,g.position.z)+.05,z:g.position.z+(rnd()-.5)*.2,vx:0,vy:.15,vz:0,s:.12,s2:.32,c:0x8a7a5a,c2:0x4a4030,a:.3,life:.8,lift:.1});}
@@ -29364,36 +29368,44 @@ function prmSunrise(x,z,P,a,O,COLS){const y=gy(x,z);prmLog({ev:'sunrise0'});
    bind (Entangling Roots), no colossus stomping across the map (the Ember Titan): every mastery is about the oak walking the road.
    | # | Mastery | Question | Part of the spell | Kind |
    | 1 | Heavy Tread | what if its footsteps were felt? | the steps (only dust before) | cosmetic made real |
-   | 2 | Bark Bulwark | what if it truly stood in their way? | its body on the road | behaviour change, control |
+   | 2 | Battering Trunk | what if it charged them? | its walk into the pack | behaviour change |
    | 3 | Uprooted Boulder | what if it could strike beyond its reach? | the slam's reach | new attack |
-   | 4 | Sap Harvest | what if it grew from what it crushed? | Overgrown, other Nature scrolls, its size | interaction, build-up |
+   | 4 | Growth Rings | what if it grew from what it crushed? | Overgrown, other Nature scrolls, its size | interaction, build-up |
    | 5 | Timber! | what if it fell instead of sinking? | its end | signature payoff |
    - M1 Heavy Tread: every step it takes shakes the road: TRM.tread to the ground foes within 1 of it, a burst of dust and pebbles.
-   - M2 Bark Bulwark: ground foes cannot get past it: those that walk into it are held against its bark (they stop 0.45 in front of it and
-     are shoved back as it walks), each for up to 2s before it squeezes past. Bosses are too big to hold: they are only slowed 60%.
+   - M2 Battering Trunk (v445, replacing Bark Bulwark, holding foes against its bark, after Simon's review): when TRM.ramN or more ground
+     foes stand within TRM.ramR of it up the road (in front of it), it lowers its trunk and charges TRM.ramDist tiles through them in
+     TRM.ramT s: TRM.ram to each foe it runs through, and they are thrown to the side of the road (up and over to the verge, TRM.ramSide
+     off its middle); bosses take the blow but hold their ground. Then it walks on (TRM.ramCd s before it can charge again). From this
+     mastery its slam lands on whichever side the foes are thickest, in front or behind (T.side), so it turns on the foes it charged
+     through instead of swinging at empty road ahead.
    - M3 Uprooted Boulder: every third slam it tears a boulder out of the road and hurls it at the thickest knot of foes 1.4 to 4.5 tiles
      away: TRM.hurl within 1, a 3D burst of earth where it lands.
-   - M4 Sap Harvest: each foe its slam hits that was already Overgrown (by it, Entangling Roots, Bramble Patch, Thorn Whip, Briarband...)
-     is drained: TRM.sap more, and the treant grows (10% each, up to 40% bigger), its slam reaching further with it.
+   - M4 Growth Rings (v445, replacing Sap Harvest, after Simon's review): each foe its slam hits that was already Overgrown (by it,
+     Entangling Roots, Bramble Patch, Thorn Whip, Briarband...) adds a growth ring, a band of glowing sap round its trunk, and it grows
+     TRM.ringGrow a ring, its slam reaching further. At TRM.ringN rings its next slam is a Grove Slam: roots burst up in a ring
+     TRM.groveR tiles round it and grab the ground foes inside, held TRM.groveHold s (Resolve applies; bosses 40%) for TRM.grove; then
+     the rings are spent and it shrinks back.
    - M5 Timber!: at the end it does not sink: it groans, rocks back and topples forward along the road like a felled oak: TRM.timber to
      every foe under its length (flyers too), and they are Overgrown; it crashes in a burst of splinters, leaves and earth, lies a moment
      and crumbles away into leaves.
    The base cast's slam follows the explosion rule (every cast): instead of a flat ring, earth bursts up: clods and turf thrown in arcs
    (trmQuake), dust billowing out and up, and the ground's cracks and spikes as before. TRM.dbg (an array) logs the events for the tests. */
-const TRM={dbg:null,tread:.15,treadR:1,hold:2,holdGap:.45,bossSlow:.6,hurl:1.6,hurlR:1,hurlMin:1.4,hurlMax:4.5,sap:.6,grow:.1,growMax:.4,timber:3,timberW:.6,timberLen:2.6};
+const TRM={dbg:null,tread:.15,treadR:1,ram:.6,ramN:3,ramR:1,ramDist:1.5,ramT:.45,ramCd:2.5,ramSide:.85,hurl:1.6,hurlR:1,hurlMin:1.4,hurlMax:4.5,ringN:4,ringGrow:.08,grove:1.2,groveR:2.2,groveHold:.8,timber:3,timberW:.6,timberLen:2.6};
 const trmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='treant'?c:null;};
 const trmLog=d=>{if(TRM.dbg){d.time=time;TRM.dbg.push(d);}};
 SM_D.treant=[
   {n:'Heavy Tread',d:'Every step it takes shakes the road: {15}% to the ground foes within 1 tile.'},
-  {n:'Bark Bulwark',d:'Ground foes cannot get past it: they are held against its bark for up to 2s (bosses only slowed).'},
+  {n:'Battering Trunk',d:'When 3 or more ground foes stand within 1 tile in front of it, it lowers its trunk and charges 1.5 tiles through them: {60}% each, and they are thrown to the side of the road (not bosses).'},
   {n:'Uprooted Boulder',d:'Every third slam it tears a boulder out of the road and hurls it at the thickest knot of foes up to 4.5 tiles away: {160}%.'},
-  {n:'Sap Harvest',d:'Foes its slam hits that were already Overgrown are drained for {60}% more, and the treant grows (up to 40%), its slam reaching further.'},
+  {n:'Growth Rings',d:'Each Overgrown foe its slam hits adds a growth ring, and it grows. At 4 rings its next slam is a Grove Slam: roots burst up 2.2 tiles round it, holding the ground foes 0.8s (Resolve applies) for {120}%.'},
   {n:'Timber!',d:'At the end it topples forward along the road like a felled oak: {300}% to every foe under it, and they are Overgrown.'}];
 SMF.treant={m:2.4};
 SMA.treant=[1,1,1,1,1];
-/* the ladder (tests/sm-ladder.js): the masteries alone come to about 1.15 / 1.01 / 1.14 / 1.37 / 2.07 (Bark Bulwark is worth lives, not damage: holding
-   the pack costs it some Heavy Tread steps, and the ladder only counts damage; Timber! lands on a whole pack); these bring it onto 1.09 / 1.23 / 1.35 / 1.52 / 1.74 */
-SMG.treant=[.95,1.2,1.21,1.19,.88];
+/* the ladder (tests/sm-ladder.js, 5 runs, v445): the masteries alone come to about 1.14 / 1.29 / 1.47 / 1.72 / 1.8 (Battering Trunk runs through a
+   whole pack, and slamming on the side the foes are thickest lands more slams; Growth Rings' Grove Slam takes a pack); these bring it onto
+   1.09 / 1.23 / 1.35 / 1.52 / 1.74 */
+SMG.treant=[.95,.958,.92,.886,.965];
 
 /* ---- earth thrown up in 3D: clods and turf in arcs, dust billowing ---- */
 const TRMQ={},TRMO=new THREE.Object3D();
@@ -29409,32 +29421,63 @@ function trmQuake(x,z,S){trmLog({ev:'quake',S});const y=gy(x,z);trmClods(x,z,Mat
 
 /* ---- the masteries ---- */
 function trmStart(o,K){const C=trmC(o);if(!C)return null;const L=C.L,a=C.a,P=K.P,O=smO(o),W=K.W,g=K.g,rt=K.rt;trmLog({ev:'cast',L});TRM.lastG=g;
-  let grow=0,slams=0,falling=null;const held=new Map(),Ks=natKit();
+  let rings=0,sz=1,slams=0,falling=null,ram=null,ramCd=1.2;const Ks=natKit(),s0=g.scale.x,bands=[];
   return{L,
-    size(){return 1+grow;},
+    size(){return 1+rings*TRM.ringGrow;},
+    /* M2: which side of it to slam (the foes it charged through end up behind it): -0.45 in front, 0.45 behind, where more ground foes are in reach */
+    side(){const sx=Math.sin(g.rotation.y)*.45,sz=Math.cos(g.rotation.y)*.45,R=1.25*(1+rings*TRM.ringGrow);let f=0,b=0;
+      for(const e of enemies){if(e.dead||e.fake||e.fly)continue;if((e.x-g.position.x+sx)**2+(e.z-g.position.z+sz)**2<R*R)f++;if((e.x-g.position.x-sx)**2+(e.z-g.position.z-sz)**2<R*R)b++;}return b>f?.45:-.45;},
     step(x,z){if(L<1||state!=='playing')return;let n=0;for(const e of enemies){if(e.dead||e.fake||e.fly)continue;if((e.x-x)**2+(e.z-z)**2>TRM.treadR*TRM.treadR)continue;hurt(e,P*TRM.tread*a[0],'magic',O);n++;trmLog({ev:'tread',e});}
       const y=gy(x,z);trmClods(x,z,6,.6,.025);for(let i=0;i<6;i++){const b=i/6*6.28;emitS(0,{x:x+Math.cos(b)*.3,y:y+.05,z:z+Math.sin(b)*.3,vx:Math.cos(b)*.8,vy:.2,vz:Math.sin(b)*.8,s:.12,s2:.35,c:0x8a7a5a,c2:0x4a4030,a:.28,life:.7,drag:2,lift:.1});}camShake=Math.max(camShake,.02);},
     slam(cx,cz,list,was){slams++;
-      /* M4: drain the foes that were Overgrown */
-      if(L>=4){for(const q of list){if(q.dead||!was.has(q))continue;if(state==='playing')hurt(q,P*TRM.sap*a[3],'magic',O);trmLog({ev:'sap',e:q});const p=tpos2(q);
-          sprayP(1,p.x,p.y,p.z,8,{c:0xc8ff80,c2:0x4a9a2a,sp:.6,up:.6,s:.04,s2:0,life:.5,g:-1});const tx=g.position.x,ty=g.position.y+1.2,tz=g.position.z;for(let i=0;i<4;i++)emit(1,{x:p.x,y:p.y,z:p.z,vx:(tx-p.x)*1.6,vy:(ty-p.y)*1.6,vz:(tz-p.z)*1.6,s:.05,s2:0,c:0xd8ff90,c2:0x6aaa3a,life:.55});
-          if(grow<TRM.growMax-1e-9){grow=Math.min(TRM.growMax,grow+TRM.grow);trmLog({ev:'grow',size:1+grow});}}}
+      /* M4: four rings make the next slam a Grove Slam; else each Overgrown foe it hits adds a ring */
+      if(L>=4){if(rings>=TRM.ringN){trmGrove(cx,cz,P*TRM.grove*a[3],O);rings=0;bands.splice(0).forEach(b=>{const w=new THREE.Vector3();b.getWorldPosition(w);sprayP(1,w.x,w.y,w.z,12,{c:0xe8ffa0,c2:0x6aaa3a,sp:1.4,s:.05,s2:0,life:.5,g:1});b.parent&&b.parent.remove(b);});}
+        else for(const q of list){if(!was.has(q)||rings>=TRM.ringN)continue;rings++;const p=tpos2(q);bands.push(trmRing(W,rings-1));trmLog({ev:'ring',e:q,n:rings});
+          const tx=g.position.x,ty=g.position.y+.8,tz=g.position.z;for(let i=0;i<5;i++)emit(1,{x:p.x,y:p.y,z:p.z,vx:(tx-p.x)*1.6,vy:(ty-p.y)*1.6,vz:(tz-p.z)*1.6,s:.05,s2:0,c:0xd8ff90,c2:0x6aaa3a,life:.55});}}
       /* M3: every third slam, a boulder */
       if(L>=3&&slams%3===0)mxLater(.3,()=>trmHurl(g,P*TRM.hurl*a[2],O));},
-    frame(tt,dt,d){g.scale.setScalar(1+grow);
-      /* M2: the foes that walk into it are held against its bark */
-      if(L>=2&&tt>.9&&state==='playing')for(const e of enemies){if(e.dead||e.fake||e.fly||e.route!==rt||e.dist==null)continue;if(e.dist<d-TRM.holdGap-.15||e.dist>d+.12)continue;
-        if(e.boss){e.slow=Math.max(e.slow||0,TRM.bossSlow);e.slowT=Math.max(e.slowT||0,.2);continue;}const h=held.get(e)||0;if(h>=TRM.hold)continue;held.set(e,h+dt);if(!h)trmLog({ev:'hold',e});
-        if(e.dist>d-TRM.holdGap){e.dist=d-TRM.holdGap;if(typeof moveEnemy==='function')moveEnemy(e,0);if(rnd()<.1){const p=tpos2(e);sprayP(0,p.x,p.y*.5,p.z,2,{c:0x6a4a2a,c2:0x3a2a14,sp:.5,up:.5,s:.03,s2:0,life:.4,g:4});}}}},
+    /* M2: when 3+ ground foes stand within reach in front of it, it lowers its trunk and charges through them */
+    push(tt,dt,d,walking){if(L<2)return d;
+      if(ram){ram.t+=dt;const k=Math.min(1,ram.t/TRM.ramT),e5=1-Math.pow(1-k,2.2),nd=Math.max(0,ram.d0-TRM.ramDist*e5);
+        for(const e of enemies){if(e.dead||e.fake||e.fly||ram.hit.has(e)||e.route!==rt||e.dist==null)continue;if(e.dist<nd-.25||e.dist>ram.d0+.15||Math.abs(e.off||0)>.75)continue;ram.hit.add(e);
+          if(state==='playing')hurt(e,P*TRM.ram*a[1],'magic',O);trmLog({ev:'ram',e,boss:!!e.boss});const p=tpos2(e);sprayP(0,p.x,p.y*.5,p.z,10,{c:0x8a7a5a,c2:0x4a4030,sp:1.2,up:.6,s:.06,s2:.15,a:.6,life:.6,g:3});
+          if(!e.boss&&!e.dead)trmKnock(e,(e.off||0)>=0?1:-1);}
+        if(rnd()<.8){const p=posAt(nd,rt);trmClods(p[0],p[1],4,.7,.03);emitS(0,{x:p[0],y:gy(p[0],p[1])+.1,z:p[1],vx:(rnd()-.5)*.6,vy:.3,vz:(rnd()-.5)*.6,s:.18,s2:.5,c:0x8a7a5a,c2:0x4a4030,a:.35,life:.9,lift:.1});}
+        if(k>=1){const p=posAt(nd,rt);trmQuake(p[0],p[1],.6);camShake=Math.max(camShake,.06);ram=null;ramCd=TRM.ramCd;}return nd;}
+      ramCd-=dt;if(ramCd>0||!walking||tt<1)return d;let n=0;for(const e of enemies){if(e.dead||e.fake||e.fly||e.route!==rt||e.dist==null)continue;if(e.dist<d-TRM.ramR||e.dist>d+.1||Math.abs(e.off||0)>.75)continue;n++;}
+      if(n>=TRM.ramN){ram={t:0,d0:d,hit:new Set()};trmLog({ev:'charge',n});camShake=Math.max(camShake,.03);}return d;},
+    frame(tt,dt,d){sz+=(1+rings*TRM.ringGrow-sz)*Math.min(1,dt*4);if(!falling)g.scale.setScalar(s0*sz);
+      /* M2: charging: the trunk lowered, arms swept back, legs driving */
+      if(ram){const k=Math.min(1,ram.t/TRM.ramT),u=Math.sin(k*Math.PI);W.body.rotation.x=.35*u;W.arms[0].rotation.x=W.arms[1].rotation.x=.8*u;W.legs[0].rotation.x=Math.sin(tt*16)*.7;W.legs[1].rotation.x=-Math.sin(tt*16)*.7;}
+      if(L>=4&&bands.length&&rnd()<.3*bands.length){const b=bands[Math.floor(rnd()*bands.length)],w=new THREE.Vector3();b.getWorldPosition(w);const an=rnd()*6.28;emit(1,{x:w.x+Math.cos(an)*.25*sz*s0,y:w.y,z:w.z+Math.sin(an)*.25*sz*s0,vx:0,vy:.3,vz:0,s:.04,s2:0,c:0xe8ffa0,c2:0x6aaa3a,life:.4});}},
     /* M5: it falls like a felled oak instead of sinking */
     fall(f,dt,d){if(L<5)return false;if(!falling){if(f.life>1.45)return false;falling={t:0,yaw:g.rotation.y,done:false};trmLog({ev:'creak'});}
       const F=falling;F.t+=dt;const T1=.35,T2=.85;let tilt;if(F.t<T1)tilt=-.12*Math.sin(F.t/T1*Math.PI);else tilt=Math.min(1.5,Math.pow((F.t-T1)/(T2-T1),2)*1.5);
       /* (its walk faces it along local -Z, toward the foes up the road: a turn of -tilt about X tips its top that way) */
       g.rotation.set(0,F.yaw,0);g.rotateX(-tilt);W.arms[0].rotation.x=-.6;W.arms[1].rotation.x=-.6;
-      if(F.t<T1&&rnd()<.5)nfxLeaves(g.position.x,g.position.y+1.8*(1+grow),g.position.z,1,[Ks.leaf,Ks.crown[2]]);
-      if(!F.done&&F.t>=T2){F.done=true;trmTimber(g,F.yaw,1+grow,P*TRM.timber*a[4],O);}
-      if(F.done){const k=Math.max(0,(F.t-T2-.5)/.45);g.scale.setScalar((1+grow)*(1-k*.95));if(rnd()<.6)nfxLeaves(g.position.x-Math.sin(F.yaw)*rnd()*2,g.position.y+.2,g.position.z-Math.cos(F.yaw)*rnd()*2,1,[Ks.leaf,Ks.leaf2,Ks.crown[1]]);}
+      if(F.t<T1&&rnd()<.5)nfxLeaves(g.position.x,g.position.y+1.8*sz,g.position.z,1,[Ks.leaf,Ks.crown[2]]);
+      if(!F.done&&F.t>=T2){F.done=true;trmTimber(g,F.yaw,sz,P*TRM.timber*a[4],O);}
+      g.scale.setScalar(s0*sz);if(F.done){const k=Math.max(0,(F.t-T2-.5)/.45);g.scale.setScalar(s0*sz*(1-k*.95));if(rnd()<.6)nfxLeaves(g.position.x-Math.sin(F.yaw)*rnd()*2,g.position.y+.2,g.position.z-Math.cos(F.yaw)*rnd()*2,1,[Ks.leaf,Ks.leaf2,Ks.crown[1]]);}
       return true;}};}
+/* M2: a foe the trunk rams is thrown to the side of the road: it tumbles up and over to the verge in a spray of dust */
+function trmKnock(e,side){const o0=e.off||0,o1=side*TRM.ramSide;let t=0;e.liftT=.45;e.liftD=.45;e.liftH=.28;
+  addFx(new THREE.Group(),.3,(f,dt)=>{t+=dt;if(e.dead)return;const k=Math.min(1,t/.3);e.off=o0+(o1-o0)*(1-Math.pow(1-k,2));if(typeof moveEnemy==='function')moveEnemy(e,0);
+    if(rnd()<.5)emitS(0,{x:e.x,y:gy(e.x,e.z)+.08,z:e.z,vx:0,vy:.2,vz:0,s:.1,s2:.3,c:0x8a7a5a,c2:0x4a4030,a:.3,life:.7,lift:.1});});}
+/* M4: a growth ring: a band of glowing sap round its trunk (one a ring, stacked up the trunk), popping in with a puff of green motes */
+function trmRing(W,i){if(!TRM.rgG){TRM.rgG=new THREE.TorusGeometry(.2,.03,6,28);TRM.rgM=new THREE.MeshBasicMaterial({color:0xd8ff80,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false});
+    TRM.rgM2=new THREE.MeshPhongMaterial({color:0x7a5a2a,emissive:0x4a8a1a,emissiveIntensity:.8,flatShading:true});TRM.rgG2=new THREE.TorusGeometry(.19,.045,5,24);}
+  const g=new THREE.Group(),a=new THREE.Mesh(TRM.rgG2,TRM.rgM2),b=new THREE.Mesh(TRM.rgG,TRM.rgM);a.rotation.x=b.rotation.x=Math.PI/2;b.scale.setScalar(1.08);g.add(a,b);g.position.y=.5+i*.13;g.scale.setScalar(.01);W.body.add(g);
+  const w=new THREE.Vector3();g.getWorldPosition(w);for(let j=0;j<10;j++){const an=j/10*6.28;emit(1,{x:w.x+Math.cos(an)*.25,y:w.y,z:w.z+Math.sin(an)*.25,vx:Math.cos(an)*.6,vy:.4,vz:Math.sin(an)*.6,s:.05,s2:0,c:0xe8ffa0,c2:0x6aaa3a,life:.45});}
+  let t=0;addFx(new THREE.Group(),.3,(f,dt)=>{t+=dt;g.scale.setScalar(Math.max(.01,Math.min(1,t/.2)*(1+.3*Math.sin(Math.min(1,t/.3)*Math.PI))));});return g;}
+/* M4: the Grove Slam: roots burst up in a ring round it and grab the ground foes in it */
+function trmGrove(x,z,dmg,O){const y=gy(x,z),R=TRM.groveR;trmLog({ev:'grove0'});camShake=Math.max(camShake,.14);trmQuake(x,z,1.3);nfxBurst(x,z,1.3,{cracks:12,n:30,s:1.6,life:1.6});
+  const root=(pts,r,T)=>{const V=natVine(pts,r,5,'root',{leaves:0,taper:.9});scene.add(smTag(V.g));let s=0;addFx(V.g,T,(f,dt)=>{s+=dt;V.grow(s<.18?s/.18:Math.max(0,1-(s-(T-.35))/.35));},null,{geo:V.geo});};
+  for(let i=0;i<12;i++){const an=i/12*6.28+rnd()*.3,r1=R*(.85+rnd()*.2),r0=R*(.45+rnd()*.25),mx=x+Math.cos(an)*(r0+r1)/2,mz=z+Math.sin(an)*(r0+r1)/2;
+    root([nfxV(x+Math.cos(an)*r0,y-.1,z+Math.sin(an)*r0),nfxV(mx,gy(mx,mz)+.45+rnd()*.3,mz),nfxV(x+Math.cos(an)*r1,y-.1,z+Math.sin(an)*r1)],.06+rnd()*.03,1.3);
+    mxLater(i*.02,()=>trmQuake(x+Math.cos(an)*r1,z+Math.sin(an)*r1,.45));}
+  const H=[];for(const e of enemies.slice()){if(e.dead||e.fake||e.fly)continue;if((e.x-x)**2+(e.z-z)**2>R*R)continue;H.push(e);if(state==='playing'){hurt(e,dmg,'magic',O);if(!e.dead)stunE(e,e.boss?TRM.groveHold*.4:TRM.groveHold);}
+    const p=tpos2(e),an=rnd()*6.28;root([nfxV(e.x+Math.cos(an)*.3,gy(e.x,e.z)-.1,e.z+Math.sin(an)*.3),nfxV(e.x+Math.cos(an)*.18,p.y*.5+.15,e.z+Math.sin(an)*.18),nfxV(p.x,p.y+.05,p.z)],.04,TRM.groveHold+.3);}
+  nfxLeaves(x,y+.6,z,14,[natKit().leaf,natKit().leaf2,natKit().crown[2]],null,1.2);trmLog({ev:'grove',L:H});}
 /* M3: tear a boulder out of the road and hurl it */
 function trmHurl(g,dmg,O){if(state!=='playing')return;const gx=g.position.x,gz=g.position.z;let best=null,bn=0;
   for(const e of enemies){if(e.dead||e.fake||e.fly)continue;const d=Math.hypot(e.x-gx,e.z-gz);if(d<TRM.hurlMin||d>TRM.hurlMax)continue;let n=0;for(const q of enemies){if(q.dead||q.fake||q.fly)continue;if((q.x-e.x)**2+(q.z-e.z)**2<TRM.hurlR*TRM.hurlR)n++;}if(n>bn){bn=n;best=e;}}
