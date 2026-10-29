@@ -7,3 +7,7 @@ node_modules/
 *.log
 Thumbs.db
 desktop.ini
+
+# v428: the preview recorder's review sheets and raw frames (tools/previews/record.js --sheet / --keep)
+previews/_sheets/
+previews/_frames/

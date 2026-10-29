@@ -16,10 +16,12 @@ try{
   meta.dev=false;meta.smast={};meta.spells.hexspark=meta.spells.hexspark||{lvl:1,hero:null};smOpen('hexspark');let md=document.getElementById('smModal');
   /* v374: outside developer mode only what you have opens a preview (tests/pvown-test.js has the rest) */
   ok('without developer mode an owned scroll with no mastery previews only its picture',!!md&&!md.querySelector('.mst-lvl[data-smpv]')&&!!md.querySelector('.sm-art[data-smpv="0"]'));if(md)md.remove();
-  meta.dev=true;smOpen('hexspark');md=document.getElementById('smModal');const rows=md.querySelectorAll('.mst-lvl[data-smpv]');
+  /* v428: published scrolls (Common to Rare) play recorded clips (tests/pvc-test.js); the live preview is for the others: an Epic scroll here */
+  md.remove();const LK='comet';meta.spells[LK]=meta.spells[LK]||{lvl:1,hero:null};
+  meta.dev=true;smOpen(LK);md=document.getElementById('smModal');const rows=md.querySelectorAll('.mst-lvl[data-smpv]');
   ok('in developer mode every mastery and the picture open a preview',rows.length===5&&[...rows].map(r=>r.dataset.smpv).join('')==='12345'&&md.querySelector('.sm-art[data-smpv="0"]')&&!!md.querySelector('.smpv-hint'));
   rows[2].dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));const box=document.getElementById('smPv'),fr=box&&box.querySelector('iframe');
-  ok('hovering a mastery shows the panel with its name and loads the preview page',!!box&&!box.hidden&&/Mastery 3/.test(box.textContent)&&/Twin Spark/.test(box.textContent)&&!!fr&&fr.srcdoc.length>1e6,box&&box.textContent.slice(0,80));
+  ok('hovering a mastery of a scroll without clips shows the live panel with its name and loads the preview page',!!box&&!box.hidden&&/Mastery 3/.test(box.textContent)&&box.textContent.indexOf(SM_D[LK][2].n)>=0&&!!fr&&fr.srcdoc.length>1e6,box&&box.textContent.slice(0,80));
   const r=box.getBoundingClientRect();ok('the panel stays on the screen',r.left>=0&&r.top>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1,[r.left,r.top,r.right,r.bottom].map(Math.round).join(','));
   md.querySelector('.mst-how').dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));ok('moving off the masteries hides it',box.hidden);
   md.remove();smPvDrop();ok('dropping the preview removes its page',!SMPW.fr&&!document.querySelector('#smPv iframe'));
