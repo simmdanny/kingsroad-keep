@@ -46,7 +46,9 @@ try{
     ok('M2: each meteor hits 15% harder than the one before (90, 103.5, 117 ... up to 198)',steps.length>=4&&Math.max(...steps)<=198+1e-6&&steps.includes(90),am.join(','));
     ok('M2: nothing is left behind',smLeft(added)===0,smLeft(added));}
   /* ---- M3 Ricochet ---- */
-  {play();SKM.dbg=[];log=[];crowd();const added=go(3);const r=ev('rico');
+  /* a ring of foes round the crowd as well, so that some bounces (1.3 tiles on along each meteor's flight, which way is chance) always crash near one */
+  {play();SKM.dbg=[];log=[];const F3=crowd();const c3=F3[3];for(let gx=-2.4;gx<=2.41;gx+=.6)for(let gz=-2.4;gz<=2.41;gz+=.6){if(Math.hypot(gx,gz)<1)continue;const e=foe(0,0);e.x=c3.x+gx;e.z=c3.z+gz;}
+    const added=go(3);const r=ev('rico');
     ok('M3: each meteor bounces on and crashes again: 50% within 0.8',ev('rico0').length===9&&r.length>0&&r.every(x=>sm(x.e,50).length>0),ev('rico0').length+' bounces, '+r.length+' hit');
     ok('M3: nothing is left behind',smLeft(added)===0,smLeft(added));}
   /* ---- M4 Shockfall ---- */
