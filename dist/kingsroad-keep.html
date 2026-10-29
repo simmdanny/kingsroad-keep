@@ -805,7 +805,7 @@ function buildMap(seed){let m=genMap(seed);if(!m){m=genMap(12345);}MAP=m;
   for(let r=0;r<H;r++)for(let c=0;c<W;c++)if(grid[r][c]===0&&R()<.08){const p=tw(c,r);for(let k=0;k<3;k++)add(T,cone(.025,.08,4),pick([0x5a8a34,0x6a9a3c,0x4a7a2c]),p.x+(R()-.5)*.8,0,p.z+(R()-.5)*.8,false);}
   ROCKS.forEach(([c,r])=>{const p=tw(c,r),j=rockJit(c,r),k=c+','+r,mR=add(T,dod(.3),0x8f8a80,p.x+j.x,.12,p.z+j.z);mR.rotation.set(R(),R(),R());mR.scale.setScalar(j.s);mR.userData.rk=k;add(T,dod(.16),0x7d786f,p.x+j.x+j.px*j.s,.05,p.z+j.z+j.pz*j.s).userData.rk=k;});
   const TJ=treeJit();TREES.forEach(([c,r])=>{const p=tw(c,r),j=TJ.get(c+','+r);const m=tree(p.x+(R()-.5)*.2+j.x,0,p.z+(R()-.5)*.2+j.z,(.85+R()*.35)*j.s);m.userData.keep=1;/* v354: the Infinite Void dissolves trees too; only userData.voidKeep survives it */T.add(m);TREEM[c+','+r]=m;treeJitKids(m,j);});
-  for(let n=0;n<150;n++){const x=(R()-.5)*60,z=(R()-.5)*72;if(Math.abs(x)<W/2+.8&&z>zTop-.8&&z<zBot+.8)continue;T.add(tree(x,-1.6,z,.9+R()*.8));}
+  for(let n=0;n<150;n++){const x=(R()-.5)*60,z=(R()-.5)*72;if(Math.abs(x)<W/2+.8&&z>zTop-.8&&z<zBot+.8)continue;const og=tree(x,-1.6,z,.9+R()*.8);og.userData.ot=1;T.add(og);}
   MAP.gates.forEach(g=>{const gp=g.side==='top'?tw(g.c,-2.2):g.side==='left'?tw(-2.2,g.r):tw(W+1.2,g.r);const gate=new THREE.Group();gate.userData.keep=1;gate.userData.voidKeep=1;gate.position.set(gp.x,0,gp.z);gate.rotation.y=g.side==='top'?0:g.side==='left'?Math.PI/2:-Math.PI/2;T.add(gate);
     add(gate,box(.28,1,.28),0x5d5750,-.48,.5,0);add(gate,box(.28,1,.28),0x5d5750,.48,.5,0);add(gate,box(1.3,.24,.34),0x4b4640,0,1.06,0);add(gate,cone(.2,.3,4),0x3a2f28,-.48,1.33,0);add(gate,cone(.2,.3,4),0x3a2f28,.48,1.33,0);add(gate,box(.5,.3,.02),0x7a1f1a,0,.8,.18);});
   CHESTS=MAP.chests.map(q=>{const p=tw(q.c,q.r),m=chestModel();m.g.position.set(p.x,0,p.z);m.g.rotation.y=q.rot;m.g.scale.setScalar(1.45);m.g.userData.keep=1;m.g.userData.voidKeep=1;T.add(m.g);return Object.assign(m,{c:q.c,r:q.r,x:p.x,z:p.z,open:false,t:0,spT:0});});
@@ -14169,6 +14169,8 @@ const CLOG=[
     'The clips follow the action: the camera tracks what each mastery does (the Phoenix reborn skimming down the road and diving, the Comet\u2019s rebound, the Storm Front marching on, the Loop sending foes 8 tiles back) instead of holding one view the action could run out of.',
     'Each clip is set up for its mastery: a ram as the toughest foe, low-health foes for Harsh Sentence, Severed and Culling Edge, towers for Sundered, Hollow, Stolen Time and the Vine Lattice, foes walking up behind Glacial Rift\u2019s statues, and the late moments (the Storm Front, the Last Thunder, the second collapse) shown when they happen.',
     'The Stormcaller\u2019s Downpour now rains while a cloud is over the road even with the camera zoomed in close (it used to stop when the clouds faded from a close view).']},
+  {t:'Smoother frames',d:'29 Oct',v:'v438',li:[
+    'The game draws the same picture with about half the work: the forest round the board, the grass and pebbles, the lore props and the still parts of every tower are drawn together instead of piece by piece, so phones and slower computers keep a steadier frame rate (and use less battery).']},
   {t:'Hundred-Year Bloom masteries, redesigned',d:'28 Oct',v:'v437',li:[
     'Hundred-Year Bloom (Legendary) has five new masteries, for now in developer mode: Scent of Nectar (while the bud opens, golden scent streams out and draws foes up to 3.5 tiles away into the flower), Vine Lattice (thorned vines tie the held foes together, and a quarter of any other hit on one runs along them to the rest), Petal Storm (the burst throws 16 razor petals that whirl out and slice into the foes), Golden Haze (the pollen cloud is wider and thicker and drifts down the road with the foes in it) and A Hundred Years in a Breath (the fading flower goes to seed: ten glowing seeds drift onto the foes and sprout small blooms that grab them and burst).',
     'Its burst now billows up as a golden cloud of pollen in 3D, and the shaft of light over it fades as it rises instead of standing as a flat white bar over the foes.']},
@@ -31560,6 +31562,139 @@ addEventListener('resize',()=>{if(PVC.el&&!PVC.el.hidden)pvcPlace(PVC.anchor);})
   '@media (max-width:899px){#pvc{padding:8px}.pvc-ttl b{font-size:14px}}';
   document.head.appendChild(st);}
 
+/* ================= Performance (v438) =================
+   Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
+   97% rendering, and most of the draw calls were the scenery round the board, not the fight.
+   1) Static batching of the outer forest: the ~150 conifers round the board were three meshes each (trunk and two cones), about 450 draw
+      calls and as many again in the shadow pass. After every land has dressed its board (an outermost buildMap wrapper), pfBatch bakes
+      each still-shown outer tree's meshes into world space and merges them into one mesh per material and shadow setting, so the
+      lands' own recolours and shaders (snow caps, lichen...) still apply, and the Infinite Void still dissolves them (its shader works
+      in world space). Trees on the board (TREEM: scorched one by one, cleared by the player) are left alone. */
+const PF={on:true,stat:{}},PF_UD_OK0=new Set(['pfMerged']);
+/* merge meshes (all sharing one material) into one BufferGeometry in the space of `root`; null if their attributes differ */
+function pfMergeGeo(list,root){const inv=new THREE.Matrix4().copy(root.matrixWorld).invert(),m=new THREE.Matrix4(),nm=new THREE.Matrix3();
+  const keys=Object.keys(list[0].geometry.attributes).filter(k=>['position','normal','uv','color'].includes(k)).sort();let nv=0,ni=0;
+  for(const o of list){const g=o.geometry;if(Object.keys(g.attributes).filter(k=>['position','normal','uv','color'].includes(k)).sort().join()!==keys.join()||g.morphAttributes&&Object.keys(g.morphAttributes).length)return null;
+    nv+=g.attributes.position.count;ni+=g.index?g.index.count:g.attributes.position.count;}
+  const A={};for(const k of keys)A[k]=new Float32Array(nv*list[0].geometry.attributes[k].itemSize);const I=nv>65535?new Uint32Array(ni):new Uint16Array(ni);
+  let vo=0,io=0;const v=new THREE.Vector3();
+  for(const o of list){const g=o.geometry,n=g.attributes.position.count;m.multiplyMatrices(inv,o.matrixWorld);nm.getNormalMatrix(m);
+    for(const k of keys){const a=g.attributes[k],s=a.itemSize,D=A[k];
+      const S=a.array,o3=vo*s;if(a.isInterleavedBufferAttribute||a.normalized&&k!=='color'){for(let i=0;i<n;i++)for(let j=0;j<s;j++)D[o3+i*s+j]=a.getComponent?a.getComponent(i,j):[a.getX(i),a.getY(i),a.getZ(i),a.getW(i)][j];}else D.set(S.subarray(0,n*s),o3);
+      if(k==='position'){const e=m.elements;for(let i=o3,E=o3+n*3;i<E;i+=3){const x=D[i],y=D[i+1],z=D[i+2];D[i]=e[0]*x+e[4]*y+e[8]*z+e[12];D[i+1]=e[1]*x+e[5]*y+e[9]*z+e[13];D[i+2]=e[2]*x+e[6]*y+e[10]*z+e[14];}}
+      else if(k==='normal'){const e=nm.elements;for(let i=o3,E=o3+n*3;i<E;i+=3){const x=D[i],y=D[i+1],z=D[i+2];let X=e[0]*x+e[3]*y+e[6]*z,Y=e[1]*x+e[4]*y+e[7]*z,Z=e[2]*x+e[5]*y+e[8]*z;const l=Math.hypot(X,Y,Z)||1;D[i]=X/l;D[i+1]=Y/l;D[i+2]=Z/l;}}}
+    if(g.index){const ix=g.index.array;for(let i=0;i<ix.length;i++)I[io+i]=ix[i]+vo;io+=ix.length;}else{for(let i=0;i<n;i++)I[io+i]=vo+i;io+=n;}
+    vo+=n;}
+  const G=new THREE.BufferGeometry();for(const k of keys)G.setAttribute(k,new THREE.BufferAttribute(A[k],list[0].geometry.attributes[k].itemSize));
+  if(pfLocal(list[0].material)){const L=new Float32Array(nv*3);let o2=0;for(const o of list){const a=o.geometry.attributes.position;for(let i=0;i<a.count;i++){L[(o2+i)*3]=a.getX(i);L[(o2+i)*3+1]=a.getY(i);L[(o2+i)*3+2]=a.getZ(i);}o2+=a.count;}G.setAttribute('pfLoc',new THREE.BufferAttribute(L,3));}G.setIndex(new THREE.BufferAttribute(I,1));
+  G.computeBoundingSphere();G.computeBoundingBox();return G;}
+/* which materials can be merged: plain ones, the snow shader (world space), and the snow caps (they read each mesh's own position: the
+   merged mesh gets that as pfLoc and a variant of the material reads it). Any other custom shader might read object space: left alone. */
+const pfLocal=m=>!!(m&&m.userData&&m.userData.snowTop);
+function pfMergeable(m){if(!m||Array.isArray(m)||m.transparent)return false;if(!Object.prototype.hasOwnProperty.call(m,'onBeforeCompile'))return true;return !!(m.userData&&(m.userData.snow||m.userData.snowTop));}
+const PF_LOC=new Map();
+function pfMat(m){if(!pfLocal(m))return m;let v=PF_LOC.get(m);if(v)return v;v=m.clone();v.userData=Object.assign({},m.userData,{pfLoc:1});const ob=m.onBeforeCompile,ck=m.customProgramCacheKey?m.customProgramCacheKey():'';
+  v.onBeforeCompile=function(sh,r){ob.call(this,sh,r);sh.vertexShader='attribute vec3 pfLoc;\n'+sh.vertexShader.replace('vStO=position;','vStO=pfLoc;');};v.customProgramCacheKey=()=>ck+'|pfloc';PF_LOC.set(m,v);return v;}
+/* the outer forest: every still-shown tree marked userData.ot, merged by material and shadow flags */
+function pfBatch(){const T=TERRAIN;if(!PF.on||!T)return;T.updateMatrixWorld(true);const groups=T.children.filter(g=>g.userData&&g.userData.ot&&g.visible);if(groups.length<2)return;
+  const by=new Map();let n0=0;
+  for(const g of groups){let ok=true;g.traverse(o=>{if(!o.visible)ok=false;if((o.isMesh&&o.isInstancedMesh)||(o!==g&&!o.isMesh))ok=false;if(o.isMesh&&!pfMergeable(o.material))ok=false;});if(!ok)continue;
+    g.traverse(o=>{if(!o.isMesh)return;const k=o.material.uuid+'|'+(o.castShadow?1:0)+(o.receiveShadow?1:0);if(!by.has(k))by.set(k,[]);by.get(k).push(o);n0++;});g.userData.pfDone=1;}
+  let n1=0;const made=[];
+  for(const list of by.values()){const G=pfMergeGeo(list,T);if(!G)continue;
+    const me=new THREE.Mesh(G,pfMat(list[0].material));me.castShadow=list[0].castShadow;me.receiveShadow=list[0].receiveShadow;me.userData.pfBatch=1;me.userData.glOuter=1;me.matrixAutoUpdate=false;me.updateMatrix();T.add(me);PF.made&&PF.made.add(me);made.push(me);n1++;
+    for(const o of list)o.userData.pfMerged=1;}
+  /* drop the trees whose every mesh went into a batch */
+  for(const g of groups){if(!g.userData.pfDone)continue;let all=true;g.traverse(o=>{if(o.isMesh&&!o.userData.pfMerged)all=false;});if(all)T.remove(g);else g.traverse(o=>{if(o.isMesh&&o.userData.pfMerged)o.visible=false;});}
+  PF.stat.trees={groups:groups.length,meshes:n0,batches:n1};}
+{const bm=buildMap;buildMap=function(){const r=bm.apply(this,arguments);try{pfBatch();}catch(e){console.error(e);}try{pfProps();pfLoose();}catch(e){console.error(e);}return r;};}
+/* 2) Freezing props: inside one prop (a lore prop, a board tree, a gate) the meshes that never move are merged by material into one mesh
+   per material, as children of the prop, so clicks (raycasts on the prop) and its removal work as before. Left alone: anything listed in
+   `skip` and its subtree (the parts a prop animates, like a lore prop's flaps), anything with userData of its own (other code may look for
+   it), hidden, transparent, instanced or skinned meshes, lines and points. A material shared by a family of props (a lantern's glow) stays
+   shared, so its animation still shows. */
+function pfFreeze(g,skip,okUD){if(!g||g.userData.pfFrozen)return 0;g.userData.pfFrozen=1;g.updateMatrixWorld(true);const by=new Map();
+  const walk=o=>{for(const c of o.children){if(skip&&skip.has(c)||!c.visible)continue;const ud=Object.keys(c.userData).filter(k=>!(okUD||PF_UD_OK0).has(k));if(ud.length)continue;
+      if(c.isMesh&&!c.isInstancedMesh&&!c.isSkinnedMesh&&pfMergeable(c.material)&&c.geometry&&c.geometry.attributes.position&&!c.children.length){
+        const k=c.material.uuid+'|'+(c.castShadow?1:0)+(c.receiveShadow?1:0)+'|'+c.renderOrder;if(!by.has(k))by.set(k,[]);by.get(k).push(c);}
+      if(!c.isMesh||c.children.length)walk(c);}};
+  walk(g);let saved=0;
+  for(const list of by.values()){if(list.length<2)continue;const G=pfMergeGeo(list,g);if(!G)continue;const me=new THREE.Mesh(G,pfMat(list[0].material));me.castShadow=list[0].castShadow;me.receiveShadow=list[0].receiveShadow;me.renderOrder=list[0].renderOrder;
+    me.userData.pfBatch=1;me.matrixAutoUpdate=false;g.add(me);PF.made&&PF.made.add(me);for(const o of list)if(o.parent)o.parent.remove(o);saved+=list.length-1;}
+  return saved;}
+function pfProps(){if(!PF.on)return;let s=0;const t0=performance.now();
+  for(const L of LORE||[]){if(!L.g)continue;const sk=new Set();(L.g.userData.flaps||[]).forEach(f=>f&&f.m&&sk.add(f.m));s+=pfFreeze(L.g,sk);}
+  for(const k in TREEM||{})s+=pfFreeze(TREEM[k]);
+  /* landmarks animate and change state only through the parts their model object points at (fire, core, glow, eyes, flames, lamp,
+     beam, cards...): those are skipped, the rest is merged */
+  /* the keep (its flag waves) and the chests (lid, shine, halo and pin move) */
+  if(castle&&castle.parent)s+=pfFreeze(castle,new Set([castleFlag].filter(Boolean)));
+  for(const C of CHESTS||[]){if(!C.g)continue;s+=pfFreeze(C.g,new Set([C.lid,C.shine,C.halo,C.pin].filter(o=>o&&o.isObject3D)));}
+  for(const L of LMS||[]){const P=L.P;if(!P||!P.g)continue;const sk=new Set(),add=v=>{if(v&&v.isObject3D&&v!==P.g)sk.add(v);else if(Array.isArray(v))v.forEach(add);};for(const k in P)if(k!=='g')add(P[k]);s+=pfFreeze(P.g,sk);}
+  if(TERRAIN)for(const c of TERRAIN.children)if(c.userData.keep&&c.userData.voidKeep&&c.isGroup&&c!==castle&&!(CHESTS||[]).some(q=>q.g===c)&&c.children.every(m=>m.isMesh&&!m.children.length))s+=pfFreeze(c);
+  PF.stat.props={saved:s,ms:+(performance.now()-t0).toFixed(1)};}
+/* 3) Loose specks: the grass tufts (three small cones on some free tiles) and the pebbles on the road are single meshes straight under the
+   terrain, one draw each. They are found by their shapes (the tuft cone, pebbles smaller than any rock), merged by material and by whether
+   they outlast the Infinite Void (pebbles carry voidKeep; the batch keeps it). Rocks (rockIndex looks for their shapes) are untouched. */
+function pfLoose(){if(!PF.on||!TERRAIN)return;const T=TERRAIN,tuft=cone(.025,.08,4),by=new Map();T.updateMatrixWorld(true);
+  for(const o of T.children){if(!o.isMesh||o.isInstancedMesh||o.children.length||!o.visible||!pfMergeable(o.material))continue;const u=Object.keys(o.userData);
+    const peb=o.geometry.type==='DodecahedronGeometry'&&o.geometry.parameters&&o.geometry.parameters.radius<.075;if(!(o.geometry===tuft||peb))continue;if(u.some(k=>k!=='voidKeep'))continue;
+    const k=o.material.uuid+'|'+(o.userData.voidKeep?1:0)+(o.castShadow?1:0)+(o.receiveShadow?1:0);if(!by.has(k))by.set(k,[]);by.get(k).push(o);}
+  let n=0;for(const list of by.values()){if(list.length<2)continue;const G=pfMergeGeo(list,T);if(!G)continue;const me=new THREE.Mesh(G,pfMat(list[0].material));me.castShadow=list[0].castShadow;me.receiveShadow=list[0].receiveShadow;
+    me.userData.pfBatch=1;if(list[0].userData.voidKeep)me.userData.voidKeep=1;me.matrixAutoUpdate=false;T.add(me);PF.made&&PF.made.add(me);for(const o of list)T.remove(o);n+=list.length;}
+  PF.stat.loose=n;}
+/* 4) Towers: a tower model is twenty to thirty meshes. After it is built (buildTowerMesh, rebuilt on every upgrade) its still parts are
+   frozen like a prop: everything the tower object points at (the turning head, spinner, beacon, the hero's rig, refs, the mastery flag)
+   is skipped, the rest of the body is merged by material; then the head's own still parts are merged inside the head, so it still turns.
+   The merged meshes carry userData.tower, so clicks still find the tower. */
+const PF_UD_OK=new Set(['pfMerged','tower']);
+function pfTower(t){if(!PF.on||!t||!t.g)return;const skip=new Set(),add=v=>{if(v&&v.isObject3D&&v!==t.g)skip.add(v);};
+  for(const k in t){const v=t[k];if(k==='g')continue;if(v&&v.isObject3D)add(v);else if(Array.isArray(v))v.forEach(add);else if(v&&typeof v==='object'&&!v.isObject3D&&k!=='parts'&&k!=='hero')for(const q in v){const w=v[q];if(w&&w.isObject3D)add(w);else if(Array.isArray(w))w.forEach(add);}}
+  if(t.g.userData.stone)add(t.g.userData.stone);
+  let s=pfFreeze(t.g,skip,PF_UD_OK);if(t.head&&t.head.isObject3D&&t.head!==t.g){const sk2=new Set([...skip].filter(o=>o!==t.head));s+=pfFreeze(t.head,sk2,PF_UD_OK);}
+  t.g.traverse(o=>{if(o.userData.pfBatch)o.userData.tower=t;});PF.stat.tower=(PF.stat.tower||0)+s;}
+{const b=buildTowerMesh;buildTowerMesh=function(t){const r=b.apply(this,arguments);try{pfTower(t);}catch(e){console.error(e);}return r;};}
+/* merged geometry whose mesh has left the scene (a sold tower, an old board) is freed every few seconds; if it ever comes back,
+   three.js uploads it again */
+PF.made=new Set();
+function pfSweep(){for(const me of PF.made){let q=me;while(q&&q!==scene)q=q.parent;if(!q){me.geometry.dispose();PF.made.delete(me);}}}
+{let pfT=0;const a0=anim;anim=function(dt,rt){const r=a0.apply(this,arguments);pfT+=dt||0;if(pfT>3){pfT=0;try{pfSweep();}catch(e){}}return r;};}
+/* 5) Health bars: every hurt foe had its own bar, three meshes (the dark back, the fill, the shield line, drawn even when empty), so a
+   busy wave added up to 150 draw calls. Now all foes' bars are four instanced meshes (back, fill, boss fill, shield), filled each frame
+   by updBar (one instance per foe whose bar shows) and closed by anim; the same sizes, colours, draw order (backs first) and facing. */
+const PFB={n:0,nb:0,ns:0,fgN:0,cap:0,m:null},PF_UPDBAR0=updBar;
+function pfBarMake(cap){if(PFB.m)for(const k in PFB.m){scene.remove(PFB.m[k]);PFB.m[k].dispose&&PFB.m[k].dispose();}
+  const mk=(geo,mat,ro)=>{const m=new THREE.InstancedMesh(geo,mat,cap);m.count=0;m.frustumCulled=false;m.renderOrder=ro;m.userData.pfBar=1;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(m);return m;};
+  PFB.m={bg:mk(barGeo,barBgMat,10),fg:mk(barFgGeo,barFgMat,11),fb:mk(barFgGeo,barBossMat,11),sh:mk(barFgGeo,barShMat,11)};PFB.cap=cap;}
+const PFB_M=new THREE.Matrix4(),PFB_P=new THREE.Vector3(),PFB_S=new THREE.Vector3(),PFB_O=new THREE.Vector3();
+function pfBarPut(m,i,e,ox,oy,oz,sx,sy){PFB_O.set(ox,oy,oz).applyQuaternion(camera.quaternion);PFB_P.set(e.x+PFB_O.x,e.y+e.hitY+.18+PFB_O.y,e.z+PFB_O.z);PFB_S.set(Math.max(1e-4,sx),sy,1);PFB_M.compose(PFB_P,camera.quaternion,PFB_S);m.setMatrixAt(i,PFB_M);}
+updBar=function(e){if(!PF.on)return PF_UPDBAR0(e);if(e.bar){scene.remove(e.bar);e.bar=null;}if(e.dead)return;const show=e.hp<e.maxHp||e.shield>0||e.boss;if(!show)return;
+  if(!PFB.m||!PFB.m.bg.parent)pfBarMake(Math.max(64,PFB.cap));if(PFB.n>=PFB.cap){const keep=PFB.cap*2;pfBarMake(keep);PFB.n=PFB.nb=PFB.ns=0;}
+  const w=e.boss?.9:.5,M=PFB.m;pfBarPut(M.bg,PFB.n++,e,0,0,0,w+.04,.09);
+  pfBarPut(e.boss?M.fb:M.fg,e.boss?PFB.nb++:PFB.fgN++,e,-w/2,0,.001,w*clamp(e.hp/e.maxHp,0,1),.06);
+  if(e.shield>0&&e.maxShield)pfBarPut(M.sh,PFB.ns++,e,-w/2,.055,.001,w*e.shield/e.maxShield,.035);};
+function pfBarClose(){if(!PFB.m)return;const M=PFB.m;M.bg.count=PFB.n;M.fg.count=PFB.fgN||0;M.fb.count=PFB.nb;M.sh.count=PFB.ns;for(const k in M)M[k].instanceMatrix.needsUpdate=true;PFB.n=PFB.nb=PFB.ns=PFB.fgN=0;}
+{const a0=anim;anim=function(dt,rt){const r=a0.apply(this,arguments);try{pfBarClose();}catch(e){}return r;};}
+/* 6) The hero: about fifty meshes in a dozen joints (shoulders, elbows, hands, hips, head...), each part its own colour, so merging by
+   material saves little. Inside each joint the plain parts (MeshPhong, no texture, no shader of its own, opaque) are drawn as one mesh:
+   each part's colour goes into the vertices (colour attribute) and the merged mesh uses one white MeshPhong with vertexColors and the
+   same shininess, specular, emissive and flat shading. Parts with any other material (the mage's glowing gems) stay as they are. The rig
+   only points at the joints, never at a part, so every joint still moves. The originals stay in place, hidden. */
+const PF_VC=new Map();
+function pfVcKey(m){if(!m||!m.isMeshPhongMaterial||m.map||m.transparent||m.vertexColors||Object.prototype.hasOwnProperty.call(m,'onBeforeCompile')||m.wireframe)return null;
+  return [m.flatShading?1:0,m.shininess,m.specular.getHex(),m.emissive.getHex(),m.emissiveIntensity,m.side,m.opacity].join('|');}
+function pfVcMat(key,m){let v=PF_VC.get(key);if(v)return v;v=m.clone();v.color.setRGB(1,1,1);v.vertexColors=true;v.userData={pfVc:1};PF_VC.set(key,v);if(typeof MC!=='undefined')MC['pfvc|'+key]=v;return v;}
+function pfHeroFreeze(root){if(!PF.on||!root||root.userData.pfHero)return 0;root.userData.pfHero=1;root.updateMatrixWorld(true);let saved=0;const nodes=[];root.traverse(o=>{if(!o.isMesh)nodes.push(o);});
+  for(const node of nodes){const by=new Map();
+    for(const c of node.children){if(!c.isMesh||c.isInstancedMesh||c.isSkinnedMesh||c.children.length||!c.visible||c.geometry.attributes.color)continue;if(Object.keys(c.userData).some(k=>k!=='hero'))continue;const k=pfVcKey(c.material);if(k==null)continue;
+      const kk=k+'|'+(c.castShadow?1:0)+(c.receiveShadow?1:0)+'|'+c.renderOrder;if(!by.has(kk))by.set(kk,[]);by.get(kk).push(c);}
+    for(const [kk,list] of by){if(list.length<2)continue;const G=pfMergeGeo(list,node);if(!G)continue;const n=G.attributes.position.count,C=new Float32Array(n*3);let o=0;
+      for(const c of list){const q=c.geometry.attributes.position.count,col=c.material.color;for(let i=0;i<q;i++){C[(o+i)*3]=col.r;C[(o+i)*3+1]=col.g;C[(o+i)*3+2]=col.b;}o+=q;}
+      G.setAttribute('color',new THREE.BufferAttribute(C,3));const me=new THREE.Mesh(G,pfVcMat(kk.split('|').slice(0,7).join('|'),list[0].material));me.castShadow=list[0].castShadow;me.receiveShadow=list[0].receiveShadow;me.renderOrder=list[0].renderOrder;
+      me.userData.pfBatch=1;me.userData.hero=true;me.matrixAutoUpdate=false;node.add(me);PF.made.add(me);for(const c of list)c.visible=false;saved+=list.length-1;}}
+  return saved;}
+{const sh=spawnHero;spawnHero=function(){const r=sh.apply(this,arguments);try{if(heroU&&heroU.g)PF.stat.hero=pfHeroFreeze(heroU.g);}catch(e){console.error(e);}return r;};}
+/* ---- end of performance (v438) ---- */
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
