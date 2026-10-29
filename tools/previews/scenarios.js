@@ -197,7 +197,8 @@ const S = {
   skyfall: { base: { dbg: 'SKM' }, 3: { probe: "SKM.dbg.some(d=>d.ev==='rico')" }, 5: { probe: "SKM.dbg.some(d=>d.ev==='ext')" } },
   glacialrift: {
     base: { dbg: 'GRM', follow: 'hits', zmin: .7, zmax: .95 },
-    1: { enter: [{ t: 'soldier', at: -3.0, off: .1, spd: 1.5, time: 3.0 }, { t: 'peasant', at: -3.4, off: -.15, spd: 1.5, time: 3.0 }, { t: 'soldier', at: -3.8, off: .05, spd: 1.5, time: 3.0 }],
+    /* foes walk up just after the ridge shatters (about 5.3s: the cast is 1.6s, the shatter 3.7s after it), close behind the statues */
+    1: { enter: [{ t: 'soldier', at: -1.85, off: .1, spd: 1.3, time: 5.45 }, { t: 'peasant', at: -2.2, off: -.15, spd: 1.3, time: 5.45 }, { t: 'soldier', at: -2.55, off: .05, spd: 1.3, time: 5.45 }],
       probe: "GRM.dbg.some(d=>d.ev==='statue')", note: 'The frozen foes stand as ice statues; foes walking up behind them are stopped until they thaw.' },
     2: { probe: "GRM.dbg.some(d=>d.ev==='push')", note: 'The wave drags each foe a tile back up the road.' },
     3: { probe: "GRM.dbg.some(d=>d.ev==='calve')", note: 'Slabs of ice break off the ridge and crash onto the road.' },
