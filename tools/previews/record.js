@@ -105,7 +105,7 @@ P.trkOn=()=>{P.trk=[];};
   /* following the foes it hits: between hits the living foes keep the view (weak points) */
   if(P.s.follow==='hits')for(const e of P.foes)if(!e.dead&&e.g&&e.g.parent)pts.push([+e.x.toFixed(2),+e.z.toFixed(2),0]);
   if(P.s.follow==='foes')for(const e of P.foes){if(e.dead||!e.g||!e.g.parent)continue;let q=seen.get(e);if(!q){q={x:e.x,z:e.z};seen.set(e,q);}
-    if(Math.abs(e.x-q.x)+Math.abs(e.z-q.z)>.02)pts.push([+e.x.toFixed(2),+e.z.toFixed(2),1]);q.x=e.x;q.z=e.z;}
+    pts.push([+e.x.toFixed(2),+e.z.toFixed(2),2]);q.x=e.x;q.z=e.z;}
   P.trk.push([+P.T.toFixed(3),pts]);};}
 P.trkData=()=>JSON.stringify({trk:P.trk||[],hx:P.hx,towers:P.towersAt||[],hero:[heroU.x,heroU.z],pack:P.packAt||[],si:P.si,cam:P.cam,rz:posAt(P.s.st.d,ROUTES[P.s.st.ri])[1]});
 P.useCamPath=a=>{P.path=a.map(c=>({x:c.x,zz:c.zz,y:gy(c.x,c.zz),z:c.z}));P.cam=P.path[0];P.camSet();};
@@ -153,6 +153,17 @@ function camPath(D, s, castT, dt) {
   const fit = pts => { let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const p of pts) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); z0 = Math.min(z0, p[1]); z1 = Math.max(z1, p[1]); }
     const hw = (x1 - x0) / 2 + margin, hd = (z1 - z0) / 2 + .6; return { x: (x0 + x1) / 2 + (s.cx || 0), zz: (z0 + z1) / 2 + bz, z: Math.max(hw / 4.5, hd / 3.6) * zk }; };
   const raw = []; let pc = null;
+  /* following the foes themselves (a fold sends them 8 tiles back): the view goes where most of them are (their median), and frames the
+     middle 80% of them, so when the pack is split between the fold and where it comes out the view follows the larger part */
+  if (s.follow === 'foes') {
+    const md = a => { const b = a.slice().sort((p, q) => p - q); return b[b.length >> 1]; }, q = (a, f) => { const b = a.slice().sort((p, q) => p - q); return b[Math.min(b.length - 1, Math.max(0, Math.round(f * (b.length - 1))))]; };
+    for (let i = 0; i < n; i++) { const t = (i + 1) * dt; let F = [];
+      if (t < castT + .7) { F = D.pack.slice(); F.push(D.hero); }
+      else for (const [T, P] of D.trk) if (Math.abs(T - t) < dt * .6) F = P.filter(p => p[2] === 2);
+      if (!F.length) { raw.push(null); continue; }
+      const xs = F.map(p => p[0]), zs = F.map(p => p[1]), cx = md(xs), cz = md(zs), hw = Math.max(q(xs, .9) - cx, cx - q(xs, .1)) + margin, hd = Math.max(q(zs, .9) - cz, cz - q(zs, .1)) + .6;
+      raw.push({ x: cx + (s.cx || 0), zz: cz + bz, z: Math.max(hw / 4.5, hd / 3.6) * zk }); }
+  } else
   for (let i = 0; i < n; i++) {
     const t = (i + 1) * dt, now = [], next = [], weak = [];
     if (t < castT + .7 || s.trackHero) { now.push(D.hero); for (const p of D.pack) now.push(p); }
