@@ -1,5 +1,5 @@
 (function(){
-/* Performance (v438): static batching of the scenery and freezing of props and towers. Run on the dev page:
+/* Performance (v446): static batching of the scenery and freezing of props and towers. Run on the dev page:
    __kk.ev(await (await fetch('/tests/perf-test.js')).text()) returns [name, ok, detail] rows. Each land's board is built once with the
    batching off, rendered, then batched in place and rendered again: the same picture with far fewer draw calls. Puts the account back. */
 const out=[],ok=(n,c,d)=>out.push([n,!!c,d===undefined?'':String(d)]);const m0=JSON.stringify(meta),r0=lsGet(KR),on0=PF.on;
@@ -65,7 +65,7 @@ try{
   /* a whole game frame with everything on */
   {let err=null;try{board('plains');PF.on=true;clearWorld();buildMap(77);newGame(1);paused=false;state='playing';for(let i=0;i<30;i++){update(.05);updFx(.05);anim(.05,i*.05);}renderer.render(scene,camera);}catch(e){err=e.message;}
     ok('a game runs and renders with batching on, without errors',!err&&!errs,err||errs);}
-  ok('the changelog tells of it',CLOG.some(c=>c.v==='v438'));
+  ok('the changelog tells of it',CLOG.some(c=>c.v==='v446'));
 }catch(e){out.push(['ERROR',false,String(e&&e.stack||e).slice(0,600)]);}
 finally{console.error=ce;PF.on=on0;try{state='menu';paused=false;clearWorld();meta=migrateMeta(JSON.parse(m0));saveMeta();lsSet(KR,r0);buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;showOverlay('menu');}catch(e){out.push(['restore',false,String(e)]);}}
 return out;})()

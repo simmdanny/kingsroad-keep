@@ -14146,7 +14146,7 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
-  {t:'Smoother frames',d:'29 Oct',v:'v438',li:[
+  {t:'Smoother frames',d:'29 Oct',v:'v446',li:[
     'The game draws the same picture with about half the work: the forest round the board, the grass and pebbles, the lore props and the still parts of every tower are drawn together instead of piece by piece, so phones and slower computers keep a steadier frame rate (and use less battery).']},
   {t:'Rare masteries for everyone',d:'28 Oct',v:'v417',li:[
     'The ten Rare scrolls now earn mastery XP and use their new masteries in every game, not only in developer mode. Scrolls above Rare come later.']},
@@ -28173,7 +28173,7 @@ function rtmRun(S,F){const L=S.L,a=S.a,T=F.map(f=>f.e);let t=0;const done={};
 const RTM_CAST0=castRoots;
 castRoots=function(t,list,P,o){const C=rtmC(o);if(!C)return RTM_CAST0.apply(this,arguments);return rtmCast(C,t,list,P,o);};
 
-/* ================= Performance (v438) =================
+/* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
    1) Static batching of the outer forest: the ~150 conifers round the board were three meshes each (trunk and two cones), about 450 draw
@@ -28305,7 +28305,7 @@ function pfHeroFreeze(root){if(!PF.on||!root||root.userData.pfHero)return 0;root
       me.userData.pfBatch=1;me.userData.hero=true;me.matrixAutoUpdate=false;node.add(me);PF.made.add(me);for(const c of list)c.visible=false;saved+=list.length-1;}}
   return saved;}
 {const sh=spawnHero;spawnHero=function(){const r=sh.apply(this,arguments);try{if(heroU&&heroU.g)PF.stat.hero=pfHeroFreeze(heroU.g);}catch(e){console.error(e);}return r;};}
-/* ---- end of performance (v438) ---- */
+/* ---- end of performance (v446) ---- */
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
