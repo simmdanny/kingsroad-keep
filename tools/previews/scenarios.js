@@ -142,7 +142,8 @@ const S = {
     2: { note: 'As it climbs away a front of flame races back along its river of fire.' },
     3: { pack: swap(3, TOUGH()), probe: "PHM.dbg.some(d=>d.ev==='feather')", note: 'Its burst becomes burning feathers that dart at the foes it struck, the toughest (the ram) first.' },
     4: { probe: "PHM.dbg.some(d=>d.ev==='pyre')", note: 'Its fire erupts on foes that are already burning.' },
-    5: { pack: PACK.map((p, j) => j % 2 ? Object.assign({}, p, { hp: 30, frac: .25, tag: 'Low HP', tc: TAG.hp1 }) : p), probe: "PHM.dbg.some(d=>d.ev==='firebird'&&d.hit)", note: 'Its death burst rains ashes on the foes it struck: each that dies is reborn as a firebird that dives at the next.' } },
+    /* four foes low enough to fall to the feathers soon after the burst, two whole ones for the firebirds to dive at */
+    5: { pack: PACK.map((p, j) => j < 4 ? Object.assign({}, p, { hp: 30, frac: .22, tag: 'Low HP', tc: TAG.hp1 }) : p), cap: 10.5, probe: "PHM.dbg.filter(d=>d.ev==='firebird'&&d.hit).length>=2", note: 'Its death burst rains ashes on the foes it struck: each that dies is reborn as a firebird that dives at the next.' } },
   comet: {
     base: { dbg: 'FCM' },
     1: { spd: .8, note: 'The pack walks briskly: the comet steers onto where it will be.' },
