@@ -28288,6 +28288,25 @@ updBar=function(e){if(!PF.on)return PF_UPDBAR0(e);if(e.bar){scene.remove(e.bar);
   if(e.shield>0&&e.maxShield)pfBarPut(M.sh,PFB.ns++,e,-w/2,.055,.001,w*e.shield/e.maxShield,.035);};
 function pfBarClose(){if(!PFB.m)return;const M=PFB.m;M.bg.count=PFB.n;M.fg.count=PFB.fgN||0;M.fb.count=PFB.nb;M.sh.count=PFB.ns;for(const k in M)M[k].instanceMatrix.needsUpdate=true;PFB.n=PFB.nb=PFB.ns=PFB.fgN=0;}
 {const a0=anim;anim=function(dt,rt){const r=a0.apply(this,arguments);try{pfBarClose();}catch(e){}return r;};}
+/* 6) The hero: about fifty meshes in a dozen joints (shoulders, elbows, hands, hips, head...), each part its own colour, so merging by
+   material saves little. Inside each joint the plain parts (MeshPhong, no texture, no shader of its own, opaque) are drawn as one mesh:
+   each part's colour goes into the vertices (colour attribute) and the merged mesh uses one white MeshPhong with vertexColors and the
+   same shininess, specular, emissive and flat shading. Parts with any other material (the mage's glowing gems) stay as they are. The rig
+   only points at the joints, never at a part, so every joint still moves. The originals stay in place, hidden. */
+const PF_VC=new Map();
+function pfVcKey(m){if(!m||!m.isMeshPhongMaterial||m.map||m.transparent||m.vertexColors||Object.prototype.hasOwnProperty.call(m,'onBeforeCompile')||m.wireframe)return null;
+  return [m.flatShading?1:0,m.shininess,m.specular.getHex(),m.emissive.getHex(),m.emissiveIntensity,m.side,m.opacity].join('|');}
+function pfVcMat(key,m){let v=PF_VC.get(key);if(v)return v;v=m.clone();v.color.setRGB(1,1,1);v.vertexColors=true;v.userData={pfVc:1};PF_VC.set(key,v);if(typeof MC!=='undefined')MC['pfvc|'+key]=v;return v;}
+function pfHeroFreeze(root){if(!PF.on||!root||root.userData.pfHero)return 0;root.userData.pfHero=1;root.updateMatrixWorld(true);let saved=0;const nodes=[];root.traverse(o=>{if(!o.isMesh)nodes.push(o);});
+  for(const node of nodes){const by=new Map();
+    for(const c of node.children){if(!c.isMesh||c.isInstancedMesh||c.isSkinnedMesh||c.children.length||!c.visible||c.geometry.attributes.color)continue;if(Object.keys(c.userData).some(k=>k!=='hero'))continue;const k=pfVcKey(c.material);if(k==null)continue;
+      const kk=k+'|'+(c.castShadow?1:0)+(c.receiveShadow?1:0)+'|'+c.renderOrder;if(!by.has(kk))by.set(kk,[]);by.get(kk).push(c);}
+    for(const [kk,list] of by){if(list.length<2)continue;const G=pfMergeGeo(list,node);if(!G)continue;const n=G.attributes.position.count,C=new Float32Array(n*3);let o=0;
+      for(const c of list){const q=c.geometry.attributes.position.count,col=c.material.color;for(let i=0;i<q;i++){C[(o+i)*3]=col.r;C[(o+i)*3+1]=col.g;C[(o+i)*3+2]=col.b;}o+=q;}
+      G.setAttribute('color',new THREE.BufferAttribute(C,3));const me=new THREE.Mesh(G,pfVcMat(kk.split('|').slice(0,7).join('|'),list[0].material));me.castShadow=list[0].castShadow;me.receiveShadow=list[0].receiveShadow;me.renderOrder=list[0].renderOrder;
+      me.userData.pfBatch=1;me.userData.hero=true;me.matrixAutoUpdate=false;node.add(me);PF.made.add(me);for(const c of list)c.visible=false;saved+=list.length-1;}}
+  return saved;}
+{const sh=spawnHero;spawnHero=function(){const r=sh.apply(this,arguments);try{if(heroU&&heroU.g)PF.stat.hero=pfHeroFreeze(heroU.g);}catch(e){console.error(e);}return r;};}
 /* ---- end of performance (v438) ---- */
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();

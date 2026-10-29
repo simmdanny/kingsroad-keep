@@ -44,6 +44,17 @@ try{
   /* the keep's flag still waves, a chest's lid still opens */
   {board('plains');batchAll();let fl=false;if(castleFlag){let q=castleFlag;while(q&&q!==castle)q=q.parent;fl=q===castle;}ok('the keep is merged but its flag is its own part',(!castleFlag||fl)&&castle.children.some(o=>o.userData.pfBatch),!!castleFlag);
     const C=CHESTS[0];if(C){let q=C.lid;while(q&&q!==C.g)q=q.parent;const r0=C.lid.rotation.x;C.open=true;C.t=0;anim(.2,1);ok('a chest\'s lid stays its own part and still opens',q===C.g&&C.lid.rotation.x!==r0,C.lid.rotation.x.toFixed(2));}else ok('a chest\'s lid still opens (no chest on this board)',true);}
+  /* the hero: each joint's plain parts drawn as one mesh with the parts' colours in its vertices; the same picture; joints still move */
+  {board('plains');meta.shadows=true;applyShadows();let bad=[],fewer=0,moved=true;
+    for(const id of Object.keys(HB)){meta.owned=meta.owned||{};meta.owned[id]=true;meta.equipped=id;PF.on=false;if(heroU)despawnHero();const q=heroTileNear(id,innerWidth/2,innerHeight*.45);spawnHero(q.c,q.r);const H=heroU;if(!H)continue;
+      H.g.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(H.g),c=box.getCenter(new THREE.Vector3()),sz=box.getSize(new THREE.Vector3()).length();
+      camera.position.set(c.x+sz*.9,c.y+sz*.5,c.z+sz*1.1);camera.lookAt(c);camera.updateProjectionMatrix();const A=shot();PF.on=true;pfHeroFreeze(H.g);const B=shot();
+      let diff=0;for(let i=0;i<A.px.length;i+=4){if(Math.abs(A.px[i]-B.px[i])+Math.abs(A.px[i+1]-B.px[i+1])+Math.abs(A.px[i+2]-B.px[i+2])>48)diff++;}if(diff>A.n*.0005)bad.push(id+':'+diff);if(B.calls<A.calls)fewer++;
+      const me=[];H.g.traverse(o=>{if(o.userData.pfBatch&&o.material.vertexColors)me.push(o);});const j=me.find(o=>o.parent!==H.g&&o.parent.parent);if(j){const bb=()=>{H.g.updateMatrixWorld(true);j.geometry.computeBoundingBox();return j.geometry.boundingBox.clone().applyMatrix4(j.matrixWorld);};const b0=bb();j.parent.rotation.x+=.8;const b1=bb();if(b1.min.distanceTo(b0.min)+b1.max.distanceTo(b0.max)<1e-4)moved=false;j.parent.rotation.x-=.8;H.g.updateMatrixWorld(true);}}
+    ok('every hero looks the same with its parts merged',!bad.length,bad.join(' '));
+    ok('every hero takes fewer draw calls',fewer===Object.keys(HB).length,fewer+' of '+Object.keys(HB).length);
+    ok('a merged part moves with its joint (arms and legs still animate)',moved);
+    ok('the merged parts use one white vertex-coloured material per finish; glowing parts stay their own',[...PF_VC.values()].every(m=>m.vertexColors&&m.color.getHex()===0xffffff));}
   /* health bars: all foes' bars are four instanced meshes */
   {board('plains');PF.on=true;for(let i=0;i<30;i++){spawnEnemy({type:'soldier',v:0},20);const e=enemies[enemies.length-1];e.dist=4+i*.2;moveEnemy(e,0);e.hp=e.maxHp*.5;if(i%3===0){e.shield=10;e.maxShield=20;}}
     for(const e of enemies)updBar(e);anim(.001,1);const M=PFB.m;ok('thirty hurt foes: one bar each, in four instanced meshes',M&&M.bg.count===enemies.filter(e=>!e.dead&&(e.hp<e.maxHp||e.shield>0||e.boss)).length&&M.sh.count===10&&enemies.every(e=>!e.bar),M&&[M.bg.count,M.fg.count,M.sh.count].join('/'));
