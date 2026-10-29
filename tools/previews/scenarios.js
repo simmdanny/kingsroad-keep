@@ -164,7 +164,7 @@ const S = {
     4: { also: [{ k: 'roots', at: .25 }], probe: "TRM.dbg.some(d=>d.ev==='sap')", note: 'Entangling Roots first: the foes are Overgrown, and the oak drains them and grows.' },
     5: { cap: 12.5, probe: "TRM.dbg.some(d=>d.ev==='timber')", note: 'At the end of its 10 seconds it topples forward along the road.' } },
   compress: {
-    base: { dbg: 'CPM', cap: 10.5 },
+    base: { dbg: 'CPM', cap: 11.3 },
     1: { pack: PACK.map(p => Object.assign({}, p, { at: p.at * 2.3, off: p.off * 1.6 })), note: 'The foes are spread out: the squeeze draws them together.' },
     3: { probe: "CPM.dbg.some(d=>d.ev==='sat')", note: 'Its two smaller squeezes snap first.' },
     5: { probe: "CPM.dbg.some(d=>d.ev==='star')", note: 'A star of pressed light bursts after the snap.' } },
