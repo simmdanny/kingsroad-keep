@@ -149,9 +149,9 @@ try{
     meta.mapIntro=1;wmapEl();wmapArrive('tundra',false);ok('arriving opens the tundra and ends the map intro',meta.arena==='tundra'&&ARENA_BUILT==='tundra'&&meta.seenA.tundra===1&&meta.mapIntro===0,meta.arena+' '+meta.mapIntro);
     ok('the plate names the gusts',/Greywind/.test(WMU.el.querySelector('.wmp-plate').textContent));closeWorldMap();
     ok('no badge once every land is seen',!arenaUnseen());renderHome();ok('the header says Arena 3, Greywind Tundra',/Arena 3/.test(document.querySelector('.arena-head .lbl').textContent)&&/Greywind Tundra/.test(document.querySelector('.arena-head b').textContent)&&document.querySelector('.arena-head').closest('.arena').classList.contains('tundra'));}
-  /* the Bestiary: Plains > Frostvale > Tundra > Whitewaste > Deep Taiga (v356) > Plains */
-  {galSetBiome('plains');const b=$('#bGalBiome'),seq=[];for(let i=0;i<5;i++){b.click();seq.push(GAL_BIO+':'+b.textContent.replace('Biome: ',''));}
-    ok('the Bestiary biome switch cycles through the five lands',seq.join(',')==='snow:Frostvale,tundra:Tundra,whitewaste:Whitewaste,taiga:Taiga,plains:Plains',seq.join(','));
+  /* the Bestiary: Plains > Frostvale > Tundra > Whitewaste > Deep Taiga (v356) > Stormcrag Highlands (v418) > Plains */
+  {galSetBiome('plains');const b=$('#bGalBiome'),seq=[];for(let i=0;i<6;i++){b.click();seq.push(GAL_BIO+':'+b.textContent.replace('Biome: ',''));}
+    const six=typeof highlandsBoard==='function';ok('the Bestiary biome switch cycles through the '+(six?'six':'five')+' lands',seq.slice(0,six?6:5).join(',')===(six?'snow:Frostvale,tundra:Tundra,whitewaste:Whitewaste,taiga:Taiga,highlands:Highlands,plains:Plains':'snow:Frostvale,tundra:Tundra,whitewaste:Whitewaste,taiga:Taiga,plains:Plains'),seq.join(','));
     galSetBiome(true);const c1=GAL_BIO;galSetBiome(false);ok('the old true/false switch still works',c1==='snow'&&GAL_BIO==='plains');
     GAL_BIO='tundra';const m=galSnowM(enemyModel('soldier',0),'soldier');let tm=0;m.b.traverse(o=>{if(o.isMesh&&o.material&&o.material.userData&&o.material.userData.tun)tm++;});GAL_BIO='plains';GAL_SNOW=false;
     ok('the tundra Bestiary shows tundra foes',tm>0&&m.b.children.some(c=>c.userData.tunGear),tm);}
