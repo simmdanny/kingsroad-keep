@@ -1757,3 +1757,21 @@ Like a bull through a hedge, and the rings of a tree trunk: the oak shoulders it
 - The base model was 1.25 times its size and the masteries used to set it back to 1; the oak now keeps its size at every mastery (`s0`), and Growth Rings grow it from there.
 - Power on the Epic ladder (5 runs) at the old factors: 1.09 / 1.55 / 1.78 / 2.05 / 1.59; the hidden factors are now `SMG.treant` = 0.95 / 0.958 / 0.92 / 0.886 / 0.965 (targets 1.094 / 1.234 / 1.35 / 1.522 / 1.742).
 - Tests: `tests/trm-test.js` (33 rows): it charges with 3 or more foes in front (not 2), 60% to each foe it runs through, they end on the verge (0.85 off the middle) and a boss does not; rings 1 to 4, then a Grove Slam, 120% to the foes in it and holding them, and the rings start again from one.
+
+## Previews for the reworked Epic masteries, and every Epic and Legendary clip at 720p (v440-v445)
+The 102 Epic and Legendary clips are re-recorded at 1080x720 (they were 480p), and the 29 clips that show the masteries reworked in v440-v445 are recorded from the new game, each set up for its new mastery (`tools/previews/scenarios.js`):
+
+| Clip | What it shows |
+|---|---|
+| Phoenix 1-5 | eleven foes so its fifth strike sets it white-hot (White-Hot); four low-health foes that fall to the feathers soon after the death burst and are reborn as firebirds diving at the two whole ones (From the Ashes: the clip must show two firebirds strike) |
+| Spatial Loop 1-5 | the foes the fold sends back coming out turned around, a U-turn of light circling them (Turned Around) |
+| Cataclysm 0-5 | a pack walking through the rune as the ring of standing stones rises (Standing Stones); an archer tower and a cannon knocking shards out of the studded foes (Shrapnel) |
+| Thunder Wyrm 2-5 | the pack, its head lunging at them (Snap); the gold rings of lightning its strike grounds through (Grounding Strike) |
+| Prism of Dawn 2-5 | the ram as the toughest foe, the white sunbeam on it (Heliotrope); the folding beams setting the pack ringing and the tolls (Resonant Fold) |
+| Oakheart Treant 1-5 | the oak at its full size again; foes walking into it as it charges and throws them to the verges (Battering Trunk); Entangling Roots first, then four rings and a Grove Slam (Growth Rings) |
+
+Each clip's probe (the moment its mastery must show) passed on the first seed; the line for each lists what its module logged (manifest.json, `ev`). Every clip was looked at on its contact sheet.
+
+- The recorder now writes `manifest.json` after every clip: a run stopped at a background job's 2-hour limit used to lose the whole manifest (it was written only at the end). The manifest of the 79 clips recorded before that stop was rebuilt from the run's log.
+- Size: the Epic and Legendary clips come to 184 MB (1.8 MB a clip, 210 KB a second, against 122 KB a second for the published clips at 720p): their effects are heavier and the tracking camera keeps the picture moving. The panel loads one clip at a time.
+- Also merged here: the third session's preview fixes from all-latest-test (v438: clips preloaded in the background, nothing else drawn while a clip plays). `tests/pvc-test.js` keeps both sets of rows. The full suite passes on the merged build (96 suites).
