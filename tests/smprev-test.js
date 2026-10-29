@@ -16,8 +16,10 @@ try{
   meta.dev=false;meta.smast={};meta.spells.hexspark=meta.spells.hexspark||{lvl:1,hero:null};smOpen('hexspark');let md=document.getElementById('smModal');
   /* v374: outside developer mode only what you have opens a preview (tests/pvown-test.js has the rest) */
   ok('without developer mode an owned scroll with no mastery previews only its picture',!!md&&!md.querySelector('.mst-lvl[data-smpv]')&&!!md.querySelector('.sm-art[data-smpv="0"]'));if(md)md.remove();
-  /* v428: published scrolls (Common to Rare) play recorded clips (tests/pvc-test.js); the live preview is for the others: an Epic scroll here */
-  md.remove();const LK='comet';meta.spells[LK]=meta.spells[LK]||{lvl:1,hero:null};
+  /* v428: published scrolls (Common to Rare) play recorded clips (tests/pvc-test.js); the live preview is for the others. Since v439 every
+     scroll with masteries has clips (Epic and Legendary too), so the Comet's are put aside here to show the live preview of a scroll without */
+  md.remove();const LK='comet';meta.spells[LK]=meta.spells[LK]||{lvl:1,hero:null};const pvKeep={};
+  if(typeof PVC!=='undefined'&&PVC.man&&PVC.man.clips)for(let L=0;L<=5;L++){pvKeep[L]=PVC.man.clips[LK+'-'+L];delete PVC.man.clips[LK+'-'+L];}
   meta.dev=true;smOpen(LK);md=document.getElementById('smModal');const rows=md.querySelectorAll('.mst-lvl[data-smpv]');
   ok('in developer mode every mastery and the picture open a preview',rows.length===5&&[...rows].map(r=>r.dataset.smpv).join('')==='12345'&&md.querySelector('.sm-art[data-smpv="0"]')&&!!md.querySelector('.smpv-hint'));
   rows[2].dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));const box=document.getElementById('smPv'),fr=box&&box.querySelector('iframe');
@@ -25,6 +27,7 @@ try{
   const r=box.getBoundingClientRect();ok('the panel stays on the screen',r.left>=0&&r.top>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1,[r.left,r.top,r.right,r.bottom].map(Math.round).join(','));
   md.querySelector('.mst-how').dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));ok('moving off the masteries hides it',box.hidden);
   md.remove();smPvDrop();ok('dropping the preview removes its page',!SMPW.fr&&!document.querySelector('#smPv iframe'));
+  if(typeof PVC!=='undefined'&&PVC.man&&PVC.man.clips)for(let L=0;L<=5;L++)if(pvKeep[L])PVC.man.clips[LK+'-'+L]=pvKeep[L];
   /* ---- the arena, run here ---- */
   const started=smPvStart('hexspark',3);ok('the preview arena starts at that mastery',started&&SMPV.on&&smLv('hexspark')===3&&state==='playing'&&!!heroU);
   let maxF=0,t=performance.now()/1000;for(let i=0;i<200;i++){update(.05);updFx(.05);t+=.05;anim(.05,t);maxF=Math.max(maxF,enemies.filter(e=>!e.dead&&e.smpv).length);}

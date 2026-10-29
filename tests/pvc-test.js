@@ -16,7 +16,9 @@ try{
   const miss=[];for(const k of OPEN)for(let L=0;L<=5;L++)if(!pvcHas(k,L))miss.push(k+'-'+L);
   ok('every published scroll has a clip for no mastery and each of its 5 masteries ('+OPEN.length+' scrolls)',OPEN.length>=32&&!miss.length,miss.slice(0,8).join(' '));
   {const gone=[];await Promise.all(Object.keys(M.clips).map(async id=>{const r=await fetch('../previews/'+id+'.mp4',{method:'HEAD'});if(!r.ok)gone.push(id);}));ok('and every clip file exists',!gone.length,gone.join(' '));}
-  ok('a clip for an Epic scroll is not there (it keeps the live preview)',!pvcHas('comet',1));
+  /* v439: the Epic and Legendary scrolls have their clips too (recorded with the tracking camera, which follows the action) */
+  {const EL=SCROLL_IDS.filter(k=>['epic','legendary'].includes(SPELLS_S[k].r)&&SM_D[k]),miss=[];for(const k of EL)for(let L=0;L<=5;L++)if(!pvcHas(k,L))miss.push(k+'-'+L);
+    ok('v439: every Epic and Legendary scroll has its clips too ('+EL.length+' scrolls)',EL.length>=17&&!miss.length,miss.slice(0,8).join(' '));}
   /* the card in developer mode: hovering a mastery plays its clip, without the live preview's frame */
   meta.dev=true;meta.spells.hexspark=meta.spells.hexspark||{lvl:1,hero:null};close();smOpen('hexspark');
   const md=$('#smModal'),rows=md.querySelectorAll('.mst-lvl');rows[3].dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(150);
@@ -41,8 +43,11 @@ try{
     pvcHide(true);r2[3].dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(60);ok('and an unreached mastery shows nothing',b.hidden);}
   if(sm0===undefined)delete meta.smast.hexspark;else meta.smast.hexspark=sm0;close();meta.dev=true;
   /* a scroll without clips keeps the live preview (its frame is not built here: smPvFrame answers nothing) */
-  {const f0=smPvFrame;smPvFrame=()=>null;try{smPvShow('comet',1,null);ok('a scroll without clips (Epic, developer mode) keeps the live preview',b.hidden&&SMPW.el&&!SMPW.el.hidden);smPvHide();
-    smPvShow('lantern',1,null,'tower');ok('a building keeps the live preview, even one that shares its key with a scroll (lantern)',pvcHas('lantern',1)&&b.hidden&&SMPW.el&&!SMPW.el.hidden&&SMPW.want&&SMPW.want.kind==='tower');}finally{smPvFrame=f0;smPvHide();}}
+  {smPvShow('comet',5,null);ok('v439: an Epic scroll plays its recorded clip (developer mode)',!b.hidden&&PVC.k==='comet'&&PVC.L===5,PVC.k+'-'+PVC.L);pvcHide(true);}
+  {const f0=smPvFrame,keep={};for(let L=0;L<=5;L++){keep[L]=PVC.man.clips['comet-'+L];delete PVC.man.clips['comet-'+L];}smPvFrame=()=>null;
+   try{smPvShow('comet',1,null);ok('a scroll without clips keeps the live preview',b.hidden&&SMPW.el&&!SMPW.el.hidden);smPvHide();
+    smPvShow('lantern',1,null,'tower');ok('a building keeps the live preview, even one that shares its key with a scroll (lantern)',pvcHas('lantern',1)&&b.hidden&&SMPW.el&&!SMPW.el.hidden&&SMPW.want&&SMPW.want.kind==='tower');}
+   finally{smPvFrame=f0;for(let L=0;L<=5;L++)if(keep[L])PVC.man.clips['comet-'+L]=keep[L];smPvHide();}}
   /* where the clips come from: the dev page reads previews/ beside it; opening a card fetches that scroll's clips so they play from memory */
   ok('the dev page reads the clips from previews/ beside it (the published game: jsDelivr, then GitHub)',PVC.base==='../previews/'&&PVC_SRC.length===3&&/jsdelivr\.net\/gh\/simmdanny\/kingsroad-keep@main\/previews\/$/.test(PVC_SRC[1]));
   {for(let L=0;L<=5;L++){const id='thornwhip-'+L;if(PVC.urls[id]){URL.revokeObjectURL(PVC.urls[id]);delete PVC.urls[id];}delete PVC.got[id];}

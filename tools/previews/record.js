@@ -9,7 +9,7 @@
 //   --sheet       also write a contact sheet per clip into previews/_sheets (for checking them by eye)
 //
 // Needs: the dev server (python3 -m http.server 8771 in the repo root), Playwright with Chromium, ffmpeg.
-const path = require('path'), fs = require('fs'), { execFileSync } = require('child_process');
+const path = require('path'), path_ = path, fs = require('fs'), { execFileSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..', '..'), OUT = process.env.PV_OUT || path.join(ROOT, 'previews');
 const SC = require('./scenarios');
 const W = 480, H = 320, FPS = 30, PRE = .4, CAP = 9.5, TAIL = .45, MINLEN = 3;
@@ -30,7 +30,8 @@ P.tagTick=dt=>{for(const t of P.tags){const e=t.e;if(e.dead||!e.g||!e.g.parent)t
   if(!t.dead||t.px==null){t.px=e.x;t.pz=e.z;t.py=(e.y||0)+(e.fly?1.25:.95)*(e.d&&e.d.size||1);}t.s.position.set(t.px,t.py+.12+.08*ease(t.dead/.5),t.pz);}};
 P.clearTags=()=>{for(const t of P.tags){scene.remove(t.s);t.m.dispose();t.tx.dispose();}P.tags=[];};
 /* one frame, as the game's own frame() does it */
-P.step=(dt,render)=>{P.T+=dt;update(dt*worldSlow);if(!window.__fz)updFx(dt);for(const e of enemies)updBar(e);anim(dt,P.T);
+P.step=(dt,render)=>{P.T+=dt;for(const f of (P.enter||[]))if(!f.done&&P.T>=f.time){f.done=true;P.add(f,P.d0+(f.at||0)).pvTrail=1;}update(dt*worldSlow);if(!window.__fz)updFx(dt);for(const e of enemies)updBar(e);anim(dt,P.T);
+  if(P.trk&&P.casts>0)P.trkFrame();if(P.path){const c=P.path[Math.min(P.si,P.path.length-1)];if(c)P.cam=c;}P.si++;
   try{bmAtmos(dt);sfAtmos(dt);}catch(e){}if(typeof AURA_RING!=='undefined'&&AURA_RING)AURA_RING.visible=false;P.tagTick(dt);P.camSet();
   if(!render)return'';
   if(typeof LENS!=='undefined'&&LENS.on)lensRender();else if(typeof DOM!=='undefined'&&DOM.post&&DOM.post.on)DOM.post.render();else if(typeof SDP!=='undefined'&&SDP.n>0)sdpRender();else renderer.render(scene,camera);
@@ -39,11 +40,11 @@ P.step=(dt,render)=>{P.T+=dt;update(dt*worldSlow);if(!window.__fz)updFx(dt);for(
 P.camSet=()=>{const c=P.cam;if(!c)return;camera.position.set(c.x,c.y+6.4*c.z,c.zz+4.6*c.z);camera.up.set(0,1,0);camera.lookAt(c.x,c.y,c.zz-.25*c.z);camera.updateMatrixWorld();};
 /* spies: count calls of a game function by name (once per page), so a clip can prove its mastery's moment happened */
 /* the damage the marked target takes (for tuning a low-HP target that must survive one hit and die to the next) */
-P.hit=[];P.hx=[];{const h0=hurt;if(!h0.__pv){const w=function(e,amt){const R=window.PVR;if(R&&e){if(e.pvT)R.hit.push([+R.T.toFixed(2),Math.round(amt),Math.round(e.hp)]);if(e.smpv&&R.casts>0&&R.hx.length<4000)R.hx.push([+e.x.toFixed(2),+e.z.toFixed(2)]);}return h0.apply(this,arguments);};w.__pv=1;hurt=w;}}
+P.hit=[];P.hx=[];{const h0=hurt;if(!h0.__pv){const w=function(e,amt,kind,o){const R=window.PVR;if(R&&e){if(e.pvT)R.hit.push([+R.T.toFixed(2),Math.round(amt),Math.round(e.hp)]);if(e.smpv&&R.casts>0&&R.hx.length<4000){const h=Math.max(0,Math.min(3.5,(e.y||0)-gy(e.x,e.z)));R.hx.push([+e.x.toFixed(2),+(e.z-.76*h).toFixed(2),+R.T.toFixed(3),o&&o.dot?1:0]);}}return h0.apply(this,arguments);};w.__pv=1;hurt=w;}}
 P.ev={};P.spy=(fn,key)=>{key=key||fn;let f;try{f=eval(fn);}catch(e){return;}if(typeof f!=='function'||f.__pv)return;const w=function(){P.ev[key]=(P.ev[key]||0)+1;return f.apply(this,arguments);};w.__pv=1;eval(fn+'=w');};
 /* the stage: a straight stretch of road running across the view, the hero standing in front of it, foes placed by hand and the scroll cast
    by the recorder (st: {seed, ri, d, c, r}: the map, the route, the spot on it facing the hero, the hero's tile) */
-P.setup=(k,L,s)=>{P.clearTags();P.T=0;P.ev={};P.hit=[];P.hx=[];P.packAt=null;meta.owned=meta.owned||{};meta.owned[s.hero]=true;meta.equipped=s.hero;const st=s.st;
+P.setup=(k,L,s)=>{P.clearTags();P.T=0;P.ev={};P.hit=[];P.hx=[];P.packAt=null;P.trk=null;P.path=null;P.si=0;P.fx0=null;meta.owned=meta.owned||{};meta.owned[s.hero]=true;meta.equipped=s.hero;const st=s.st;
   meta.dev=true;meta.sfx=false;meta.scrAuto=false;meta.shake=false;meta.arena='plains';meta.smast={};if(L>0)meta.smast[k]=SM_XP[L-1];meta.spells={};meta.spells[k]={lvl:1,hero:null};
   for(const e of enemies.slice())removeEnemy(e);enemies=[];spawners.length=0;SMPV.on=false;
   state='menu';clearWorld();buildMap(st.seed);MAP.fresh=true;newGame(1);paused=true;auto=0;speed=1;lives=1e9;spawners.length=0;nextQ=null;
@@ -53,17 +54,26 @@ P.setup=(k,L,s)=>{P.clearTags();P.T=0;P.ev={};P.hit=[];P.hx=[];P.packAt=null;met
   const Pw=tStats(heroU).spellP||tStats(heroU).dmg||100;P.Pw=Pw;P.k=k;P.L=L;P.s=s;P.foes=[];P.casts=0;
   const rt=ROUTES[st.ri],d0=st.d-(s.ahead==null?1.9:s.ahead);
   const add=(f,dd)=>{spawnEnemy({type:f.t||'soldier',v:f.v==null?0:f.v,elite:f.elite},20);const e=enemies[enemies.length-1];e.route=rt;e.dist=Math.max(.05,dd);e.off=f.off||0;
-    e.spd=f.spd==null?s.spd:f.spd;e.maxHp=e.hp=f.hp==null?Pw*s.hp:f.hp==='1'?1:Pw*f.hp;e.armor=f.armor||0;e.res={};e.shield=0;e.smpv=1;e.gold=0;e.xp=0;e.regen=0;
+    e.spd=f.spd==null?s.spd:f.spd;e.maxHp=e.hp=f.hp==null?Pw*s.hp:f.hp==='1'?1:Pw*f.hp;if(f.frac)e.hp=e.maxHp*f.frac;e.armor=f.armor||0;e.res={};e.shield=0;e.smpv=1;e.gold=0;e.xp=0;e.regen=0;
     if(f.elite==='armored')e.armor=.35;if(f.fly!=null)e.fly=f.fly;moveEnemy(e,0);if(f.tag)P.tag(e,f.tag,f.tc||'#ffd070');e.pvT=!!f.target;P.foes.push(e);return e;};
   /* the pack is placed where it will be at the moment of the cast */
   for(const f of s.pack)add(f,d0-s.spd*s.castAt+(f.at||0));
   for(const f of (s.trail||[]))add(f,d0-s.spd*s.castAt+(f.at||0)).pvTrail=1;
+  /* towers beside the road (for masteries that work with buildings): the free tile nearest a spot on the road (at: tiles from the pack's
+     middle at the cast, side: which side, +1 or -1) */
+  for(const T of (s.towers||[])){const q=posAt(Math.max(.05,d0+(T.at||0)),rt),a=q[2],sd=(T.side||1)*1.3,px=q[0]+Math.cos(a)*sd,pz=q[1]-Math.sin(a)*sd;let best=null,bd=1e9;
+    for(let r=0;r<H;r++)for(let c=0;c<W;c++){if(grid[r][c]!==0||(c===s.st.c&&r===s.st.r))continue;const p=tw(c,r),d=(p.x-px)**2+(p.z-pz)**2;if(d<bd){bd=d;best=[c,r];}}
+    if(best){const tt=placeTower(T.t||'archer',best[0],best[1],T.data);tt.cd=T.cd==null?.3:T.cd;}}
   /* the camera holds still on the hero and where the pack will be when the scroll lands */
   const pc=posAt(Math.max(.05,d0+s.spd*(s.look==null?.6:s.look)),rt),fwz=s.fwz==null?1:s.fwz,fx=heroU.x*(1-s.fw)+pc[0]*s.fw,fz=heroU.z*(1-fwz)+pc[1]*fwz;
   P.cam={x:fx+(s.cx||0),zz:fz+(s.cz==null?.12:s.cz),y:gy(fx,fz),z:s.zoom};P.camSet();
+  P.add=add;P.d0=d0-s.spd*s.castAt;P.enter=(s.enter||[]).map(f=>Object.assign({done:false},f));P.towersAt=towers.map(t=>[t.x,t.z]);
+  if(s.dbg)try{eval(s.dbg+'.dbg=[]');}catch(e){}
   for(const sp of (s.spy||[]))P.spy(sp);if(s.pre)eval(s.pre);return{Pw,n:P.foes.length};};
+/* what the clip's mastery logged (its module's dbg events, and the spies), for the recorder's line and the manifest */
+P.evSum=()=>{const c={};try{if(P.s.dbg)for(const d of (eval(P.s.dbg+'.dbg')||[]))c[d.ev]=(c[d.ev]||0)+1;}catch(e){}for(const k in P.ev)c[k]=P.ev[k];return c;};
 P.targets=()=>{let l=enemies.filter(e=>!e.dead&&!e.fake);l.sort((a,b)=>(b.pvT?1e3:0)-(a.pvT?1e3:0)||b.dist-a.dist);if(P.s&&P.s.only&&l[0]&&l[0].pvT)l=[l[0]];return l;};
-P.cast=(k2)=>{const k=k2||P.k,H=heroU;H.scd={};H.gcd=0;if(!meta.spells[k])meta.spells[k]={lvl:1,hero:null};const l=P.targets();P.lastT=l[0]&&l[0].pvT;if(!P.casts)P.packAt=P.foes.filter(e=>!e.dead&&!e.pvTrail).map(e=>[e.x,e.z]);fireScroll(H,k,tStats(H),l);P.casts++;};
+P.cast=(k2)=>{const k=k2||P.k,H=heroU;H.scd={};H.gcd=0;if(!meta.spells[k])meta.spells[k]={lvl:1,hero:null};const l=P.targets();P.lastT=l[0]&&l[0].pvT;if(!P.casts){P.packAt=P.foes.filter(e=>!e.dead&&!e.pvTrail).map(e=>[e.x,e.z]);P.fx0=new Set(fx);}fireScroll(H,k,tStats(H),l);P.casts++;};
 P.fxN=()=>fx.length;
 /* the camera framing the hero and every place a foe was hit (from a run without pictures, the same as the recorded one: the random is seeded) */
 P.frame=(s)=>{const pts=P.hx.concat(P.packAt||[]);pts.push([heroU.x,heroU.z]);let x0=1e9,x1=-1e9;for(const [x] of pts){x0=Math.min(x0,x);x1=Math.max(x1,x);}
@@ -72,6 +82,26 @@ P.frame=(s)=>{const pts=P.hx.concat(P.packAt||[]);pts.push([heroU.x,heroU.z]);le
   const hw=(x1-x0)/2+(s.margin==null?.85:s.margin);hd+=.6;
   const z=Math.max(s.zmin||.5,Math.min(s.zmax||.8,Math.max(hw/4.5,hd/3.6)*(s.zk||1)));return{x:cx,zz:cz,y:gy(cx,cz),z};};
 P.useCam=c=>{P.cam=c;P.camSet();};
+/* v439, the tracking camera (Simon: "if the pheonix has a explode animation and it runs of screen the previews should track it to always
+   display what is said in the description"): a run without pictures logs, every frame after the cast, where the action is: each effect the
+   cast made that is still on the board (a flying one counted where it shows on the screen: further up the road by its height) and, with
+   their times, the foes it hits. The recorder makes a smooth camera path out of it (record.js camPath) that the recorded run follows. */
+P.trkOn=()=>{P.trk=[];};
+{const V=new THREE.Vector3(),B=new THREE.Box3(),BS=new THREE.Vector3(),seen=new WeakMap();
+ /* an effect counts as action while it is new (0.8s), moving or growing; one that only lingers (a burning river, a cloud) counts as weak,
+    and one high in the sky (a phoenix climbing away, a meteor far up) not at all */
+ P.trkFrame=()=>{const pts=[];let n=0;for(const e of fx){if(P.fx0&&P.fx0.has(e))continue;const o=e.o;if(!o||!o.parent||o.visible===false)continue;if(++n>90)break;
+   o.updateWorldMatrix(true,false);o.getWorldPosition(V);
+   if(Math.abs(V.x)+Math.abs(V.z)<1e-3){if(!o.children.length&&!o.geometry)continue;B.setFromObject(o);if(B.isEmpty())continue;B.getSize(BS);if(BS.x>7||BS.z>7)continue;B.getCenter(V);}
+   if(!isFinite(V.x)||!isFinite(V.z)||Math.abs(V.x)>60||Math.abs(V.z)>60)continue;const h=Math.max(0,V.y-gy(V.x,V.z));if(h>(P.s.sky||2.4))continue;
+   let q=seen.get(o);const sc=o.scale.x;if(!q){q={t:P.T,x:V.x,z:V.z,y:V.y,s:sc};seen.set(o,q);}
+   const live=P.T-q.t<.8||Math.abs(V.x-q.x)+Math.abs(V.z-q.z)+Math.abs(V.y-q.y)>.015||Math.abs(sc-q.s)>.004;q.x=V.x;q.z=V.z;q.y=V.y;q.s=sc;
+   pts.push([+V.x.toFixed(2),+(V.z-.76*Math.min(h,3.5)).toFixed(2),live?1:0]);}
+  if(P.s.follow==='foes')for(const e of P.foes){if(e.dead||!e.g||!e.g.parent)continue;let q=seen.get(e);if(!q){q={x:e.x,z:e.z};seen.set(e,q);}
+    if(Math.abs(e.x-q.x)+Math.abs(e.z-q.z)>.02)pts.push([+e.x.toFixed(2),+e.z.toFixed(2),1]);q.x=e.x;q.z=e.z;}
+  P.trk.push([+P.T.toFixed(3),pts]);};}
+P.trkData=()=>JSON.stringify({trk:P.trk||[],hx:P.hx,towers:P.towersAt||[],hero:[heroU.x,heroU.z],pack:P.packAt||[],si:P.si,cam:P.cam,rz:posAt(P.s.st.d,ROUTES[P.s.st.ri])[1]});
+P.useCamPath=a=>{P.path=a.map(c=>({x:c.x,zz:c.zz,y:gy(c.x,c.zz),z:c.z}));P.cam=P.path[0];P.camSet();};
 return P;})();'ok'`;
 
 async function launch() {
@@ -97,15 +127,57 @@ async function openPage(browser) {
   return { page, ev, errors, ctx };
 }
 
+/* v439: the tracking camera's path, one camera per frame, from what a run without pictures logged (PVR.trkFrame). Each frame keeps in view
+   what is happening around it: before the cast and just after it the hero and the pack; then the foes hit from 0.3s before to 0.8s after,
+   and the cast's effects from 0.1s before to 0.6s after (a flying one where it shows on the screen). A foe only burning or bleeding
+   counts only when nothing else is going on, so the view leaves a burning pack to follow a phoenix. When it all does not fit in the widest
+   view, the view keeps what comes next (the action's way ahead). Smoothed: the zoom opens a little ahead of time and closes slowly, and
+   the middle glides (two passes of a 0.6s average). */
+function camPath(D, s, castT, dt) {
+  const n = D.si, out = [], margin = s.margin == null ? .85 : s.margin, zmin = s.zmin || .5, zmax = s.zmax || .8, zk = s.zk || 1, bz = s.cz == null ? .15 : s.cz;
+  const fit = pts => { let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const p of pts) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); z0 = Math.min(z0, p[1]); z1 = Math.max(z1, p[1]); }
+    const hw = (x1 - x0) / 2 + margin, hd = (z1 - z0) / 2 + .6; return { x: (x0 + x1) / 2 + (s.cx || 0), zz: (z0 + z1) / 2 + bz, z: Math.max(hw / 4.5, hd / 3.6) * zk }; };
+  const raw = []; let pc = null;
+  for (let i = 0; i < n; i++) {
+    const t = (i + 1) * dt, now = [], next = [], weak = [];
+    if (t < castT + .7 || s.trackHero) { now.push(D.hero); for (const p of D.pack) now.push(p); }
+    for (const p of (D.towers || [])) now.push(p);
+    for (const h of D.hx) { if (h[3]) { if (h[2] >= t - 1 && h[2] <= t + 1) weak.push(h); continue; } if (h[2] >= t - .3 && h[2] <= t + .8) (h[2] > t ? next : now).push(h); }
+    if (s.follow !== 'hits') for (const [T, P] of D.trk) if (T >= t - .1 && T <= t + .6) for (const p of P) { if (!p[2]) { weak.push([p[0], p[1], T]); continue; } (T > t ? next : now).push([p[0], p[1], T]); }
+    let pts = now.concat(next); if (!pts.length) pts = weak;
+    /* the action moves on from where it was: a point more than 5 tiles from the last frame's middle is a blip somewhere else */
+    if (pc) { const nearPc = p => (p[0] - pc[0]) ** 2 + (p[1] - pc[1]) ** 2 <= 25; pts = pts.filter(nearPc); for (const a of [now, next]) for (let j = a.length - 1; j >= 0; j--) if (!nearPc(a[j])) a.splice(j, 1); }
+    /* a stray far from the rest (an ember flung across the map) does not pull the view: points further than 5 tiles from the middle of
+       the action (the median) are dropped */
+    if (pts.length > 2) { const md = a => { const b = a.slice().sort((p, q) => p - q); return b[b.length >> 1]; }, mx = md(pts.map(p => p[0])), mz = md(pts.map(p => p[1]));
+      const kept = pts.filter(p => (p[0] - mx) ** 2 + (p[1] - mz) ** 2 <= 25); if (kept.length) { const ks = new Set(kept); for (const a of [now, next]) for (let j = a.length - 1; j >= 0; j--) if (!ks.has(a[j])) a.splice(j, 1); pts = kept; } }
+    if (!pts.length) { raw.push(null); continue; }
+    let f = fit(pts); if (f.z * 1 > zmax * 1.02 && next.length) { const g = fit(next.concat(now.filter(p => p[2] != null && p[2] >= t - .1))); if (g.z < f.z) f = g; }
+    raw.push(f); pc = [f.x - (s.cx || 0), f.zz - bz];
+  }
+  /* gaps take their neighbours' view; before anything at all, the static framing */
+  let last = null; for (let i = 0; i < n; i++) { if (raw[i]) last = raw[i]; else raw[i] = last; }
+  last = null; for (let i = n - 1; i >= 0; i--) { if (raw[i]) last = raw[i]; else raw[i] = last; }
+  if (!raw[0]) return null;
+  const cl = z => Math.max(zmin, Math.min(zmax, z));
+  let zs = raw.map((r, i) => { let m = 0; for (let j = Math.max(0, i - 8); j <= Math.min(n - 1, i + 15); j++) m = Math.max(m, raw[j].z); return cl(m); });
+  const avg = (a, w) => a.map((_, i) => { let sum = 0, c = 0; for (let j = Math.max(0, i - w); j <= Math.min(a.length - 1, i + w); j++) { sum += a[j]; c++; } return sum / c; });
+  zs = avg(avg(zs, 9), 9); let xs = avg(avg(raw.map(r => r.x), 9), 9), ys = avg(avg(raw.map(r => r.zz), 9), 9);
+  for (let i = 0; i < n; i++) out.push({ x: +xs[i].toFixed(3), zz: +ys[i].toFixed(3), z: +zs[i].toFixed(3) });
+  return out;
+}
+
 /* one clip: returns {ok, frames, len, probe} */
 async function recordClip(P, k, L, frameDir, seed, cam) {
   const s = SC.get(k, L), dry = !cam;
   await P.page.evaluate(n => window.__seed(n), seed);
   await P.ev(`PVR.setup(${JSON.stringify(k)},${L},${JSON.stringify(s)});'ok'`);
-  if (cam && cam !== true) await P.ev(`PVR.useCam(${JSON.stringify(cam)});'ok'`);
+  if (dry && s.track !== false) await P.ev('PVR.trkOn()');
+  if (Array.isArray(cam)) await P.ev(`PVR.useCamPath(${JSON.stringify(cam)});'ok'`);
+  else if (cam && cam !== true) await P.ev(`PVR.useCam(${JSON.stringify(cam)});'ok'`);
   if (!dry) { fs.rmSync(frameDir, { recursive: true, force: true }); fs.mkdirSync(frameDir, { recursive: true }); }
   const dt = 1 / FPS; let t = 0, n = 0, base = null, quiet = 0, castT = s.castAt, casts = (s.casts || [s.castAt]).slice(), also = (s.also || []).slice(), last = Math.max(...casts, ...also.map(a => a.at));
-  const t0 = Math.max(0, castT - PRE);
+  const t0 = s.from != null ? s.from : Math.max(0, castT - PRE), cap = s.cap || CAP;
   while (true) {
     for (const c of casts) if (c != null && t >= c - 1e-6 && t < c + dt - 1e-6) await P.ev('PVR.cast()');
     for (const a of also) if (t >= a.at - 1e-6 && t < a.at + dt - 1e-6) await P.ev(`PVR.cast(${JSON.stringify(a.k)})`);
@@ -117,13 +189,15 @@ async function recordClip(P, k, L, frameDir, seed, cam) {
     if (t > last + .3) {
       const f = await P.ev('PVR.fxN()');
       quiet = f <= (base || 0) ? quiet + dt : 0;
-      if (s.len ? t >= s.len : ((quiet >= TAIL && t - t0 >= (s.minLen || MINLEN)) || t >= CAP)) break;
+      if (s.len ? t >= s.len : ((quiet >= TAIL && t - t0 >= (s.minLen || MINLEN)) || t - t0 >= cap)) break;
     }
   }
-  const probe = s.probe ? await P.ev(`!!(${s.probe})`) : true;
-  const frame = dry && !s.fixedCam ? await P.ev(`JSON.stringify(PVR.frame(${JSON.stringify(s)}))`) : null;
+  const probe = s.probe ? await P.ev(`!!(${s.probe})`) : true, evs = JSON.parse(await P.ev('JSON.stringify(PVR.evSum())'));
+  let frame = dry && !s.fixedCam ? JSON.parse(await P.ev(`JSON.stringify(PVR.frame(${JSON.stringify(s)}))`)) : null;
+  if (dry && !s.fixedCam && s.track !== false) { const D = JSON.parse(await P.ev('PVR.trkData()')), path = camPath(D, s, castT, dt); if (path) frame = path;
+    if (process.env.PV_TRK) fs.writeFileSync(path_.join(process.env.PV_TRK, k + '-' + L + '.json'), JSON.stringify({ D, path, castT })); }
   if (process.env.PV_DEBUG) console.log('   ', k, L, 'Pw', await P.ev('Math.round(PVR.Pw)'), 'events', await P.ev('JSON.stringify(PVR.ev)'), 'casts', await P.ev('PVR.casts'), 'target hits', await P.ev('JSON.stringify(PVR.hit.slice(0,14))'), 'dead', await P.ev('PVR.foes.filter(e=>e.dead).length'));
-  return { frames: n, len: n / FPS, probe, cam: frame ? JSON.parse(frame) : true, dry };
+  return { frames: n, len: n / FPS, probe, cam: frame || true, dry, evs };
 }
 
 function encode(frameDir, out) {
@@ -135,13 +209,15 @@ function sheet(frameDir, n, out) {
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-framerate', String(FPS), '-i', path.join(frameDir, '%04d.jpg'), '-vf', `select='not(mod(n\\,${step}))',scale=320:-1,tile=3x3`, '-frames:v', '1', '-q:v', '3', out]);
 }
 
-(async () => {
+exports.camPath = camPath;
+/* only when run itself (loading it, from a test, records nothing) */
+if (require.main === module) (async () => {
   const args = process.argv.slice(2), opt = k => { const i = args.indexOf(k); return i < 0 ? null : args.splice(i, 2)[1]; }, flag = k => { const i = args.indexOf(k); if (i < 0) return false; args.splice(i, 1); return true; };
   const jobsN = +(opt('--jobs') || 4), keep = flag('--keep'), sheets = flag('--sheet');
   fs.mkdirSync(OUT, { recursive: true });
   const all = SC.scrolls(); let list = [];
   if (!args.length) for (const k of all) for (let L = 0; L <= 5; L++) list.push([k, L]);
-  else for (const a of args) { const [k, l] = a.split(':'); if (l == null) for (let L = 0; L <= 5; L++) list.push([k, L]); else list.push([k, +l]); }
+  else for (const a0 of args) for (const a of (SC[a0] ? SC[a0]() : [a0])) { const [k, l] = a.split(':'); if (l == null) for (let L = 0; L <= 5; L++) list.push([k, L]); else list.push([k, +l]); }
   const manPath = path.join(OUT, 'manifest.json'), man = fs.existsSync(manPath) ? JSON.parse(fs.readFileSync(manPath, 'utf8')) : { v: 1, w: W, h: H, fps: FPS, clips: {} };
   const queue = list.slice(), fails = []; let done = 0; const t00 = Date.now();
   async function worker(wi) {
@@ -159,9 +235,10 @@ function sheet(frameDir, n, out) {
         if (sheets) { fs.mkdirSync(path.join(OUT, '_sheets'), { recursive: true }); sheet(fd, r.frames, path.join(OUT, '_sheets', id + '.jpg')); }
         const sz = fs.statSync(path.join(OUT, id + '.mp4')).size;
         man.clips[id] = { k, L, len: +r.len.toFixed(2), seed, bytes: sz, note: s.note || '' };
+        if (Object.keys(r.evs || {}).length) man.clips[id].ev = r.evs;
         if (!r.probe) fails.push(id + ' (its probe never came true: ' + s.probe + ')');
         if (!keep) fs.rmSync(fd, { recursive: true, force: true });
-        console.log(`[${++done}/${list.length}] ${id} ${r.len.toFixed(1)}s ${(sz / 1024).toFixed(0)} KB seed ${seed}${r.probe ? '' : ' PROBE FAILED'}${P.errors.length ? ' errors: ' + P.errors.splice(0).slice(0, 2).join(' | ') : ''}`);
+        console.log(`[${++done}/${list.length}] ${id} ${r.len.toFixed(1)}s ${(sz / 1024).toFixed(0)} KB seed ${seed}${r.probe ? '' : ' PROBE FAILED'}${Object.keys(r.evs || {}).length ? ' ' + JSON.stringify(r.evs) : ''}${P.errors.length ? ' errors: ' + P.errors.splice(0).slice(0, 2).join(' | ') : ''}`);
       } catch (e) { fails.push(id + ': ' + (e.message || e)); console.log(`[${++done}/${list.length}] ${id} FAILED ${e.message || e}`); try { await P.ctx.close(); } catch (_) { } P = await openPage(browser); }
     }
     await browser.close();
