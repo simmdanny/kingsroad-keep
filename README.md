@@ -1728,3 +1728,17 @@ Like a sheepdog and a pinata: the stones keep the flock where the sky will land,
 - Power on the Epic ladder (5 runs) at the old factors: 1.10 / 1.27 / 1.28 / 1.45 / 1.65; the hidden factors are now `SMG.wyrm` = 0.95 / 1.07 / 0.908 / 0.946 / 0.911 (targets 1.094 / 1.234 / 1.35 / 1.522 / 1.742).
 - The rings (`wymRings`) are 3D hoops that spin against each other and flicker, flare and go when the strike grounds through them (or the foe dies).
 - Tests: `tests/wym-test.js`: snaps at 80% each, once per foe, none out of reach, Charged, during the weave, reaching a foe a tile off the road; Grounding Strike counts its own lashes only (a foe Charged by something else is not grounded); Constrict's test now puts its toughest foe where the head is (it used to rely on Hunter's Weave slowing the head in the pack).
+
+## Prism of Dawn: Heliotrope and Resonant Fold (v444)
+After Simon's review, two Prism masteries are replaced.
+
+| Mastery | Was | Now |
+|---|---|---|
+| 2 | Sun-Tracking: the prism drifts after the foes (up to 1.6 tiles) | **Heliotrope**: a seventh, white sunbeam bends down out of the shaft of sunlight over the prism and locks onto the toughest foe under the wheel, burning hotter the longer it holds: 10% a second, rising to 40% over 2s (it relocks, starting cool, if its foe dies or leaves) |
+| 3 | Blinding Fold: the folding beams blind for 0.5s, then slow | **Resonant Fold**: foes the folding beams cross ring like bells. When the lance lands, its power runs through each ringing foe into the foes beside it (within 1 tile): 50% each, once a foe |
+
+Like a magnifying glass on a sunny day, and a row of tuning forks: Heliotrope holds one point of sunlight on one foe until it smokes, and the fold strikes the foes like bells, so the lance's note carries to their neighbours.
+
+- The look: the sunbeam (`prmSunbeam`) is a white-hot core in a gold glow with a cone of light narrowing onto the foe; a pool of light at its feet draws in to a point as it heats (a flattened sphere, with a ring of light round it), sparks and smoke rise and a scorch grows. A first version ran the beam from the prism itself, and from the game's camera it was lost in the prism's own glare; bent down from the shaft of sunlight above, it spans the screen. The bells (`prmBell`) are two hoops of gold light humming round the foe; the toll (`prmToll`) swells a ring of light out of it and throws a ribbon of light to each foe beside it.
+- Power on the Epic ladder (5 runs) at the old factors: 1.09 / 1.27 / 1.44 / 1.60 / 1.81; the hidden factors are now `SMG.prism` = 0.87 / 0.862 / 0.901 / 0.93 / 0.807 (targets 1.094 / 1.234 / 1.35 / 1.522 / 1.742).
+- Tests: `tests/prm-test.js` (31 rows): the sunbeam locks the toughest foe, ticks every 0.25s with a rate rising from 10% to 40%, only while the wheel turns, relocks cool on the next toughest when its foe dies; only the folding beams set foes ringing, each once; every ringing foe tolls when the lance lands; 50% to each foe within 1 tile of a ringing foe, once a foe.

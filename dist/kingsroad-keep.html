@@ -8520,7 +8520,7 @@ function castPrism(t,c0,P,o){const c=nsLead(c0,1.1),mats=[],geos=[],R=2.4,PY=1.6
     sG.attributes.position.needsUpdate=true;sG.attributes.color.needsUpdate=true;rG.attributes.position.needsUpdate=true;rG.attributes.color.needsUpdate=true;};
   const hide=()=>{sM.opacity=0;rM.opacity=0;shafts.forEach(m=>{m.material.opacity=0;});tips.forEach(m=>{m.visible=false;});};
   const last=new Map();let tt=0,ang=rnd()*6.28,om=1.4,len=0,fin=false,shat=false;const T1=1.1,T2=4,T3=4.4;
-  addFx(new THREE.Group(),5.4,(f,dt)=>{tt+=dt;if(PM&&tt>T1&&tt<T3){const d=PM.drift(dt,cx,cz,len);if(d){cx=d.x;cz=d.z;cy=gy(cx,cz);pr.position.x=cx;pr.position.z=cz;rune.position.set(cx,cy+.03,cz);sun.position.x=cx;sun.position.z=cz;}}if(PM)PM.frame(tt,dt,cx,cz);rune.userData.fade(Math.min(.85,tt/.5)*(tt>T3?Math.max(0,1-(tt-T3)/.7):1));rune.rotation.y+=dt*.5;
+  addFx(new THREE.Group(),5.4,(f,dt)=>{tt+=dt;if(PM&&tt>T1&&tt<T3)PM.helio(dt,cx,cz,pr.position.y,len);if(PM)PM.frame(tt,dt,cx,cz);rune.userData.fade(Math.min(.85,tt/.5)*(tt>T3?Math.max(0,1-(tt-T3)/.7):1));rune.rotation.y+=dt*.5;
     /* gathering: coloured motes spiral in and six shards lock together */
     if(tt<.9){const k=tt/.9;for(let i=0;i<NB;i++){const a=i/NB*6.283+tt*3,r=.35+1.3*(1-k);emit(1,{x:cx+Math.cos(a)*r,y:cy+PY+(rnd()-.5)*.4,z:cz+Math.sin(a)*r,vx:-Math.sin(a)*1.2-Math.cos(a)*1.4,vy:0,vz:Math.cos(a)*1.2-Math.sin(a)*1.4,s:.06,s2:.02,c:COLS[i],c2:0xffffff,life:.4});}
       shards.forEach(m=>{const u=m.userData,r=1.5*(1-ease(k)),a=u.a+tt*4;m.position.set(cx+Math.cos(a)*r,cy+PY+u.y*(1-k),cz+Math.sin(a)*r);m.rotation.x+=dt*6;m.rotation.y+=dt*5;});}
@@ -14166,6 +14166,10 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Prism of Dawn: Heliotrope and Resonant Fold',d:'29 Oct',v:'v444',li:[
+    'Mastery 2 is now Heliotrope (it was Sun-Tracking, the prism drifting after the foes): while the wheel turns, a seventh, white sunbeam bends down out of the shaft of sunlight over the prism and locks onto the toughest foe under the wheel. It burns hotter the longer it holds, 10% a second rising to 40%, its pool of light drawing in to a point at the foe\u2019s feet.',
+    'Mastery 3 is now Resonant Fold (it was Blinding Fold, a hold and a slow): foes the folding beams cross ring like bells, two hoops of gold light humming round them. When the lance lands, its power runs through each ringing foe into the foes beside it, 50% each.',
+    'Its power still matches the Epic ladder at every mastery.']},
   {t:'Thunder Wyrm: Snap, and a clearer Grounding Strike',d:'29 Oct',v:'v443',li:[
     'Mastery 2 is now Snap (it was Hunter\u2019s Weave, which changed how fast it wove and how it swayed): as the wyrm weaves, its head lunges at foes within 1.2 tiles, jaws wide and eyes burning amber, and snaps shut for 80%, leaving them Charged. Foes it has not lashed come first; each foe once a cast.',
     'Grounding Strike (Mastery 4) is simpler: each lash rings its foe with a gold hoop of lightning (up to 3), and the strike forks to every ringed foe within 4 tiles for 35% per ring. Lightning from other sources no longer counts.']},
@@ -29213,18 +29217,22 @@ function wymThunderhead(x,z,dIn,dOut,O){const y=gy(x,z);wymLog({ev:'thunderhead'
    Prism Split and Lightbound Mirrors), no sunlit weakening ground (Sunflare): every mastery grows out of the wheel of colour itself.
    | # | Mastery | Question | Part of the spell | Kind |
    | 1 | Spectrum | what if each colour did what it looks like? | the six colours (only looks before) | cosmetic made real |
-   | 2 | Sun-Tracking | what if it followed the foes? | where the prism hangs | behaviour change |
-   | 3 | Blinding Fold | what if the fold dazzled them for the lance? | the fold | control / sets up the finale |
+   | 2 | Heliotrope | what if the sunbeam above it came down? | the sunbeam (only looks before) | cosmetic made real / build-up |
+   | 3 | Resonant Fold | what if the fold tuned them for the lance? | the fold | sets up the finale |
    | 4 | Full Spectrum | what if catching every colour mattered? | the sweeps over one foe | build-up payoff |
    | 5 | Sunrise | what if the lance were the dawn itself? | the lance | signature payoff |
    - M1 Spectrum: the warm beams (red, orange, gold) set the foes they sweep alight: PRM.burn over 2s (Burning, fire); the cool beams (green,
      blue, violet) are light, so the next one over a burning foe sets off the Flare combo that is already in the game (the burn is spent at
      once for 150% of what was left). The wheel feeds itself, and Burning sets up the fire scrolls.
-   - M2 Sun-Tracking: while the wheel turns, the prism drifts after the foes (toward the middle of the foes within reach of its beams, 0.7
-     tiles a second, up to 1.6 tiles from where it formed), its rune and its sunbeam with it. No damage of its own: it mends the spell's
-     weakness, a fixed wheel the pack walks out of.
-   - M3 Blinding Fold: as the beams fold back in, each foe they cross is dazzled: blinded (held) for 0.5s, Resolve applies, then 30% slower
-     for 1.5s, so it is still under the prism when the lance falls. A ring of light flares round its head.
+   - M2 Heliotrope (v444, replacing Sun-Tracking, the prism drifting after the foes, after Simon's review: too hard to see): while the
+     wheel turns, a seventh, white sunbeam bends down out of the shaft of sunlight over the prism and locks onto the toughest foe under the wheel (within reach of
+     its beams), burning hotter the longer it holds: PRM.helio a second at first, rising to PRM.helioMax over PRM.helioRamp s (it relocks,
+     starting cool again, if its foe dies or leaves). A white-hot core in a gold glow that thickens and whitens as it heats, and a burning
+     spot on the foe (sparks, smoke, a scorch growing under it).
+   - M3 Resonant Fold (v444, replacing Blinding Fold, a hold and a slow, after Simon's review): as the beams fold back in, each foe they
+     cross rings like a struck bell (two hoops of gold light humming round it). When the lance lands, its power runs through every ringing
+     foe into the foes beside it: the bell tolls (a ring of gold light swelling out) and a ribbon of light leaps to each foe within
+     PRM.resR tiles: PRM.res each (a foe takes it once a cast, however many bells ring beside it).
    - M4 Full Spectrum: a foe swept by all six colours in one cast is overwhelmed: the colours it caught (motes circling it, one per colour)
      burst out of it in a 3D splash of coloured crystal and rays: PRM.full, once per foe.
    - M5 Sunrise: the folded light shoots up into the sky, and the dawn comes down: a broad pillar of sunrise (gold and rose, see-through,
@@ -29232,20 +29240,21 @@ function wymThunderhead(x,z,dIn,dOut,O){const y=gy(x,z);wymLog({ev:'thunderhead'
      0.3s to the foes inside 1.5.
    The base cast's rainbow nova follows the explosion rule (every cast): instead of six flat rings, a ring of coloured crystal shards races
    out with height and tumbles down, and rays of colour burst up and outward (prmNova). PRM.dbg (an array) logs the events for the tests. */
-const PRM={dbg:null,burn:.2,burnCd:1.2,drift:.7,driftMax:1.6,blind:.5,blindSlow:.3,full:1.2,sun:1.4,sunT:.15,sunR:1.5,sunN:4};
+const PRM={dbg:null,burn:.2,burnCd:1.2,helio:.1,helioMax:.4,helioRamp:2,helioTick:.25,res:.5,resR:1,full:1.2,sun:1.4,sunT:.15,sunR:1.5,sunN:4};
 const prmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='prism'?c:null;};
 const prmLog=d=>{if(PRM.dbg){d.time=time;PRM.dbg.push(d);}};
 SM_D.prism=[
   {n:'Spectrum',d:'The warm beams set foes alight ({20}% over 2s, a foe at most every 1.2s); the cool beams are light, so the next one over a burning foe flares the burn.'},
-  {n:'Sun-Tracking',d:'While its beams turn, the prism drifts after the foes (up to 1.6 tiles), its rune and sunbeam with it.'},
-  {n:'Blinding Fold',d:'As the beams fold back in, each foe they cross is blinded for 0.5s (Resolve applies), then 30% slower for 1.5s.'},
+  {n:'Heliotrope',d:'A seventh, white sunbeam locks onto the toughest foe under the wheel and burns hotter the longer it holds: {10}% a second, rising to {40}%.'},
+  {n:'Resonant Fold',d:'Foes the folding beams cross ring like bells. When the lance lands, its power runs through each ringing foe into the foes beside it: {50}% each.'},
   {n:'Full Spectrum',d:'A foe swept by all six colours in one cast bursts with them for {120}%.'},
   {n:'Sunrise',d:'The folded light rises and the dawn comes down: a pillar of sunrise for 1.2s, {140}% more as it lands, then {15}% every 0.3s inside it.'}];
 SMF.prism={m:1};
 SMA.prism=[1,1,1,1,1];
-/* the ladder (tests/sm-ladder.js): the masteries alone come to about 1.27 / 1.37 / 1.4 / 1.55 / 2.06 (Spectrum leans on the Flare combo already in the
-   game, which pays well on a pack; Sun-Tracking adds nothing where the ladder's foes stand still); these bring it onto 1.09 / 1.23 / 1.35 / 1.52 / 1.74 */
-SMG.prism=[.87,.89,.96,.98,.84];
+/* the ladder (tests/sm-ladder.js, 5 runs, v444): the masteries alone come to about 1.26 / 1.43 / 1.5 / 1.64 / 2.16 (Spectrum leans on the Flare combo
+   already in the game, which pays well on a pack, and Heliotrope burns the toughest foe all through the wheel); these bring it onto
+   1.09 / 1.23 / 1.35 / 1.52 / 1.74 */
+SMG.prism=[.87,.862,.901,.93,.807];
 
 /* ---- the 3D rainbow: crystal shards racing out in a ring with height, and rays of colour bursting up and out ---- */
 const PRMQ={};PRMQ.tet=()=>PRMQ._t||(PRMQ._t=(()=>{const g=new THREE.TetrahedronGeometry(1,0);g.scale(.6,1.4,.6);return g;})());
@@ -29263,27 +29272,66 @@ function prmNova(x,z,y,COLS,S){prmLog({ev:'nova',S});const g=new THREE.Group();g
 
 /* ---- the masteries ---- */
 function prmStart(o,K){const C=prmC(o);if(!C)return null;const L=C.L,a=C.a,P=K.P,O=smO(o),COLS=K.COLS;prmLog({ev:'cast',L});
-  const seen=new Map(),burst=new Set(),blind=new Set(),ign=new Map();let ox=null,oz=null,moved=0;
+  const seen=new Map(),burst=new Set(),ign=new Map(),bells={set:new Set(),rung:false},hl={e:null,held:0,tick:0,g:null},hA=new THREE.Vector3(),hB=new THREE.Vector3();
   const fireO=smO(o,{el:'fire'});
   return{
     hit(e,i,fin){if(e.fake||e.dead)return;
       /* M1: the warm beams set foes alight; the cool beams (light) flare the burn through the Flare combo */
       if(L>=1&&i<3&&!((ign.get(e)||-9)>time-PRM.burnCd)){ign.set(e,time);applyBurn(e,P*PRM.burn*a[0]/2,2,fireO);prmLog({ev:'burn',e,i});const p=tpos2(e);sprayP(1,p.x,p.y,p.z,6,{c:0xffd070,c2:COLS[i],sp:.9,up:.8,s:.04,s2:0,life:.35,g:-.5});}
-      /* M3: the folding beams blind */
-      if(L>=3&&fin&&!blind.has(e)){blind.add(e);if(state==='playing'){smStun(e,PRM.blind);smSlow(e,PRM.blindSlow,PRM.blind+1.5);}prmLog({ev:'blind',e});prmHalo(e);}
+      /* M3: the folding beams set the foes ringing */
+      if(L>=3&&fin&&!bells.set.has(e)){bells.set.add(e);prmLog({ev:'ring',e});prmBell(e,bells);}
       /* M4: every colour once */
       if(L>=4&&!burst.has(e)){const s=(seen.get(e)||0)|(1<<i);seen.set(e,s);if(s===63){burst.add(e);mxLater(.05,()=>prmFull(e,P*PRM.full*a[3],O,COLS));}}},
-    /* M2: drift after the foes */
-    drift(dt,cx,cz,len){if(L<2)return null;if(ox===null){ox=cx;oz=cz;}let sx=0,sz=0,n=0;const R=Math.max(1.2,len)+.8;for(const e of enemies){if(e.dead||e.fake)continue;const d2=(e.x-cx)**2+(e.z-cz)**2;if(d2>R*R)continue;sx+=e.x;sz+=e.z;n++;}
-      if(!n)return null;let tx=sx/n,tz=sz/n;const dx=tx-cx,dz=tz-cz,dl=Math.hypot(dx,dz);if(dl<.05)return null;const st=Math.min(dl,PRM.drift*dt);let nx=cx+dx/dl*st,nz=cz+dz/dl*st;
-      const fx=nx-ox,fz=nz-oz,fl=Math.hypot(fx,fz);if(fl>PRM.driftMax){nx=ox+fx/fl*PRM.driftMax;nz=oz+fz/fl*PRM.driftMax;}moved=Math.hypot(nx-ox,nz-oz);if(PRM.dbg)PRM.last={moved};
-      if(rnd()<.5)emit(1,{x:nx+(rnd()-.5)*.3,y:gy(nx,nz)+.1,z:nz+(rnd()-.5)*.3,vx:dx/dl*.5,vy:.3,vz:dz/dl*.5,s:.05,s2:0,c:0xfff0c0,c2:0xffb040,life:.4});return{x:nx,z:nz};},
-    lance(cx,cz){if(L>=5)prmSunrise(cx,cz,P,a,O,COLS);},
+    /* M2: the seventh, white sunbeam: locked on the toughest foe under the wheel, it burns hotter the longer it holds */
+    helio(dt,cx,cz,py,len){if(L<2)return;const reach=Math.max(1.2,len)+.3;
+      if(hl.e&&(hl.e.dead||(hl.e.x-cx)**2+(hl.e.z-cz)**2>reach*reach)){prmLog({ev:'unlock',e:hl.e});hl.e=null;}
+      if(!hl.e){let b=null;for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-cx)**2+(e.z-cz)**2>reach*reach)continue;if(!b||e.hp>b.hp)b=e;}if(b){hl.e=b;hl.held=0;hl.tick=0;prmLog({ev:'lock',e:b});}}
+      if(!hl.g){hl.g=prmSunbeam();}const e=hl.e,G=hl.g;if(!e){G.k=Math.max(0,G.k-dt*4);G.set(null,null,G.k,0);return;}
+      hl.held+=dt;const heat=Math.min(1,hl.held/PRM.helioRamp);G.k=Math.min(1,G.k+dt*6);const p=tpos2(e);hA.set(cx,py+4.2,cz);hB.set(p.x,p.y,p.z);G.set(hA,hB,G.k,heat);
+      hl.tick+=dt;while(hl.tick>=PRM.helioTick){hl.tick-=PRM.helioTick;const rate=PRM.helio+(PRM.helioMax-PRM.helio)*heat;if(state==='playing'&&!e.dead)hurt(e,P*rate*PRM.helioTick*a[1],'magic',O);prmLog({ev:'helio',e,rate});}},
+    helioEnd(){if(hl.g)hl.g.end();},
+    lance(cx,cz){if(L>=5)prmSunrise(cx,cz,P,a,O,COLS);this.helioEnd();
+      /* M3: the lance's power runs through the ringing foes */
+      if(L>=3){bells.rung=true;const hitSet=new Set(),R=[...bells.set].filter(e=>!e.dead);prmLog({ev:'resonate',n:R.length});R.forEach((e,i)=>mxLater(.06+i*.03,()=>prmToll(e,P*PRM.res*a[2],O,hitSet)));}},
     frame(tt,dt){/* M4: the colours each foe has caught, circling it */if(L<4)return;for(const [e,s] of seen){if(e.dead||burst.has(e))continue;if(rnd()<.6){const p=tpos2(e);let k=Math.floor(rnd()*6);if(!(s&(1<<k)))continue;const b=time*5+k*1.047;emit(1,{x:p.x+Math.cos(b)*.25,y:p.y+.1,z:p.z+Math.sin(b)*.25,vx:0,vy:0,vz:0,s:.05,s2:0,c:COLS[k],c2:0xffffff,life:.15});}}}};}
-/* a ring of light flaring round a blinded foe's head */
-function prmHalo(e){const p=tpos2(e),g=new THREE.TorusGeometry(.2,.025,6,24),m=new THREE.MeshBasicMaterial({color:0xfff2c0,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false}),me=new THREE.Mesh(g,m);me.rotation.x=Math.PI/2;me.position.set(p.x,p.y+.18,p.z);scene.add(smTag(me));
-  addFx(me,.6,(f,dt)=>{const k=1-f.life/f.max;me.position.set(e.x,(e.y||0)+tpos2(e).y+.18,e.z);me.scale.setScalar(1+k*.6);m.opacity=.9*(1-k);me.rotation.z+=dt*4;},null,{mat:m,geo:g});
-  for(let i=0;i<4;i++){const b=i/4*6.28;emit(1,{x:p.x+Math.cos(b)*.2,y:p.y+.18,z:p.z+Math.sin(b)*.2,vx:Math.cos(b)*.6,vy:.4,vz:Math.sin(b)*.6,s:.06,s2:0,c:0xffffff,c2:0xffd060,life:.3});}}
+/* M2: the white sunbeam: it bends down out of the shaft of sunlight over the prism onto its foe, a white-hot core in a gold glow and a
+   cone of light narrowing onto it like sunlight through a lens, thickening and whitening as it heats; where it holds, a pool of light at
+   the foe's feet draws in to a point (a ring of light round it), and the foe burns (a glowing knot, sparks and smoke, a scorch growing) */
+function prmSunbeam(){const g=smTag(new THREE.Group());scene.add(g);if(!PRM.cg){PRM.cg=new THREE.CylinderGeometry(1,1,1,12,1,true);PRM.cg.translate(0,.5,0);PRM.kg=new THREE.CylinderGeometry(.12,1,1,20,1,true);PRM.kg.translate(0,.5,0);}
+  const mats=[],mk=(c,op)=>{const m=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});mats.push(m);return m;};
+  const core=new THREE.Mesh(PRM.cg,mk(0xffffff,0)),glow=new THREE.Mesh(PRM.cg,mk(0xffd890,0)),halo=new THREE.Mesh(PRM.cg,mk(0xffb050,0)),spot=new THREE.Mesh(ico(1,2),mk(0xfff4d0,0)),spot2=new THREE.Mesh(ico(1,2),mk(0xffa040,0));
+  /* and a cone of light narrowing from the prism to the foe, like sunlight through a lens, so it reads from above */
+  const lens=new THREE.Mesh(PRM.kg,mk(0xffe8a8,0)),ring=new THREE.Mesh(PRM.rg||(PRM.rg=new THREE.TorusGeometry(1,.06,6,32)),mk(0xffffff,0)),pool=new THREE.Mesh(ico(1,3),mk(0xffd880,0));ring.rotation.x=Math.PI/2;
+  [core,glow,halo,lens].forEach((m,i)=>{m.renderOrder=7+i;g.add(m);});g.add(spot,spot2,ring,pool);const up=new THREE.Vector3(0,1,0),d=new THREE.Vector3();let scorch=0,done=false;
+  const G={k:0,set(A,B,k,heat){if(!A){[core,glow,halo,lens,spot,spot2,ring,pool].forEach(m=>{m.material.opacity*=.8;});return;}d.subVectors(B,A);const l=d.length();d.normalize();
+      [core,glow,halo,lens].forEach(m=>{m.position.copy(A);m.quaternion.setFromUnitVectors(up,d);});const fl=.9+Math.random()*.2;
+      lens.scale.set(.3+.1*heat,l,.3+.1*heat);lens.material.opacity=(.14+.16*heat)*k;const gB=gy(B.x,B.z);ring.position.set(B.x,gB+.05,B.z);ring.scale.setScalar((.5-.3*heat)*(.95+.1*Math.sin(time*9)));ring.material.opacity=(.5+.4*heat)*k;
+      pool.position.set(B.x,gB+.02,B.z);pool.scale.set(.55-.32*heat,.06,.55-.32*heat);pool.material.opacity=(.22+.28*heat)*k;
+      core.scale.set(.02+.035*heat,l,.02+.035*heat);glow.scale.set((.06+.08*heat)*fl,l,(.06+.08*heat)*fl);halo.scale.set(.14+.12*heat,l,.14+.12*heat);
+      core.material.opacity=.95*k;glow.material.opacity=(.4+.3*heat)*k;halo.material.opacity=(.1+.12*heat)*k;glow.material.color.setHex(heat>.6?0xfff2d8:0xffd890);
+      spot.position.copy(B);spot2.position.copy(B);spot.scale.setScalar((.08+.12*heat)*fl);spot2.scale.setScalar((.18+.22*heat)*fl);spot.material.opacity=.9*k;spot2.material.opacity=(.25+.25*heat)*k;
+      if(rnd()<.6+heat)emit(1,{x:B.x+(rnd()-.5)*.12,y:B.y,z:B.z+(rnd()-.5)*.12,vx:(rnd()-.5)*.5,vy:.6+rnd()*.8+heat,vz:(rnd()-.5)*.5,s:.05+.03*heat,s2:0,c:0xffffff,c2:0xffa040,life:.35});
+      if(heat>.3&&rnd()<heat*.3)emitS(0,{x:B.x,y:B.y+.1,z:B.z,vx:(rnd()-.5)*.2,vy:.35,vz:(rnd()-.5)*.2,s:.08,s2:.3,c:0x5a5048,c2:0x2a2420,a:.3,life:1,lift:.2,turb:.4});
+      scorch-=1/60;if(heat>.4&&scorch<=0){scorch=.5;nsDecal(B.x,B.z,.16+.14*heat,0x1a1008,.4,2.5,{fout:1.2});nsDecal(B.x,B.z,.1+.08*heat,0xffc060,.5,.6,{add:true,fout:.5});}},
+    end(){if(done)return;done=true;let t=0;addFx(new THREE.Group(),.25,(f,dt)=>{t+=dt;const q=Math.max(0,1-t/.25);mats.forEach(m=>{m.opacity*=q;});});}};
+  addFx(g,30,(f)=>{if(done&&mats.every(m=>m.opacity<.01))f.life=0;},null,{mats});return G;}
+/* M3: a foe the folding beams cross rings like a struck bell: two hoops of gold light round it, humming (trembling in and out) until the lance */
+function prmBell(e,S){const g=smTag(new THREE.Group());scene.add(g);if(!PRM.bg)PRM.bg=new THREE.TorusGeometry(.24,.018,6,30);const mats=[],H=[];
+  for(let i=0;i<2;i++){const m=new THREE.MeshBasicMaterial({color:i?0xffd070:0xfff6e0,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(m);const r=new THREE.Mesh(PRM.bg,m);r.rotation.x=Math.PI/2;g.add(r);H.push(r);}
+  let t=0;addFx(g,3,(f,dt)=>{t+=dt;if(e.dead||S.rung||t>2){f.life=0;return;}const p=tpos2(e),hy=(e.hitY||.45);g.position.set(p.x,p.y-hy*.2,p.z);
+    H.forEach((r,i)=>{r.position.y=i*hy*.45;r.scale.setScalar((1+i*.15)*(1+.08*Math.sin(t*38+i*2))*Math.min(1,t/.08));mats[i].opacity=(.85-.3*i)*(.75+.25*Math.sin(t*25));});
+    if(rnd()<.35){const b=rnd()*6.28;emit(1,{x:p.x+Math.cos(b)*.26,y:g.position.y,z:p.z+Math.sin(b)*.26,vx:Math.cos(b)*.3,vy:.2,vz:Math.sin(b)*.3,s:.04,s2:0,c:0xfff6d0,c2:0xffc040,life:.25});}},null,{mats});}
+/* M3: the lance's power runs through a ringing foe into the foes beside it: the bell tolls (a ring of gold light swelling out of it), and a
+   ribbon of light leaps from it to each foe beside it */
+function prmToll(e,dmg,O,hitSet){if(e.dead)return;const p=tpos2(e),y=gy(e.x,e.z);const g=smTag(new THREE.Group());g.position.set(p.x,y+.15,p.z);scene.add(g);
+  const m=new THREE.MeshBasicMaterial({color:0xffe6a0,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false}),m2=m.clone();m2.color.setHex(0xffffff);
+  const r1=new THREE.Mesh(PRM.bg||(PRM.bg=new THREE.TorusGeometry(.24,.018,6,30)),m),r2=new THREE.Mesh(PRM.bg,m2);r1.rotation.x=r2.rotation.x=Math.PI/2;r2.position.y=.25;g.add(r1,r2);
+  addFx(g,.5,(f,dt)=>{const k=1-f.life/f.max;r1.scale.setScalar(1+k*4.5);r2.scale.setScalar(1+k*3);r2.position.y=.25+k*.4;m.opacity=.9*(1-k);m2.opacity=.7*(1-k);},null,{mats:[m,m2]});
+  sprayP(1,p.x,p.y,p.z,20,{c:0xffffff,c2:0xffc040,sp:1.8,up:.6,s:.05,s2:0,life:.45,g:1});const H=[];
+  for(const q of enemies.slice()){if(q===e||q.dead||q.fake||hitSet.has(q))continue;if((q.x-e.x)**2+(q.z-e.z)**2>PRM.resR*PRM.resR)continue;hitSet.add(q);H.push(q);const t=tpos2(q);
+    nsArc(new THREE.Vector3(p.x,p.y,p.z),new THREE.Vector3(t.x,t.y,t.z),{w:.9,br:1,life:.2,disp:.18,col:0xfff0b0,halo:0xffa030});if(state==='playing')hurt(q,dmg,'magic',O);
+    sprayP(1,t.x,t.y,t.z,10,{c:0xffffff,c2:0xffd060,sp:1.2,s:.04,s2:0,life:.3,g:1});}
+  prmLog({ev:'toll',e,L:H});}
 /* M4: the six colours burst out of a foe */
 function prmFull(e,dmg,O,COLS){if(e.dead||state!=='playing')return;const p=tpos2(e);hurt(e,dmg,'magic',O);prmLog({ev:'full',e});prmNova(p.x,p.z,p.y-.25,COLS,.35);flash(p.x,p.y,p.z,0xffffff,.25,.1);}
 /* M5: the light rises, and a pillar of sunrise comes down */
