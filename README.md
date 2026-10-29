@@ -1673,3 +1673,31 @@ The Epic and Legendary stages use tougher foes (30 times the spell power, agains
 New in the recorder: `towers` beside the road, foes at a fraction of their health (`frac`), foes that walk in later (`enter`), clips that start later (`from`) or run longer (`cap`), clips centred on a mastery's moment (`focus`: the Storm Front, the Last Thunder, Chronostasis' collapse, Downpour's arcs), a script run every frame on the stage (`tick`: a storm cloud steered over the pack for Downpour), `epic` and `legendary` on the command line (`node tools/previews/record.js epic legendary`), and loading the recorder from another script records nothing (only running it does).
 
 - Tests: `tests/pvc-test.js` checks that every Epic and Legendary scroll has its six clips and that an Epic scroll's card plays its clip in developer mode; the live preview of a scroll without clips is now checked with the Comet's clips put aside (also in `tests/smprev-test.js`, which used the Comet as the scroll without clips).
+
+## Rite of the Phoenix: White-Hot and From the Ashes (v440)
+After Simon's review of the Epic masteries, two of the Phoenix's are replaced. Rising Heat (7% more per foe struck before, up to 5) was hard to read, and Rebirth (the phoenix reborn from a pyre to skim and dive again) played like a second cast.
+
+| Mastery | Was | Now |
+|---|---|---|
+| 1 | Rising Heat: each strike +7% for every foe struck before it (up to 5) | **White-Hot**: each strike stokes its fire (the bird grows a little, runs paler); its 5th strike sets it white-hot in a flash of white fire. From then on it is a third larger and white, its strikes deal 40% more and its river of fire burns 50% hotter |
+| 5 | Rebirth: reborn from a pyre, skims for 15% a foe, dives for 50% | **From the Ashes**: the death burst rains ashes on every foe it struck that still stands (a ring of smouldering coals at their feet for 4s). A foe that dies with ashes on it is reborn as a small firebird that dives at the nearest foe within 4 tiles for 60% and spreads the ashes to it (up to 6 a cast) |
+
+Like a match and a fuse: White-Hot is one moment you can see (the fifth strike), and From the Ashes lights a fuse on every foe the phoenix touched, so the kills it sets up keep paying out instead of it flying again.
+
+- The ashes are put on at once (a falling ember shows them landing); a firebird's foe gets the ashes before its 60% lands, so a foe it kills is reborn in turn. The firebirds are built from the phoenix model at 0.42 scale, gold, rising from a 3D fire burst and diving into another.
+- Power on the Epic ladder (6 runs): 1.09 / 1.24 / 1.35 / 1.52 / 1.70 at a Mastery 5 factor of 1.1, now 1.125 (targets 1.094 / 1.234 / 1.35 / 1.522 / 1.742). Hidden factors `SMG.phoenix` = 1.017 / 1.032 / 1.016 / 1.055 / 1.125.
+- Tests: `tests/phm-test.js` (39 rows): the 5th strike and only the 5th sets it white-hot, 40% on strikes 5 on and none before, the river at 150% after; ashes on the foes struck and no others, a firebird from a marked death only, at the nearest foe for 60%, the chain (a foe the firebird kills is reborn), the 6 cap, the 4s limit, no target within 4 tiles, nothing left behind.
+
+## Spatial Loop: Turned Around (v441)
+After Simon's review, Mastery 1 is replaced. Long Fold made the fold always reach 8 tiles back, a number change you could not see in play.
+
+| Mastery | Was | Now |
+|---|---|---|
+| 1 | Long Fold: the fold always reaches 8 tiles back | **Turned Around**: a foe the fold sends back comes out walking the wrong way, back up the road, for 1.2s (bosses 0.5s, Resolve applies) |
+
+Like a revolving door that spins you out facing the street you came from: the fold already sends them back, and now they keep going back for a moment before they realise.
+
+- How it works: `e.revT` is a new foe state in `moveEnemy`: while it is above 0 the foe's step along the road is reversed and it faces back up the road. The fold's hop sets it (`lpmCast`, `S.hop`), and it is paid for from the Resolve budget like a hold of the same length (`rsvLeft`, `rsvSpend`): a fresh foe walks back 1.2s, a foe with less Resolve left walks back for what is left, and an Unstoppable foe walks on.
+- The look (`lpmTurn`): a U-turn arrow of folded light (a 3D tube bent through three-quarters of a circle with a cone for its head, in a soft glow) circles the foe's waist, tilting as it chases its own head round, with shards of space trailing it and glints streaming off toward the keep. It grows in and shrinks away with the turn. The seam still shows as a curtain of folded light, and the fold reaches 3 to 8 tiles back again, at random.
+- The loop deals no damage, so it stays off the ladder (factors 1).
+- Tests: `tests/lpm-test.js` (31 rows): a foe comes out walking back for 1.2s, faces back up the road, walks on afterwards; it costs 1.2s of Resolve; a boss 0.5s; an Unstoppable foe walks on; no damage; nothing left behind; no turn at Mastery 0.

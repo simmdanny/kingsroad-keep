@@ -20,20 +20,26 @@ const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return
 /* a lead walking slowly, and a pack behind it walking fast enough to go round the loop more than once in 10s */
 const pack=()=>{const D=Math.min(12,ROUTES[0].len-6),A=foe(D,.05),B=foe(D-2,2.6),C=foe(D-3,2.6,.2),E=foe(D-5,2.6,-.2);return{A,B,C,E,F:[B,C,E]};};
 try{
-  ok('the five masteries: Long Fold, Shear, Groundhog Lap, Displaced, Snapback',SM_D.loop.map(x=>x.n).join('|')==='Long Fold|Shear|Groundhog Lap|Displaced|Snapback',SM_D.loop.map(x=>x.n).join('|'));
-  ok('the numbers on the card are the ones in the code (8 tiles, 40%, 50%, 15%, 120% / 40%)',/8 tiles/.test(smDesc('loop',0))&&/40%/.test(smDesc('loop',1))&&/50%/.test(smDesc('loop',2))&&/15%/.test(smDesc('loop',3))&&/120%/.test(smDesc('loop',4))&&/40%/.test(smDesc('loop',4))
-    &&LPM.backMax===8&&LPM.sh===.4&&LPM.lap===.5&&LPM.dp===.15&&LPM.dpT===3&&LPM.sb===1.2&&LPM.sbLap===.4);
+  ok('the five masteries: Turned Around, Shear, Groundhog Lap, Displaced, Snapback (v441)',SM_D.loop.map(x=>x.n).join('|')==='Turned Around|Shear|Groundhog Lap|Displaced|Snapback',SM_D.loop.map(x=>x.n).join('|'));
+  ok('the numbers on the card are the ones in the code (1.2s / 0.5s, 40%, 50%, 15%, 120% / 40%)',/1\.2s/.test(smDesc('loop',0))&&/0\.5s/.test(smDesc('loop',0))&&/40%/.test(smDesc('loop',1))&&/50%/.test(smDesc('loop',2))&&/15%/.test(smDesc('loop',3))&&/120%/.test(smDesc('loop',4))&&/40%/.test(smDesc('loop',4))
+    &&LPM.rev===1.2&&LPM.revB===.5&&LPM.sh===.4&&LPM.lap===.5&&LPM.dp===.15&&LPM.dpT===3&&LPM.sb===1.2&&LPM.sbLap===.4);
   ok('the old masteries are gone (no hooks); the loop deals no damage, so its factors stay 1 (not SM.free)',!SMF.loop.hit&&!SMF.loop.cast&&SMA.loop.every(x=>x===1)&&SMG.loop.every(x=>x===1)&&!(SM.free&&SM.free.loop));
   /* ---- Mastery 0 ---- */
   {play();LPM.dbg=[];log=[];const P=pack();const added=track();wrapHurt();try{cast(0);run(11.5);}finally{hurt=H0;scene.add=S0;setL(0);}const fd=ev('fold')[0];
     ok('Mastery 0: the same fold (3 to 8 tiles back, at random) and the pack is sent back through it',fd&&[3,3.5,4,5,5.5,6,7,8].some(v=>near(v,fd.back))||fd&&near(fd.back,fd.dD-.8),fd&&fd.back);
-    ok('Mastery 0: no damage, no seam, no mastery events',!log.length&&!ev('hop').length&&!added.some(o=>o.userData&&o.userData.sm),log.length);}
-  /* ---- M1 Long Fold ---- */
-  {play();LPM.dbg=[];log=[];const P=pack();const added=track();wrapHurt();try{cast(1);run(4);const fd=ev('fold')[0];
-      ok('M1: the fold reaches back 8 tiles (or as far as the road allows)',fd&&near(fd.back,Math.min(8,fd.dD-.8)),fd&&fd.back+' of '+fd.dD.toFixed(1));
-      ok('M1: its seam shows (a curtain of folded light)',added.some(o=>o.userData&&o.userData.sm));
-      ok('M1: still no damage',!log.length&&ev('hop').length>0&&ev('hop').every(d=>!d.sh&&!d.lap&&!d.dp),ev('hop').length+' hops');run(8);
-      ok('M1: the seam goes with the fold',smLeft(added)===0,smLeft(added));}finally{hurt=H0;scene.add=S0;setL(0);}}
+    ok('Mastery 0: no damage, no seam, no mastery events, nobody turned around',!log.length&&!ev('hop').length&&!added.some(o=>o.userData&&o.userData.sm)&&!enemies.some(e=>e.revT>0),log.length);}
+  /* ---- M1 Turned Around ---- */
+  {play();LPM.dbg=[];log=[];const P=pack();const added=track();wrapHurt();
+    try{cast(1);let h1=null,i=0;while(!h1&&i++<200){run(.05);h1=ev('hop').find(d=>d.e===P.B);}const d1=P.B.dist,r1=P.B.rsv||0;run(.6);const d2=P.B.dist,face=Math.cos(P.B.g.rotation.y-posAt(P.B.dist,P.B.route)[2]);run(.8);const d3=P.B.dist,rv0=!(P.B.revT>0);run(.3);const d4=P.B.dist;
+      ok('M1: a foe the fold sends back comes out walking the wrong way for 1.2s',h1&&near(h1.rev,1.2,.01)&&d2<d1-.5&&rv0&&d4>d3+.3,h1&&[h1.rev.toFixed(2),d1.toFixed(2),d2.toFixed(2),d3.toFixed(2),d4.toFixed(2)].join(' '));
+      ok('M1: it faces back up the road while it does',face<-.9,face.toFixed(2));
+      ok('M1: it costs Resolve like a hold of 1.2s',near(r1,1.2,.01),r1);
+      ok('M1: its seam shows (a curtain of folded light), and a loop of light spins round a turned foe',added.filter(o=>o.userData&&o.userData.sm).length>=2);
+      run(3);ok('M1: still no damage',!log.length&&ev('hop').length>0&&ev('hop').every(d=>!d.sh&&!d.lap&&!d.dp),ev('hop').length+' hops');run(8);
+      ok('M1: the seam and the loops go with the fold',smLeft(added)===0,smLeft(added));}finally{hurt=H0;scene.add=S0;setL(0);}}
+  {play();LPM.dbg=[];const P=pack();P.B.boss=true;P.C.unstopT=30;P.C.rsv=2;cast(1);run(4);setL(0);const hb=ev('hop').find(d=>d.e===P.B),hc=ev('hop').find(d=>d.e===P.C);
+    ok('M1: a boss walks back only 0.5s, and an Unstoppable foe comes out walking on',hb&&near(hb.rev,.5,.01)&&hc&&hc.rev===0,hb&&hb.rev+' / '+(hc&&hc.rev));}
+  {play();LPM.dbg=[];const P=pack();cast(0);run(4);setL(0);ok('Mastery 0: foes come out walking on',!enemies.some(e=>e.revT>0)&&!(P.B.rsv>0));}
   /* ---- M2 Shear ---- */
   {play();LPM.dbg=[];log=[];const P=pack();wrapHurt();try{cast(2);run(11.5);}finally{hurt=H0;setL(0);}const hp=ev('hop');
     ok('M2: every time the fold sends a foe back it takes 40%',hp.length>=3&&P.F.every(e=>hits(e,40).length===hp.filter(d=>d.e===e).length)&&hp.every(d=>d.sh),hp.length+' hops');
