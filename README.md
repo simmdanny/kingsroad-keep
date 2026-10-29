@@ -1701,3 +1701,30 @@ Like a revolving door that spins you out facing the street you came from: the fo
 - The look (`lpmTurn`): a U-turn arrow of folded light (a 3D tube bent through three-quarters of a circle with a cone for its head, in a soft glow) circles the foe's waist, tilting as it chases its own head round, with shards of space trailing it and glints streaming off toward the keep. It grows in and shrinks away with the turn. The seam still shows as a curtain of folded light, and the fold reaches 3 to 8 tiles back again, at random.
 - The loop deals no damage, so it stays off the ladder (factors 1).
 - Tests: `tests/lpm-test.js` (31 rows): a foe comes out walking back for 1.2s, faces back up the road, walks on afterwards; it costs 1.2s of Resolve; a boss 0.5s; an Unstoppable foe walks on; no damage; nothing left behind; no turn at Mastery 0.
+
+## Cataclysm: Standing Stones and Shrapnel (v442)
+After Simon's review, two Cataclysm masteries are replaced.
+
+| Mastery | Was | Now |
+|---|---|---|
+| 1 | Drawn Down: one pillar rises under the toughest foe | **Standing Stones**: seven rune-carved standing stones rise early (from 0.55s) in a ring at the rune's edge, with void lightning crackling from stone to stone. Ground foes inside when the ring closes are fenced in until the collapse: one that reaches the stones is held there (Resolve applies; one with no Resolve left breaks out). Bosses push through |
+| 4 | Sundered: physical hits deal 25% more for 5s | **Shrapnel**: foes the collapse hits are studded with four obsidian shards for 5s. Each tower or hero attack on a studded foe knocks a shard into the nearest other foe within 1.5 tiles for 20% (up to 4 a foe) |
+
+Like a sheepdog and a pinata: the stones keep the flock where the sky will land, and every arrow that hits a studded foe knocks a shard into its neighbour.
+
+- One change from the plan: the table said the pillars would rise in the ring. Moved to the edge, the eight obsidian pillars struck mostly empty ground and the cast lost a fifth of its damage (0.80 of Mastery 0 on the ladder, against a target of 1.09). So the ring is seven separate standing stones (grey, rune-carved, no damage, crumbling back into the ground after the collapse), and the pillars rise inside as before (Falling Sky, Obsidian Chains and World Breaker still use them).
+- What counts for Shrapnel (`ccmAtk`): a hit whose source is a tower or the hero, that is not a scroll, a burn or a mastery hit. A shard flies as a spinning splinter of black glass (0.2s) and bursts in a small 3D void blast; the four shards stuck in the foe go one by one.
+- Power on the Epic ladder (4 runs): 1.12 / 1.23 / 1.34 / 1.53 / 1.73 (targets 1.094 / 1.234 / 1.35 / 1.522 / 1.742). Hidden factors `SMG.cataclysm` = 1.094 / 1.089 / 1.157 / 1.325 / 1.244. The stones and the shards deal nothing on the ladder (its foes stand still and no towers fire), so the factors carry them.
+- Tests: `tests/ccm-test.js` (38 rows): the stones in an even ring at the edge, up within 0.9s, no damage, gone afterwards; walking foes fenced in, held at the stones, a boss and a flyer walking out, an Unstoppable foe breaking out; studs for 5s; a tower hit and a hero attack each knock a shard into the nearest foe for 20%; scrolls, burns and mastery hits do not; 4 at most; no neighbour, no shard; nothing after 5s.
+
+## Thunder Wyrm: Snap, and a clearer Grounding Strike (v443)
+
+| Mastery | Was | Now |
+|---|---|---|
+| 2 | Hunter's Weave: slower in packs, faster on empty road, swaying toward foes | **Snap**: as it weaves, its head lunges at foes within 1.2 tiles (jaws wide, eyes burning amber) and snaps shut: 80% and Charged. Foes it has not lashed come first, then the nearest; each foe once a cast |
+| 4 | Grounding Strike: lash marks (sparks), plus 1 for a foe Charged by anything else | **Grounding Strike**: each lash rings its foe with a gold hoop of lightning (up to 3, at waist, chest and head); the strike forks to every ringed foe within 4 tiles for 35% per ring. Only its own lashes count |
+
+- The lunge takes 0.18s and the weave goes on under it, so it snaps on the move. Constrict judges its reach from the serpent's path, not the lunging head, and a lunge in progress gives way when Constrict seizes a foe.
+- Power on the Epic ladder (5 runs) at the old factors: 1.10 / 1.27 / 1.28 / 1.45 / 1.65; the hidden factors are now `SMG.wyrm` = 0.95 / 1.07 / 0.908 / 0.946 / 0.911 (targets 1.094 / 1.234 / 1.35 / 1.522 / 1.742).
+- The rings (`wymRings`) are 3D hoops that spin against each other and flicker, flare and go when the strike grounds through them (or the foe dies).
+- Tests: `tests/wym-test.js`: snaps at 80% each, once per foe, none out of reach, Charged, during the weave, reaching a foe a tile off the road; Grounding Strike counts its own lashes only (a foe Charged by something else is not grounded); Constrict's test now puts its toughest foe where the head is (it used to rely on Hunter's Weave slowing the head in the pack).

@@ -58,7 +58,8 @@ try{
   {play();LPM.dbg=[];log=[];const P=pack();const added=track();wrapHurt();try{cast(5);run(10.9);const sn=ev('snap')[0],fd=ev('fold')[0];
       ok('M5: when the loop ends the looped road snaps back',sn&&sn.L.length>0,sn&&sn.L.length);
       ok('M5: 120% to each foe on the stretch plus 40% a lap it walked',sn&&sn.L.every(q=>log.some(h=>h.e===q.e&&h.smx&&near(h.amt,120+40*q.n))),sn&&sn.L.map(q=>q.n).join(''));
-      ok('M5: only foes on the looped stretch',sn&&sn.L.every(q=>q.e.dist>=fd.dB-.7&&q.e.dist<=fd.dD+.7));
+      {const off=q=>{let m=1e9;for(let d=fd.dB;d<=fd.dD+1e-6;d+=.05){const p=posAt(d,ROUTES[0]);m=Math.min(m,Math.hypot(q.x-p[0],q.z-p[1]));}return m;};
+        ok('M5: only foes on the looped stretch (on the ground, where they stood when it hit them)',sn&&sn.L.every(q=>off(q)<LPM.sbW+.05),sn&&sn.L.map(q=>off(q).toFixed(2)).join());}
       ok('M5: the laps the snap counts are the laps it walked',sn&&sn.L.every(q=>q.n===ev('hop').filter(d=>d.e===q.e).length));
       run(2);ok('M5: nothing is left behind',smLeft(added)===0&&!LPM.cur,smLeft(added));}finally{hurt=H0;scene.add=S0;setL(0);}}
   {play();LPM.dbg=[];const P=pack();cast(4);run(11.5);setL(0);ok('M5 needs Mastery 5',!ev('snap').length);}
