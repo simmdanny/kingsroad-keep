@@ -11061,8 +11061,12 @@ function anim(dt,rt){
 }
 let errToastT=0;window.addEventListener('error',ev=>{const n=performance.now();if(n-errToastT<4000)return;errToastT=n;try{toast('Error: '+String(ev.message).slice(0,90),'bad');}catch(_){}});
 let last=performance.now(),uiT=0,saveT=0,lastPz=false;
+/* (also while a preview clip plays over a paused battle: the world behind stands still then) */
+const hideWorld=()=>(!$('#home').hidden&&!CAM.gal&&!(typeof OW!=='undefined'&&OW.on))||(typeof PVC!=='undefined'&&PVC.el&&!PVC.el.hidden&&!(state==='playing'&&!paused));
 function frame(now){
   requestAnimationFrame(frame);
+  /* v438: the live-preview copy of the game (an iframe) sleeps while no preview is showing, instead of drawing its arena unseen */
+  if(SMPV.mode&&!SMPV.on){last=now;return;}
   const rdt0=Math.min(batDt(),(now-last)/1000);last=now;const pz=state==='playing'&&paused,rdt=pz?0:rdt0;
   if(pz!==lastPz){lastPz=pz;try{if(typeof SFX!=='undefined'&&SFX.ctx)pz?SFX.ctx.suspend():SFX.ctx.resume();}catch(e){}}
   if(state==='playing'&&!paused){{const sw=Math.floor(speed),sf=speed-sw;for(let i=0;i<sw;i++)update(rdt*worldSlow);if(sf>1e-3)update(rdt*worldSlow*sf);}if(!enemies.length&&!spawners.length&&moon)moon=null;}
@@ -11072,12 +11076,15 @@ function frame(now){
   uiT+=rdt;if(uiT>.15&&state==='playing'){uiT=0;updHud();updSpells();updScrollBar();if(sel||buildTile)refreshSheet();}
   saveT+=rdt;if(saveT>10){saveT=0;if(metaDirty)saveMeta();}
   updPlaceUI(now);
-  if(!$('#home').hidden&&curTab==='battle')drawPreview(now);
-  if(!$('#home').hidden&&curTab==='heroes')renderPreview(rdt);
+  const pvOn=typeof PVC!=='undefined'&&PVC.el&&!PVC.el.hidden;/* (the menu previews under a playing clip wait: the window over them blurs what is behind it) */
+  if(!$('#home').hidden&&curTab==='battle'&&!pvOn)drawPreview(now);
+  if(!$('#home').hidden&&curTab==='heroes'&&!pvOn)renderPreview(rdt);
   const shk=meta.shake===false?0:camShake*SPACE_K,shx=(rnd()-.5)*shk,shy=(rnd()-.5)*shk;camera.position.x+=shx;camera.position.y+=shy;
   bmAtmos(rdt);sfAtmos(rdt);galFrame(now/1000);if(OW.on){owFrame();owView();}
-  if(LENS.on)lensRender();else if(DOM.post&&DOM.post.on)DOM.post.render();else if(SDP.n>0)sdpRender();else renderer.render(scene,camera);
-  if(SGL.n>0)sglPass();
+  /* v438: the menus cover the whole map (an opaque background): drawing the world behind them every frame only took the time a mastery preview
+     clip needs to play smoothly (and the overlays blur what is behind them). The last frame stays on the canvas; it draws again on leaving. */
+  if(!hideWorld()){if(LENS.on)lensRender();else if(DOM.post&&DOM.post.on)DOM.post.render();else if(SDP.n>0)sdpRender();else renderer.render(scene,camera);}
+  if(SGL.n>0&&!hideWorld())sglPass();
   camera.position.x-=shx;camera.position.y-=shy;
 }
 
@@ -14168,7 +14175,8 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
 const CLOG=[
   {t:'Mastery previews load ahead',d:'29 Oct',v:'v438',li:[
     'The preview clips of the scrolls you own now download in the background a moment after the game opens, so hovering a mastery plays its clip at once instead of stuttering while it streams.',
-    'A clip that is not downloaded yet is never streamed: a loading ring shows for a moment, then it plays smoothly from memory.']},
+    'A clip that is not downloaded yet is never streamed: a loading ring shows for a moment, then it plays smoothly from memory.',
+    'While a clip plays nothing else competes with it: the map is no longer drawn behind the menus (they cover it completely), the map preview under the clip waits, and the hidden copy of the game that runs the live previews sleeps when no live preview is showing (it used to keep drawing unseen once one had been opened).']},
   {t:'Hundred-Year Bloom masteries, redesigned',d:'28 Oct',v:'v437',li:[
     'Hundred-Year Bloom (Legendary) has five new masteries, for now in developer mode: Scent of Nectar (while the bud opens, golden scent streams out and draws foes up to 3.5 tiles away into the flower), Vine Lattice (thorned vines tie the held foes together, and a quarter of any other hit on one runs along them to the rest), Petal Storm (the burst throws 16 razor petals that whirl out and slice into the foes), Golden Haze (the pollen cloud is wider and thicker and drifts down the road with the foes in it) and A Hundred Years in a Breath (the fading flower goes to seed: ten glowing seeds drift onto the foes and sprout small blooms that grab them and burst).',
     'Its burst now billows up as a golden cloud of pollen in 3D, and the shaft of light over it fades as it rises instead of standing as a flat white bar over the foes.']},

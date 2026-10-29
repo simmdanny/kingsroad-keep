@@ -59,6 +59,15 @@ try{
     ok('opening a scroll\u2019s mastery card fetches its clips, so they play from memory',[0,1,2,3,4,5].every(L=>/^blob:/.test(pvcUrl('thornwhip',L)||'')),pvcUrl('thornwhip',5));close();}
   {const keep={man:PVC.man,load:PVC.load,base:PVC.base};PVC.man=null;PVC.load=null;const f0=window.fetch;window.fetch=()=>Promise.reject(new Error('offline'));
     try{pvcMan();await PVC.load;ok('offline (no clip list) the masteries keep the live preview',!pvcHas('hexspark',1)&&PVC.man===null);}finally{window.fetch=f0;PVC.man=keep.man;PVC.load=keep.load;PVC.base=keep.base;}}
+  /* v438 (Simon: "still laggy"): nothing else draws while a clip plays: the map is not drawn behind the menus (they cover it), the menu
+     previews under a playing clip wait, and the live preview's copy of the game sleeps while no live preview is showing */
+  {const h0=$('#home').hidden;$('#home').hidden=false;const hw=hideWorld();$('#home').hidden=true;const pl=hideWorld();$('#home').hidden=h0;
+    pvcShow('hexspark',1,null);let dp=0;const d0=drawPreview;drawPreview=function(){dp++;return d0.apply(this,arguments);};const t0=curTab;curTab='battle';const hh=$('#home').hidden;$('#home').hidden=false;
+    await wait(300);drawPreview=d0;curTab=t0;$('#home').hidden=hh;pvcHide(true);
+    ok('the map is not drawn behind the menus (they cover it), and drawn in battle',hw&&!pl,JSON.stringify([hw,pl]));
+    ok('the battle tab’s map preview waits while a clip plays over it',dp===0,dp+' draws');}
+  {const r=await (await fetch(location.href)).text();const n=(r.match(/if\(SMPV\.mode&&!SMPV\.on\)\{last=now;return;\}/g)||[]).length;
+    ok('the live preview’s copy of the game sleeps while no live preview shows',n===1&&SMPV.mode===false,n);}
   ok('no errors',errs===0,errs);
 }catch(e){ok('threw',false,e.stack);}
 finally{console.error=ce;try{close();pvcHide(true);}catch(e){}meta=migrateMeta(JSON.parse(m0));meta.dev=dev0;saveMeta();}
