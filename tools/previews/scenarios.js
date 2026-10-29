@@ -121,7 +121,7 @@ const S = {
   loop: {
     /* the fold sends the foes that reach it back up the road: they walk briskly, and the view follows them round */
     base: { dbg: 'LPM', spd: 1.0, follow: 'foes', len: 7, zmax: 1.05 },
-    1: { note: 'The fold always reaches 8 tiles back: the foes that reach it walk out far up the road.' },
+    1: { probe: "LPM.dbg.some(d=>d.ev==='hop'&&d.rev>0)", note: 'Foes the fold sends back come out turned around and walk the wrong way for a moment, a U-turn of light circling them.' },
     2: { note: 'Each foe the fold sends back is sheared where it goes in and where it comes out.' },
     3: { spd: 1.7, len: 10.2, note: 'Fast foes, so they go round the 8-tile loop more than once: each lap hurts more.' },
     4: { towers: [{ t: 'archer', at: -5 }, { t: 'archer', at: -1, side: -1 }], note: 'Archer towers shoot the foes the fold sent back: they take more from everything for 3s.' },
@@ -133,16 +133,17 @@ const S = {
     5: { pack: swap(2, TOUGH({ tag: 'Strongest' })), note: 'A pillar of light falls on the strongest foe it pierced, the ram.' } },
   cataclysm: {
     base: { dbg: 'CCM' },
-    1: { pack: swap(4, TOUGH()), note: 'The ram is the toughest foe inside the rune: a pillar rises right under it.' },
-    4: { towers: [{ t: 'archer', at: .4 }, { t: 'cannon', at: -1.2, side: -1 }], len: 7, note: 'An archer tower and a cannon hit the Sundered foes harder.' },
+    1: { spd: .45, probe: "CCM.dbg.some(d=>d.ev==='fence')", note: 'Seven standing stones rise in a ring at the rune\u2019s edge: the foes walking through are fenced in until the sky falls.' },
+    4: { towers: [{ t: 'archer', at: .4 }, { t: 'cannon', at: -1.2, side: -1 }], len: 7, probe: "CCM.dbg.some(d=>d.ev==='shrap')", note: 'The foes the collapse hits are studded with obsidian: each tower hit knocks a shard into the foe beside it.' },
     5: { pack: swap(4, TOUGH()).concat([TOUGH({ t: 'knight', hp: 34, at: 2.3, off: .1, tag: 'Tough' })]), probe: "CCM.dbg.some(d=>d.ev==='wb')", note: 'The pillars spin up and slam down on the toughest foes nearby.' } },
   phoenix: {
     base: { dbg: 'PHM' },
-    1: { pack: BIG, note: 'Eleven foes: each one it strikes makes it bigger and hotter.' },
+    1: { pack: BIG, probe: "PHM.dbg.some(d=>d.ev==='white')", note: 'Eleven foes: its fifth strike sets it white-hot, a third bigger, and it burns hotter from then on.' },
     2: { note: 'As it climbs away a front of flame races back along its river of fire.' },
     3: { pack: swap(3, TOUGH()), probe: "PHM.dbg.some(d=>d.ev==='feather')", note: 'Its burst becomes burning feathers that dart at the foes it struck, the toughest (the ram) first.' },
     4: { probe: "PHM.dbg.some(d=>d.ev==='pyre')", note: 'Its fire erupts on foes that are already burning.' },
-    5: { probe: "PHM.dbg.some(d=>d.ev==='reborn')", note: 'Reborn from a pyre, larger and golden, it skims the road and dives where the foes are thickest.' } },
+    /* four foes low enough to fall to the feathers soon after the burst, two whole ones for the firebirds to dive at */
+    5: { pack: PACK.map((p, j) => j < 4 ? Object.assign({}, p, { hp: 30, frac: .22, tag: 'Low HP', tc: TAG.hp1 }) : p), cap: 10.5, probe: "PHM.dbg.filter(d=>d.ev==='firebird'&&d.hit).length>=2", note: 'Its death burst rains ashes on the foes it struck: each that dies is reborn as a firebird that dives at the next.' } },
   comet: {
     base: { dbg: 'FCM' },
     1: { spd: .8, note: 'The pack walks briskly: the comet steers onto where it will be.' },
@@ -151,19 +152,20 @@ const S = {
     5: { pack: PACK.concat([TOUGH({ at: 2.6, off: 0 })]), probe: "FCM.dbg.some(d=>d.ev==='rebound')", note: 'The heart bursts out of the crater and smashes into the toughest foe nearby, the ram.' } },
   wyrm: {
     base: { dbg: 'WYM' },
-    2: { pack: PACK.slice(0, 3).concat(PACK.slice(3).map(p => Object.assign({}, p, { at: p.at - 2.4 }))), note: 'Two knots of foes with empty road between: it lingers in each and darts across the gap.' },
+    2: { probe: "WYM.dbg.some(d=>d.ev==='snap')", note: 'As it weaves, its head lunges and snaps shut on the foes within reach.' },
     3: { pack: swap(2, TOUGH()), probe: "WYM.dbg.some(d=>d.ev==='squeeze')", note: 'It seizes the toughest foe near its head, the ram, and squeezes it.' },
-    4: { probe: "WYM.dbg.some(d=>d.ev==='ground')", note: 'Each lash leaves a charge mark; its strike grounds through every marked foe.' } },
+    4: { probe: "WYM.dbg.some(d=>d.ev==='grounded')", note: 'Each lash rings its foe with lightning; its strike forks to every ringed foe.' } },
   prism: {
     base: { dbg: 'PRM' },
-    2: { spd: .55, note: 'The pack walks on: the prism drifts after it.' },
+    2: { pack: swap(3, TOUGH()), probe: "PRM.dbg.some(d=>d.ev==='lock')", note: 'A seventh, white sunbeam locks onto the toughest foe, the ram, and burns hotter the longer it holds.' },
+    3: { probe: "PRM.dbg.some(d=>d.ev==='toll')", note: 'The folding beams set the foes ringing like bells: the lance\u2019s power runs through them into the foes beside them.' },
     4: { probe: "PRM.dbg.some(d=>d.ev==='full')", note: 'Foes swept by all six colours burst with them.' } },
   treant: {
     /* the oak walks for 10s (it is not an effect the recorder counts): every clip holds it */
     base: { dbg: 'TRM', minLen: 9.5, zmin: .66 },
-    2: { spd: .55, note: 'The foes walk into the oak and are held against its bark.' },
+    2: { spd: .55, probe: "TRM.dbg.some(d=>d.ev==='ram')", note: 'The foes walk into the oak: it lowers its trunk and charges through them, throwing them to the sides of the road.' },
     3: { trail: [{ t: 'soldier', at: -3.1, off: .1 }, { t: 'peasant', at: -3.4, off: -.15 }, { t: 'soldier', at: -3.7, off: .05 }, { t: 'knight', at: -4.0, off: -.05 }], probe: "TRM.dbg.some(d=>d.ev==='boulder'||d.ev==='hurl')", note: 'A second knot of foes further back: every third slam it hurls a boulder at it.' },
-    4: { also: [{ k: 'roots', at: .25 }], probe: "TRM.dbg.some(d=>d.ev==='sap')", note: 'Entangling Roots first: the foes are Overgrown, and the oak drains them and grows.' },
+    4: { also: [{ k: 'roots', at: .25 }], probe: "TRM.dbg.some(d=>d.ev==='grove')", note: 'Entangling Roots first: each Overgrown foe it slams adds a growth ring; at four, its next slam is a Grove Slam.' },
     5: { cap: 12.5, probe: "TRM.dbg.some(d=>d.ev==='timber')", note: 'At the end of its 10 seconds it topples forward along the road.' } },
   compress: {
     base: { dbg: 'CPM', cap: 11.3 },

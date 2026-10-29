@@ -288,6 +288,7 @@ if (require.main === module) (async () => {
         const sz = fs.statSync(path.join(OUT, id + '.mp4')).size;
         man.clips[id] = { k, L, len: +r.len.toFixed(2), seed, bytes: sz, note: s.note || '' };
         if (Object.keys(r.evs || {}).length) man.clips[id].ev = r.evs;
+        fs.writeFileSync(manPath, JSON.stringify(man, null, 1));   /* after every clip, so a run that is stopped keeps what it recorded */
         if (!r.probe) fails.push(id + ' (its probe never came true: ' + s.probe + ')');
         if (!keep) fs.rmSync(fd, { recursive: true, force: true });
         console.log(`[${++done}/${list.length}] ${id} ${r.len.toFixed(1)}s ${(sz / 1024).toFixed(0)} KB seed ${seed}${r.probe ? '' : ' PROBE FAILED'}${Object.keys(r.evs || {}).length ? ' ' + JSON.stringify(r.evs) : ''}${P.errors.length ? ' errors: ' + P.errors.splice(0).slice(0, 2).join(' | ') : ''}`);

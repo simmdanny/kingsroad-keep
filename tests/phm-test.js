@@ -16,7 +16,7 @@ const cast=(L,lead)=>{setL(L);castScrollNow('phoenix',heroU,tStats(heroU),[lead]
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 const hits=(e,amt,smx)=>log.filter(h=>h.e===e&&!h.dot&&(smx==null||h.smx===smx)&&near(h.amt,amt));
 const ev=n=>PHM.dbg.filter(d=>d.ev===n);
-const MEV=['flareStart','flare','feather','pyre','pyreRise','reborn','slam','boom'];
+const MEV=['white','flareStart','flare','feather','pyre','ashes','rekindle','firebird'];
 const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 const END=9;
@@ -24,21 +24,27 @@ const END=9;
 const column=(n,gap,hp)=>{const d0=spotD(),F=[];for(let i=0;i<n;i++)F.push(foe(d0-i*(gap||.5),0,hp));return F;};
 try{
   /* ---- the card ---- */
-  ok('the five masteries: Rising Heat, Wildfire River, Burning Plumage, Pyre, Rebirth',SM_D.phoenix.map(x=>x.n).join('|')==='Rising Heat|Wildfire River|Burning Plumage|Pyre|Rebirth',SM_D.phoenix.map(x=>x.n).join('|'));
-  ok('the numbers on the card are the ones in the code (7%, 60%, 50%, 10%, 15% / 50%)',/7%/.test(smDesc('phoenix',0))&&/60%/.test(smDesc('phoenix',1))&&/50%/.test(smDesc('phoenix',2))&&/10%/.test(smDesc('phoenix',3))&&/15%/.test(smDesc('phoenix',4))&&/50%/.test(smDesc('phoenix',4))
-    &&PHM.heat===.07&&PHM.heatN===5&&PHM.rv===.6&&PHM.ft===.5&&PHM.ftN===8&&PHM.py===.1&&PHM.pyR===.75&&PHM.rb===.15&&PHM.rbBoom===.5&&PHM.rbR===1.3);
-  ok('the old masteries are gone (no hooks), calibrated on the Epic ladder with hidden factors (not SM.free)',!SMF.phoenix.hit&&!SMF.phoenix.cast&&SMA.phoenix.every(x=>x===1)&&SMG.phoenix.length===5&&SMG.phoenix.every(x=>x>=1&&x<1.05)&&!(SM.free&&SM.free.phoenix),SMG.phoenix.join());
+  ok('the five masteries: White-Hot, Wildfire River, Burning Plumage, Pyre, From the Ashes (v440)',SM_D.phoenix.map(x=>x.n).join('|')==='White-Hot|Wildfire River|Burning Plumage|Pyre|From the Ashes',SM_D.phoenix.map(x=>x.n).join('|'));
+  ok('the numbers on the card are the ones in the code (5th, 40% / 50%, 60%, 50%, 10%, 4s / 60% / 6)',/5th/.test(smDesc('phoenix',0))&&/40%/.test(smDesc('phoenix',0))&&/50%/.test(smDesc('phoenix',0))&&/60%/.test(smDesc('phoenix',1))&&/50%/.test(smDesc('phoenix',2))&&/10%/.test(smDesc('phoenix',3))
+    &&/4s/.test(smDesc('phoenix',4))&&/60%/.test(smDesc('phoenix',4))&&/up to 6/.test(smDesc('phoenix',4))
+    &&PHM.whiteN===5&&PHM.white===.4&&PHM.riverHot===.5&&PHM.rv===.6&&PHM.ft===.5&&PHM.ftN===8&&PHM.py===.1&&PHM.pyR===.75&&PHM.ash===.6&&PHM.ashT===4&&PHM.ashN===6&&PHM.ashR===4);
+  ok('the old masteries are gone (no hooks), calibrated on the Epic ladder with hidden factors (not SM.free)',!SMF.phoenix.hit&&!SMF.phoenix.cast&&SMA.phoenix.every(x=>x===1)&&SMG.phoenix.length===5&&SMG.phoenix.every(x=>x>=1&&x<1.25)&&!(SM.free&&SM.free.phoenix),SMG.phoenix.join());
   /* ---- Mastery 0 ---- */
   {play();PHM.dbg=[];log=[];const F=column(4);let nb=0,nf=0;cfmBoom=function(){nb++;return B0.apply(this,arguments);};flash=function(){nf++;return F0.apply(this,arguments);};wrapHurt();
     try{cast(0,F[0]);run(END);}finally{hurt=H0;cfmBoom=B0;flash=F0;setL(0);}const st=ev('strike');
     ok('Mastery 0: the same skim: each foe struck once for 350% and set burning, then the burst in the sky',st.length===4&&F.every(e=>hits(e,350,false).length===1&&st.filter(d=>d.e===e).length===1)&&ev('burst').length===1&&ev('born').length===1,st.length+' strikes');
-    ok('Mastery 0: no masteries (no extra hits, no mastery events)',!log.some(h=>h.smx)&&!PHM.dbg.some(d=>MEV.includes(d.ev))&&st.every(d=>d.k===0));
+    ok('Mastery 0: no masteries (no extra hits, no mastery events)',!log.some(h=>h.smx)&&!PHM.dbg.some(d=>MEV.includes(d.ev))&&st.every(d=>!d.hot));
     ok('Mastery 0: its birth, strikes and death burst are 3D fireballs, no flat flashes',nb>=st.length+2&&nf===0,nb+' fireballs, '+nf+' flashes');}
-  /* ---- M1 Rising Heat ---- */
-  {play();PHM.dbg=[];log=[];const F=column(7,.45);wrapHurt();try{cast(1,F[0]);run(END);}finally{hurt=H0;setL(0);}const st=ev('strike');
-    ok('M1: each strike counts the foes struck before it, up to 5',st.length===7&&st.every((d,i)=>d.k===Math.min(i,5)),st.map(d=>d.k).join(''));
-    ok('M1: and deals 7% more for each (350% x 7% x count, a mastery hit)',st.every(d=>d.k===0?!log.some(h=>h.e===d.e&&h.smx):hits(d.e,350*.07*d.k,true).length===1),st.map(d=>d.k).join(''));
-    ok('M1: nothing else (no river front, feathers, pyre or rebirth)',!PHM.dbg.some(d=>MEV.includes(d.ev)));}
+  /* ---- M1 White-Hot ---- */
+  {play();PHM.dbg=[];log=[];const F=column(7,.45),FT=nsFireTrail,ft=[];nsFireTrail=function(x,z,P2){ft.push({P:P2,t:time});return FT.apply(this,arguments);};wrapHurt();
+    try{cast(1,F[0]);run(END);}finally{hurt=H0;nsFireTrail=FT;setL(0);}const st=ev('strike'),wh=ev('white');
+    ok('M1: its 5th strike sets it white-hot (once)',st.length===7&&wh.length===1&&wh[0].n===5&&near(wh[0].t,st[4].t,.01)&&st.every((d,i)=>d.hot===(i>=4)),st.map(d=>d.hot?1:0).join(''));
+    ok('M1: from that strike on, each strike deals 40% more (350% x 40%, a mastery hit); none before',st.every((d,i)=>i<4?!log.some(h=>h.e===d.e&&h.smx):hits(d.e,350*.4,true).length===1));
+    const pre=ft.filter(q=>q.t<wh[0].t-1e-6),post=ft.filter(q=>q.t>wh[0].t+1e-6);
+    ok('M1: the river of fire it leaves burns 50% hotter once white-hot',pre.length>0&&post.length>0&&pre.every(q=>near(q.P,100))&&post.every(q=>near(q.P,150)),pre.length+' / '+post.length);
+    ok('M1: nothing else (no river front, feathers, pyre or ashes)',!PHM.dbg.some(d=>MEV.includes(d.ev)&&d.ev!=='white'));}
+  {play();PHM.dbg=[];log=[];const F=column(4,.45);wrapHurt();try{cast(1,F[0]);run(END);}finally{hurt=H0;setL(0);}
+    ok('M1: four strikes are not enough',!ev('white').length&&!log.some(h=>h.smx));}
   /* ---- M2 Wildfire River ---- */
   {play();PHM.dbg=[];log=[];const F=column(3),Off=foe(F[1].dist-.25,.6),Fl=foe(F[2].dist-.25,0);Fl.fly=true;wrapHurt();try{cast(2,F[0]);run(END);}finally{hurt=H0;setL(0);}
     const fs=ev('flareStart')[0],fl=ev('flare')[0],st=ev('strike'),last=st[st.length-1];
@@ -62,19 +68,29 @@ try{
     ok('M4: each foe erupts once a cast',new Set(py.map(d=>d.e)).size===py.length);
     const tot=py.reduce((s,d)=>s+d.L.length,0);ok('M4: and the 10% hits add up',log.filter(h=>h.smx&&near(h.amt,10)).length===tot,tot);}
   {play();PHM.dbg=[];const F=column(3);applyBurn(F[0],1,9,{src:heroU,el:'fire'});cast(3,F[0]);run(END);setL(0);ok('M4 needs Mastery 4',!ev('pyre').length);}
-  /* ---- M5 Rebirth ---- */
-  {play();PHM.dbg=[];log=[];const F=column(5,.5),Far=foe(F[0].dist+5);const added=track();wrapHurt();
-    try{cast(5,F[0]);run(END);const rb=ev('reborn')[0],s2=ev('strike').filter(d=>d.pass===2),s1=ev('strike').filter(d=>d.pass===1),sl=ev('slam')[0],bm=ev('boom')[0];
-      ok('M5: its heart falls, a pyre rises and the phoenix is reborn after the burst',ev('burst')[0]&&ev('pyreRise')[0]&&rb&&rb.t>ev('pyreRise')[0].t&&ev('pyreRise')[0].t>ev('burst')[0].t);
-      ok('M5: reborn, it strikes every foe again on its way to the keep for 15%',F.every(e=>s2.some(d=>d.e===e))&&F.every(e=>hits(e,15,true).length===1),s2.length);
-      ok('M5: Rising Heat goes on counting across both passes (capped at 5)',s2.every((d,i)=>d.k===Math.min(s1.length+i,5))&&s2.every(d=>d.k===0||hits(d.e,15*.07*d.k,true).length===1),s2.map(d=>d.k).join(''));
-      ok('M5: it stops once past the foremost foe (the far foe 5 tiles ahead is reached only by the skim, not left out)',sl&&s2.some(d=>d.e===Far),s2.length);
-      ok('M5: it dives where the foes it passed are thickest: 50% within 1.3 tiles',bm&&bm.L.length>0&&bm.L.every(e=>hits(e,50,true).filter(h=>near(h.t,bm.t,.01)).length===1)&&F.filter(e=>Math.hypot(e.x-sl.e.x,e.z-sl.e.z)<PHM.rbR-.01).every(e=>bm.L.includes(e)),bm&&bm.L.length);
+  /* ---- M5 From the Ashes ---- */
+  const kill=e=>H0(e,1e12,'magic',{src:heroU,el:'fire'});
+  {play();PHM.dbg=[];log=[];const F=column(5,.5),Far=foe(F[0].dist+6);const added=track();wrapHurt();
+    try{cast(5,F[0]);run(4.6);const as=ev('ashes')[0];
+      ok('M5: the death burst leaves ashes on every foe it struck that still stands (and on no other)',as&&F.every(e=>as.L.includes(e))&&!as.L.includes(Far)&&near(as.t,ev('burst')[0].t,.01),as&&as.L.length);
+      kill(F[2]);const rk=ev('rekindle');ok('M5: a foe that dies with ashes on it is reborn as a firebird',rk.length===1&&rk[0].e===F[2]);
+      run(1);const fb=ev('firebird')[0],dd=e=>Math.hypot(e.x-F[2].x,e.z-F[2].z),nr=fb&&fb.e;
+      ok('M5: it dives at the nearest foe for 60% (one of its two neighbours, half a tile away)',fb&&fb.hit&&(nr===F[1]||nr===F[3])&&enemies.every(e=>e.dead||e===F[2]||dd(e)>=dd(nr)-1e-6)&&hits(nr,60,true).filter(h=>h.t>rk[0].t).length===1&&fb.t-rk[0].t>.6&&fb.t-rk[0].t<.9,fb&&(fb.t-rk[0].t).toFixed(2)+'s');
+      kill(Far);ok('M5: a foe it did not strike leaves no firebird',ev('rekindle').length===1);
+      run(4);kill(F[4]);ok('M5: the ashes go cold after 4s',ev('rekindle').length===1);
       run(3);ok('M5: nothing is left behind',smLeft(added)===0,smLeft(added));}finally{hurt=H0;scene.add=S0;setL(0);}}
-  {play();PHM.dbg=[];const F=column(3);cast(4,F[0]);run(END);setL(0);ok('M5 needs Mastery 5',!ev('reborn').length&&!ev('strike').some(d=>d.pass===2)&&!ev('boom').length);}
+  {play();PHM.dbg=[];log=[];const F=column(1),A=F[0],B=foe(A.dist,1.25,50),C=foe(A.dist-1.2,1.25);wrapHurt();
+    try{cast(5,A);run(4.6);const as=ev('ashes')[0];kill(A);run(2);const fb=ev('firebird');
+      ok('M5: the firebird spreads the ashes: its foe, killed by the dive, is reborn in turn and dives at the next',as&&as.L.length===1&&fb.length===2&&fb[0].e===B&&B.dead&&ev('rekindle').map(d=>d.e).join()===[A,B].join()&&fb[1].e===C&&hits(C,60,true).length===1,fb.length+' firebirds');
+      kill(C);ok('M5: and the foe it struck carries the ashes too',ev('rekindle').length===3);}finally{hurt=H0;setL(0);}}
+  {play();PHM.dbg=[];const F=column(8,.5);cast(5,F[0]);run(4.6);F.forEach(kill);run(1.5);setL(0);
+    ok('M5: up to 6 firebirds a cast',ev('ashes')[0].L.length===8&&ev('rekindle').length===6&&ev('firebird').length===6,ev('rekindle').length);}
+  {play();PHM.dbg=[];const F=column(1);cast(5,F[0]);run(4.6);kill(F[0]);run(1);setL(0);const fb=ev('firebird')[0];
+    ok('M5: with no foe within 4 tiles the firebird flies off (no hit)',fb&&!fb.hit&&!fb.e);}
+  {play();PHM.dbg=[];const F=column(3);cast(4,F[0]);run(4.6);kill(F[1]);run(1);setL(0);ok('M5 needs Mastery 5',!ev('ashes').length&&!ev('rekindle').length&&!ev('firebird').length);}
   /* ---- the rest ---- */
   {play();PHM.dbg=[];const F=column(3);setL(5);castPhoenix(heroU,[F[0]],100,{src:heroU,el:'fire',spell:'phoenix'});run(END);setL(0);
-    ok('casts that are not a mastered scroll cast get no masteries (only the new 3D fire)',ev('strike').length===3&&ev('strike').every(d=>d.k===0)&&!PHM.dbg.some(d=>MEV.includes(d.ev)));}
+    ok('casts that are not a mastered scroll cast get no masteries (only the new 3D fire)',ev('strike').length===3&&ev('strike').every(d=>!d.hot)&&!PHM.dbg.some(d=>MEV.includes(d.ev)));}
   {const e0=errs,n0=NS_OWN.size;for(let L=1;L<=5;L++){play();const F=column(8,.5,150);F.push(foe(F[0].dist+1,0,150));cast(L,F[0]);run(END+1);}setL(0);
     ok('the real cast path at every mastery (with deaths) runs without errors and frees what it owns',errs===e0&&NS_OWN.size<=n0,(errs-e0)+' errors, '+(NS_OWN.size-n0)+' left');}
   ok('no console errors',errs===0,errs);

@@ -27,8 +27,8 @@ const ev=k=>WYM.dbg.filter(x=>x.ev===k);
 const go=(L,list,sec)=>{const added=track();wrapHurt();try{cast(L,list);run(sec||7);}finally{hurt=H0;scene.add=S0;setL(0);}return added;};
 try{
   /* ---- the card ---- */
-  ok('the five masteries and their names',SM_D.wyrm.map(x=>x.n).join('|')==='Crackling Coils|Hunter’s Weave|Constrict|Grounding Strike|Thunderhead',SM_D.wyrm.map(x=>x.n).join('|'));
-  ok('the numbers on the card match the code',/35%/.test(smDesc('wyrm',0))&&/50%/.test(smDesc('wyrm',2))&&/35%/.test(smDesc('wyrm',3))&&/250%/.test(smDesc('wyrm',4))&&/120%/.test(smDesc('wyrm',4))&&WYM.coil===.35&&WYM.squeeze===.5&&WYM.ground===.35&&WYM.th===2.5&&WYM.thR===1.2&&WYM.groundR===4&&WYM.coilR===.6,[0,2,3,4].map(i=>smDesc('wyrm',i)).join(' / '));
+  ok('the five masteries and their names',SM_D.wyrm.map(x=>x.n).join('|')==='Crackling Coils|Snap|Constrict|Grounding Strike|Thunderhead',SM_D.wyrm.map(x=>x.n).join('|'));
+  ok('the numbers on the card match the code',/35%/.test(smDesc('wyrm',0))&&/80%/.test(smDesc('wyrm',1))&&/1\.2 tiles/.test(smDesc('wyrm',1))&&WYM.snap===.8&&WYM.snapR===1.2&&/50%/.test(smDesc('wyrm',2))&&/35%/.test(smDesc('wyrm',3))&&/250%/.test(smDesc('wyrm',4))&&/120%/.test(smDesc('wyrm',4))&&WYM.coil===.35&&WYM.squeeze===.5&&WYM.ground===.35&&WYM.th===2.5&&WYM.thR===1.2&&WYM.groundR===4&&WYM.coilR===.6,[0,2,3,4].map(i=>smDesc('wyrm',i)).join(' / '));
   ok('the old masteries are gone, SMA is 1 and the numbers are tuned (no SM.free)',!SMF.wyrm.cast&&!SMF.wyrm.hit&&SMA.wyrm.every(x=>x===1)&&!(SM.free&&SM.free.wyrm));
   ok('no mastery name is also a scroll\'s name',!SM_D.wyrm.some(x=>Object.values(SPELLS_S).some(s=>s.n===x.n)));
   /* ---- Mastery 0 and the 3D bursts ---- */
@@ -41,20 +41,26 @@ try{
     ok('M1: the arcs between its coils leap to foes near its body: 35% each',ca.length>0&&ca.every(x=>sm(x.e,35).length>0)&&log.filter(h=>h.smx).every(h=>near(h.amt,35)),ca.length+' arcs');
     ok('M1: a foe at most every 0.4s',cd);
     ok('M1: nothing is left behind',smLeft(added)===0,smLeft(added));}
-  /* ---- M2 Hunter's Weave: more lashes on the same crowd ---- */
-  {const lashes=L=>{play();WYM.dbg=[];log=[];crowd();go(L);return log.filter(h=>!h.smx&&near(h.amt,120)).length;};let a=0,b=0;for(let i=0;i<2;i++){a+=lashes(0);b+=lashes(2);}
-    ok('M2: it lingers in the pack and sways toward its prey, so it lashes more of the same crowd',b>a,a+' lashes at Mastery 0, '+b+' at Mastery 2 (2 casts each)');}
+  /* ---- M2 Snap ---- */
+  {play();WYM.dbg=[];log=[];const F=crowd(),Far=foe(.2,2.2);const added=go(2,F.slice().reverse());const sn=ev('snap'),se=sn.map(x=>x.e);
+    ok('M2: its head snaps at foes within 1.2 tiles as it weaves: 80% each (beside its coils\' 35%)',sn.length>=3&&sn.every(x=>sm(x.e,80).length===1)&&log.filter(h=>h.smx&&!near(h.amt,35)).every(h=>near(h.amt,80)),sn.length+' snaps');
+    ok('M2: each foe once a cast, none out of reach',new Set(se).size===se.length&&!se.includes(Far),se.length);
+    ok('M2: a snapped foe is Charged',se.every(e=>e.zapT>0));
+    ok('M2: the snaps come during the weave',sn.every(x=>x.time-ev('cast')[0].time>1.2&&x.time-ev('cast')[0].time<3.4),sn.map(x=>(x.time-ev('cast')[0].time).toFixed(2)).join());
+    ok('M2: nothing is left behind',smLeft(added)===0,smLeft(added));}
+  {play();WYM.dbg=[];log=[];const A=foe(0,0),S1=foe(-1.2,1),S2=foe(-1.2,-1);go(2,[A]);ok('M2: it reaches out to foes beside the road, a tile off it',ev('snap').some(x=>x.e===S1||x.e===S2)&&[S1,S2].every(e=>sm(e,80).length===ev('snap').filter(x=>x.e===e).length),ev('snap').length);}
+  {play();WYM.dbg=[];log=[];crowd();go(1);ok('M2 needs Mastery 2',!ev('snap').length);}
   /* ---- M3 Constrict ---- */
-  {play();WYM.dbg=[];log=[];const F=crowd();F[3].maxHp=F[3].hp=2e9;let st=0;const added=track();wrapHurt();try{cast(3);for(let i=0;i<140;i++){run(.05);if(ev('coil').length&&!st)st=ev('coil')[0].e.stunT||0;}}finally{hurt=H0;scene.add=S0;setL(0);}
+  {play();WYM.dbg=[];log=[];const F=crowd();F[1].maxHp=F[1].hp=2e9;let st=0;const added=track();wrapHurt();try{cast(3);for(let i=0;i<140;i++){run(.05);if(ev('coil').length&&!st)st=ev('coil')[0].e.stunT||0;}}finally{hurt=H0;scene.add=S0;setL(0);}
     const c=ev('coil'),q=ev('squeeze');
-    ok('M3: once a cast it seizes a foe near its head, the toughest there',c.length===1&&c[0].e===F[3],c.length+' '+(c[0]&&c[0].e===F[3]));
+    ok('M3: once a cast it seizes a foe near its head, the toughest there',c.length===1&&c[0].e===F[1],c.length+' '+(c[0]&&c[0].e===F[1]));
     ok('M3: held (stunned) and squeezed three times for 50%',st>0&&q.length===3&&sm(c[0].e,50).length===3,st.toFixed(2)+' '+q.length);
     ok('M3: nothing is left behind',smLeft(added)===0,smLeft(added));}
   /* ---- M4 Grounding Strike ---- */
   {play();WYM.dbg=[];log=[];const F=crowd();const Ch=foe(0,1.9);Ch.zapT=9;const Far=foe(6,1.9);const added=go(4);
     const lashN=e=>Math.min(3,log.filter(h=>h.e===e&&!h.smx&&near(h.amt,120)).length),g=ev('grounded');
-    ok('M4: the strike grounds through the foes it lashed: 35% per lash (up to 3; a foe only Charged, by its coils or anything else, once)',g.length>0&&g.filter(x=>x.e!==Ch).every(x=>x.n===(lashN(x.e)||1)&&sm(x.e,35*x.n).length===1),g.map(x=>x.n+'/'+lashN(x.e)).join(','));
-    ok('M4: a foe Charged by something else counts once; foes beyond 4 tiles are spared',sm(Ch,35).length===1&&!sm(Far).length,sm(Ch).map(h=>h.amt).join(',')+' | '+sm(Far).length);
+    ok('M4: the strike grounds through the foes its lashes ringed: 35% per ring (up to 3)',g.length>0&&g.every(x=>x.n===lashN(x.e)&&x.n>=1&&sm(x.e,35*x.n).length===1),g.map(x=>x.n+'/'+lashN(x.e)).join(','));
+    ok('M4: only its own lashes count: a foe Charged by something else is not grounded; nor are foes beyond 4 tiles',!g.some(x=>x.e===Ch)&&!sm(Ch,35).length&&!sm(Far).length,sm(Ch).map(h=>h.amt).join(',')+' | '+sm(Far).length);
     ok('M4: nothing is left behind',smLeft(added)===0,smLeft(added));}
   /* ---- M5 Thunderhead ---- */
   {play();WYM.dbg=[];log=[];const F=crowd();const added=go(5);const ti=ev('thIn').map(x=>x.e),to=ev('thOut').map(x=>x.e);
