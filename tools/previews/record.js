@@ -12,7 +12,7 @@
 const path = require('path'), fs = require('fs'), { execFileSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..', '..'), OUT = process.env.PV_OUT || path.join(ROOT, 'previews');
 const SC = require('./scenarios');
-const W = 480, H = 320, FPS = 30, PRE = .4, CAP = 9.5, TAIL = .45, MINLEN = 3;
+const W = 1080, H = 720, FPS = 30, PRE = .4, CAP = 9.5, TAIL = .45, MINLEN = 3;
 
 function chromium() { try { return require('playwright').chromium; } catch (e) { return require(path.join(ROOT, 'node_modules', 'playwright')).chromium; } }
 const THREE_JS = fs.readFileSync(path.join(ROOT, 'node_modules', 'three', 'build', 'three.min.js'));
@@ -127,7 +127,7 @@ async function recordClip(P, k, L, frameDir, seed, cam) {
 }
 
 function encode(frameDir, out) {
-  execFileSync('ffmpeg', ['-v', 'error', '-y', '-framerate', String(FPS), '-i', path.join(frameDir, '%04d.jpg'), '-c:v', 'libx264', '-preset', 'veryslow', '-crf', String(SC.crf || 30),
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-framerate', String(FPS), '-i', path.join(frameDir, '%04d.jpg'), '-c:v', 'libx264', '-preset', 'slow', '-crf', String(SC.crf || 26),
     '-pix_fmt', 'yuv420p', '-profile:v', 'main', '-movflags', '+faststart', '-an', out]);
 }
 function sheet(frameDir, n, out) {
