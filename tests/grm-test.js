@@ -26,7 +26,7 @@ try{
   /* ---- the card ---- */
   ok('the five masteries and their names',SM_D.glacialrift.map(x=>x.n).join('|')==='Frozen Sentinels|Undertow|Calving|Deep Cold|Glacial Maw',SM_D.glacialrift.map(x=>x.n).join('|'));
   const T=i=>smDesc('glacialrift',i);
-  ok('and their numbers: 1.5s; 45%; 200%; 2s, 0.6s, 120%; 1s, 400%',/1\.5s/.test(T(0))&&/45%/.test(T(1))&&/200%/.test(T(2))&&/2s/.test(T(3))&&/0\.6s/.test(T(3))&&/120%/.test(T(3))&&/1s/.test(T(4))&&/400%/.test(T(4)),[0,1,2,3,4].map(T).join(' / '));
+  ok('and their numbers: 1.5s; 45%; 130%; 2s, 0.6s, 120%; 1s, 350%',/1\.5s/.test(T(0))&&/45%/.test(T(1))&&/130%/.test(T(2))&&/2s/.test(T(3))&&/0\.6s/.test(T(3))&&/120%/.test(T(3))&&/1s/.test(T(4))&&/350%/.test(T(4)),[0,1,2,3,4].map(T).join(' / '));
   ok('the old hooks are gone (the masteries live in the rift itself)',SMF.glacialrift&&!SMF.glacialrift.hit&&!SMF.glacialrift.cast);
   wrapHurt();
   /* ---- Mastery 0: the old rift ---- */
@@ -48,7 +48,7 @@ try{
   /* ---- M3 Calving ---- */
   {setup();const L=[];for(let i=0;i<7;i++)L.push(foe(D-i*1));log=[];cast(3,L);run(3.6);const cv=ev('calve');
     ok('M3: while the ridge stands slabs calve off it and crash onto the road',cv.length>=4&&cv.every(x=>x.t-T0>1.1&&x.t-T0<3.7),cv.length+' slabs');
-    ok('M3: 200% to the foes under a slab',L.some(e=>mine(e,200).length>0),L.map(e=>mine(e,200).length).join(''));}
+    ok('M3: 130% to the foes under a slab (it topples at the foe it was calved for)',L.some(e=>mine(e,130).length>0),L.map(e=>mine(e,130).length).join(''));}
   /* ---- M4 Deep Cold ---- */
   {setup();const A=foe(D),far=foe(Math.min(RT().len-.3,D+5)),fly=foe(Math.max(.5,D-12),'raven');log=[];cast(4,[A,far,fly]);run(2.8);
     ok('M4: rime gathers on every foe out in the blizzard, even far from the rift (not frozen yet at 1.9s in it)',!ev('cold',x=>x.e===far).length,far.stunT);
@@ -60,7 +60,7 @@ try{
     ok('M5: the maw does not open at the shatter itself, but just after',!ev('maw').length);run(.3);
     const m=ev('maw')[0];ok('M5: then it tears open along the stretch, and its foes are held (a boss is not)',!!m&&m.n===3&&A.stunT>.5&&B.stunT>.5&&!(O.stunT>.5),m&&m.n);
     run(.4);ok('M5: they are dragged over the crevasse',Math.abs(A.off)<.02,A.off.toFixed(3));
-    run(1);ok('M5: the fangs slam shut: 400% to each',ev('slam').length===1&&mine(A,400).length===1&&mine(B,400).length===1&&mine(O,400).length===1,[A,B,O].map(e=>mine(e,400).length).join(''));}
+    run(1);ok('M5: the fangs slam shut: 350% to each',ev('slam').length===1&&mine(A,350).length===1&&mine(B,350).length===1&&mine(O,350).length===1,[A,B,O].map(e=>mine(e,350).length).join(''));}
   /* ---- nothing left behind ---- */
   {const left=[],e0=errs;for(let L=1;L<=5;L++){setup();const F=[];for(let i=0;i<6;i++)F.push(foe(D-i*1.2,i%3?'soldier':'knight'));F.push(foe(Math.min(RT().len-.3,D+6)));const added=track();
       cast(L,F);run(8.5);scene.add=S0;const n=smLeft(added),crust=enemies.some(e=>e.g&&e.g.children.some(c=>c.children&&c.children.some(m=>m.material===GRM_CRUST)));if(n||crust)left.push('M'+L+':'+n+(crust?'+crust':''));}

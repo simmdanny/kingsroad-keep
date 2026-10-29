@@ -29906,8 +29906,9 @@ castChronostasis=function(t,c,P,o){const r=CTM_OLD.apply(this,arguments);if(t&&c
      GRM.push tiles back up the road (over GRM.pushT s, not bosses or flyers), lifted on a crest of ice above the rising crystals and
      grinding it for GRM.grind, before it freezes there. Pushed back into the foes behind it, the statues of M1 hold a longer queue.
    - M3 Calving (the standing ridge, which only looked; a new phase, "what if the ridge didn't just stand there?"): while the ridge
-     stands, a great glowing slab of ice breaks off it every GRM.calveDt s and topples across the road, picked where foes are:
-     GRM.calve to the ground foes under it (a foe at most every GRM.calveCd s), with ice chunks, a frost burst and snow.
+     stands, a great glowing slab of ice breaks off it every GRM.calveDt s and topples onto the road, mostly at a foe on it (aimed
+     where the foe will be as it lands, as tall as the fall needs): GRM.calve to the ground foes under it (a foe at most every
+     GRM.calveCd s), with ice chunks, a frost burst and snow.
    - M4 Deep Cold (the blizzard; an interaction with the whole field, "what if the blizzard really froze things?"): rime gathers on
      every foe out in the blizzard, anywhere on the map, a white crust growing over it; after GRM.coldT s it freezes solid for
      GRM.coldFrz s (bosses less, Resolve applies), and as it thaws the ice cracks off it for GRM.thaw. Once a foe each cast.
@@ -29918,21 +29919,21 @@ castChronostasis=function(t,c,P,o){const r=CTM_OLD.apply(this,arguments);if(t&&c
    The base cast is brought up to the explosion rule too: where the ridge bursts, a billowing frost cloud (xfxFrostBoom) rises with
    the flying crystals. Numbers: the base deals 550% to every foe the wave reaches and 400% when the ridge shatters (950% to a foe on the
    stretch). The ladder (tests/sm-ladder.js, 4 runs: a pack, a churn of fresh 600-health foes and a single foe) comes to 1.05 / 1.01 /
-   1.30 / 1.51 / 1.79 against 1.09 / 1.23 / 1.35 / 1.52 / 1.74, with the hidden factor SMG.glacialrift [1.08,1,1,1,1]. Its churn is a step
+   1.35 / 1.50 / 1.78 against 1.09 / 1.23 / 1.35 / 1.52 / 1.74, with the hidden factor SMG.glacialrift [1.08,1,1,1,1]. Its churn is a step
    for this two-phase nuke: once the wave (with anything that lands before the shatter) reaches a churn foe's 600, a fresh foe walks in for
    the shatter and the churn doubles, so the factors stay at 1 and the masteries' own damage carries the ladder, mostly where it lands after
    the wave or on some foes only (the slabs, the thaw, the maw). Undertow stays under its rung (its grind would cross the step): its worth is
    a tile of road regained on every foe the wave reaches, which the ladder does not count, like the statues and the map-wide freeze.
    GRM.dbg logs for the tests. */
-const GRM={dbg:null,statueX:1.5,gap:.38,push:1,pushT:.3,lift:.42,grind:.45,calve:2,calveR:.7,calveDt:.4,calveCd:.7,coldT:2,coldFrz:.6,thaw:1.2,maw:4,mawHold:1,mawAt:.3,mawOpen:.95};
+const GRM={dbg:null,statueX:1.5,gap:.38,push:1,pushT:.3,lift:.42,grind:.45,calve:1.3,calveR:.7,calveDt:.4,calveCd:.7,coldT:2,coldFrz:.6,thaw:1.2,maw:3.5,mawHold:1,mawAt:.3,mawOpen:.95};
 const grmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='glacialrift'?c:null;};
 const grmLog=d=>{if(GRM.dbg){d.t=time;GRM.dbg.push(d);}};
 SM_D.glacialrift=[
   {n:'Frozen Sentinels',d:'Foes the glacier freezes stay frozen until the ridge shatters, then stand on the road as ice statues for 1.5s: ground foes behind a statue cannot walk past it (bosses push through).'},
   {n:'Undertow',d:'The wave surges under each foe it reaches and drags it a tile back up the road before it freezes, grinding it for {45}% (not bosses or flyers).'},
-  {n:'Calving',d:'While the ridge stands, slabs of ice break off its tallest crystals and crash onto the road: {200}% to the foes under each.'},
+  {n:'Calving',d:'While the ridge stands, slabs of ice break off its tallest crystals and crash onto the road: {130}% to the foes under each.'},
   {n:'Deep Cold',d:'Rime gathers on every foe out in the blizzard. After 2s it freezes solid for 0.6s (Resolve applies, bosses less), and the ice cracks off it for {120}%.'},
-  {n:'Glacial Maw',d:'As the ridge shatters the rift tears wide open: the ground foes along it are dragged to its edge and held for 1s, then its fangs of ice slam shut for {400}%.'}];
+  {n:'Glacial Maw',d:'As the ridge shatters the rift tears wide open: the ground foes along it are dragged to its edge and held for 1s, then its fangs of ice slam shut for {350}%.'}];
 SMF.glacialrift={m:1};
 SMA.glacialrift=[1,1,1,1,1];SMG.glacialrift=[1.08,1,1,1,1];
 /* ---- shared pieces ---- */
@@ -29953,11 +29954,15 @@ function grmStatue(S,z){const e=z.e;if(!e.g)return;const G=nsIceGeos(),h=(e.hitY
 function grmCrest(e){const G=nsIceGeos(),g=smTag(new THREE.Group());for(let i=0;i<5;i++){const a=i/5*6.283,m=new THREE.Mesh(G[2*(i%3)],i%2?NS_ICE:grmMats().slab),w=.07+rnd()*.03,h=.35+rnd()*.25;
     m.scale.set(w,h*.5,w);m.position.set(Math.cos(a)*.2,h*.3,Math.sin(a)*.2);m.rotation.set(Math.sin(a)*.6,0,-Math.cos(a)*.6);g.add(m);}g.position.set(e.x,gy(e.x,e.z),e.z);g.scale.setScalar(.001);scene.add(g);return g;}
 /* ---- M3: a slab breaking off the ridge and toppling onto the road ---- */
-function grmCalve(S,slot){const K=S.K,rt=K.rt,p=posAt(slot.d,rt),a=p[2],side=rnd()<.5?1:-1,sd=side*(.6+rnd()*.2);
-  const bx=p[0]+Math.cos(a)*sd,bz=p[1]-Math.sin(a)*sd,h=1.9+rnd()*.6,w=.27+rnd()*.06;
+function grmCalve(S,slot,tp){const K=S.K,rt=K.rt,p=posAt(slot.d,rt),a=p[2],side=rnd()<.5?1:-1,sd=side*(.6+rnd()*.2);
+  const bx=p[0]+Math.cos(a)*sd,bz=p[1]-Math.sin(a)*sd,w=.27+rnd()*.06;
+  /* it falls toward the far side of the road: its top lands about h from its foot, across the road. Calved at a foe (tp, where the foe
+     will be as it lands), it topples straight at it and is as tall as that fall needs: a random height falling square across the road
+     could land up to 0.95 off the road's middle, past the foes on it */
+  let h=1.9+rnd()*.6,dx=-Math.cos(a)*side,dz=Math.sin(a)*side;
+  if(tp){const qx=tp.x-bx,qz=tp.z-bz,ql=Math.hypot(qx,qz);if(ql>.05){dx=qx/ql;dz=qz/ql;h=clamp(ql/.62,1.5,2.8);}}
   const piv=grmShard(bx,bz,h,w,grmMats().slab,2*Math.floor(rnd()*3));piv.scale.set(1,.001,1);
-  /* it falls toward the far side of the road: its top lands about h from its foot, across the road */
-  const dx=-Math.cos(a)*side,dz=Math.sin(a)*side,yaw=Math.atan2(dx,dz);piv.rotation.y=yaw;const land={x:bx+dx*h*.62,z:bz+dz*h*.62};
+  const yaw=Math.atan2(dx,dz);piv.rotation.y=yaw;const land={x:bx+dx*h*.62,z:bz+dz*h*.62};
   emitS(0,{x:bx,y:gy(bx,bz)+h*.8,z:bz,vx:0,vy:.1,vz:0,s:.25,s2:.6,c:0xf4faff,c2:0xd4e6f4,a:.4,life:.9,lift:.05,turb:.3});
   /* it breaks free (rises out of the ridge with a crack of light), then topples */
   let t=0,landed=false;const UP=.16,T=.55;
@@ -30010,9 +30015,9 @@ function grmStart(o,K){const c=grmC(o);if(!c)return null;const L=c.L,a=c.a;
           /* a foe cannot walk on past the statue (one already standing closer is kept where it was, never shoved back) */
           const lim=st.dist-GRM.gap,pd=S.pd.get(e);if(e.dist>lim&&pd!=null&&e.dist>pd){e.dist=Math.max(lim,pd);if(typeof moveEnemy==='function')moveEnemy(e,0);if(!e.grmHeldLog){e.grmHeldLog=1;grmLog({ev:'held',e,by:st});}if(rnd()<dt*4){const p=tpos2(e);emit(0,{x:p.x,y:p.y*.6,z:p.z,vx:(rnd()-.5)*.2,vy:.2,vz:(rnd()-.5)*.2,s:.06,s2:.15,c:0xffffff,c2:0xcfe6f6,a:.6,life:.5});}}}}
       /* M3: a slab calves off the ridge, where foes are */
-      if(L>=3&&tt>1.15&&tt<K.TS-.1){S.calveT-=dt;if(S.calveT<=0){S.calveT=GRM.calveDt;const up=K.slots.filter(s=>s.up===2&&!s.sh);if(up.length){let s=null;
+      if(L>=3&&tt>1.15&&tt<K.TS-.1){S.calveT-=dt;if(S.calveT<=0){S.calveT=GRM.calveDt;const up=K.slots.filter(s=>s.up===2&&!s.sh);if(up.length){let s=null,tp=null;
           const on=enemies.filter(e=>!e.dead&&!e.fake&&!e.fly&&(e.route||ROUTES[0])===rt&&e.dist!=null&&e.dist>K.d1&&e.dist<K.d0);
-          if(on.length&&rnd()<.8){const e=on[Math.floor(rnd()*on.length)];s=up.reduce((b,q)=>Math.abs(q.d-e.dist)<Math.abs(b.d-e.dist)?q:b);}else s=up[Math.floor(rnd()*up.length)];grmCalve(S,s);}}}
+          if(on.length&&rnd()<.8){const e=on[Math.floor(rnd()*on.length)];s=up.reduce((b,q)=>Math.abs(q.d-e.dist)<Math.abs(b.d-e.dist)?q:b);tp=nsLead(e,.71);}else s=up[Math.floor(rnd()*up.length)];grmCalve(S,s,tp);}}}
       /* M4: rime gathers on every foe in the blizzard (tt .9 to 6.3 s, as nsBlizzard blows) */
       if(L>=4&&tt>.95&&tt<6.3){for(const e of enemies){if(e.dead||e.fake)continue;let q=S.cold.get(e);if(!q){q={t:0,g:grmCrust(e),done:false};S.cold.set(e,q);}if(q.done)continue;q.t+=dt;
           if(q.g)q.g.scale.setScalar(Math.max(.001,Math.min(1,q.t/GRM.coldT)*.9+.1));
