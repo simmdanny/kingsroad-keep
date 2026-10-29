@@ -144,8 +144,14 @@ function camPath(D, s, castT, dt) {
     if (t < castT + .7 || s.trackHero) { now.push(D.hero); for (const p of D.pack) now.push(p); }
     for (const p of (D.towers || [])) now.push(p);
     for (const h of D.hx) { if (h[3]) { if (h[2] >= t - 1 && h[2] <= t + 1) weak.push(h); continue; } if (h[2] >= t - .3 && h[2] <= t + .8) (h[2] > t ? next : now).push(h); }
-    if (s.follow !== 'hits') for (const [T, P] of D.trk) if (T >= t - .1 && T <= t + .6) for (const p of P) { if (!p[2]) { weak.push([p[0], p[1], T]); continue; } (T > t ? next : now).push([p[0], p[1], T]); }
+    if (s.follow !== 'hits') for (const [T, P] of D.trk) if (T >= t - .1 && T <= t + .6) for (const p of P) { if (!p[2]) { weak.push([p[0], p[1], T]); continue; } (T > t ? next : now).push([p[0], p[1], T, 'f']); }
+    /* while foes are being hit (burning too), an effect more than 2.5 tiles from all of them is a sideshow (a mote drifting off the hero) */
+    const anc = D.hx.filter(h => h[2] >= t - 1.5 && h[2] <= t + 1.5);
+    if (anc.length && s.follow !== 'foes') { const far = p => p[3] === 'f' && !anc.some(h => (h[0] - p[0]) ** 2 + (h[1] - p[1]) ** 2 <= 6.25);
+      for (const a of [now, next]) for (let j = a.length - 1; j >= 0; j--) if (far(a[j])) a.splice(j, 1); }
     let pts = now.concat(next); if (!pts.length) pts = weak;
+    /* with no foe struck outright, only effects, foes that are burning stay in view beside them */
+    else if (!pts.some(p => p.length === 4 && p[3] === 0) && weak.some(p => p.length === 4)) { const wh = weak.filter(p => p.length === 4); pts = pts.concat(wh); now.push(...wh); }
     /* the action moves on from where it was: a point more than 5 tiles from the last frame's middle is a blip somewhere else */
     if (pc && s.follow !== 'foes') { const nearPc = p => (p[0] - pc[0]) ** 2 + (p[1] - pc[1]) ** 2 <= 25; pts = pts.filter(nearPc); for (const a of [now, next]) for (let j = a.length - 1; j >= 0; j--) if (!nearPc(a[j])) a.splice(j, 1); }
     /* a stray far from the rest (an ember flung across the map) does not pull the view: points further than 5 tiles from the middle of
