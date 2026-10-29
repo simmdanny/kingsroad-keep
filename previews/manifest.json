@@ -1,7 +1,7 @@
 {
  "v": 1,
- "w": 480,
- "h": 320,
+ "w": 1080,
+ "h": 720,
  "fps": 30,
  "clips": {
   "hexspark-2": {
@@ -705,7 +705,7 @@
    "L": 0,
    "len": 4.33,
    "seed": 1,
-   "bytes": 74577,
+   "bytes": 542551,
    "note": ""
   },
   "lantern-3": {
@@ -719,9 +719,9 @@
   "lantern-4": {
    "k": "lantern",
    "L": 4,
-   "len": 8.17,
+   "len": 8.33,
    "seed": 1,
-   "bytes": 126693,
+   "bytes": 1050954,
    "note": "Two foes have 1 HP: the lantern kills them and gathers their souls for a stronger beam."
   },
   "graveburst-1": {
@@ -729,7 +729,7 @@
    "L": 1,
    "len": 4.33,
    "seed": 1,
-   "bytes": 60898,
+   "bytes": 488194,
    "note": ""
   },
   "graveburst-2": {
@@ -737,7 +737,7 @@
    "L": 2,
    "len": 4.33,
    "seed": 1,
-   "bytes": 73124,
+   "bytes": 580091,
    "note": ""
   },
   "lantern-5": {
@@ -745,7 +745,7 @@
    "L": 5,
    "len": 9.33,
    "seed": 1,
-   "bytes": 162431,
+   "bytes": 1315943,
    "note": ""
   },
   "graveburst-3": {
@@ -753,7 +753,7 @@
    "L": 3,
    "len": 6.53,
    "seed": 1,
-   "bytes": 97222,
+   "bytes": 753593,
    "note": ""
   },
   "rimebloom-0": {
@@ -767,9 +767,9 @@
   "graveburst-4": {
    "k": "graveburst",
    "L": 4,
-   "len": 6.63,
+   "len": 6.53,
    "seed": 1,
-   "bytes": 136511,
+   "bytes": 1029912,
    "note": ""
   },
   "graveburst-5": {
@@ -777,7 +777,7 @@
    "L": 5,
    "len": 8.17,
    "seed": 1,
-   "bytes": 188369,
+   "bytes": 1415782,
    "note": ""
   },
   "rimebloom-1": {
@@ -1009,7 +1009,7 @@
    "L": 5,
    "len": 9.33,
    "seed": 1,
-   "bytes": 254909,
+   "bytes": 2450168,
    "note": ""
   },
   "bramble-0": {
@@ -1097,7 +1097,7 @@
    "L": 0,
    "len": 5.67,
    "seed": 1,
-   "bytes": 74827,
+   "bytes": 538059,
    "note": ""
   },
   "riftfang-1": {
@@ -1105,7 +1105,7 @@
    "L": 1,
    "len": 5.67,
    "seed": 1,
-   "bytes": 78181,
+   "bytes": 574647,
    "note": ""
   },
   "deflect-4": {
@@ -1121,7 +1121,7 @@
    "L": 2,
    "len": 5.67,
    "seed": 1,
-   "bytes": 92306,
+   "bytes": 683019,
    "note": ""
   },
   "riftfang-3": {
@@ -1129,15 +1129,15 @@
    "L": 3,
    "len": 5.67,
    "seed": 1,
-   "bytes": 95016,
+   "bytes": 715067,
    "note": ""
   },
   "riftfang-4": {
    "k": "riftfang",
    "L": 4,
-   "len": 5.83,
+   "len": 5.8,
    "seed": 1,
-   "bytes": 110551,
+   "bytes": 836503,
    "note": "The blackglass spears hit flyers too."
   },
   "deflect-5": {
@@ -1257,7 +1257,7 @@
    "L": 0,
    "len": 5.67,
    "seed": 1,
-   "bytes": 65357,
+   "bytes": 409409,
    "note": "The ram is the strongest foe: the tomb always takes the strongest."
   },
   "icetomb-1": {
@@ -1265,7 +1265,7 @@
    "L": 1,
    "len": 6,
    "seed": 1,
-   "bytes": 73960,
+   "bytes": 470247,
    "note": "The ram is the strongest foe: the tomb always takes the strongest."
   },
   "icetomb-2": {
@@ -1273,7 +1273,7 @@
    "L": 2,
    "len": 6,
    "seed": 1,
-   "bytes": 77747,
+   "bytes": 515263,
    "note": "The ram is the strongest foe: the tomb always takes the strongest."
   },
   "icetomb-3": {
@@ -1281,7 +1281,7 @@
    "L": 3,
    "len": 6,
    "seed": 1,
-   "bytes": 90213,
+   "bytes": 612493,
    "note": "The ram is the strongest foe: the tomb always takes the strongest."
   },
   "icetomb-4": {
@@ -1289,7 +1289,7 @@
    "L": 4,
    "len": 6,
    "seed": 1,
-   "bytes": 99075,
+   "bytes": 684350,
    "note": "The ram is the strongest foe: the tomb always takes the strongest."
   },
   "icetomb-5": {
@@ -1297,31 +1297,31 @@
    "L": 5,
    "len": 6,
    "seed": 1,
-   "bytes": 134087,
+   "bytes": 975255,
    "note": "The ram is the strongest foe: the tomb always takes the strongest."
   },
   "geyser-0": {
    "k": "geyser",
    "L": 0,
-   "len": 7.27,
+   "len": 7.23,
    "seed": 1,
-   "bytes": 85820,
+   "bytes": 658407,
    "note": ""
   },
   "geyser-1": {
    "k": "geyser",
    "L": 1,
-   "len": 7.2,
+   "len": 7.33,
    "seed": 1,
-   "bytes": 83860,
+   "bytes": 635442,
    "note": ""
   },
   "geyser-2": {
    "k": "geyser",
    "L": 2,
-   "len": 7.27,
+   "len": 7.23,
    "seed": 1,
-   "bytes": 96137,
+   "bytes": 729969,
    "note": ""
   },
   "geyser-3": {
@@ -1329,7 +1329,7 @@
    "L": 3,
    "len": 9.33,
    "seed": 1,
-   "bytes": 124310,
+   "bytes": 903941,
    "note": ""
   },
   "crows-0": {
@@ -1345,7 +1345,7 @@
    "L": 4,
    "len": 9.33,
    "seed": 1,
-   "bytes": 133359,
+   "bytes": 1066237,
    "note": ""
   },
   "geyser-5": {
@@ -1353,7 +1353,7 @@
    "L": 5,
    "len": 9.33,
    "seed": 1,
-   "bytes": 148146,
+   "bytes": 1357690,
    "note": ""
   },
   "crows-1": {
@@ -1449,7 +1449,7 @@
    "L": 0,
    "len": 9.33,
    "seed": 1,
-   "bytes": 133066,
+   "bytes": 970490,
    "note": ""
   },
   "frostwolves-1": {
@@ -1457,7 +1457,7 @@
    "L": 1,
    "len": 9.33,
    "seed": 1,
-   "bytes": 140291,
+   "bytes": 1009434,
    "note": ""
   },
   "frostwolves-2": {
@@ -1465,7 +1465,7 @@
    "L": 2,
    "len": 9.33,
    "seed": 1,
-   "bytes": 140442,
+   "bytes": 1039135,
    "note": ""
   },
   "frostwolves-3": {
@@ -1473,7 +1473,7 @@
    "L": 3,
    "len": 9.33,
    "seed": 1,
-   "bytes": 145362,
+   "bytes": 1090566,
    "note": ""
   },
   "frostwolves-4": {
@@ -1481,7 +1481,7 @@
    "L": 4,
    "len": 9.33,
    "seed": 1,
-   "bytes": 163793,
+   "bytes": 1252389,
    "note": ""
   },
   "roots-0": {
@@ -1505,7 +1505,7 @@
    "L": 5,
    "len": 9.33,
    "seed": 1,
-   "bytes": 161195,
+   "bytes": 1187050,
    "note": "At the end both wolves leap at the strongest foe, the ram."
   },
   "roots-2": {
@@ -1541,5 +1541,5 @@
    "note": ""
   }
  },
- "made": "2026-10-28"
+ "made": "2026-10-29"
 }
