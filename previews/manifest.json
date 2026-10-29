@@ -761,7 +761,7 @@
    "L": 0,
    "len": 5.67,
    "seed": 1,
-   "bytes": 72986,
+   "bytes": 517871,
    "note": ""
   },
   "graveburst-4": {
@@ -783,25 +783,25 @@
   "rimebloom-1": {
    "k": "rimebloom",
    "L": 1,
-   "len": 8.67,
+   "len": 9.1,
    "seed": 1,
-   "bytes": 141670,
+   "bytes": 1093265,
    "note": ""
   },
   "rimebloom-2": {
    "k": "rimebloom",
    "L": 2,
-   "len": 8.8,
+   "len": 9.07,
    "seed": 1,
-   "bytes": 144576,
+   "bytes": 1131559,
    "note": ""
   },
   "rimebloom-3": {
    "k": "rimebloom",
    "L": 3,
-   "len": 8.67,
+   "len": 9.33,
    "seed": 1,
-   "bytes": 154079,
+   "bytes": 1261194,
    "note": "A Frost Shard follows the bloom and shatters a Brittle foe."
   },
   "rimebloom-4": {
@@ -809,7 +809,7 @@
    "L": 4,
    "len": 9.33,
    "seed": 1,
-   "bytes": 177568,
+   "bytes": 1388350,
    "note": ""
   },
   "rimebloom-5": {
@@ -817,7 +817,7 @@
    "L": 5,
    "len": 8.67,
    "seed": 1,
-   "bytes": 169440,
+   "bytes": 1437018,
    "note": ""
   },
   "balllightning-0": {
@@ -873,7 +873,7 @@
    "L": 0,
    "len": 6.57,
    "seed": 1,
-   "bytes": 94268,
+   "bytes": 681597,
    "note": ""
   },
   "sunflare-1": {
@@ -881,7 +881,7 @@
    "L": 1,
    "len": 6.57,
    "seed": 1,
-   "bytes": 107243,
+   "bytes": 827776,
    "note": ""
   },
   "sunflare-2": {
@@ -889,7 +889,7 @@
    "L": 2,
    "len": 6.57,
    "seed": 1,
-   "bytes": 116196,
+   "bytes": 895141,
    "note": ""
   },
   "sunflare-3": {
@@ -897,7 +897,7 @@
    "L": 3,
    "len": 6.57,
    "seed": 1,
-   "bytes": 132916,
+   "bytes": 1065122,
    "note": ""
   },
   "sunflare-4": {
@@ -905,7 +905,7 @@
    "L": 4,
    "len": 6.57,
    "seed": 1,
-   "bytes": 135034,
+   "bytes": 1085392,
    "note": ""
   },
   "sunflare-5": {
@@ -913,7 +913,7 @@
    "L": 5,
    "len": 6.57,
    "seed": 1,
-   "bytes": 144075,
+   "bytes": 1233612,
    "note": ""
   },
   "catchflame-0": {
@@ -1153,39 +1153,39 @@
    "L": 5,
    "len": 6.17,
    "seed": 1,
-   "bytes": 127372,
+   "bytes": 1021424,
    "note": ""
   },
   "stormcloud-0": {
    "k": "stormcloud",
    "L": 0,
-   "len": 8.37,
+   "len": 8.93,
    "seed": 1,
-   "bytes": 140564,
+   "bytes": 1277514,
    "note": "One cloud gathers over the leading foe, one over the strongest (the ram)."
   },
   "stormcloud-1": {
    "k": "stormcloud",
    "L": 1,
-   "len": 8.33,
+   "len": 8.67,
    "seed": 1,
-   "bytes": 130037,
+   "bytes": 1249445,
    "note": "One cloud gathers over the leading foe, one over the strongest (the ram)."
   },
   "stormcloud-2": {
    "k": "stormcloud",
    "L": 2,
-   "len": 8.13,
+   "len": 8.87,
    "seed": 1,
-   "bytes": 137647,
+   "bytes": 1357553,
    "note": "One cloud gathers over the leading foe, one over the strongest (the ram)."
   },
   "stormcloud-3": {
    "k": "stormcloud",
    "L": 3,
-   "len": 9.33,
+   "len": 9.07,
    "seed": 1,
-   "bytes": 173110,
+   "bytes": 1637857,
    "note": "One cloud gathers over the leading foe, one over the strongest (the ram)."
   },
   "verdict-0": {
@@ -1193,7 +1193,7 @@
    "L": 0,
    "len": 4.33,
    "seed": 1,
-   "bytes": 51266,
+   "bytes": 350428,
    "note": ""
   },
   "verdict-1": {
@@ -1201,15 +1201,15 @@
    "L": 1,
    "len": 4.33,
    "seed": 1,
-   "bytes": 54858,
+   "bytes": 385279,
    "note": ""
   },
   "stormcloud-4": {
    "k": "stormcloud",
    "L": 4,
-   "len": 8.43,
+   "len": 8.27,
    "seed": 1,
-   "bytes": 172082,
+   "bytes": 1580916,
    "note": "One cloud gathers over the leading foe, one over the strongest (the ram)."
   },
   "verdict-2": {
@@ -1217,7 +1217,7 @@
    "L": 2,
    "len": 4.37,
    "seed": 1,
-   "bytes": 57704,
+   "bytes": 430219,
    "note": "Foes behind the pack cross the scar."
   },
   "stormcloud-5": {
@@ -1225,7 +1225,7 @@
    "L": 5,
    "len": 9.33,
    "seed": 1,
-   "bytes": 223578,
+   "bytes": 1830788,
    "note": "One cloud gathers over the leading foe, one over the strongest (the ram)."
   },
   "verdict-3": {
@@ -1233,7 +1233,7 @@
    "L": 3,
    "len": 4.37,
    "seed": 1,
-   "bytes": 59323,
+   "bytes": 413809,
    "note": ""
   },
   "verdict-4": {
@@ -1241,7 +1241,7 @@
    "L": 4,
    "len": 4.37,
    "seed": 1,
-   "bytes": 61429,
+   "bytes": 451582,
    "note": ""
   },
   "verdict-5": {
@@ -1249,7 +1249,7 @@
    "L": 5,
    "len": 4.37,
    "seed": 1,
-   "bytes": 71704,
+   "bytes": 521656,
    "note": "The second beam hits flyers too."
   },
   "icetomb-0": {
@@ -1489,7 +1489,7 @@
    "L": 0,
    "len": 4.33,
    "seed": 1,
-   "bytes": 51784,
+   "bytes": 369823,
    "note": ""
   },
   "roots-1": {
@@ -1497,7 +1497,7 @@
    "L": 1,
    "len": 4.33,
    "seed": 1,
-   "bytes": 55495,
+   "bytes": 419035,
    "note": ""
   },
   "frostwolves-5": {
@@ -1513,7 +1513,7 @@
    "L": 2,
    "len": 4.33,
    "seed": 1,
-   "bytes": 55675,
+   "bytes": 423186,
    "note": ""
   },
   "roots-3": {
@@ -1521,7 +1521,7 @@
    "L": 3,
    "len": 5.67,
    "seed": 1,
-   "bytes": 68182,
+   "bytes": 532121,
    "note": ""
   },
   "roots-4": {
@@ -1529,7 +1529,7 @@
    "L": 4,
    "len": 5.67,
    "seed": 1,
-   "bytes": 82117,
+   "bytes": 636754,
    "note": ""
   },
   "roots-5": {
@@ -1537,7 +1537,7 @@
    "L": 5,
    "len": 5.67,
    "seed": 1,
-   "bytes": 125146,
+   "bytes": 1015423,
    "note": ""
   }
  },

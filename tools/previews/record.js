@@ -151,10 +151,14 @@ function sheet(frameDir, n, out) {
       let r = null, seed = s.seed || 1;
       try {
         /* a run without pictures picks the seed (the mastery's moment must happen) and the framing; then the clip is recorded with them */
+        /* drawing frames also draws on the random numbers, so a seed whose dry run shows the moment can still miss it on camera: keep
+           going until the recorded clip itself shows it (or the tries run out, keeping the last) */
         let d = null;
-        for (let tries = 0; tries < (s.tries || 6); tries++, seed++) { d = await recordClip(P, k, L, fd, seed, null); if (d.probe) break; }
-        if (!d.probe) seed--;
-        r = await recordClip(P, k, L, fd, seed, d.cam);
+        for (let tries = 0; tries < (s.tries || 6); tries++, seed++) {
+          d = await recordClip(P, k, L, fd, seed, null); if (!d.probe) continue;
+          r = await recordClip(P, k, L, fd, seed, d.cam); if (r.probe) break;
+        }
+        if (!r || !r.probe) { if (!d.probe) seed--; if (!r || r.seed !== seed) r = await recordClip(P, k, L, fd, seed, d.cam); }
         encode(fd, path.join(OUT, id + '.mp4'));
         if (sheets) { fs.mkdirSync(path.join(OUT, '_sheets'), { recursive: true }); sheet(fd, r.frames, path.join(OUT, '_sheets', id + '.jpg')); }
         const sz = fs.statSync(path.join(OUT, id + '.mp4')).size;
