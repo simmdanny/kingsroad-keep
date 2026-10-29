@@ -12,7 +12,7 @@
 const path = require('path'), path_ = path, fs = require('fs'), { execFileSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..', '..'), OUT = process.env.PV_OUT || path.join(ROOT, 'previews');
 const SC = require('./scenarios');
-const W = 480, H = 320, FPS = 30, PRE = .4, CAP = 9.5, TAIL = .45, MINLEN = 3;
+const W = 1080, H = 720, FPS = 30, PRE = .4, CAP = 9.5, TAIL = .45, MINLEN = 3;
 
 function chromium() { try { return require('playwright').chromium; } catch (e) { return require(path.join(ROOT, 'node_modules', 'playwright')).chromium; } }
 const THREE_JS = fs.readFileSync(path.join(ROOT, 'node_modules', 'three', 'build', 'three.min.js'));
@@ -237,7 +237,7 @@ async function recordClip(P, k, L, frameDir, seed, cam, s0) {
 }
 
 function encode(frameDir, out) {
-  execFileSync('ffmpeg', ['-v', 'error', '-y', '-framerate', String(FPS), '-i', path.join(frameDir, '%04d.jpg'), '-c:v', 'libx264', '-preset', 'veryslow', '-crf', String(SC.crf || 30),
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-framerate', String(FPS), '-i', path.join(frameDir, '%04d.jpg'), '-c:v', 'libx264', '-preset', 'slow', '-crf', String(SC.crf || 26),
     '-pix_fmt', 'yuv420p', '-profile:v', 'main', '-movflags', '+faststart', '-an', out]);
 }
 function sheet(frameDir, n, out) {
@@ -264,17 +264,22 @@ if (require.main === module) (async () => {
       if (P.used) { try { await P.ctx.close(); } catch (_) { } P = await openPage(browser); } P.used = true;
       let r = null, seed = s.seed || 1;
       try {
-        /* a run without pictures picks the seed (the mastery's moment must happen) and the framing; then the clip is recorded with them */
         /* a first cast in a page builds what the game caches (textures, geometry), drawing on the random as it does: a warm-up run first,
            so the run the camera is planned on and the recorded one start from the same page */
         if (!P.warm.has(id)) { await recordClip(P, k, L, fd, seed, null); P.warm.add(id); }
+        /* a run without pictures picks the seed (the mastery's moment must happen) and the camera; then the clip is recorded with them, and
+           the next seed is tried until the recorded clip itself shows the moment too (or the tries run out, keeping the last) */
         let d = null;
-        for (let tries = 0; tries < (s.tries || 6); tries++, seed++) { d = await recordClip(P, k, L, fd, seed, null); if (d.probe) break; }
-        if (!d.probe) seed--;
-        /* a clip centred on a moment (focus: {ev, before, after}): the run without pictures found when it first happens; the clip is that
-           window of the very same run (the camera path covers the whole run) */
-        let sr = null; if (s.focus && d.evAt && d.evAt[s.focus.ev] != null) { const f = d.evAt[s.focus.ev]; sr = Object.assign({}, s, { from: Math.max(0, f - (s.focus.before || 2)), len: f + (s.focus.after || 3) }); }
-        r = await recordClip(P, k, L, fd, seed, d.cam, sr);
+        const rec = async () => {
+          /* a clip centred on a moment (focus: {ev, before, after}): the run without pictures found when it first happens; the clip is that
+             window of the very same run (the camera path covers the whole run) */
+          let sr = null; if (s.focus && d.evAt && d.evAt[s.focus.ev] != null) { const f = d.evAt[s.focus.ev]; sr = Object.assign({}, s, { from: Math.max(0, f - (s.focus.before || 2)), len: f + (s.focus.after || 3) }); }
+          return recordClip(P, k, L, fd, seed, d.cam, sr); };
+        for (let tries = 0; tries < (s.tries || 6); tries++, seed++) {
+          d = await recordClip(P, k, L, fd, seed, null); if (!d.probe) continue;
+          r = await rec(); if (r.probe) break;
+        }
+        if (!r || !r.probe) { if (!d.probe || r) seed--; if (!r) r = await rec(); }
         /* the recorded run must be the run the camera was planned on: the same moments at the same times */
         const drift = Object.keys(d.evAt || {}).filter(e => r.evAt && r.evAt[e] != null && Math.abs(r.evAt[e] - d.evAt[e]) > .05);
         if (drift.length) console.log(`   ${id}: the recorded run drifted from the planned one (${drift.slice(0, 4).map(e => e + ' ' + d.evAt[e] + '->' + r.evAt[e]).join(', ')})`);

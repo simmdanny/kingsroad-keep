@@ -224,7 +224,7 @@ const S = {
     5: { pack: PACK.concat([{ t: 'soldier', at: 2.6, off: .1 }, { t: 'peasant', at: -2.8, off: -.1 }]), probe: "HYB.dbg.some(d=>d.ev==='sprout')", note: 'The flower goes to seed: seeds drift onto the foes and sprout small blooms.' } },
 };
 
-exports.crf = 33;
+exports.crf = 26;
 exports.scrolls = () => ['hexspark', 'lightbolt', 'wither', 'emberbolt', 'gravebind', 'frostshard', 'staticspark', 'cinders', 'flamelash', 'thunderclap', 'thornwhip',
   'darkpulse', 'beam', 'grasp', 'lantern', 'graveburst', 'rimebloom', 'balllightning', 'sunflare', 'catchflame', 'firewall', 'bramble',
   'deflect', 'riftfang', 'stormcloud', 'verdict', 'icetomb', 'geyser', 'crows', 'firetornado', 'frostwolves', 'roots'];
