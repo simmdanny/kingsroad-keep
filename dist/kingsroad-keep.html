@@ -31508,7 +31508,9 @@ function pvcShow(k,L,anchor){if(!pvcHas(k,L))return false;const b=pvcBox(),S=SPE
   const nt=b.querySelector('.pvc-note');nt.textContent=c.note||'';nt.hidden=!c.note;
   b.querySelector('.pvc-tabs').innerHTML=[0,1,2,3,4,5].map(l=>{const ok=pvcHas(k,l)&&smPvCan('scroll',k,l);
     return`<button data-l="${l}" class="${l===L?'on':''}" ${ok?'':'disabled'} style="--mc:${l?pvcHex(MAST_COL[l-1]):'#c8b89a'}" title="${ok?(l?'Mastery '+l+': '+D[l-1].n:'No mastery'):'Reach Mastery '+l+' to watch it'}">${l?PVC_ROM[l]:'Base'}</button>`;}).join('');
-  const v=b.querySelector('video');if(!same){const u=pvcUrl(k,L);if(u&&v.getAttribute('src')!==u){v.setAttribute('src',u);}try{v.currentTime=0;}catch(e){}const p=v.play();if(p&&p.catch)p.catch(()=>{});}
+  const v=b.querySelector('video');if(!same){const u=pvcUrl(k,L);if(u&&v.getAttribute('src')!==u){v.setAttribute('src',u);}try{v.currentTime=0;}catch(e){}const p=v.play();if(p&&p.catch)p.catch(()=>{});
+      /* a bigger clip (720p) can still be loading when play() is called, and the call is then dropped: start it again once it can play */
+      v.oncanplay=()=>{if(v.paused&&v.isConnected&&PVC.el&&!PVC.el.hidden){const q=v.play();if(q&&q.catch)q.catch(()=>{});}};}
   b.hidden=false;if(anchor!==null)pvcPlace(anchor||PVC.anchor);if(anchor)PVC.anchor=anchor;if(!PVC.raf)PVC.raf=requestAnimationFrame(pvcTick);return true;}
 function pvcPlace(anchor){const b=PVC.el;if(!b)return;
   const r=anchor&&anchor.isConnected?anchor.getBoundingClientRect():{left:innerWidth/2,right:innerWidth/2,top:innerHeight/2,bottom:innerHeight/2,height:0};let x,y,W=Math.min(440,innerWidth-16);

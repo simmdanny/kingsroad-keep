@@ -7,57 +7,57 @@
   "hexspark-2": {
    "k": "hexspark",
    "L": 2,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 53487,
+   "bytes": 371627,
    "note": ""
   },
   "hexspark-0": {
    "k": "hexspark",
    "L": 0,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 48113,
+   "bytes": 323390,
    "note": ""
   },
   "hexspark-1": {
    "k": "hexspark",
    "L": 1,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 48531,
+   "bytes": 329301,
    "note": ""
   },
   "hexspark-3": {
    "k": "hexspark",
    "L": 3,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 56536,
+   "bytes": 398052,
    "note": ""
   },
   "lightbolt-1": {
    "k": "lightbolt",
    "L": 1,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 46222,
+   "bytes": 315393,
    "note": ""
   },
   "lightbolt-0": {
    "k": "lightbolt",
    "L": 0,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 46123,
+   "bytes": 308279,
    "note": ""
   },
   "hexspark-4": {
    "k": "hexspark",
    "L": 4,
-   "len": 5.67,
+   "len": 5.7,
    "seed": 1,
-   "bytes": 88356,
+   "bytes": 693751,
    "note": "The marked foe survives the first spark, Hexed. The second spark kills it, and it bursts in a violet nova."
   },
   "hexspark-5": {
@@ -65,55 +65,55 @@
    "L": 5,
    "len": 5.9,
    "seed": 1,
-   "bytes": 89391,
+   "bytes": 709838,
    "note": "This is the 3rd cast, so black lightning strikes two more foes."
   },
   "lightbolt-3": {
    "k": "lightbolt",
    "L": 3,
-   "len": 3.03,
+   "len": 3.0,
    "seed": 1,
-   "bytes": 37903,
+   "bytes": 255957,
    "note": ""
   },
   "lightbolt-2": {
    "k": "lightbolt",
    "L": 2,
-   "len": 3.83,
+   "len": 3.8,
    "seed": 1,
-   "bytes": 49810,
+   "bytes": 344910,
    "note": "Two bolts in a row: the second light hit on the marked foe calls down the beam."
   },
   "lightbolt-4": {
    "k": "lightbolt",
    "L": 4,
-   "len": 3.03,
+   "len": 3.0,
    "seed": 1,
-   "bytes": 37843,
+   "bytes": 259463,
    "note": ""
   },
   "lightbolt-5": {
    "k": "lightbolt",
    "L": 5,
-   "len": 3.23,
+   "len": 3.2,
    "seed": 1,
-   "bytes": 47928,
+   "bytes": 343108,
    "note": "This is the 4th bolt: a small sun."
   },
   "wither-0": {
    "k": "wither",
    "L": 0,
-   "len": 5.67,
+   "len": 5.7,
    "seed": 1,
-   "bytes": 66386,
+   "bytes": 519479,
    "note": ""
   },
   "wither-1": {
    "k": "wither",
    "L": 1,
-   "len": 6.9,
+   "len": 7.0,
    "seed": 1,
-   "bytes": 75722,
+   "bytes": 600226,
    "note": ""
   },
   "wither-2": {
@@ -121,39 +121,39 @@
    "L": 2,
    "len": 6.9,
    "seed": 1,
-   "bytes": 81151,
+   "bytes": 654786,
    "note": ""
   },
   "wither-3": {
    "k": "wither",
    "L": 3,
-   "len": 6.97,
+   "len": 6.9,
    "seed": 1,
-   "bytes": 84587,
+   "bytes": 679631,
    "note": "The marked foe withers away, and its wither passes to a foe nearby."
   },
   "emberbolt-0": {
    "k": "emberbolt",
    "L": 0,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 47182,
+   "bytes": 318434,
    "note": ""
   },
   "wither-4": {
    "k": "wither",
    "L": 4,
-   "len": 7.13,
+   "len": 7.1,
    "seed": 1,
-   "bytes": 86044,
+   "bytes": 741896,
    "note": ""
   },
   "emberbolt-1": {
    "k": "emberbolt",
    "L": 1,
-   "len": 5.67,
+   "len": 5.7,
    "seed": 1,
-   "bytes": 63773,
+   "bytes": 454464,
    "note": ""
   },
   "wither-5": {
@@ -161,111 +161,111 @@
    "L": 5,
    "len": 8.2,
    "seed": 1,
-   "bytes": 113298,
+   "bytes": 952484,
    "note": ""
   },
   "emberbolt-2": {
    "k": "emberbolt",
    "L": 2,
-   "len": 5.67,
+   "len": 5.7,
    "seed": 1,
-   "bytes": 68554,
+   "bytes": 486718,
    "note": ""
   },
   "emberbolt-3": {
    "k": "emberbolt",
    "L": 3,
-   "len": 5.67,
+   "len": 5.7,
    "seed": 1,
-   "bytes": 73261,
+   "bytes": 524492,
    "note": ""
   },
   "emberbolt-4": {
    "k": "emberbolt",
    "L": 4,
-   "len": 6.17,
+   "len": 6.2,
    "seed": 1,
-   "bytes": 89889,
+   "bytes": 660298,
    "note": "Foes behind the pack walk over the burning tile."
   },
   "gravebind-0": {
    "k": "gravebind",
    "L": 0,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 55236,
+   "bytes": 416347,
    "note": ""
   },
   "emberbolt-5": {
    "k": "emberbolt",
    "L": 5,
-   "len": 6.87,
+   "len": 6.9,
    "seed": 1,
-   "bytes": 91834,
+   "bytes": 686057,
    "note": "The marked foe is Armoured and has 1 HP: the Fire Bolt kills it and it leaves molten steel."
   },
   "gravebind-1": {
    "k": "gravebind",
    "L": 1,
-   "len": 7.33,
+   "len": 7.3,
    "seed": 1,
-   "bytes": 79955,
+   "bytes": 602340,
    "note": ""
   },
   "gravebind-2": {
    "k": "gravebind",
    "L": 2,
-   "len": 7.33,
+   "len": 7.3,
    "seed": 1,
-   "bytes": 83124,
+   "bytes": 604753,
    "note": ""
   },
   "gravebind-3": {
    "k": "gravebind",
    "L": 3,
-   "len": 7.33,
+   "len": 7.3,
    "seed": 1,
-   "bytes": 82714,
+   "bytes": 616502,
    "note": ""
   },
   "gravebind-4": {
    "k": "gravebind",
    "L": 4,
-   "len": 7.33,
+   "len": 7.3,
    "seed": 1,
-   "bytes": 105301,
+   "bytes": 805348,
    "note": ""
   },
   "frostshard-0": {
    "k": "frostshard",
    "L": 0,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 44778,
+   "bytes": 303372,
    "note": ""
   },
   "frostshard-1": {
    "k": "frostshard",
    "L": 1,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 46661,
+   "bytes": 307034,
    "note": ""
   },
   "gravebind-5": {
    "k": "gravebind",
    "L": 5,
-   "len": 7.33,
+   "len": 7.3,
    "seed": 1,
-   "bytes": 137954,
+   "bytes": 1042000,
    "note": ""
   },
   "frostshard-2": {
    "k": "frostshard",
    "L": 2,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 46058,
+   "bytes": 308290,
    "note": ""
   },
   "frostshard-3": {
@@ -273,15 +273,15 @@
    "L": 3,
    "len": 5.7,
    "seed": 1,
-   "bytes": 60755,
+   "bytes": 408956,
    "note": ""
   },
   "frostshard-4": {
    "k": "frostshard",
    "L": 4,
    "len": 5.67,
-   "seed": 2,
-   "bytes": 61569,
+   "seed": 6,
+   "bytes": 419085,
    "note": "Each hit has a 25% chance to freeze its foe solid; here one does."
   },
   "frostshard-5": {
@@ -289,127 +289,127 @@
    "L": 5,
    "len": 5.8,
    "seed": 1,
-   "bytes": 98248,
+   "bytes": 709921,
    "note": "This is the 3rd cast: a great lance of ice drives through the line."
   },
   "staticspark-0": {
    "k": "staticspark",
    "L": 0,
-   "len": 5.67,
+   "len": 4.4,
    "seed": 1,
-   "bytes": 57069,
+   "bytes": 304530,
    "note": ""
   },
   "staticspark-1": {
    "k": "staticspark",
    "L": 1,
-   "len": 5.67,
+   "len": 5.7,
    "seed": 1,
-   "bytes": 57629,
+   "bytes": 384620,
    "note": ""
   },
   "staticspark-2": {
    "k": "staticspark",
    "L": 2,
-   "len": 5.67,
+   "len": 5.0,
    "seed": 1,
-   "bytes": 54312,
+   "bytes": 353012,
    "note": "Three foes have 1 HP: the spark kills them and leaves sparks on the ground."
   },
   "staticspark-4": {
    "k": "staticspark",
    "L": 4,
-   "len": 5.67,
+   "len": 4.7,
    "seed": 1,
-   "bytes": 57855,
+   "bytes": 400408,
    "note": "Three foes have 1 HP; a foe the spark kills has a 35% chance to explode, and here one does."
   },
   "staticspark-3": {
    "k": "staticspark",
    "L": 3,
-   "len": 5.67,
+   "len": 5.7,
    "seed": 1,
-   "bytes": 61069,
+   "bytes": 418339,
    "note": "Each leap has a 25% chance to stun: the one that will stun charges violet first."
   },
   "staticspark-5": {
    "k": "staticspark",
    "L": 5,
-   "len": 5.67,
+   "len": 5.7,
    "seed": 1,
-   "bytes": 78406,
+   "bytes": 574536,
    "note": ""
   },
   "cinders-0": {
    "k": "cinders",
    "L": 0,
-   "len": 5.93,
+   "len": 6.1,
    "seed": 1,
-   "bytes": 77996,
+   "bytes": 605953,
    "note": ""
   },
   "cinders-1": {
    "k": "cinders",
    "L": 1,
-   "len": 6.03,
+   "len": 6.0,
    "seed": 1,
-   "bytes": 81839,
+   "bytes": 638798,
    "note": ""
   },
   "cinders-2": {
    "k": "cinders",
    "L": 2,
-   "len": 6,
+   "len": 6.0,
    "seed": 1,
-   "bytes": 67354,
+   "bytes": 567006,
    "note": "A raven flies over the smoke."
   },
   "cinders-3": {
    "k": "cinders",
    "L": 3,
-   "len": 6.17,
+   "len": 6.2,
    "seed": 1,
-   "bytes": 88447,
+   "bytes": 711347,
    "note": ""
   },
   "cinders-4": {
    "k": "cinders",
    "L": 4,
-   "len": 6.23,
+   "len": 6.2,
    "seed": 1,
-   "bytes": 96683,
+   "bytes": 827836,
    "note": ""
   },
   "flamelash-0": {
    "k": "flamelash",
    "L": 0,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 54781,
+   "bytes": 374831,
    "note": ""
   },
   "flamelash-1": {
    "k": "flamelash",
    "L": 1,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 56046,
+   "bytes": 397289,
    "note": ""
   },
   "flamelash-2": {
    "k": "flamelash",
    "L": 2,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 62094,
+   "bytes": 473752,
    "note": ""
   },
   "cinders-5": {
    "k": "cinders",
    "L": 5,
-   "len": 8.63,
+   "len": 7.7,
    "seed": 1,
-   "bytes": 149214,
+   "bytes": 1164286,
    "note": ""
   },
   "flamelash-3": {
@@ -417,7 +417,7 @@
    "L": 3,
    "len": 6.3,
    "seed": 1,
-   "bytes": 82455,
+   "bytes": 671250,
    "note": ""
   },
   "flamelash-4": {
@@ -425,15 +425,15 @@
    "L": 4,
    "len": 6.3,
    "seed": 1,
-   "bytes": 91741,
+   "bytes": 760045,
    "note": ""
   },
   "thunderclap-0": {
    "k": "thunderclap",
    "L": 0,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 48922,
+   "bytes": 332244,
    "note": ""
   },
   "flamelash-5": {
@@ -441,247 +441,247 @@
    "L": 5,
    "len": 6.3,
    "seed": 1,
-   "bytes": 104191,
+   "bytes": 871747,
    "note": ""
   },
   "thunderclap-1": {
    "k": "thunderclap",
    "L": 1,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 50637,
+   "bytes": 342415,
    "note": ""
   },
   "thunderclap-2": {
    "k": "thunderclap",
    "L": 2,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 50927,
+   "bytes": 347244,
    "note": ""
   },
   "thunderclap-3": {
    "k": "thunderclap",
    "L": 3,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 54292,
+   "bytes": 368957,
    "note": ""
   },
   "thunderclap-5": {
    "k": "thunderclap",
    "L": 5,
-   "len": 4.43,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 62042,
+   "bytes": 438251,
    "note": ""
   },
   "thunderclap-4": {
    "k": "thunderclap",
    "L": 4,
-   "len": 5.67,
+   "len": 4.5,
    "seed": 1,
-   "bytes": 67728,
+   "bytes": 403862,
    "note": ""
   },
   "thornwhip-0": {
    "k": "thornwhip",
    "L": 0,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 43746,
+   "bytes": 293230,
    "note": ""
   },
   "thornwhip-1": {
    "k": "thornwhip",
    "L": 1,
-   "len": 4.4,
+   "len": 4.5,
    "seed": 1,
-   "bytes": 44882,
+   "bytes": 312414,
    "note": ""
   },
   "thornwhip-2": {
    "k": "thornwhip",
    "L": 2,
-   "len": 4.33,
+   "len": 4.4,
    "seed": 1,
-   "bytes": 45685,
+   "bytes": 321741,
    "note": ""
   },
   "thornwhip-3": {
    "k": "thornwhip",
    "L": 3,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 45594,
+   "bytes": 318676,
    "note": ""
   },
   "thornwhip-4": {
    "k": "thornwhip",
    "L": 4,
-   "len": 5.67,
+   "len": 5.7,
    "seed": 1,
-   "bytes": 65963,
+   "bytes": 473439,
    "note": ""
   },
   "darkpulse-0": {
    "k": "darkpulse",
    "L": 0,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 61393,
+   "bytes": 433060,
    "note": ""
   },
   "darkpulse-1": {
    "k": "darkpulse",
    "L": 1,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 65933,
+   "bytes": 478695,
    "note": ""
   },
   "thornwhip-5": {
    "k": "thornwhip",
    "L": 5,
-   "len": 9.23,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 89043,
+   "bytes": 646011,
    "note": "The ram is the toughest foe nearby: the rose whip goes for it."
   },
   "darkpulse-2": {
    "k": "darkpulse",
    "L": 2,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 85838,
+   "bytes": 632803,
    "note": ""
   },
   "darkpulse-3": {
    "k": "darkpulse",
    "L": 3,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 110716,
+   "bytes": 806951,
    "note": ""
   },
   "darkpulse-4": {
    "k": "darkpulse",
    "L": 4,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 132968,
+   "bytes": 1000372,
    "note": "The wall of dark energy strikes flyers too."
   },
   "beam-0": {
    "k": "beam",
    "L": 0,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 51425,
+   "bytes": 345932,
    "note": ""
   },
   "beam-1": {
    "k": "beam",
    "L": 1,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 55321,
+   "bytes": 380102,
    "note": ""
   },
   "darkpulse-5": {
    "k": "darkpulse",
    "L": 5,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 146742,
+   "bytes": 1201739,
    "note": ""
   },
   "beam-2": {
    "k": "beam",
    "L": 2,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 58089,
+   "bytes": 413139,
    "note": ""
   },
   "beam-3": {
    "k": "beam",
    "L": 3,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 66114,
+   "bytes": 480527,
    "note": ""
   },
   "beam-4": {
    "k": "beam",
    "L": 4,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 87312,
+   "bytes": 678834,
    "note": ""
   },
   "grasp-0": {
    "k": "grasp",
    "L": 0,
-   "len": 4.33,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 59548,
+   "bytes": 439878,
    "note": ""
   },
   "beam-5": {
    "k": "beam",
    "L": 5,
-   "len": 4.37,
+   "len": 4.4,
    "seed": 1,
-   "bytes": 100242,
+   "bytes": 790546,
    "note": ""
   },
   "grasp-1": {
    "k": "grasp",
    "L": 1,
-   "len": 5.67,
+   "len": 5.7,
    "seed": 1,
-   "bytes": 71776,
+   "bytes": 520811,
    "note": ""
   },
   "grasp-2": {
    "k": "grasp",
    "L": 2,
-   "len": 5.67,
+   "len": 5.7,
    "seed": 1,
-   "bytes": 79325,
+   "bytes": 579487,
    "note": ""
   },
   "grasp-3": {
    "k": "grasp",
    "L": 3,
-   "len": 5.67,
+   "len": 5.7,
    "seed": 1,
-   "bytes": 89446,
+   "bytes": 638646,
    "note": ""
   },
   "grasp-4": {
    "k": "grasp",
    "L": 4,
-   "len": 5.67,
+   "len": 5.7,
    "seed": 1,
-   "bytes": 98962,
+   "bytes": 715985,
    "note": ""
   },
   "grasp-5": {
    "k": "grasp",
    "L": 5,
-   "len": 6.37,
+   "len": 6.3,
    "seed": 1,
-   "bytes": 181397,
+   "bytes": 1349746,
    "note": ""
   },
   "lantern-1": {
    "k": "lantern",
    "L": 1,
-   "len": 8.17,
+   "len": 8.2,
    "seed": 1,
-   "bytes": 117583,
+   "bytes": 938495,
    "note": ""
   },
   "lantern-0": {
@@ -689,15 +689,15 @@
    "L": 0,
    "len": 8.2,
    "seed": 1,
-   "bytes": 93122,
+   "bytes": 710548,
    "note": ""
   },
   "lantern-2": {
    "k": "lantern",
    "L": 2,
-   "len": 8.17,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 121140,
+   "bytes": 1055080,
    "note": ""
   },
   "graveburst-0": {
@@ -711,9 +711,9 @@
   "lantern-3": {
    "k": "lantern",
    "L": 3,
-   "len": 8.17,
+   "len": 8.2,
    "seed": 1,
-   "bytes": 127486,
+   "bytes": 1052825,
    "note": ""
   },
   "lantern-4": {
@@ -823,49 +823,49 @@
   "balllightning-0": {
    "k": "balllightning",
    "L": 0,
-   "len": 8.07,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 86507,
+   "bytes": 680844,
    "note": ""
   },
   "balllightning-1": {
    "k": "balllightning",
    "L": 1,
-   "len": 8,
+   "len": 7.9,
    "seed": 1,
-   "bytes": 97792,
+   "bytes": 679142,
    "note": ""
   },
   "balllightning-2": {
    "k": "balllightning",
    "L": 2,
-   "len": 7.63,
+   "len": 8.7,
    "seed": 1,
-   "bytes": 108690,
+   "bytes": 882817,
    "note": ""
   },
   "balllightning-3": {
    "k": "balllightning",
    "L": 3,
-   "len": 7.63,
+   "len": 9.0,
    "seed": 1,
-   "bytes": 125449,
+   "bytes": 1034638,
    "note": ""
   },
   "balllightning-4": {
    "k": "balllightning",
    "L": 4,
-   "len": 7.73,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 158049,
+   "bytes": 1318135,
    "note": ""
   },
   "balllightning-5": {
    "k": "balllightning",
    "L": 5,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 210697,
+   "bytes": 1635828,
    "note": ""
   },
   "sunflare-0": {
@@ -919,89 +919,89 @@
   "catchflame-0": {
    "k": "catchflame",
    "L": 0,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 118114,
+   "bytes": 968443,
    "note": ""
   },
   "catchflame-1": {
    "k": "catchflame",
    "L": 1,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 120029,
+   "bytes": 988811,
    "note": ""
   },
   "catchflame-2": {
    "k": "catchflame",
    "L": 2,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 120499,
+   "bytes": 958087,
    "note": "The marked foe has 1 HP: it dies burning and erupts."
   },
   "catchflame-3": {
    "k": "catchflame",
    "L": 3,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 120990,
+   "bytes": 996179,
    "note": ""
   },
   "catchflame-4": {
    "k": "catchflame",
    "L": 4,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 129019,
+   "bytes": 1068732,
    "note": ""
   },
   "firewall-0": {
    "k": "firewall",
    "L": 0,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 96684,
+   "bytes": 773187,
    "note": ""
   },
   "catchflame-5": {
    "k": "catchflame",
    "L": 5,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 163519,
+   "bytes": 1390464,
    "note": "Eleven foes, so the fire can reach its tenth."
   },
   "firewall-1": {
    "k": "firewall",
    "L": 1,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 86648,
+   "bytes": 745636,
    "note": ""
   },
   "firewall-2": {
    "k": "firewall",
    "L": 2,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 93277,
+   "bytes": 816563,
    "note": ""
   },
   "firewall-3": {
    "k": "firewall",
    "L": 3,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 98412,
+   "bytes": 871976,
    "note": ""
   },
   "firewall-4": {
    "k": "firewall",
    "L": 4,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 111383,
+   "bytes": 993856,
    "note": "Six foes cross the wall, so it releases its blast."
   },
   "firewall-5": {
@@ -1017,7 +1017,7 @@
    "L": 0,
    "len": 8.3,
    "seed": 1,
-   "bytes": 98208,
+   "bytes": 722569,
    "note": ""
   },
   "bramble-1": {
@@ -1025,71 +1025,71 @@
    "L": 1,
    "len": 9.1,
    "seed": 1,
-   "bytes": 129509,
+   "bytes": 985020,
    "note": ""
   },
   "bramble-2": {
    "k": "bramble",
    "L": 2,
-   "len": 9.13,
+   "len": 9.1,
    "seed": 1,
-   "bytes": 130570,
+   "bytes": 1006400,
    "note": ""
   },
   "bramble-3": {
    "k": "bramble",
    "L": 3,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 146592,
+   "bytes": 1125626,
    "note": ""
   },
   "bramble-4": {
    "k": "bramble",
    "L": 4,
-   "len": 9.13,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 151520,
+   "bytes": 1166350,
    "note": ""
   },
   "bramble-5": {
    "k": "bramble",
    "L": 5,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 197993,
+   "bytes": 1479474,
    "note": ""
   },
   "deflect-0": {
    "k": "deflect",
    "L": 0,
-   "len": 9.33,
+   "len": 9.2,
    "seed": 1,
-   "bytes": 119532,
+   "bytes": 943023,
    "note": ""
   },
   "deflect-1": {
    "k": "deflect",
    "L": 1,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 140550,
+   "bytes": 1232121,
    "note": ""
   },
   "deflect-3": {
    "k": "deflect",
    "L": 3,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 179797,
+   "bytes": 1632016,
    "note": ""
   },
   "deflect-2": {
    "k": "deflect",
    "L": 2,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 164175,
+   "bytes": 1579586,
    "note": ""
   },
   "riftfang-0": {
@@ -1111,9 +1111,9 @@
   "deflect-4": {
    "k": "deflect",
    "L": 4,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 240671,
+   "bytes": 2340987,
    "note": ""
   },
   "riftfang-2": {
@@ -1143,9 +1143,9 @@
   "deflect-5": {
    "k": "deflect",
    "L": 5,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 272929,
+   "bytes": 2747880,
    "note": ""
   },
   "riftfang-5": {
@@ -1335,9 +1335,9 @@
   "crows-0": {
    "k": "crows",
    "L": 0,
-   "len": 6.27,
+   "len": 6.3,
    "seed": 1,
-   "bytes": 121366,
+   "bytes": 865613,
    "note": ""
   },
   "geyser-4": {
@@ -1359,73 +1359,73 @@
   "crows-1": {
    "k": "crows",
    "L": 1,
-   "len": 7.97,
+   "len": 8.0,
    "seed": 1,
-   "bytes": 145198,
+   "bytes": 1090530,
    "note": ""
   },
   "crows-2": {
    "k": "crows",
    "L": 2,
-   "len": 7.97,
+   "len": 8.7,
    "seed": 1,
-   "bytes": 186997,
+   "bytes": 1642628,
    "note": ""
   },
   "crows-3": {
    "k": "crows",
    "L": 3,
-   "len": 8.8,
+   "len": 8.0,
    "seed": 1,
-   "bytes": 199570,
+   "bytes": 1486416,
    "note": ""
   },
   "crows-4": {
    "k": "crows",
    "L": 4,
-   "len": 7.97,
+   "len": 8.0,
    "seed": 1,
-   "bytes": 217266,
+   "bytes": 1759767,
    "note": ""
   },
   "crows-5": {
    "k": "crows",
    "L": 5,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 240902,
+   "bytes": 2197146,
    "note": ""
   },
   "firetornado-0": {
    "k": "firetornado",
    "L": 0,
-   "len": 7.37,
+   "len": 7.4,
    "seed": 1,
-   "bytes": 102316,
+   "bytes": 782031,
    "note": ""
   },
   "firetornado-1": {
    "k": "firetornado",
    "L": 1,
-   "len": 7.37,
+   "len": 8.0,
    "seed": 1,
-   "bytes": 105632,
+   "bytes": 827617,
    "note": ""
   },
   "firetornado-2": {
    "k": "firetornado",
    "L": 2,
-   "len": 7.37,
+   "len": 7.4,
    "seed": 1,
-   "bytes": 114833,
+   "bytes": 919488,
    "note": ""
   },
   "firetornado-3": {
    "k": "firetornado",
    "L": 3,
-   "len": 7.37,
+   "len": 7.4,
    "seed": 1,
-   "bytes": 123443,
+   "bytes": 1024335,
    "note": ""
   },
   "firetornado-4": {
@@ -1433,15 +1433,15 @@
    "L": 4,
    "len": 7.8,
    "seed": 1,
-   "bytes": 178322,
+   "bytes": 1546440,
    "note": ""
   },
   "firetornado-5": {
    "k": "firetornado",
    "L": 5,
-   "len": 9.33,
+   "len": 9.3,
    "seed": 1,
-   "bytes": 203238,
+   "bytes": 1728612,
    "note": ""
   },
   "frostwolves-0": {
