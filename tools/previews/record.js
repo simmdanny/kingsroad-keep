@@ -30,7 +30,10 @@ P.tagTick=dt=>{for(const t of P.tags){const e=t.e;if(e.dead||!e.g||!e.g.parent)t
   if(!t.dead||t.px==null){t.px=e.x;t.pz=e.z;t.py=(e.y||0)+(e.fly?1.25:.95)*(e.d&&e.d.size||1);}t.s.position.set(t.px,t.py+.12+.08*ease(t.dead/.5),t.pz);}};
 P.clearTags=()=>{for(const t of P.tags){scene.remove(t.s);t.m.dispose();t.tx.dispose();}P.tags=[];};
 /* one frame, as the game's own frame() does it */
-P.step=(dt,render)=>{P.T+=dt;for(const f of (P.enter||[]))if(!f.done&&P.T>=f.time){f.done=true;P.add(f,P.d0+(f.at||0)).pvTrail=1;}update(dt*worldSlow);if(!window.__fz)updFx(dt);for(const e of enemies)updBar(e);anim(dt,P.T);
+P.step=(dt,render)=>{P.T+=dt;if(window.__rcLog)window.__rcLog.push(window.__rc);if(window.__stkOn!=null){if(P.si>=(window.__stkFrom||0)&&P.si<=(window.__stkFrom||0)+2)window.__stk=window.__stk||{};else if(window.__stk){window.__stkKeep=window.__stk;window.__stk=null;}}for(const f of (P.enter||[]))if(!f.done&&P.T>=f.time){f.done=true;P.add(f,P.d0+(f.at||0)).pvTrail=1;}update(dt*worldSlow);if(!window.__fz)updFx(dt);for(const e of enemies)updBar(e);anim(dt,P.T);
+  if(P.s&&P.s.tick&&P.casts>0)try{eval(P.s.tick);}catch(e){}
+  /* stamp the module's new events with the recorder's own clock (the game's runs slower in its slow-motion moments) */
+  if(P.s&&P.s.dbg)try{const a=eval(P.s.dbg+'.dbg');if(a){for(let i=P.dbgN;i<a.length;i++)a[i].__T=P.T;P.dbgN=a.length;}}catch(e){}
   if(P.trk&&P.casts>0)P.trkFrame();if(P.path){const c=P.path[Math.min(P.si,P.path.length-1)];if(c)P.cam=c;}P.si++;
   try{bmAtmos(dt);sfAtmos(dt);}catch(e){}if(typeof AURA_RING!=='undefined'&&AURA_RING)AURA_RING.visible=false;P.tagTick(dt);P.camSet();
   if(!render)return'';
@@ -68,10 +71,12 @@ P.setup=(k,L,s)=>{P.clearTags();P.T=0;P.ev={};P.hit=[];P.hx=[];P.packAt=null;P.t
   const pc=posAt(Math.max(.05,d0+s.spd*(s.look==null?.6:s.look)),rt),fwz=s.fwz==null?1:s.fwz,fx=heroU.x*(1-s.fw)+pc[0]*s.fw,fz=heroU.z*(1-fwz)+pc[1]*fwz;
   P.cam={x:fx+(s.cx||0),zz:fz+(s.cz==null?.12:s.cz),y:gy(fx,fz),z:s.zoom};P.camSet();
   P.add=add;P.d0=d0-s.spd*s.castAt;P.enter=(s.enter||[]).map(f=>Object.assign({done:false},f));P.towersAt=towers.map(t=>[t.x,t.z]);
-  if(s.dbg)try{eval(s.dbg+'.dbg=[]');}catch(e){}
+  P.tm0=time;P.dbgN=0;if(s.dbg)try{eval(s.dbg+'.dbg=[]');}catch(e){}
   for(const sp of (s.spy||[]))P.spy(sp);if(s.pre)eval(s.pre);return{Pw,n:P.foes.length};};
 /* what the clip's mastery logged (its module's dbg events, and the spies), for the recorder's line and the manifest */
 P.evSum=()=>{const c={};try{if(P.s.dbg)for(const d of (eval(P.s.dbg+'.dbg')||[]))c[d.ev]=(c[d.ev]||0)+1;}catch(e){}for(const k in P.ev)c[k]=P.ev[k];return c;};
+/* when each of them first happened (s from the start of the stage, the recorder's clock), for placing a clip's window */
+P.evAt=()=>{const c={};try{if(P.s.dbg)for(const d of (eval(P.s.dbg+'.dbg')||[])){if(d.__T!=null&&c[d.ev]==null)c[d.ev]=+d.__T.toFixed(2);}}catch(e){}return c;};
 P.targets=()=>{let l=enemies.filter(e=>!e.dead&&!e.fake);l.sort((a,b)=>(b.pvT?1e3:0)-(a.pvT?1e3:0)||b.dist-a.dist);if(P.s&&P.s.only&&l[0]&&l[0].pvT)l=[l[0]];return l;};
 P.cast=(k2)=>{const k=k2||P.k,H=heroU;H.scd={};H.gcd=0;if(!meta.spells[k])meta.spells[k]={lvl:1,hero:null};const l=P.targets();P.lastT=l[0]&&l[0].pvT;if(!P.casts){P.packAt=P.foes.filter(e=>!e.dead&&!e.pvTrail).map(e=>[e.x,e.z]);P.fx0=new Set(fx);}fireScroll(H,k,tStats(H),l);P.casts++;};
 P.fxN=()=>fx.length;
@@ -113,18 +118,25 @@ async function openPage(browser) {
   await ctx.route(/three(\.min)?\.js$/, r => r.fulfill({ contentType: 'application/javascript', body: THREE_JS }));
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
   /* a seeded random from the very start (the game keeps its own copy of Math.random, const rnd) */
-  await ctx.addInitScript(() => { let s = 1; Math.random = function () { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; window.__seed = n => { s = n | 0; }; });
+  /* a seeded random from the very start: the game keeps its own copy of Math.random (const rnd) for everything it decides. Once it has
+     loaded, Math.random itself becomes a second seeded stream, so what three.js draws for the ids of new objects (whose number depends on
+     the camera: what is drawn, what is compiled) and the purely visual Math.random calls can never shift the game's own (v439: the
+     recorded run is then the very run the tracking camera was planned on) */
+  await ctx.addInitScript(() => { const mk = n => { let s = n | 0; return function () { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+    let A = mk(1), B = mk(7); window.__rc = 0; const gameR = function () { window.__rc++; if (window.__stk) { const l = (new Error().stack || '').split('\n')[2] || ''; const m = l.match(/at (\S+)/); const kk = m ? m[1] : '?'; window.__stk[kk] = (window.__stk[kk] || 0) + 1; } return A(); };
+    Math.random = gameR; window.__split = () => { Math.random = function () { return B(); }; }; window.__seed = n => { A = mk(n); B = mk((n * 7919) ^ 0x5bd1e995); }; });
   const page = await ctx.newPage(); const errors = [];
   page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !/ERR_FAILED|Failed to load resource/.test(m.text())) errors.push(m.text()); });
   await page.goto('http://localhost:8771/src/kingsroad-keep.html', { waitUntil: 'load', timeout: 120000 });
   await page.waitForFunction(() => window.__kk && typeof THREE !== 'undefined', null, { timeout: 90000 });
   const ev = c => page.evaluate(c => __kk.ev(c), c);
+  await page.evaluate(() => window.__split());
   /* stop the game's own frame loop: the recorder steps it */
   await page.evaluate(() => { window.requestAnimationFrame = () => 0; });
   await new Promise(r => setTimeout(r, 300));
   await ev("meta.notesSeen=NOTES_V;meta.sfx=false;meta.dev=true;saveMeta();document.querySelectorAll('.overlay').forEach(e=>e.classList.remove('on'));'ok'");
   await ev(STAGE);
-  return { page, ev, errors, ctx };
+  return { page, ev, errors, ctx, warm: new Set() };
 }
 
 /* v439: the tracking camera's path, one camera per frame, from what a run without pictures logged (PVR.trkFrame). Each frame keeps in view
@@ -175,11 +187,12 @@ function camPath(D, s, castT, dt) {
 }
 
 /* one clip: returns {ok, frames, len, probe} */
-async function recordClip(P, k, L, frameDir, seed, cam) {
-  const s = SC.get(k, L), dry = !cam;
+async function recordClip(P, k, L, frameDir, seed, cam, s0) {
+  const s = s0 || SC.get(k, L), dry = !cam;
   await P.page.evaluate(n => window.__seed(n), seed);
   await P.ev(`PVR.setup(${JSON.stringify(k)},${L},${JSON.stringify(s)});'ok'`);
   if (dry && s.track !== false) await P.ev('PVR.trkOn()');
+  if (process.env.PV_RC) await P.ev('window.__rcLog=[];window.__stkOn=1;window.__stk=null;window.__stkKeep=null;window.__stkFrom='+(+process.env.PV_RC||0)+';0');
   if (Array.isArray(cam)) await P.ev(`PVR.useCamPath(${JSON.stringify(cam)});'ok'`);
   else if (cam && cam !== true) await P.ev(`PVR.useCam(${JSON.stringify(cam)});'ok'`);
   if (!dry) { fs.rmSync(frameDir, { recursive: true, force: true }); fs.mkdirSync(frameDir, { recursive: true }); }
@@ -199,12 +212,15 @@ async function recordClip(P, k, L, frameDir, seed, cam) {
       if (s.len ? t >= s.len : ((quiet >= TAIL && t - t0 >= (s.minLen || MINLEN)) || t - t0 >= cap)) break;
     }
   }
-  const probe = s.probe ? await P.ev(`!!(${s.probe})`) : true, evs = JSON.parse(await P.ev('JSON.stringify(PVR.evSum())'));
+  const probe = s.probe ? await P.ev(`!!(${s.probe})`) : true, evs = JSON.parse(await P.ev('JSON.stringify(PVR.evSum())')), evAt = JSON.parse(await P.ev('JSON.stringify(PVR.evAt())'));
   let frame = dry && !s.fixedCam ? JSON.parse(await P.ev(`JSON.stringify(PVR.frame(${JSON.stringify(s)}))`)) : null;
   if (dry && !s.fixedCam && s.track !== false) { const D = JSON.parse(await P.ev('PVR.trkData()')), path = camPath(D, s, castT, dt); if (path) frame = path;
     if (process.env.PV_TRK) fs.writeFileSync(path_.join(process.env.PV_TRK, k + '-' + L + '.json'), JSON.stringify({ D, path, castT })); }
-  if (process.env.PV_DEBUG) console.log('   ', k, L, 'Pw', await P.ev('Math.round(PVR.Pw)'), 'events', await P.ev('JSON.stringify(PVR.ev)'), 'casts', await P.ev('PVR.casts'), 'target hits', await P.ev('JSON.stringify(PVR.hit.slice(0,14))'), 'dead', await P.ev('PVR.foes.filter(e=>e.dead).length'));
-  return { frames: n, len: n / FPS, probe, cam: frame || true, dry, evs };
+  if (process.env.PV_EVAL) console.log('    eval:', await P.ev(process.env.PV_EVAL));
+  if (process.env.PV_RC) console.log('    callers', await P.ev('JSON.stringify(window.__stkKeep||window.__stk||{})'));
+  if (process.env.PV_RC) { const a = JSON.parse(await P.ev('JSON.stringify(window.__rcLog||[])')); (global.__rcRuns = global.__rcRuns || []).push(a); const R = global.__rcRuns; if (R.length >= 2) { const x = R[R.length - 2], y = R[R.length - 1]; let i = 0; while (i < Math.min(x.length, y.length) && x[i] - x[0] === y[i] - y[0]) i++; console.log('    rnd calls first differ at step', i, 'of', Math.min(x.length, y.length), 'T', ((i + 1) / FPS).toFixed(2)); } }
+  if (process.env.PV_DEBUG) console.log('   ', k, L, 'first at', await P.ev('JSON.stringify(PVR.evAt())'), 'Pw', await P.ev('Math.round(PVR.Pw)'), 'events', await P.ev('JSON.stringify(PVR.ev)'), 'casts', await P.ev('PVR.casts'), 'target hits', await P.ev('JSON.stringify(PVR.hit.slice(0,14))'), 'dead', await P.ev('PVR.foes.filter(e=>e.dead).length'));
+  return { frames: n, len: n / FPS, probe, cam: frame || true, dry, evs, evAt };
 }
 
 function encode(frameDir, out) {
@@ -231,13 +247,24 @@ if (require.main === module) (async () => {
     const browser = await launch(); let P = await openPage(browser);
     while (queue.length) {
       const [k, L] = queue.shift(), id = `${k}-${L}`, fd = path.join(OUT, '_frames', id), s = SC.get(k, L);
+      /* v439: every clip on a fresh page, so nothing one cast leaves behind (a space warp, a trail) is in the next */
+      if (P.used) { try { await P.ctx.close(); } catch (_) { } P = await openPage(browser); } P.used = true;
       let r = null, seed = s.seed || 1;
       try {
         /* a run without pictures picks the seed (the mastery's moment must happen) and the framing; then the clip is recorded with them */
+        /* a first cast in a page builds what the game caches (textures, geometry), drawing on the random as it does: a warm-up run first,
+           so the run the camera is planned on and the recorded one start from the same page */
+        if (!P.warm.has(id)) { await recordClip(P, k, L, fd, seed, null); P.warm.add(id); }
         let d = null;
         for (let tries = 0; tries < (s.tries || 6); tries++, seed++) { d = await recordClip(P, k, L, fd, seed, null); if (d.probe) break; }
         if (!d.probe) seed--;
-        r = await recordClip(P, k, L, fd, seed, d.cam);
+        /* a clip centred on a moment (focus: {ev, before, after}): the run without pictures found when it first happens; the clip is that
+           window of the very same run (the camera path covers the whole run) */
+        let sr = null; if (s.focus && d.evAt && d.evAt[s.focus.ev] != null) { const f = d.evAt[s.focus.ev]; sr = Object.assign({}, s, { from: Math.max(0, f - (s.focus.before || 2)), len: f + (s.focus.after || 3) }); }
+        r = await recordClip(P, k, L, fd, seed, d.cam, sr);
+        /* the recorded run must be the run the camera was planned on: the same moments at the same times */
+        const drift = Object.keys(d.evAt || {}).filter(e => r.evAt && r.evAt[e] != null && Math.abs(r.evAt[e] - d.evAt[e]) > .05);
+        if (drift.length) console.log(`   ${id}: the recorded run drifted from the planned one (${drift.slice(0, 4).map(e => e + ' ' + d.evAt[e] + '->' + r.evAt[e]).join(', ')})`);
         encode(fd, path.join(OUT, id + '.mp4'));
         if (sheets) { fs.mkdirSync(path.join(OUT, '_sheets'), { recursive: true }); sheet(fd, r.frames, path.join(OUT, '_sheets', id + '.jpg')); }
         const sz = fs.statSync(path.join(OUT, id + '.mp4')).size;

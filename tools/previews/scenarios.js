@@ -17,6 +17,8 @@
 //   track  false = the old still framing        follow 'hits' = follow only the foes it hits (a storm all over the map)
 //   sky    effects higher than this (tiles) are not followed (default 2.4)       from  start the clip at this time (s), not at the cast
 //   cap    the longest clip (s, default 9.5)    towers [{t, at, side}] towers by the road (at: tiles from the pack's middle)
+//   focus  {ev, before, after}: the clip is the window around the first time its module logs ev (found in the run without pictures)
+//   tick   a script run every frame after the cast (stage hands: steering a cloud over the pack)   enter  foes that walk in later
 //   foes also take frac: their health as a fraction of the full (for "under a quarter of their health")
 const TAG = { hp1: '#ff6a5a', tough: '#ffcf5a', fly: '#8fd8ff', mark: '#d7a6ff' };
 const ONE = (o) => Object.assign({ t: 'soldier', hp: '1', tag: '1 HP', tc: TAG.hp1, target: true }, o);
@@ -174,23 +176,27 @@ const S = {
     4: { towers: [{ t: 'archer', at: 0 }, { t: 'archer', at: -1.5, side: -1 }], probe: "VFM.dbg.some(d=>d.ev==='release')", note: 'Archer towers shoot the Hollowed foes; the void gives a share back at once when it ends.' },
     5: { probe: "VFM.dbg.some(d=>d.ev==='crush')", note: 'A second sphere holds the lifted foes in the air, then implodes.' } },
   stormcaller: {
-    /* the storm covers the whole map: the view follows the foes it hits */
+    /* the storm covers the whole map for 15s: the view follows the foes it hits; its late moments are clips centred on them (focus) */
     base: { dbg: 'STC', follow: 'hits', zmax: .9, pack: BIG },
     1: { probe: "STC.dbg.some(d=>d.ev==='seek')", note: 'Bolts that would land near a foe bend onto it.' },
-    2: { probe: "STC.dbg.some(d=>d.ev==='soakArc')", note: 'Its clouds rain: a bolt on a Soaked foe runs through the water to the others.' },
+    /* its clouds rain only where one drifts over a road: one is drawn over the pack (the cast's own cloud, steered on the stage) */
+    2: { cap: 19.5, tries: 14, pre: "PVR.stcG=null;if(!window.__pvStc){window.__pvStc=1;const s0=stcStart;stcStart=function(o,K){PVR.stcK=K;return s0.apply(this,arguments);};}PVR.stcK=null;",
+      tick: "{const K=PVR.stcK,al=PVR.foes.filter(e=>!e.dead);if(K&&K.clouds&&K.clouds.length&&al.length){let cx=0,cz=0;for(const e of al){cx+=e.x;cz+=e.z;}cx/=al.length;cz/=al.length;if(!PVR.stcG){let b=null,bd=1e9;for(const g of K.clouds){const u=g.userData,d=(u.x-cx)**2+(u.z-cz)**2;if(d<bd){bd=d;b=g;}}PVR.stcG=b;}const g=PVR.stcG,u=g.userData;u.x+=(cx-g.position.x)*.08;u.z+=(cz-g.position.z)*.08;}}",
+      probe: "STC.dbg.some(d=>d.ev==='soakArc')", focus: { ev: 'soakArc', before: 3, after: 2.5 }, note: 'A cloud rains on the pack and Soaks it: a bolt on a Soaked foe runs through the water to the others.' },
     3: { probe: "STC.dbg.some(d=>d.ev==='roll')", note: 'The thunder of each strike rolls along the road.' },
-    4: { trail: TRAIL, from: 7.3, cap: 4.6, probe: "STC.dbg.some(d=>d.ev==='frontHit')", note: 'The clip joins the storm at 7s: from 8s to 11s it marches down the road as a front of bolts.' },
-    5: { from: 13.6, cap: 5.4, probe: "STC.dbg.some(d=>d.ev==='last')", note: 'The clip joins the storm near its end: its clouds draw into one thunderhead for a last colossal bolt.' } },
+    4: { trail: TRAIL, cap: 19.5, probe: "STC.dbg.some(d=>d.ev==='frontHit')", focus: { ev: 'front0', before: 1, after: 4 }, note: 'From 8s to 11s of the storm it marches down the road toward the keep as a front of bolts (the clip joins it there).' },
+    5: { cap: 22, probe: "STC.dbg.some(d=>d.ev==='last')", focus: { ev: 'last0', before: 1, after: 5 }, note: 'As the storm ends its clouds draw into one thunderhead for a last colossal bolt (the clip joins it there).' } },
   chronostasis: {
-    base: { dbg: 'CTM', cap: 11.6 },
+    /* the field holds 10s after it forms; the collapse and what follows are clips centred on it (focus) */
+    base: { dbg: 'CTM', cap: 13.5 },
     1: { len: 4.6, probe: "CTM.dbg.some(d=>d.ev==='rewind')", note: 'As time breaks every foe inside is wound back along the road.' },
     2: { len: 6.2, probe: "CTM.dbg.some(d=>d.ev==='hand')", note: 'A great clock hand sweeps the field every 2 seconds.' },
-    3: { from: 6.6, cap: 5.4, probe: "CTM.dbg.some(d=>d.ev==='echo')", note: 'The clip joins the field late: as time catches up the echoes rush back into their foes.' },
+    3: { cap: 16, probe: "CTM.dbg.some(d=>d.ev==='echo')", focus: { ev: 'collapse', before: 3.5, after: 2 }, note: 'As time catches up the echoes rush back into their foes (the clip joins the field near its end).' },
     4: { len: 6.6, towers: [{ t: 'archer', at: .3 }, { t: 'archer', at: -1.2, side: -1 }], probe: "CTM.dbg.some(d=>d.ev==='haste')", note: 'Archer towers that reach into the field shoot 30% faster.' },
-    5: { from: 8.2, cap: 5.2, probe: "CTM.dbg.some(d=>d.ev==='second')", note: 'The clip joins near the end: the collapse, then its ghost collapses again.' } },
+    5: { cap: 17, probe: "CTM.dbg.some(d=>d.ev==='second')", focus: { ev: 'collapse', before: 1.5, after: 3.4 }, note: 'The collapse, then a ghost of the field collapses again (the clip joins the field near its end).' } },
   skyfall: { base: { dbg: 'SKM' }, 3: { probe: "SKM.dbg.some(d=>d.ev==='rico')" }, 5: { probe: "SKM.dbg.some(d=>d.ev==='ext')" } },
   glacialrift: {
-    base: { dbg: 'GRM', follow: 'hits' },
+    base: { dbg: 'GRM', follow: 'hits', zmin: .7, zmax: .95 },
     1: { enter: [{ t: 'soldier', at: -3.0, off: .1, spd: 1.5, time: 3.0 }, { t: 'peasant', at: -3.4, off: -.15, spd: 1.5, time: 3.0 }, { t: 'soldier', at: -3.8, off: .05, spd: 1.5, time: 3.0 }],
       probe: "GRM.dbg.some(d=>d.ev==='statue')", note: 'The frozen foes stand as ice statues; foes walking up behind them are stopped until they thaw.' },
     2: { probe: "GRM.dbg.some(d=>d.ev==='push')", note: 'The wave drags each foe a tile back up the road.' },
@@ -198,11 +204,12 @@ const S = {
     4: { pack: PACK.concat([FLY({ at: -.3 })]), trail: [{ t: 'soldier', at: -8.6, off: .1 }, { t: 'peasant', at: -9.0, off: -.12 }], probe: "GRM.dbg.some(d=>d.ev==='cold')", note: 'Rime gathers on every foe in the blizzard, even far behind the rift, until it freezes solid.' },
     5: { probe: "GRM.dbg.some(d=>d.ev==='slam')", note: 'As the ridge shatters the rift tears open and its fangs slam shut.' } },
   harvest: {
-    base: { dbg: 'GHM' },
+    /* the reaper is a giant: the view stands back */
+    base: { dbg: 'GHM', zmin: .68 },
     1: { pack: PACK.map((p, j) => j % 2 ? Object.assign({}, p, { hp: 40, frac: .2, tag: 'Low HP', tc: TAG.hp1 }) : p), probe: "GHM.dbg.some(d=>d.ev==='cull')", note: 'Three foes are low on health: the scythe leaves them under 15% and they are reaped outright.' },
     2: { pack: ONES(3), probe: "GHM.dbg.some(d=>d.ev==='swarm')", note: 'Three foes have 1 HP: the first sweep reaps them and their souls hurl out on the backhand.' },
     3: { pack: PACK.map((p, j) => j % 2 ? Object.assign({}, p, { hp: 40, frac: .32, tag: 'Low HP', tc: TAG.hp1 }) : p), probe: "GHM.dbg.some(d=>d.ev==='creep')", note: 'Low-health foes die withering, and burst into new clouds of Wither.' },
-    4: { pack: ONES(3), also: [{ k: 'darkpulse', at: 4.4 }], probe: "GHM.dbg.some(d=>d.ev==='spend')", note: 'The souls stay with the hero; the next scroll (a Dark Pulse) takes them and is stronger.' },
+    4: { pack: ONES(3), also: [{ k: 'darkpulse', at: 6.4 }], cap: 9.5, probe: "GHM.dbg.some(d=>d.ev==='spend')", note: 'The souls stay with the hero; the next scroll (a Dark Pulse) takes them and is stronger.' },
     5: { pack: swap(2, TOUGH({ tag: 'Strongest' })), probe: "GHM.dbg.some(d=>d.ev==='toll')", note: 'A skeletal hand rises under the strongest foe, the ram, and tears its soul out.' } },
   dslash: {
     4: { pack: PACK.map((p, j) => j < 3 ? Object.assign({}, p, { hp: 40, frac: .25, tag: 'Low HP', tc: TAG.hp1 }) : p), note: 'Three foes are under 30% of their health: the cut hits them harder.' } },
