@@ -118,7 +118,7 @@ const S = {
      lives through the long casts and the later masteries still find it; each module's dbg log names the moments in the recorder's line ======== */
   loop: {
     /* the fold sends the foes that reach it back up the road: they walk briskly, and the view follows them round */
-    base: { dbg: 'LPM', spd: 1.0, follow: 'foes', len: 7 },
+    base: { dbg: 'LPM', spd: 1.0, follow: 'foes', len: 7, zmax: 1.05 },
     1: { note: 'The fold always reaches 8 tiles back: the foes that reach it walk out far up the road.' },
     2: { note: 'Each foe the fold sends back is sheared where it goes in and where it comes out.' },
     3: { spd: 1.7, len: 10.2, note: 'Fast foes, so they go round the 8-tile loop more than once: each lap hurts more.' },

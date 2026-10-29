@@ -132,7 +132,8 @@ async function openPage(browser) {
    and the cast's effects from 0.1s before to 0.6s after (a flying one where it shows on the screen). A foe only burning or bleeding
    counts only when nothing else is going on, so the view leaves a burning pack to follow a phoenix. When it all does not fit in the widest
    view, the view keeps what comes next (the action's way ahead). Smoothed: the zoom opens a little ahead of time and closes slowly, and
-   the middle glides (two passes of a 0.6s average). */
+   the middle glides (two passes of a 0.6s average). Following the foes themselves (a fold that sends them 8 tiles back) keeps every one of
+   them: a jump is the point there. */
 function camPath(D, s, castT, dt) {
   const n = D.si, out = [], margin = s.margin == null ? .85 : s.margin, zmin = s.zmin || .5, zmax = s.zmax || .8, zk = s.zk || 1, bz = s.cz == null ? .15 : s.cz;
   const fit = pts => { let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const p of pts) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); z0 = Math.min(z0, p[1]); z1 = Math.max(z1, p[1]); }
@@ -146,10 +147,10 @@ function camPath(D, s, castT, dt) {
     if (s.follow !== 'hits') for (const [T, P] of D.trk) if (T >= t - .1 && T <= t + .6) for (const p of P) { if (!p[2]) { weak.push([p[0], p[1], T]); continue; } (T > t ? next : now).push([p[0], p[1], T]); }
     let pts = now.concat(next); if (!pts.length) pts = weak;
     /* the action moves on from where it was: a point more than 5 tiles from the last frame's middle is a blip somewhere else */
-    if (pc) { const nearPc = p => (p[0] - pc[0]) ** 2 + (p[1] - pc[1]) ** 2 <= 25; pts = pts.filter(nearPc); for (const a of [now, next]) for (let j = a.length - 1; j >= 0; j--) if (!nearPc(a[j])) a.splice(j, 1); }
+    if (pc && s.follow !== 'foes') { const nearPc = p => (p[0] - pc[0]) ** 2 + (p[1] - pc[1]) ** 2 <= 25; pts = pts.filter(nearPc); for (const a of [now, next]) for (let j = a.length - 1; j >= 0; j--) if (!nearPc(a[j])) a.splice(j, 1); }
     /* a stray far from the rest (an ember flung across the map) does not pull the view: points further than 5 tiles from the middle of
        the action (the median) are dropped */
-    if (pts.length > 2) { const md = a => { const b = a.slice().sort((p, q) => p - q); return b[b.length >> 1]; }, mx = md(pts.map(p => p[0])), mz = md(pts.map(p => p[1]));
+    if (pts.length > 2 && s.follow !== 'foes') { const md = a => { const b = a.slice().sort((p, q) => p - q); return b[b.length >> 1]; }, mx = md(pts.map(p => p[0])), mz = md(pts.map(p => p[1]));
       const kept = pts.filter(p => (p[0] - mx) ** 2 + (p[1] - mz) ** 2 <= 25); if (kept.length) { const ks = new Set(kept); for (const a of [now, next]) for (let j = a.length - 1; j >= 0; j--) if (!ks.has(a[j])) a.splice(j, 1); pts = kept; } }
     if (!pts.length) { raw.push(null); continue; }
     let f = fit(pts); if (f.z * 1 > zmax * 1.02 && next.length) { const g = fit(next.concat(now.filter(p => p[2] != null && p[2] >= t - .1))); if (g.z < f.z) f = g; }
