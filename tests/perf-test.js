@@ -35,6 +35,13 @@ try{
   {board('snow');batchAll();let v=0;TERRAIN.traverse(o=>{if(o.userData.pfBatch&&o.material.userData&&o.material.userData.pfLoc){if(o.geometry.attributes.pfLoc)v++;}});ok('snow caps on merged trees read each tree\'s own height (pfLoc)',v>0,v);}
   /* the Infinite Void still dissolves the merged scenery */
   {board('plains');batchAll();ok('the merged outer forest has no voidKeep (the Void dissolves it) and the pebbles keep theirs',TERRAIN.children.filter(o=>o.userData.pfBatch&&o.userData.glOuter).every(o=>!o.userData.voidKeep)&&TERRAIN.children.some(o=>o.userData.pfBatch&&o.userData.voidKeep));}
+  /* health bars: all foes' bars are four instanced meshes */
+  {board('plains');PF.on=true;for(let i=0;i<30;i++){spawnEnemy({type:'soldier',v:0},20);const e=enemies[enemies.length-1];e.dist=4+i*.2;moveEnemy(e,0);e.hp=e.maxHp*.5;if(i%3===0){e.shield=10;e.maxShield=20;}}
+    for(const e of enemies)updBar(e);anim(.001,1);const M=PFB.m;ok('thirty hurt foes: one bar each, in four instanced meshes',M&&M.bg.count===enemies.filter(e=>!e.dead&&(e.hp<e.maxHp||e.shield>0||e.boss)).length&&M.sh.count===10&&enemies.every(e=>!e.bar),M&&[M.bg.count,M.fg.count,M.sh.count].join('/'));
+    const e=enemies[0],m4=new THREE.Matrix4(),p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3();M.fg.getMatrixAt(0,m4);m4.decompose(p,q,s);
+    ok('a bar sits over its foe, faces the camera and shows its health',Math.abs(s.x-.25)<1e-6&&q.angleTo(camera.quaternion)<1e-4&&Math.hypot(p.x-e.x,p.z-e.z)<.6,s.x.toFixed(3));
+    let old=0;PF.on=false;for(const e of enemies)updBar(e);for(const e of enemies)if(e.bar){e.bar.traverse(o=>{if(o.isMesh)old++;});scene.remove(e.bar);e.bar=null;}PF.on=true;
+    ok('and the bars are four draws in all instead of two or three meshes a foe',old>=60,old+' meshes the old way -> 4 instanced meshes');}
   /* a whole game frame with everything on */
   {let err=null;try{board('plains');PF.on=true;clearWorld();buildMap(77);newGame(1);paused=false;state='playing';for(let i=0;i<30;i++){update(.05);updFx(.05);anim(.05,i*.05);}renderer.render(scene,camera);}catch(e){err=e.message;}
     ok('a game runs and renders with batching on, without errors',!err&&!errs,err||errs);}
