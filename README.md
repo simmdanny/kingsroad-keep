@@ -1673,3 +1673,87 @@ The Epic and Legendary stages use tougher foes (30 times the spell power, agains
 New in the recorder: `towers` beside the road, foes at a fraction of their health (`frac`), foes that walk in later (`enter`), clips that start later (`from`) or run longer (`cap`), clips centred on a mastery's moment (`focus`: the Storm Front, the Last Thunder, Chronostasis' collapse, Downpour's arcs), a script run every frame on the stage (`tick`: a storm cloud steered over the pack for Downpour), `epic` and `legendary` on the command line (`node tools/previews/record.js epic legendary`), and loading the recorder from another script records nothing (only running it does).
 
 - Tests: `tests/pvc-test.js` checks that every Epic and Legendary scroll has its six clips and that an Epic scroll's card plays its clip in developer mode; the live preview of a scroll without clips is now checked with the Comet's clips put aside (also in `tests/smprev-test.js`, which used the Comet as the scroll without clips).
+
+## Rite of the Phoenix: White-Hot and From the Ashes (v440)
+After Simon's review of the Epic masteries, two of the Phoenix's are replaced. Rising Heat (7% more per foe struck before, up to 5) was hard to read, and Rebirth (the phoenix reborn from a pyre to skim and dive again) played like a second cast.
+
+| Mastery | Was | Now |
+|---|---|---|
+| 1 | Rising Heat: each strike +7% for every foe struck before it (up to 5) | **White-Hot**: each strike stokes its fire (the bird grows a little, runs paler); its 5th strike sets it white-hot in a flash of white fire. From then on it is a third larger and white, its strikes deal 40% more and its river of fire burns 50% hotter |
+| 5 | Rebirth: reborn from a pyre, skims for 15% a foe, dives for 50% | **From the Ashes**: the death burst rains ashes on every foe it struck that still stands (a ring of smouldering coals at their feet for 4s). A foe that dies with ashes on it is reborn as a small firebird that dives at the nearest foe within 4 tiles for 60% and spreads the ashes to it (up to 6 a cast) |
+
+Like a match and a fuse: White-Hot is one moment you can see (the fifth strike), and From the Ashes lights a fuse on every foe the phoenix touched, so the kills it sets up keep paying out instead of it flying again.
+
+- The ashes are put on at once (a falling ember shows them landing); a firebird's foe gets the ashes before its 60% lands, so a foe it kills is reborn in turn. The firebirds are built from the phoenix model at 0.42 scale, gold, rising from a 3D fire burst and diving into another.
+- Power on the Epic ladder (6 runs): 1.09 / 1.24 / 1.35 / 1.52 / 1.70 at a Mastery 5 factor of 1.1, now 1.125 (targets 1.094 / 1.234 / 1.35 / 1.522 / 1.742). Hidden factors `SMG.phoenix` = 1.017 / 1.032 / 1.016 / 1.055 / 1.125.
+- Tests: `tests/phm-test.js` (39 rows): the 5th strike and only the 5th sets it white-hot, 40% on strikes 5 on and none before, the river at 150% after; ashes on the foes struck and no others, a firebird from a marked death only, at the nearest foe for 60%, the chain (a foe the firebird kills is reborn), the 6 cap, the 4s limit, no target within 4 tiles, nothing left behind.
+
+## Spatial Loop: Turned Around (v441)
+After Simon's review, Mastery 1 is replaced. Long Fold made the fold always reach 8 tiles back, a number change you could not see in play.
+
+| Mastery | Was | Now |
+|---|---|---|
+| 1 | Long Fold: the fold always reaches 8 tiles back | **Turned Around**: a foe the fold sends back comes out walking the wrong way, back up the road, for 1.2s (bosses 0.5s, Resolve applies) |
+
+Like a revolving door that spins you out facing the street you came from: the fold already sends them back, and now they keep going back for a moment before they realise.
+
+- How it works: `e.revT` is a new foe state in `moveEnemy`: while it is above 0 the foe's step along the road is reversed and it faces back up the road. The fold's hop sets it (`lpmCast`, `S.hop`), and it is paid for from the Resolve budget like a hold of the same length (`rsvLeft`, `rsvSpend`): a fresh foe walks back 1.2s, a foe with less Resolve left walks back for what is left, and an Unstoppable foe walks on.
+- The look (`lpmTurn`): a U-turn arrow of folded light (a 3D tube bent through three-quarters of a circle with a cone for its head, in a soft glow) circles the foe's waist, tilting as it chases its own head round, with shards of space trailing it and glints streaming off toward the keep. It grows in and shrinks away with the turn. The seam still shows as a curtain of folded light, and the fold reaches 3 to 8 tiles back again, at random.
+- The loop deals no damage, so it stays off the ladder (factors 1).
+- Tests: `tests/lpm-test.js` (31 rows): a foe comes out walking back for 1.2s, faces back up the road, walks on afterwards; it costs 1.2s of Resolve; a boss 0.5s; an Unstoppable foe walks on; no damage; nothing left behind; no turn at Mastery 0.
+
+## Cataclysm: Standing Stones and Shrapnel (v442)
+After Simon's review, two Cataclysm masteries are replaced.
+
+| Mastery | Was | Now |
+|---|---|---|
+| 1 | Drawn Down: one pillar rises under the toughest foe | **Standing Stones**: seven rune-carved standing stones rise early (from 0.55s) in a ring at the rune's edge, with void lightning crackling from stone to stone. Ground foes inside when the ring closes are fenced in until the collapse: one that reaches the stones is held there (Resolve applies; one with no Resolve left breaks out). Bosses push through |
+| 4 | Sundered: physical hits deal 25% more for 5s | **Shrapnel**: foes the collapse hits are studded with four obsidian shards for 5s. Each tower or hero attack on a studded foe knocks a shard into the nearest other foe within 1.5 tiles for 20% (up to 4 a foe) |
+
+Like a sheepdog and a pinata: the stones keep the flock where the sky will land, and every arrow that hits a studded foe knocks a shard into its neighbour.
+
+- One change from the plan: the table said the pillars would rise in the ring. Moved to the edge, the eight obsidian pillars struck mostly empty ground and the cast lost a fifth of its damage (0.80 of Mastery 0 on the ladder, against a target of 1.09). So the ring is seven separate standing stones (grey, rune-carved, no damage, crumbling back into the ground after the collapse), and the pillars rise inside as before (Falling Sky, Obsidian Chains and World Breaker still use them).
+- What counts for Shrapnel (`ccmAtk`): a hit whose source is a tower or the hero, that is not a scroll, a burn or a mastery hit. A shard flies as a spinning splinter of black glass (0.2s) and bursts in a small 3D void blast; the four shards stuck in the foe go one by one.
+- Power on the Epic ladder (4 runs): 1.12 / 1.23 / 1.34 / 1.53 / 1.73 (targets 1.094 / 1.234 / 1.35 / 1.522 / 1.742). Hidden factors `SMG.cataclysm` = 1.094 / 1.089 / 1.157 / 1.325 / 1.244. The stones and the shards deal nothing on the ladder (its foes stand still and no towers fire), so the factors carry them.
+- Tests: `tests/ccm-test.js` (38 rows): the stones in an even ring at the edge, up within 0.9s, no damage, gone afterwards; walking foes fenced in, held at the stones, a boss and a flyer walking out, an Unstoppable foe breaking out; studs for 5s; a tower hit and a hero attack each knock a shard into the nearest foe for 20%; scrolls, burns and mastery hits do not; 4 at most; no neighbour, no shard; nothing after 5s.
+
+## Thunder Wyrm: Snap, and a clearer Grounding Strike (v443)
+
+| Mastery | Was | Now |
+|---|---|---|
+| 2 | Hunter's Weave: slower in packs, faster on empty road, swaying toward foes | **Snap**: as it weaves, its head lunges at foes within 1.2 tiles (jaws wide, eyes burning amber) and snaps shut: 80% and Charged. Foes it has not lashed come first, then the nearest; each foe once a cast |
+| 4 | Grounding Strike: lash marks (sparks), plus 1 for a foe Charged by anything else | **Grounding Strike**: each lash rings its foe with a gold hoop of lightning (up to 3, at waist, chest and head); the strike forks to every ringed foe within 4 tiles for 35% per ring. Only its own lashes count |
+
+- The lunge takes 0.18s and the weave goes on under it, so it snaps on the move. Constrict judges its reach from the serpent's path, not the lunging head, and a lunge in progress gives way when Constrict seizes a foe.
+- Power on the Epic ladder (5 runs) at the old factors: 1.10 / 1.27 / 1.28 / 1.45 / 1.65; the hidden factors are now `SMG.wyrm` = 0.95 / 1.07 / 0.908 / 0.946 / 0.911 (targets 1.094 / 1.234 / 1.35 / 1.522 / 1.742).
+- The rings (`wymRings`) are 3D hoops that spin against each other and flicker, flare and go when the strike grounds through them (or the foe dies).
+- Tests: `tests/wym-test.js`: snaps at 80% each, once per foe, none out of reach, Charged, during the weave, reaching a foe a tile off the road; Grounding Strike counts its own lashes only (a foe Charged by something else is not grounded); Constrict's test now puts its toughest foe where the head is (it used to rely on Hunter's Weave slowing the head in the pack).
+
+## Prism of Dawn: Heliotrope and Resonant Fold (v444)
+After Simon's review, two Prism masteries are replaced.
+
+| Mastery | Was | Now |
+|---|---|---|
+| 2 | Sun-Tracking: the prism drifts after the foes (up to 1.6 tiles) | **Heliotrope**: a seventh, white sunbeam bends down out of the shaft of sunlight over the prism and locks onto the toughest foe under the wheel, burning hotter the longer it holds: 10% a second, rising to 40% over 2s (it relocks, starting cool, if its foe dies or leaves) |
+| 3 | Blinding Fold: the folding beams blind for 0.5s, then slow | **Resonant Fold**: foes the folding beams cross ring like bells. When the lance lands, its power runs through each ringing foe into the foes beside it (within 1 tile): 50% each, once a foe |
+
+Like a magnifying glass on a sunny day, and a row of tuning forks: Heliotrope holds one point of sunlight on one foe until it smokes, and the fold strikes the foes like bells, so the lance's note carries to their neighbours.
+
+- The look: the sunbeam (`prmSunbeam`) is a white-hot core in a gold glow with a cone of light narrowing onto the foe; a pool of light at its feet draws in to a point as it heats (a flattened sphere, with a ring of light round it), sparks and smoke rise and a scorch grows. A first version ran the beam from the prism itself, and from the game's camera it was lost in the prism's own glare; bent down from the shaft of sunlight above, it spans the screen. The bells (`prmBell`) are two hoops of gold light humming round the foe; the toll (`prmToll`) swells a ring of light out of it and throws a ribbon of light to each foe beside it.
+- Power on the Epic ladder (5 runs) at the old factors: 1.09 / 1.27 / 1.44 / 1.60 / 1.81; the hidden factors are now `SMG.prism` = 0.87 / 0.862 / 0.901 / 0.93 / 0.807 (targets 1.094 / 1.234 / 1.35 / 1.522 / 1.742).
+- Tests: `tests/prm-test.js` (31 rows): the sunbeam locks the toughest foe, ticks every 0.25s with a rate rising from 10% to 40%, only while the wheel turns, relocks cool on the next toughest when its foe dies; only the folding beams set foes ringing, each once; every ringing foe tolls when the lance lands; 50% to each foe within 1 tile of a ringing foe, once a foe.
+
+## Oakheart Treant: Battering Trunk and Growth Rings (v445)
+After Simon's review, two Treant masteries are replaced.
+
+| Mastery | Was | Now |
+|---|---|---|
+| 2 | Bark Bulwark: foes held against its bark for up to 2s | **Battering Trunk**: when 3 or more ground foes stand within a tile in front of it, it lowers its trunk and charges 1.5 tiles through them (0.45s): 60% each, and they are thrown up and over to the sides of the road; bosses take the blow but hold their ground. 2.5s before it can charge again |
+| 4 | Sap Harvest: Overgrown foes drained for 60%, the oak grows up to 40% | **Growth Rings**: each Overgrown foe its slam hits adds a ring of glowing sap round its trunk (up to 4), and it grows 8% a ring. At 4 rings its next slam is a Grove Slam: roots burst up in a 2.2-tile circle and hold the ground foes 0.8s (Resolve applies; bosses 40%) for 120%; then the rings are spent |
+
+Like a bull through a hedge, and the rings of a tree trunk: the oak shoulders its way through and leaves the pack on the verges, and every Overgrown foe it crushes adds a ring until the ground itself answers.
+
+- Found on the ladder: after charging through a pack the foes are beside and behind the oak, and from Mastery 2 its slam always landed in front of it, so it swung at empty road (0.62 of Mastery 0's power where foes keep coming). From Mastery 2 the slam now lands on whichever side the foes are thickest, in front or behind (`side()`).
+- The base model was 1.25 times its size and the masteries used to set it back to 1; the oak now keeps its size at every mastery (`s0`), and Growth Rings grow it from there.
+- Power on the Epic ladder (5 runs) at the old factors: 1.09 / 1.55 / 1.78 / 2.05 / 1.59; the hidden factors are now `SMG.treant` = 0.95 / 0.958 / 0.92 / 0.886 / 0.965 (targets 1.094 / 1.234 / 1.35 / 1.522 / 1.742).
+- Tests: `tests/trm-test.js` (33 rows): it charges with 3 or more foes in front (not 2), 60% to each foe it runs through, they end on the verge (0.85 off the middle) and a boss does not; rings 1 to 4, then a Grove Slam, 120% to the foes in it and holding them, and the rings start again from one.
