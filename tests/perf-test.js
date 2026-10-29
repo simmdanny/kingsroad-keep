@@ -35,6 +35,12 @@ try{
   {board('snow');batchAll();let v=0;TERRAIN.traverse(o=>{if(o.userData.pfBatch&&o.material.userData&&o.material.userData.pfLoc){if(o.geometry.attributes.pfLoc)v++;}});ok('snow caps on merged trees read each tree\'s own height (pfLoc)',v>0,v);}
   /* the Infinite Void still dissolves the merged scenery */
   {board('plains');batchAll();ok('the merged outer forest has no voidKeep (the Void dissolves it) and the pebbles keep theirs',TERRAIN.children.filter(o=>o.userData.pfBatch&&o.userData.glOuter).every(o=>!o.userData.voidKeep)&&TERRAIN.children.some(o=>o.userData.pfBatch&&o.userData.voidKeep));}
+  /* landmarks: their still parts are merged, every part their model points at is left in place (so states and animation still show) */
+  {let n=0,okRefs=true,merged=0;for(let s=0;s<6&&n<4;s++){board('plains');PF.on=false;clearWorld();buildMap(300+s);PF.on=true;pfProps();
+      for(const L of LMS||[]){n++;const P=L.P;L.P.g.traverse(o=>{if(o.userData.pfBatch)merged++;});for(const k in P){const v=P[k];const chk=o=>{if(o&&o.isObject3D&&o!==P.g){let q=o;while(q&&q!==P.g)q=q.parent;if(q!==P.g)okRefs=false;}};if(Array.isArray(v))v.forEach(chk);else chk(v);}
+        try{const st={shrine:'destroyed',tower:'done',camp:'searched',merchant:'sold',cursed:'burned',altar:'offered'}[L.k];if(st)lmSetState(L,st,true);}catch(e){okRefs=false;}}}
+    ok('landmarks: their still parts are merged',n===0||merged>0,n+' landmarks, '+merged+' merged meshes');
+    ok('landmarks: every part they animate or change stays in place, and their states still apply',okRefs);}
   /* health bars: all foes' bars are four instanced meshes */
   {board('plains');PF.on=true;for(let i=0;i<30;i++){spawnEnemy({type:'soldier',v:0},20);const e=enemies[enemies.length-1];e.dist=4+i*.2;moveEnemy(e,0);e.hp=e.maxHp*.5;if(i%3===0){e.shield=10;e.maxShield=20;}}
     for(const e of enemies)updBar(e);anim(.001,1);const M=PFB.m;ok('thirty hurt foes: one bar each, in four instanced meshes',M&&M.bg.count===enemies.filter(e=>!e.dead&&(e.hp<e.maxHp||e.shield>0||e.boss)).length&&M.sh.count===10&&enemies.every(e=>!e.bar),M&&[M.bg.count,M.fg.count,M.sh.count].join('/'));

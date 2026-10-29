@@ -28238,6 +28238,9 @@ function pfFreeze(g,skip,okUD){if(!g||g.userData.pfFrozen)return 0;g.userData.pf
 function pfProps(){if(!PF.on)return;let s=0;const t0=performance.now();
   for(const L of LORE||[]){if(!L.g)continue;const sk=new Set();(L.g.userData.flaps||[]).forEach(f=>f&&f.m&&sk.add(f.m));s+=pfFreeze(L.g,sk);}
   for(const k in TREEM||{})s+=pfFreeze(TREEM[k]);
+  /* landmarks animate and change state only through the parts their model object points at (fire, core, glow, eyes, flames, lamp,
+     beam, cards...): those are skipped, the rest is merged */
+  for(const L of LMS||[]){const P=L.P;if(!P||!P.g)continue;const sk=new Set(),add=v=>{if(v&&v.isObject3D&&v!==P.g)sk.add(v);else if(Array.isArray(v))v.forEach(add);};for(const k in P)if(k!=='g')add(P[k]);s+=pfFreeze(P.g,sk);}
   if(TERRAIN)for(const c of TERRAIN.children)if(c.userData.keep&&c.userData.voidKeep&&c.isGroup&&c!==castle&&!(CHESTS||[]).some(q=>q.g===c)&&c.children.every(m=>m.isMesh&&!m.children.length))s+=pfFreeze(c);
   PF.stat.props={saved:s,ms:+(performance.now()-t0).toFixed(1)};}
 /* 3) Loose specks: the grass tufts (three small cones on some free tiles) and the pebbles on the road are single meshes straight under the
