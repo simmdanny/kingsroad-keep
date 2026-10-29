@@ -157,7 +157,8 @@ const S = {
     2: { spd: .55, note: 'The pack walks on: the prism drifts after it.' },
     4: { probe: "PRM.dbg.some(d=>d.ev==='full')", note: 'Foes swept by all six colours burst with them.' } },
   treant: {
-    base: { dbg: 'TRM' },
+    /* the oak walks for 10s (it is not an effect the recorder counts): every clip holds it */
+    base: { dbg: 'TRM', minLen: 9.5 },
     2: { spd: .55, note: 'The foes walk into the oak and are held against its bark.' },
     3: { trail: [{ t: 'soldier', at: -3.1, off: .1 }, { t: 'peasant', at: -3.4, off: -.15 }, { t: 'soldier', at: -3.7, off: .05 }, { t: 'knight', at: -4.0, off: -.05 }], probe: "TRM.dbg.some(d=>d.ev==='boulder'||d.ev==='hurl')", note: 'A second knot of foes further back: every third slam it hurls a boulder at it.' },
     4: { also: [{ k: 'roots', at: .25 }], probe: "TRM.dbg.some(d=>d.ev==='sap')", note: 'Entangling Roots first: the foes are Overgrown, and the oak drains them and grows.' },
