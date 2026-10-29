@@ -4396,10 +4396,10 @@ function castStormcaller(t,P,o){
     for(const g of clouds){const u=g.userData,k=SMS(tt-u.dl,0,ARR+.8),ko=SMS(tt,ARR+DUR+u.dl*.4,END);
       const px=u.sx+(u.x-u.sx)*k+(u.sx-u.x)*ko*.6+wind.x*tt,pz=u.sz+(u.z-u.sz)*k+(u.sz-u.z)*ko*.6+wind.y*tt;g.position.set(px,u.y+Math.sin(tt*.25+u.dl*7)*.15,pz);
       /* fade near the camera so a zoomed-in view never gets a cloud in its face */
-      const camF=clamp((cy-u.y-2.5)/6,0,1),op=u.op*k*(1-ko)*camF;u.mA.opacity=op;u.mB.opacity=op*.85;g.visible=op>.005;
+      const camF=clamp((cy-u.y-2.5)/6,0,1),op=u.op*k*(1-ko)*camF;u.mA.opacity=op;u.mB.opacity=op*.85;g.visible=op>.005;u.on=u.op*k*(1-ko)>.005;
       for(const p of u.puffs){const br=1+.07*Math.sin(time*.7+p.ph);p.m.scale.set(p.b.x*br,p.b.y*(1+.05*Math.sin(time*.9+p.ph*1.3)),p.b.z*br);p.m.rotation.y+=p.sp*dt;p.m.position.y+=p.dy*dt*Math.sin(time*.4+p.ph);}
       u.fl=Math.max(0,u.fl-dt*5);if(rnd()<(tt<ARR?.012:.006))u.fl=.6+rnd()*.6;const ei=(.12+u.fl*.6)*A;u.mA.emissiveIntensity=ei;u.mB.emissiveIntensity=ei*.8;}
-    if(tt<ARR+DUR&&rnd()<.07*A){const g=pick(clouds);if(g.visible){const p=g.position,S=g.userData.S;zap({x:p.x+(rnd()-.5)*S,y:p.y+(rnd()-.5)*.4,z:p.z+(rnd()-.5)*S*.7},{x:p.x+(rnd()-.5)*S*1.2,y:p.y-.3-rnd()*.5,z:p.z+(rnd()-.5)*S*.7},0xcfe6ff,.1);g.userData.fl=1;}}
+    if(tt<ARR+DUR&&rnd()<.07*A){const g=pick(clouds);if(g.userData.on){const p=g.position,S=g.userData.S;zap({x:p.x+(rnd()-.5)*S,y:p.y+(rnd()-.5)*.4,z:p.z+(rnd()-.5)*S*.7},{x:p.x+(rnd()-.5)*S*1.2,y:p.y-.3-rnd()*.5,z:p.z+(rnd()-.5)*S*.7},0xcfe6ff,.1);g.userData.fl=1;}}
     if(tt<ARR*.9&&rnd()<.04){flashA=Math.max(flashA,.12);flashCol='#9fbfff';flashDecay=5;}
     /* strikes on random sections of the path, each one from the cloud overhead */
     if(tt>=next&&tt<ARR+DUR&&!(S&&S.front(tt))){next=tt+.36+rnd()*.3;const n=rnd()<.18?2:1;
@@ -14164,6 +14164,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Recorded previews for the Epic and Legendary masteries',d:'29 Oct',v:'v439',li:[
+    'Every Epic and Legendary scroll now has a short recorded clip for no mastery and each of its five masteries, like the Common to Rare scrolls: 102 clips that play at once in developer mode, instead of the slow live preview.',
+    'The clips follow the action: the camera tracks what each mastery does (the Phoenix reborn skimming down the road and diving, the Comet\u2019s rebound, the Storm Front marching on, the Loop sending foes 8 tiles back) instead of holding one view the action could run out of.',
+    'Each clip is set up for its mastery: a ram as the toughest foe, low-health foes for Harsh Sentence, Severed and Culling Edge, towers for Sundered, Hollow, Stolen Time and the Vine Lattice, foes walking up behind Glacial Rift\u2019s statues, and the late moments (the Storm Front, the Last Thunder, the second collapse) shown when they happen.',
+    'The Stormcaller\u2019s Downpour now rains while a cloud is over the road even with the camera zoomed in close (it used to stop when the clouds faded from a close view).']},
   {t:'Hundred-Year Bloom masteries, redesigned',d:'28 Oct',v:'v437',li:[
     'Hundred-Year Bloom (Legendary) has five new masteries, for now in developer mode: Scent of Nectar (while the bud opens, golden scent streams out and draws foes up to 3.5 tiles away into the flower), Vine Lattice (thorned vines tie the held foes together, and a quarter of any other hit on one runs along them to the rest), Petal Storm (the burst throws 16 razor petals that whirl out and slice into the foes), Golden Haze (the pollen cloud is wider and thicker and drifts down the road with the foes in it) and A Hundred Years in a Breath (the fading flower goes to seed: ten glowing seeds drift onto the foes and sprout small blooms that grab them and burst).',
     'Its burst now billows up as a golden cloud of pollen in 3D, and the shaft of light over it fades as it rises instead of standing as a flat white bar over the foes.']},
@@ -29641,7 +29646,9 @@ function stcStart(o,K){const C=stcC(o);if(!C)return null;const L=C.L,a=C.a,P=K.P
       if(L>=1&&tt<ARR+DUR&&!pend&&next-tt<=STC.seekT&&next-tt>0){const rt=pick(ROUTES),q=posAt(rnd()*rt.len,rt),x=q[0]+(rnd()-.5)*.5,z=q[1]+(rnd()-.5)*.5;let e=null,bd=STC.seekR*STC.seekR;
         for(const f of enemies){if(f.dead||f.fake)continue;const d2=(f.x-x)**2+(f.z-z)**2;if(d2<bd){bd=d2;e=f;}}pend={x,z,e};if(e)stcSigil(e.x,e.z,Math.max(.05,next-tt));}
       /* M2: rain from the clouds over the road */
-      if(L>=2&&A>.5){rainT-=dt;if(rainT<=0){rainT=1;rainy=clouds.filter(g=>g.visible).filter(g=>{const s=nsRouteNear(g.position.x,g.position.z),p=posAt(s.d,s.rt);return (p[0]-g.position.x)**2+(p[1]-g.position.z)**2<1.5*1.5;}).slice(0,4);if(rainy.length)stcLog({ev:'rain',n:rainy.length});}
+      if(L>=2&&A>.5){rainT-=dt;if(rainT<=0){rainT=1;/* v439: a cloud rains while it is in the sky (u.on), not only while the camera is high enough to see it (a close view fades the clouds
+           out, and Downpour used to stop with them) */
+        rainy=clouds.filter(g=>g.userData.on).filter(g=>{const s=nsRouteNear(g.position.x,g.position.z),p=posAt(s.d,s.rt);return (p[0]-g.position.x)**2+(p[1]-g.position.z)**2<1.5*1.5;}).slice(0,4);if(rainy.length)stcLog({ev:'rain',n:rainy.length});}
         for(const g of rainy){const p=g.position,S=g.userData.S;for(let i=0;i<10;i++){const x=p.x+(rnd()-.5)*S*1.4,z=p.z+(rnd()-.5)*S*1.1;emit(0,{x,y:p.y-.3*S,z,vx:.3,vy:-14,vz:0,s:.04,s2:.03,c:0xd0e4f8,c2:0x9ab8d8,a:.75,life:(p.y-gy(x,z))/14});
             if(rnd()<.3)emit(0,{x,y:gy(x,z)+.04,z,vx:(rnd()-.5)*.6,vy:.5,vz:(rnd()-.5)*.6,s:.03,s2:0,c:0xd8ecff,c2:0x8aa8c8,a:.7,life:.25,g:5});}
           for(const e of enemies){if(e.dead||e.fake)continue;if((e.x-p.x)**2+(e.z-p.z)**2<(S*.85)**2){if(!((wet.get(e)||0)>time))stcLog({ev:'soak',e});wet.set(e,time+STC.soakT);}}}
@@ -31465,7 +31472,8 @@ wmpVia=function(a,b){if(!WMP.paths)return null;const prev={},Q=[a];prev[a]=null;
    mastery card fetches its clips, so they play at once. Offline (no list), the live preview works as before.
    The panel: the scroll and the mastery, the clip (looping, with its progress), tabs for no mastery and Masteries I-V (the ones you can watch
    lit), the mastery's text and what the clip sets up. Hovering a mastery shows it; a click (or a tap) pins it open, with a close button.
-   Scrolls without clips (Epic and up, in developer mode) keep the live preview. smPvCan still decides which masteries you may watch. */
+   v439: the Epic and Legendary scrolls have their clips too (102 more, in developer mode like their masteries), recorded with a camera that
+   follows the action (record.js camPath). A scroll without clips keeps the live preview. smPvCan still decides which masteries you may watch. */
 const PVC={man:null,load:null,base:'',urls:{},got:{},el:null,k:null,L:0,pin:false,hideT:0,raf:0,anchor:null};
 const PVC_ROM=['','I','II','III','IV','V'];
 const PVC_SRC=['../previews/','https://cdn.jsdelivr.net/gh/simmdanny/kingsroad-keep@main/previews/','https://raw.githubusercontent.com/simmdanny/kingsroad-keep/main/previews/'];

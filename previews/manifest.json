@@ -1539,7 +1539,1361 @@
    "seed": 1,
    "bytes": 125146,
    "note": ""
+  },
+  "stormcaller-2": {
+   "k": "stormcaller",
+   "L": 2,
+   "len": 5.5,
+   "seed": 1,
+   "bytes": 80765,
+   "note": "A cloud rains on the pack and Soaks it: a bolt on a Soaked foe runs through the water to the others.",
+   "ev": {
+    "cast": 1,
+    "rain": 15,
+    "seek": 2,
+    "soak": 12,
+    "soakArc": 6
+   }
+  },
+  "stormcaller-0": {
+   "k": "stormcaller",
+   "L": 0,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 145532,
+   "note": ""
+  },
+  "stormcaller-1": {
+   "k": "stormcaller",
+   "L": 1,
+   "len": 9.53,
+   "seed": 2,
+   "bytes": 181011,
+   "note": "Bolts that would land near a foe bend onto it.",
+   "ev": {
+    "cast": 1,
+    "seek": 1
+   }
+  },
+  "stormcaller-3": {
+   "k": "stormcaller",
+   "L": 3,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 191301,
+   "note": "The thunder of each strike rolls along the road.",
+   "ev": {
+    "cast": 1,
+    "rain": 6,
+    "roll": 15,
+    "seek": 1,
+    "rolled": 22
+   }
+  },
+  "stormcaller-4": {
+   "k": "stormcaller",
+   "L": 4,
+   "len": 5,
+   "seed": 1,
+   "bytes": 80723,
+   "note": "From 8s to 11s of the storm it marches down the road toward the keep as a front of bolts (the clip joins it there).",
+   "ev": {
+    "cast": 1,
+    "roll": 22,
+    "rain": 11,
+    "seek": 1,
+    "rolled": 14,
+    "front0": 1,
+    "frontHit": 9
+   }
+  },
+  "chronostasis-1": {
+   "k": "chronostasis",
+   "L": 1,
+   "len": 4.43,
+   "seed": 1,
+   "bytes": 154877,
+   "note": "As time breaks every foe inside is wound back along the road.",
+   "ev": {
+    "rewind": 1
+   }
+  },
+  "stormcaller-5": {
+   "k": "stormcaller",
+   "L": 5,
+   "len": 6,
+   "seed": 1,
+   "bytes": 121750,
+   "note": "As the storm ends its clouds draw into one thunderhead for a last colossal bolt (the clip joins it there).",
+   "ev": {
+    "cast": 1,
+    "rain": 16,
+    "roll": 30,
+    "seek": 1,
+    "rolled": 14,
+    "front0": 1,
+    "frontHit": 7,
+    "last0": 1,
+    "cage": 3,
+    "last": 1,
+    "lastIn": 11
+   }
+  },
+  "chronostasis-2": {
+   "k": "chronostasis",
+   "L": 2,
+   "len": 6.03,
+   "seed": 1,
+   "bytes": 228290,
+   "note": "A great clock hand sweeps the field every 2 seconds.",
+   "ev": {
+    "rewind": 1,
+    "hand": 12
+   }
+  },
+  "chronostasis-3": {
+   "k": "chronostasis",
+   "L": 3,
+   "len": 5.53,
+   "seed": 1,
+   "bytes": 265457,
+   "note": "As time catches up the echoes rush back into their foes (the clip joins the field near its end).",
+   "ev": {
+    "rewind": 1,
+    "hand": 30,
+    "collapse": 1,
+    "echo": 1
+   }
+  },
+  "chronostasis-0": {
+   "k": "chronostasis",
+   "L": 0,
+   "len": 13.53,
+   "seed": 1,
+   "bytes": 591240,
+   "note": "",
+   "ev": {
+    "collapse": 1
+   }
+  },
+  "chronostasis-4": {
+   "k": "chronostasis",
+   "L": 4,
+   "len": 6.43,
+   "seed": 1,
+   "bytes": 279062,
+   "note": "Archer towers that reach into the field shoot 30% faster.",
+   "ev": {
+    "rewind": 1,
+    "haste": 1,
+    "hand": 12
+   }
+  },
+  "chronostasis-5": {
+   "k": "chronostasis",
+   "L": 5,
+   "len": 4.93,
+   "seed": 1,
+   "bytes": 199259,
+   "note": "The collapse, then a ghost of the field collapses again (the clip joins the field near its end).",
+   "ev": {
+    "rewind": 1,
+    "haste": 1,
+    "hand": 30,
+    "collapse": 1,
+    "echo": 1,
+    "second": 1
+   }
+  },
+  "glacialrift-0": {
+   "k": "glacialrift",
+   "L": 0,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 166732,
+   "note": ""
+  },
+  "glacialrift-1": {
+   "k": "glacialrift",
+   "L": 1,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 217828,
+   "note": "The frozen foes stand as ice statues; foes walking up behind them are stopped until they thaw.",
+   "ev": {
+    "cast": 1,
+    "statue": 6
+   }
+  },
+  "glacialrift-2": {
+   "k": "glacialrift",
+   "L": 2,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 168857,
+   "note": "The wave drags each foe a tile back up the road.",
+   "ev": {
+    "cast": 1,
+    "push": 6,
+    "statue": 6
+   }
+  },
+  "glacialrift-3": {
+   "k": "glacialrift",
+   "L": 3,
+   "len": 9.4,
+   "seed": 1,
+   "bytes": 175841,
+   "note": "Slabs of ice break off the ridge and crash onto the road.",
+   "ev": {
+    "cast": 1,
+    "push": 6,
+    "calve": 6,
+    "statue": 6
+   }
+  },
+  "glacialrift-4": {
+   "k": "glacialrift",
+   "L": 4,
+   "len": 9.4,
+   "seed": 1,
+   "bytes": 235108,
+   "note": "Rime gathers on every foe in the blizzard, even far behind the rift, until it freezes solid.",
+   "ev": {
+    "cast": 1,
+    "push": 7,
+    "calve": 6,
+    "cold": 9,
+    "thaw": 9,
+    "statue": 8
+   }
+  },
+  "glacialrift-5": {
+   "k": "glacialrift",
+   "L": 5,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 205492,
+   "note": "As the ridge shatters the rift tears open and its fangs slam shut.",
+   "ev": {
+    "cast": 1,
+    "push": 6,
+    "calve": 6,
+    "cold": 6,
+    "thaw": 6,
+    "statue": 6,
+    "maw": 1,
+    "slam": 1
+   }
+  },
+  "harvest-0": {
+   "k": "harvest",
+   "L": 0,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 178739,
+   "note": ""
+  },
+  "harvest-1": {
+   "k": "harvest",
+   "L": 1,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 175376,
+   "note": "Three foes are low on health: the scythe leaves them under 15% and they are reaped outright.",
+   "ev": {
+    "cast": 1,
+    "cull": 3
+   }
+  },
+  "harvest-2": {
+   "k": "harvest",
+   "L": 2,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 168907,
+   "note": "Three foes have 1 HP: the first sweep reaps them and their souls hurl out on the backhand.",
+   "ev": {
+    "cast": 1,
+    "swarm": 1
+   }
+  },
+  "harvest-4": {
+   "k": "harvest",
+   "L": 4,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 192006,
+   "note": "The souls stay with the hero; the next scroll (a Dark Pulse) takes them and is stronger.",
+   "ev": {
+    "cast": 1,
+    "swarm": 1,
+    "borrow": 9,
+    "spend": 1
+   }
+  },
+  "harvest-3": {
+   "k": "harvest",
+   "L": 3,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 169749,
+   "note": "Low-health foes die withering, and burst into new clouds of Wither.",
+   "ev": {
+    "cast": 1,
+    "swarm": 1,
+    "cull": 3,
+    "creep": 3
+   }
+  },
+  "harvest-5": {
+   "k": "harvest",
+   "L": 5,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 189142,
+   "note": "A skeletal hand rises under the strongest foe, the ram, and tears its soul out.",
+   "ev": {
+    "cast": 1,
+    "swarm": 1,
+    "borrow": 10,
+    "toll": 1,
+    "tear": 1
+   }
+  },
+  "dslash-0": {
+   "k": "dslash",
+   "L": 0,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 156085,
+   "note": ""
+  },
+  "dslash-1": {
+   "k": "dslash",
+   "L": 1,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 159261,
+   "note": ""
+  },
+  "dslash-2": {
+   "k": "dslash",
+   "L": 2,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 169575,
+   "note": ""
+  },
+  "dslash-3": {
+   "k": "dslash",
+   "L": 3,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 173392,
+   "note": ""
+  },
+  "bloom-0": {
+   "k": "bloom",
+   "L": 0,
+   "len": 8.9,
+   "seed": 1,
+   "bytes": 218229,
+   "note": ""
+  },
+  "dslash-4": {
+   "k": "dslash",
+   "L": 4,
+   "len": 8.33,
+   "seed": 1,
+   "bytes": 149575,
+   "note": "Three foes are under 30% of their health: the cut hits them harder."
+  },
+  "bloom-1": {
+   "k": "bloom",
+   "L": 1,
+   "len": 8.9,
+   "seed": 1,
+   "bytes": 224311,
+   "note": "Foes past the flower turn back to it; foes behind it hurry on.",
+   "ev": {
+    "cast": 1,
+    "lure": 4
+   }
+  },
+  "dslash-5": {
+   "k": "dslash",
+   "L": 5,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 179197,
+   "note": ""
+  },
+  "bloom-2": {
+   "k": "bloom",
+   "L": 2,
+   "len": 8.9,
+   "seed": 1,
+   "bytes": 214583,
+   "note": "An archer tower shoots a bound foe: a quarter of each arrow runs along the vines.",
+   "ev": {
+    "cast": 1,
+    "bind": 6,
+    "share": 6,
+    "lattice": 1
+   }
+  },
+  "bloom-3": {
+   "k": "bloom",
+   "L": 3,
+   "len": 8.9,
+   "seed": 1,
+   "bytes": 242463,
+   "note": "16 razor petals whirl out of the burst and slice into the foes.",
+   "ev": {
+    "cast": 1,
+    "bind": 6,
+    "lattice": 1,
+    "storm": 1,
+    "petal": 16
+   }
+  },
+  "bloom-4": {
+   "k": "bloom",
+   "L": 4,
+   "len": 9.47,
+   "seed": 1,
+   "bytes": 247843,
+   "note": "The pack walks on through the pollen: the cloud drifts with it.",
+   "ev": {
+    "cast": 1,
+    "bind": 6,
+    "lattice": 1,
+    "storm": 1,
+    "haze": 1,
+    "petal": 16
+   }
+  },
+  "bloom-5": {
+   "k": "bloom",
+   "L": 5,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 273607,
+   "note": "The flower goes to seed: seeds drift onto the foes and sprout small blooms.",
+   "ev": {
+    "cast": 1,
+    "lure": 2,
+    "bind": 8,
+    "lattice": 1,
+    "storm": 1,
+    "haze": 1,
+    "seedhead": 1,
+    "petal": 16,
+    "seeds": 1,
+    "grab": 30,
+    "sprout": 10
+   }
+  },
+  "loop-1": {
+   "k": "loop",
+   "L": 1,
+   "len": 6.83,
+   "seed": 1,
+   "bytes": 126678,
+   "note": "The fold always reaches 8 tiles back: the foes that reach it walk out far up the road.",
+   "ev": {
+    "fold": 1,
+    "hop": 6
+   }
+  },
+  "loop-0": {
+   "k": "loop",
+   "L": 0,
+   "len": 6.83,
+   "seed": 1,
+   "bytes": 124408,
+   "note": "",
+   "ev": {
+    "fold": 1
+   }
+  },
+  "loop-2": {
+   "k": "loop",
+   "L": 2,
+   "len": 6.83,
+   "seed": 1,
+   "bytes": 135335,
+   "note": "Each foe the fold sends back is sheared where it goes in and where it comes out.",
+   "ev": {
+    "fold": 1,
+    "hop": 6
+   }
+  },
+  "treant-0": {
+   "k": "treant",
+   "L": 0,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 189993,
+   "note": "",
+   "ev": {
+    "quake": 4
+   }
+  },
+  "loop-3": {
+   "k": "loop",
+   "L": 3,
+   "len": 10.03,
+   "seed": 1,
+   "bytes": 236183,
+   "note": "Fast foes, so they go round the 8-tile loop more than once: each lap hurts more.",
+   "ev": {
+    "fold": 1,
+    "hop": 12
+   }
+  },
+  "loop-4": {
+   "k": "loop",
+   "L": 4,
+   "len": 6.83,
+   "seed": 1,
+   "bytes": 162920,
+   "note": "Archer towers shoot the foes the fold sent back: they take more from everything for 3s.",
+   "ev": {
+    "fold": 1,
+    "hop": 6
+   }
+  },
+  "treant-1": {
+   "k": "treant",
+   "L": 1,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 177553,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "quake": 4,
+    "tread": 34
+   }
+  },
+  "treant-2": {
+   "k": "treant",
+   "L": 2,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 184739,
+   "note": "The foes walk into the oak and are held against its bark.",
+   "ev": {
+    "cast": 1,
+    "quake": 4,
+    "tread": 49,
+    "hold": 6
+   }
+  },
+  "loop-5": {
+   "k": "loop",
+   "L": 5,
+   "len": 11.83,
+   "seed": 1,
+   "bytes": 253226,
+   "note": "The fold holds 10 seconds; when it lets go the looped road snaps back.",
+   "ev": {
+    "fold": 1,
+    "hop": 11,
+    "snap": 1
+   }
+  },
+  "treant-3": {
+   "k": "treant",
+   "L": 3,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 205706,
+   "note": "A second knot of foes further back: every third slam it hurls a boulder at it.",
+   "ev": {
+    "cast": 1,
+    "quake": 6,
+    "tread": 57,
+    "hold": 10,
+    "hurl": 1,
+    "boulder": 5
+   }
+  },
+  "treant-4": {
+   "k": "treant",
+   "L": 4,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 187586,
+   "note": "Entangling Roots first: the foes are Overgrown, and the oak drains them and grows.",
+   "ev": {
+    "cast": 1,
+    "quake": 4,
+    "tread": 45,
+    "hold": 6,
+    "sap": 7,
+    "grow": 4,
+    "hurl0": 1
+   }
+  },
+  "treant-5": {
+   "k": "treant",
+   "L": 5,
+   "len": 12.53,
+   "seed": 1,
+   "bytes": 239383,
+   "note": "At the end of its 10 seconds it topples forward along the road.",
+   "ev": {
+    "cast": 1,
+    "quake": 10,
+    "tread": 46,
+    "hold": 6,
+    "sap": 10,
+    "grow": 4,
+    "hurl0": 1,
+    "creak": 1,
+    "timber": 1,
+    "crush": 6
+   }
+  },
+  "compress-0": {
+   "k": "compress",
+   "L": 0,
+   "len": 11.33,
+   "seed": 1,
+   "bytes": 248756,
+   "note": "",
+   "ev": {
+    "snap": 1
+   }
+  },
+  "compress-1": {
+   "k": "compress",
+   "L": 1,
+   "len": 11.33,
+   "seed": 1,
+   "bytes": 268852,
+   "note": "The foes are spread out: the squeeze draws them together.",
+   "ev": {
+    "snap": 1
+   }
+  },
+  "compress-2": {
+   "k": "compress",
+   "L": 2,
+   "len": 11.33,
+   "seed": 1,
+   "bytes": 229066,
+   "note": "",
+   "ev": {
+    "band": 6,
+    "snap": 1
+   }
+  },
+  "compress-3": {
+   "k": "compress",
+   "L": 3,
+   "len": 11.33,
+   "seed": 1,
+   "bytes": 244375,
+   "note": "Its two smaller squeezes snap first.",
+   "ev": {
+    "band": 6,
+    "sat": 2,
+    "snap": 1
+   }
+  },
+  "skyfall-0": {
+   "k": "skyfall",
+   "L": 0,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 247000,
+   "note": "",
+   "ev": {
+    "boom": 10
+   }
+  },
+  "skyfall-1": {
+   "k": "skyfall",
+   "L": 1,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 232989,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "ember": 30,
+    "boom": 10
+   }
+  },
+  "compress-4": {
+   "k": "compress",
+   "L": 4,
+   "len": 11.33,
+   "seed": 1,
+   "bytes": 245388,
+   "note": "",
+   "ev": {
+    "band": 6,
+    "sat": 2,
+    "snap": 1,
+    "implode": 1
+   }
+  },
+  "compress-5": {
+   "k": "compress",
+   "L": 5,
+   "len": 11.33,
+   "seed": 1,
+   "bytes": 263159,
+   "note": "A star of pressed light bursts after the snap.",
+   "ev": {
+    "band": 6,
+    "sat": 2,
+    "snap": 1,
+    "implode": 1,
+    "star": 1
+   }
+  },
+  "skyfall-2": {
+   "k": "skyfall",
+   "L": 2,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 231267,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "ember": 29,
+    "boom": 10
+   }
+  },
+  "skyfall-3": {
+   "k": "skyfall",
+   "L": 3,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 244557,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "ember": 36,
+    "boom": 19,
+    "rico0": 9,
+    "rico": 14
+   }
+  },
+  "skyfall-4": {
+   "k": "skyfall",
+   "L": 4,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 245309,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "ember": 22,
+    "boom": 19,
+    "rico0": 9,
+    "shock": 55,
+    "rico": 5
+   }
+  },
+  "prism-0": {
+   "k": "prism",
+   "L": 0,
+   "len": 8.13,
+   "seed": 1,
+   "bytes": 296112,
+   "note": "",
+   "ev": {
+    "nova": 1
+   }
+  },
+  "skyfall-5": {
+   "k": "skyfall",
+   "L": 5,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 259576,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "ember": 26,
+    "boom": 19,
+    "rico0": 9,
+    "shock": 52,
+    "rico": 6,
+    "ext0": 1,
+    "ext": 1,
+    "extIn": 6
+   }
+  },
+  "prism-1": {
+   "k": "prism",
+   "L": 1,
+   "len": 7.37,
+   "seed": 1,
+   "bytes": 287578,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "burn": 9,
+    "nova": 1
+   }
+  },
+  "prism-2": {
+   "k": "prism",
+   "L": 2,
+   "len": 7.13,
+   "seed": 1,
+   "bytes": 300396,
+   "note": "The pack walks on: the prism drifts after it.",
+   "ev": {
+    "cast": 1,
+    "burn": 13,
+    "nova": 1
+   }
+  },
+  "prism-3": {
+   "k": "prism",
+   "L": 3,
+   "len": 7.13,
+   "seed": 1,
+   "bytes": 290307,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "burn": 13,
+    "blind": 6,
+    "nova": 1
+   }
+  },
+  "prism-4": {
+   "k": "prism",
+   "L": 4,
+   "len": 7.03,
+   "seed": 1,
+   "bytes": 293507,
+   "note": "Foes swept by all six colours burst with them.",
+   "ev": {
+    "cast": 1,
+    "burn": 13,
+    "full": 5,
+    "nova": 6,
+    "blind": 6
+   }
+  },
+  "prism-5": {
+   "k": "prism",
+   "L": 5,
+   "len": 7.93,
+   "seed": 1,
+   "bytes": 322504,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "burn": 13,
+    "full": 5,
+    "nova": 7,
+    "blind": 6,
+    "sunrise0": 1,
+    "sunrise": 1,
+    "sunHit": 6,
+    "sunTick": 24
+   }
+  },
+  "voidfall-0": {
+   "k": "voidfall",
+   "L": 0,
+   "len": 8.4,
+   "seed": 1,
+   "bytes": 417178,
+   "note": ""
+  },
+  "voidfall-1": {
+   "k": "voidfall",
+   "L": 1,
+   "len": 7.13,
+   "seed": 1,
+   "bytes": 410925,
+   "note": "The front of the pack has walked past the impact: the sphere drags it back.",
+   "ev": {
+    "cast": 1,
+    "well": 1,
+    "lift": 1
+   }
+  },
+  "voidfall-2": {
+   "k": "voidfall",
+   "L": 2,
+   "len": 8.7,
+   "seed": 1,
+   "bytes": 423717,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "well": 1,
+    "lift": 1,
+    "land": 6
+   }
+  },
+  "voidfall-3": {
+   "k": "voidfall",
+   "L": 3,
+   "len": 8.7,
+   "seed": 1,
+   "bytes": 449581,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "well": 1,
+    "lift": 1,
+    "orbit": 1,
+    "land": 6
+   }
+  },
+  "judgment-0": {
+   "k": "judgment",
+   "L": 0,
+   "len": 4.03,
+   "seed": 1,
+   "bytes": 108348,
+   "note": ""
+  },
+  "voidfall-4": {
+   "k": "voidfall",
+   "L": 4,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 480898,
+   "note": "Archer towers shoot the Hollowed foes; the void gives a share back at once when it ends.",
+   "ev": {
+    "cast": 1,
+    "well": 1,
+    "lift": 1,
+    "hollow": 6,
+    "orbit": 1,
+    "land": 6,
+    "release": 6
+   }
+  },
+  "judgment-1": {
+   "k": "judgment",
+   "L": 1,
+   "len": 4.1,
+   "seed": 1,
+   "bytes": 104020,
+   "note": ""
+  },
+  "voidfall-5": {
+   "k": "voidfall",
+   "L": 5,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 499636,
+   "note": "A second sphere holds the lifted foes in the air, then implodes.",
+   "ev": {
+    "cast": 1,
+    "well": 1,
+    "lift": 1,
+    "hollow": 6,
+    "orbit": 1,
+    "crush": 1,
+    "land": 6,
+    "release": 6
+   }
+  },
+  "judgment-2": {
+   "k": "judgment",
+   "L": 2,
+   "len": 7.13,
+   "seed": 1,
+   "bytes": 165807,
+   "note": "A Light Bolt follows: light scrolls hit the Condemned foes harder."
+  },
+  "judgment-4": {
+   "k": "judgment",
+   "L": 4,
+   "len": 7.13,
+   "seed": 1,
+   "bytes": 163238,
+   "note": "Three foes are under a quarter of their health: the line hits them harder and they fall."
+  },
+  "judgment-3": {
+   "k": "judgment",
+   "L": 3,
+   "len": 7.13,
+   "seed": 1,
+   "bytes": 167594,
+   "note": "The ram is the strongest foe in reach: the second line goes for it."
+  },
+  "judgment-5": {
+   "k": "judgment",
+   "L": 5,
+   "len": 7.13,
+   "seed": 1,
+   "bytes": 167568,
+   "note": "A pillar of light falls on the strongest foe it pierced, the ram."
+  },
+  "cataclysm-0": {
+   "k": "cataclysm",
+   "L": 0,
+   "len": 7.17,
+   "seed": 1,
+   "bytes": 316950,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "pillar": 8,
+    "collapse": 1
+   }
+  },
+  "cataclysm-1": {
+   "k": "cataclysm",
+   "L": 1,
+   "len": 7.17,
+   "seed": 1,
+   "bytes": 315997,
+   "note": "The ram is the toughest foe inside the rune: a pillar rises right under it.",
+   "ev": {
+    "cast": 1,
+    "pillar": 8,
+    "collapse": 1
+   }
+  },
+  "cataclysm-2": {
+   "k": "cataclysm",
+   "L": 2,
+   "len": 7.17,
+   "seed": 1,
+   "bytes": 322319,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "shard": 4,
+    "pillar": 8,
+    "collapse": 1
+   }
+  },
+  "cataclysm-3": {
+   "k": "cataclysm",
+   "L": 3,
+   "len": 7.17,
+   "seed": 1,
+   "bytes": 338772,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "shard": 4,
+    "pillar": 8,
+    "collapse": 1
+   }
+  },
+  "cataclysm-4": {
+   "k": "cataclysm",
+   "L": 4,
+   "len": 6.83,
+   "seed": 1,
+   "bytes": 330701,
+   "note": "An archer tower and a cannon hit the Sundered foes harder.",
+   "ev": {
+    "cast": 1,
+    "shard": 4,
+    "pillar": 8,
+    "collapse": 1
+   }
+  },
+  "phoenix-0": {
+   "k": "phoenix",
+   "L": 0,
+   "len": 8,
+   "seed": 1,
+   "bytes": 192888,
+   "note": "",
+   "ev": {
+    "born": 1,
+    "strike": 6,
+    "burst": 1
+   }
+  },
+  "cataclysm-5": {
+   "k": "cataclysm",
+   "L": 5,
+   "len": 8.67,
+   "seed": 1,
+   "bytes": 383403,
+   "note": "The pillars spin up and slam down on the toughest foes nearby.",
+   "ev": {
+    "cast": 1,
+    "shard": 4,
+    "pillar": 8,
+    "collapse": 1,
+    "wb": 8
+   }
+  },
+  "phoenix-1": {
+   "k": "phoenix",
+   "L": 1,
+   "len": 8,
+   "seed": 1,
+   "bytes": 212823,
+   "note": "Eleven foes: each one it strikes makes it bigger and hotter.",
+   "ev": {
+    "born": 1,
+    "strike": 11,
+    "burst": 1
+   }
+  },
+  "phoenix-2": {
+   "k": "phoenix",
+   "L": 2,
+   "len": 8.57,
+   "seed": 1,
+   "bytes": 226254,
+   "note": "As it climbs away a front of flame races back along its river of fire.",
+   "ev": {
+    "born": 1,
+    "strike": 6,
+    "flareStart": 1,
+    "burst": 1,
+    "flare": 1
+   }
+  },
+  "phoenix-3": {
+   "k": "phoenix",
+   "L": 3,
+   "len": 8.57,
+   "seed": 1,
+   "bytes": 219588,
+   "note": "Its burst becomes burning feathers that dart at the foes it struck, the toughest (the ram) first.",
+   "ev": {
+    "born": 1,
+    "strike": 6,
+    "flareStart": 1,
+    "burst": 1,
+    "flare": 1,
+    "feather": 8
+   }
+  },
+  "phoenix-4": {
+   "k": "phoenix",
+   "L": 4,
+   "len": 8.07,
+   "seed": 1,
+   "bytes": 211884,
+   "note": "Its fire erupts on foes that are already burning.",
+   "ev": {
+    "born": 1,
+    "strike": 6,
+    "flareStart": 1,
+    "pyre": 6,
+    "burst": 1,
+    "flare": 1,
+    "feather": 8
+   }
+  },
+  "phoenix-5": {
+   "k": "phoenix",
+   "L": 5,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 313166,
+   "note": "Reborn from a pyre, larger and golden, it skims the road and dives where the foes are thickest.",
+   "ev": {
+    "born": 1,
+    "strike": 12,
+    "flareStart": 1,
+    "pyre": 6,
+    "burst": 1,
+    "flare": 1,
+    "pyreRise": 1,
+    "feather": 8,
+    "reborn": 1,
+    "slam": 1,
+    "boom": 1
+   }
+  },
+  "comet-0": {
+   "k": "comet",
+   "L": 0,
+   "len": 8,
+   "seed": 1,
+   "bytes": 212129,
+   "note": ""
+  },
+  "comet-1": {
+   "k": "comet",
+   "L": 1,
+   "len": 7.8,
+   "seed": 1,
+   "bytes": 234149,
+   "note": "The pack walks briskly: the comet steers onto where it will be.",
+   "ev": {
+    "comet": 1,
+    "eye": 12,
+    "impact": 1
+   }
+  },
+  "comet-2": {
+   "k": "comet",
+   "L": 2,
+   "len": 7.8,
+   "seed": 1,
+   "bytes": 236293,
+   "note": "Foes still marching in under its tail.",
+   "ev": {
+    "comet": 1,
+    "eye": 12,
+    "tail": 5,
+    "impact": 1
+   }
+  },
+  "comet-3": {
+   "k": "comet",
+   "L": 3,
+   "len": 8.8,
+   "seed": 1,
+   "bytes": 248374,
+   "note": "",
+   "ev": {
+    "comet": 1,
+    "eye": 12,
+    "impact": 1,
+    "impale": 6,
+    "tail": 4
+   }
+  },
+  "comet-4": {
+   "k": "comet",
+   "L": 4,
+   "len": 6.83,
+   "seed": 1,
+   "bytes": 220770,
+   "note": "A Frost Spire\u2019s ice shatters the fractured foes.",
+   "ev": {
+    "comet": 1,
+    "eye": 12,
+    "impact": 1,
+    "fault": 6,
+    "impale": 6,
+    "tail": 4,
+    "faultShatter": 6
+   }
+  },
+  "comet-5": {
+   "k": "comet",
+   "L": 5,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 273754,
+   "note": "The heart bursts out of the crater and smashes into the toughest foe nearby, the ram.",
+   "ev": {
+    "comet": 1,
+    "eye": 12,
+    "impact": 1,
+    "fault": 6,
+    "impale": 6,
+    "tail": 4,
+    "heartWakes": 1,
+    "rebound": 2,
+    "reboundHit": 2,
+    "heartGone": 1,
+    "faultEnd": 6
+   }
+  },
+  "wyrm-0": {
+   "k": "wyrm",
+   "L": 0,
+   "len": 9.13,
+   "seed": 1,
+   "bytes": 195472,
+   "note": "",
+   "ev": {
+    "burst": 2
+   }
+  },
+  "wyrm-1": {
+   "k": "wyrm",
+   "L": 1,
+   "len": 9.1,
+   "seed": 1,
+   "bytes": 196680,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "burst": 2,
+    "coilArc": 18
+   }
+  },
+  "wyrm-2": {
+   "k": "wyrm",
+   "L": 2,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 203855,
+   "note": "Two knots of foes with empty road between: it lingers in each and darts across the gap.",
+   "ev": {
+    "cast": 1,
+    "burst": 2,
+    "coilArc": 21
+   }
+  },
+  "wyrm-3": {
+   "k": "wyrm",
+   "L": 3,
+   "len": 9.53,
+   "seed": 1,
+   "bytes": 205221,
+   "note": "It seizes the toughest foe near its head, the ram, and squeezes it.",
+   "ev": {
+    "cast": 1,
+    "burst": 2,
+    "coil": 1,
+    "coilArc": 31,
+    "squeeze": 3
+   }
+  },
+  "wyrm-4": {
+   "k": "wyrm",
+   "L": 4,
+   "len": 9.1,
+   "seed": 1,
+   "bytes": 210025,
+   "note": "Each lash leaves a charge mark; its strike grounds through every marked foe.",
+   "ev": {
+    "cast": 1,
+    "burst": 2,
+    "coil": 1,
+    "coilArc": 30,
+    "squeeze": 3,
+    "ground": 1,
+    "grounded": 6
+   }
+  },
+  "wyrm-5": {
+   "k": "wyrm",
+   "L": 5,
+   "len": 9.1,
+   "seed": 1,
+   "bytes": 229191,
+   "note": "",
+   "ev": {
+    "cast": 1,
+    "burst": 2,
+    "coil": 1,
+    "coilArc": 30,
+    "squeeze": 3,
+    "rear5": 1,
+    "thunderhead": 1,
+    "thIn": 6,
+    "ground": 1,
+    "grounded": 6
+   }
   }
  },
- "made": "2026-10-28"
+ "made": "2026-10-29"
 }

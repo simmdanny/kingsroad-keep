@@ -14166,6 +14166,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Recorded previews for the Epic and Legendary masteries',d:'29 Oct',v:'v439',li:[
+    'Every Epic and Legendary scroll now has a short recorded clip for no mastery and each of its five masteries, like the Common to Rare scrolls: 102 clips that play at once in developer mode, instead of the slow live preview.',
+    'The clips follow the action: the camera tracks what each mastery does (the Phoenix reborn skimming down the road and diving, the Comet\u2019s rebound, the Storm Front marching on, the Loop sending foes 8 tiles back) instead of holding one view the action could run out of.',
+    'Each clip is set up for its mastery: a ram as the toughest foe, low-health foes for Harsh Sentence, Severed and Culling Edge, towers for Sundered, Hollow, Stolen Time and the Vine Lattice, foes walking up behind Glacial Rift\u2019s statues, and the late moments (the Storm Front, the Last Thunder, the second collapse) shown when they happen.',
+    'The Stormcaller\u2019s Downpour now rains while a cloud is over the road even with the camera zoomed in close (it used to stop when the clouds faded from a close view).']},
   {t:'Hundred-Year Bloom masteries, redesigned',d:'28 Oct',v:'v437',li:[
     'Hundred-Year Bloom (Legendary) has five new masteries, for now in developer mode: Scent of Nectar (while the bud opens, golden scent streams out and draws foes up to 3.5 tiles away into the flower), Vine Lattice (thorned vines tie the held foes together, and a quarter of any other hit on one runs along them to the rest), Petal Storm (the burst throws 16 razor petals that whirl out and slice into the foes), Golden Haze (the pollen cloud is wider and thicker and drifts down the road with the foes in it) and A Hundred Years in a Breath (the fading flower goes to seed: ten glowing seeds drift onto the foes and sprout small blooms that grab them and burst).',
     'Its burst now billows up as a golden cloud of pollen in 3D, and the shaft of light over it fades as it rises instead of standing as a flat white bar over the foes.']},
@@ -31469,7 +31474,8 @@ wmpVia=function(a,b){if(!WMP.paths)return null;const prev={},Q=[a];prev[a]=null;
    mastery card fetches its clips, so they play at once. Offline (no list), the live preview works as before.
    The panel: the scroll and the mastery, the clip (looping, with its progress), tabs for no mastery and Masteries I-V (the ones you can watch
    lit), the mastery's text and what the clip sets up. Hovering a mastery shows it; a click (or a tap) pins it open, with a close button.
-   Scrolls without clips (Epic and up, in developer mode) keep the live preview. smPvCan still decides which masteries you may watch. */
+   v439: the Epic and Legendary scrolls have their clips too (102 more, in developer mode like their masteries), recorded with a camera that
+   follows the action (record.js camPath). A scroll without clips keeps the live preview. smPvCan still decides which masteries you may watch. */
 const PVC={man:null,load:null,base:'',urls:{},got:{},el:null,k:null,L:0,pin:false,hideT:0,raf:0,anchor:null};
 const PVC_ROM=['','I','II','III','IV','V'];
 const PVC_SRC=['../previews/','https://cdn.jsdelivr.net/gh/simmdanny/kingsroad-keep@main/previews/','https://raw.githubusercontent.com/simmdanny/kingsroad-keep/main/previews/'];

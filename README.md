@@ -1627,3 +1627,49 @@ Tests: `tests/pvc-test.js` (in run-all as 'pvc'):
 - offline it falls back to the live preview.
 
 `tests/smprev-test.js` now checks the live preview on an Epic scroll (published scrolls play clips), and `tests/pvown-test.js` accepts either panel for a reached mastery.
+
+## Recorded previews for the Epic and Legendary masteries, with a tracking camera (v439)
+Simon: "re-record the previews for the new legendary masteries and please keep in mind what they show, even for epics, if the pheonix has a explode animation and it runs of screen the previews should track it to always display what is said in the description". The v428 previews covered the published scrolls (Common, Uncommon, Rare); the Epic and Legendary scrolls still started the slow live preview. Now all 17 of them (8 Epic, 9 Legendary: Spatial Loop, Piercing Judgment, Cataclysm, Rite of the Phoenix, Frostfall Comet, Thunder Wyrm, Prism of Dawn, Oakheart Treant, Spatial Compression, Voidfall, Stormcaller, Chronostasis, Skyfall, Glacial Rift, Grim Harvest, Dimensional Slash, Hundred-Year Bloom) have a recorded clip for no mastery and each of Masteries 1-5: 102 clips in `previews/`, listed in `previews/manifest.json`. They play in developer mode, like their masteries.
+
+**The tracking camera** (`tools/previews/record.js`, `camPath`). The v428 recorder framed each clip once, still, around the hero and every foe hit; a cast that travels (the Phoenix reborn skimming toward the keep, the Comet's rebound, the Storm Front marching down the road, the Treant walking) ran out of the picture. Now the run without pictures logs, every frame, where the action is, and the camera follows it:
+
+| What the view keeps in it | When |
+|---|---|
+| the hero and the pack | from the start until just after the cast |
+| the foes hit (where they show: a lifted or flying foe higher up the screen) | from 0.3s before each hit to 0.8s after |
+| every effect the cast made that is new (under 0.8s old), moving or growing (where it shows: a flying one higher up by its height) | from 0.1s before to 0.6s after |
+| towers on the stage | always |
+| an effect that only lingers (a burning river, a cloud), a foe that is only burning | only when nothing else is going on |
+
+What it leaves out: effects high in the sky (above 2.4 tiles: a phoenix climbing away, a meteor far up; a stage can raise it, Voidfall's sphere at 4), a stray more than 5 tiles from the rest of the action or from where the action was a frame before (an ember thrown across the map). When it all does not fit in the widest view, it keeps what comes next. The zoom opens a little ahead of time and closes slowly, and the middle glides (two passes of a 0.6s average), so it reads like a camera operator, not a jump cut. A stage can follow only the foes it hits (`follow: 'hits'`, the Stormcaller whose bolts fall all over the map) or the foes themselves (`follow: 'foes'`, Spatial Loop sending them 8 tiles back).
+
+**What each clip shows** (`tools/previews/scenarios.js`), built from the mastery's own words:
+
+| Scroll | Stages set up for its masteries |
+|---|---|
+| Spatial Loop | brisk foes so they reach the fold, the view following where most of them are (it pans up the road to where the fold sends them); fast ones for Groundhog Lap (more than one lap); archer towers for Displaced; the whole 10s for Snapback |
+| Piercing Judgment | a Light Bolt after the line (Condemned); the ram as the strongest foe (Afterimage, Final Judgment); three foes under a quarter of their health (Harsh Sentence) |
+| Cataclysm | the ram as the toughest foe in the rune (Drawn Down, World Breaker); an archer tower and a cannon (Sundered) |
+| Rite of the Phoenix | eleven foes (Rising Heat); the ram as the toughest it struck (Burning Plumage); its rebirth and dive followed down the road |
+| Frostfall Comet | a brisk pack (Comet's Eye); foes marching in under the tail; a Frost Spire (Faultlines); the ram near the crater (Rebound) |
+| Thunder Wyrm | two knots with empty road between (Hunter's Weave); the ram near its head (Constrict) |
+| Prism of Dawn | a pack walking on (Sun-Tracking) |
+| Oakheart Treant | every clip holds its 10s walk, from a step back; foes walking into it (Bark Bulwark); a second knot further back (Uprooted Boulder); Entangling Roots first (Sap Harvest); the fall (Timber!) |
+| Spatial Compression | a spread-out pack (Gathering Pull); every clip runs on past the snap until the star has burst (11.3s) |
+| Voidfall | the front of a brisk pack past the impact (Gravity Well); archer towers (Hollow); the sphere over the crater (Event Horizon) |
+| Stormcaller | eleven foes, the view on the foes it hits; a cloud steered over the pack so it rains on them (Downpour); the Storm Front and the Last Thunder are clips centred on them (they come 10s and 17s into the storm) |
+| Chronostasis | archer towers in reach (Stolen Time); the Echoes and the Second Collapse are clips centred on the collapse (the field holds 10s) |
+| Glacial Rift | three foes walking up just after the shatter, stopped behind the statues until they thaw (Frozen Sentinels); a raven and foes far behind the rift (Deep Cold); a wider view for its 8.5-tile ridge |
+| Grim Harvest | a step back from the giant reaper; low-health foes (Culling Edge, Creeping Wither); 1 HP foes for the souls (Soul Swarm, Borrowed Time, with a Dark Pulse once they reach the hero); the ram as the mark (Final Toll) |
+| Dimensional Slash | three foes under 30% of their health (Severed) |
+| Hundred-Year Bloom | foes past the flower and behind it (Scent of Nectar); an archer tower (Vine Lattice); a pack walking on (Golden Haze) |
+
+The Epic and Legendary stages use tougher foes (30 times the spell power, against 12) so the pack lives through the long casts and the later masteries still find it. Each mastery module's own log (FCM.dbg, PHM.dbg, ...) is read after every clip: the recorder prints which moments happened, `manifest.json` keeps them (`ev`), and a stage that must show one moment (the Phoenix reborn, the Comet's rebound, a culled foe) tries the next seed until it does.
+
+**The recorded run is the planned run.** The camera is planned on a run without pictures, so the recorded run must be the very same run. Three things broke that, and each is fixed: three.js draws on Math.random for the id of every new object, and how many objects a frame makes depends on the camera (so the game now keeps its seeded stream to itself and Math.random becomes a second seeded stream once the game has loaded); a first cast in a page builds and caches textures and geometry, drawing on the random as it does (a warm-up run comes first); and a page reused for the next clip kept what the last one left behind (a space warp, trails), so every clip gets a fresh page. The recorder reports any drift between the planned and the recorded run (none now).
+
+**A game fix found on the way:** the Stormcaller's Downpour (Mastery 2) rained only from clouds the camera could see, and the clouds fade out when the camera is low, so a close view stopped the rain altogether (in the previews, and for a player zoomed in). Its clouds now rain, and flicker, while they are in the sky.
+
+New in the recorder: `towers` beside the road, foes at a fraction of their health (`frac`), foes that walk in later (`enter`), clips that start later (`from`) or run longer (`cap`), clips centred on a mastery's moment (`focus`: the Storm Front, the Last Thunder, Chronostasis' collapse, Downpour's arcs), a script run every frame on the stage (`tick`: a storm cloud steered over the pack for Downpour), `epic` and `legendary` on the command line (`node tools/previews/record.js epic legendary`), and loading the recorder from another script records nothing (only running it does).
+
+- Tests: `tests/pvc-test.js` checks that every Epic and Legendary scroll has its six clips and that an Epic scroll's card plays its clip in developer mode; the live preview of a scroll without clips is now checked with the Comet's clips put aside (also in `tests/smprev-test.js`, which used the Comet as the scroll without clips).
