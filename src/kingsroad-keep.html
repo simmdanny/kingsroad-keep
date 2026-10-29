@@ -28240,6 +28240,9 @@ function pfProps(){if(!PF.on)return;let s=0;const t0=performance.now();
   for(const k in TREEM||{})s+=pfFreeze(TREEM[k]);
   /* landmarks animate and change state only through the parts their model object points at (fire, core, glow, eyes, flames, lamp,
      beam, cards...): those are skipped, the rest is merged */
+  /* the keep (its flag waves) and the chests (lid, shine, halo and pin move) */
+  if(castle&&castle.parent)s+=pfFreeze(castle,new Set([castleFlag].filter(Boolean)));
+  for(const C of CHESTS||[]){if(!C.g)continue;s+=pfFreeze(C.g,new Set([C.lid,C.shine,C.halo,C.pin].filter(o=>o&&o.isObject3D)));}
   for(const L of LMS||[]){const P=L.P;if(!P||!P.g)continue;const sk=new Set(),add=v=>{if(v&&v.isObject3D&&v!==P.g)sk.add(v);else if(Array.isArray(v))v.forEach(add);};for(const k in P)if(k!=='g')add(P[k]);s+=pfFreeze(P.g,sk);}
   if(TERRAIN)for(const c of TERRAIN.children)if(c.userData.keep&&c.userData.voidKeep&&c.isGroup&&c!==castle&&!(CHESTS||[]).some(q=>q.g===c)&&c.children.every(m=>m.isMesh&&!m.children.length))s+=pfFreeze(c);
   PF.stat.props={saved:s,ms:+(performance.now()-t0).toFixed(1)};}

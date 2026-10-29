@@ -41,6 +41,9 @@ try{
         try{const st={shrine:'destroyed',tower:'done',camp:'searched',merchant:'sold',cursed:'burned',altar:'offered'}[L.k];if(st)lmSetState(L,st,true);}catch(e){okRefs=false;}}}
     ok('landmarks: their still parts are merged',n===0||merged>0,n+' landmarks, '+merged+' merged meshes');
     ok('landmarks: every part they animate or change stays in place, and their states still apply',okRefs);}
+  /* the keep's flag still waves, a chest's lid still opens */
+  {board('plains');batchAll();let fl=false;if(castleFlag){let q=castleFlag;while(q&&q!==castle)q=q.parent;fl=q===castle;}ok('the keep is merged but its flag is its own part',(!castleFlag||fl)&&castle.children.some(o=>o.userData.pfBatch),!!castleFlag);
+    const C=CHESTS[0];if(C){let q=C.lid;while(q&&q!==C.g)q=q.parent;const r0=C.lid.rotation.x;C.open=true;C.t=0;anim(.2,1);ok('a chest\'s lid stays its own part and still opens',q===C.g&&C.lid.rotation.x!==r0,C.lid.rotation.x.toFixed(2));}else ok('a chest\'s lid still opens (no chest on this board)',true);}
   /* health bars: all foes' bars are four instanced meshes */
   {board('plains');PF.on=true;for(let i=0;i<30;i++){spawnEnemy({type:'soldier',v:0},20);const e=enemies[enemies.length-1];e.dist=4+i*.2;moveEnemy(e,0);e.hp=e.maxHp*.5;if(i%3===0){e.shield=10;e.maxShield=20;}}
     for(const e of enemies)updBar(e);anim(.001,1);const M=PFB.m;ok('thirty hurt foes: one bar each, in four instanced meshes',M&&M.bg.count===enemies.filter(e=>!e.dead&&(e.hp<e.maxHp||e.shield>0||e.boss)).length&&M.sh.count===10&&enemies.every(e=>!e.bar),M&&[M.bg.count,M.fg.count,M.sh.count].join('/'));
