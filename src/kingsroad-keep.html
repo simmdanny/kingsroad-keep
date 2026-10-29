@@ -14148,6 +14148,8 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Lighter bosses',d:'29 Oct',v:'v440',li:[
+    'Bosses are drawn with far less work: the parts of a boss that never move on their own are drawn together, so the Seraphim takes about 60 draws instead of 400 and the Ophanim about 35 instead of 200. They look and move exactly as before, and a boss on screen no longer slows the frame down.']},
   {t:'Smoother frames',d:'29 Oct',v:'v438',li:[
     'The game draws the same picture with about half the work: the forest round the board, the grass and pebbles, the lore props and the still parts of every tower are drawn together instead of piece by piece, so phones and slower computers keep a steadier frame rate (and use less battery).']},
   {t:'Rare masteries for everyone',d:'28 Oct',v:'v417',li:[
@@ -28197,6 +28199,8 @@ function pfMergeGeo(list,root){const inv=new THREE.Matrix4().copy(root.matrixWor
       if(k==='position'){const e=m.elements;for(let i=o3,E=o3+n*3;i<E;i+=3){const x=D[i],y=D[i+1],z=D[i+2];D[i]=e[0]*x+e[4]*y+e[8]*z+e[12];D[i+1]=e[1]*x+e[5]*y+e[9]*z+e[13];D[i+2]=e[2]*x+e[6]*y+e[10]*z+e[14];}}
       else if(k==='normal'){const e=nm.elements;for(let i=o3,E=o3+n*3;i<E;i+=3){const x=D[i],y=D[i+1],z=D[i+2];let X=e[0]*x+e[3]*y+e[6]*z,Y=e[1]*x+e[4]*y+e[7]*z,Z=e[2]*x+e[5]*y+e[8]*z;const l=Math.hypot(X,Y,Z)||1;D[i]=X/l;D[i+1]=Y/l;D[i+2]=Z/l;}}}
     if(g.index){const ix=g.index.array;for(let i=0;i<ix.length;i++)I[io+i]=ix[i]+vo;io+=ix.length;}else{for(let i=0;i<n;i++)I[io+i]=vo+i;io+=n;}
+    /* v440: a mirrored part (negative scale) is drawn by three.js with its winding turned; baked, its triangles are turned here instead */
+    if(m.determinant()<0){const c=g.index?g.index.count:n;for(let i=io-c;i<io;i+=3){const t=I[i+1];I[i+1]=I[i+2];I[i+2]=t;}}
     vo+=n;}
   const G=new THREE.BufferGeometry();for(const k of keys)G.setAttribute(k,new THREE.BufferAttribute(A[k],list[0].geometry.attributes[k].itemSize));
   if(pfLocal(list[0].material)){const L=new Float32Array(nv*3);let o2=0;for(const o of list){const a=o.geometry.attributes.position;for(let i=0;i<a.count;i++){L[(o2+i)*3]=a.getX(i);L[(o2+i)*3+1]=a.getY(i);L[(o2+i)*3+2]=a.getZ(i);}o2+=a.count;}G.setAttribute('pfLoc',new THREE.BufferAttribute(L,3));}G.setIndex(new THREE.BufferAttribute(I,1));
@@ -28308,6 +28312,87 @@ function pfHeroFreeze(root){if(!PF.on||!root||root.userData.pfHero)return 0;root
   return saved;}
 {const sh=spawnHero;spawnHero=function(){const r=sh.apply(this,arguments);try{if(heroU&&heroU.g)PF.stat.hero=pfHeroFreeze(heroU.g);}catch(e){console.error(e);}return r;};}
 /* ---- end of performance (v438) ---- */
+/* ================= Bosses (v440) =================
+   A boss was one draw call per part: the Seraphim 403, the Ophanim 203, the Fiend Wyrm 222, the Colossus 131, the land bosses 55 to 94,
+   so one boss on screen could double a frame's draw calls (a ten-tower board is about 290 after v438). Boss models animate their parts
+   through closures inside their tick (the Seraphim's turning wheels and blinking eye, the Colossus's arms...), so the parts that move cannot
+   be found from the model object. So only siblings are merged: inside every group of a boss model, the direct mesh children that share a
+   material are drawn as one mesh in that group's own space, so the hierarchy and every animated group keep their transforms. Left alone:
+   every part the model object points at (wings, tail, jaws, heads, spin, limbs, refs, head...), the body's first part (eliteDress measures
+   it), meshes with userData, children, transparency or a shader of their own, and every mesh that changes on its own. Those are found once
+   per boss type and variant (pfeProbe): a spare model's tick is run for a few seconds at a walk, standing and charging, in every state its
+   tick reads from userData (a cast, a stomp, rearing...), and every part whose place, visibility, material or geometry changed is kept.
+   The plan and the merged geometry are cached per type and variant, so a spawn only swaps meshes. `PF.on=false` turns it off too. */
+const PFE={plan:new Map(),geo:new Map(),stat:{}};
+/* every Object3D the model object points at, directly or through arrays and plain objects (limbs, refs); the body `b` too (it bobs and leans) */
+function pfeRefs(m){const S=new Set(),seen=new Set(),walk=(v,d)=>{if(!v||typeof v!=='object'||seen.has(v))return;seen.add(v);if(v.isObject3D){S.add(v);return;}if(d>4)return;
+    if(Array.isArray(v)){v.forEach(x=>walk(x,d+1));return;}const pr=Object.getPrototypeOf(v);if(pr!==Object.prototype&&pr!==null)return;for(const k in v)walk(v[k],d+1);};
+  for(const k in m)if(k!=='g')walk(m[k],0);const u=m.g&&m.g.userData;if(u){walk(u.refs,0);walk(u.head,0);}return S;}
+const pfeGv=g=>{if(!g)return 0;let v=g.index?g.index.version:0;for(const k in g.attributes)v+=g.attributes[k].version;return v+g.drawRange.start*7+(g.drawRange.count===Infinity?0:g.drawRange.count);};
+const pfeSnap=o=>{const p=o.position,q=o.quaternion,s=o.scale;return[p.x,p.y,p.z,q.x,q.y,q.z,q.w,s.x,s.y,s.z,o.visible,o.material,o.geometry,pfeGv(o.geometry),o.renderOrder,o.children.length,o.parent,...(o.matrixAutoUpdate?[]:o.matrix.elements)];};
+const pfeSig=root=>{const a=[];root.traverse(o=>a.push((o.isMesh?'m':'o')+o.children.length+(o.geometry&&o.geometry.attributes.position?':'+o.geometry.attributes.position.count:'')));return a.join(',');};
+/* run a spare model's tick and note every part that changes on its own (effects it emits are swallowed) */
+function pfeProbe(P){const nodes=[];P.g.traverse(o=>nodes.push(o));const ch=new Set();if(!P.tick)return ch;
+  const s0=nodes.map(pfeSnap),cmp=()=>{for(let i=0;i<nodes.length;i++){if(ch.has(nodes[i]))continue;const a=s0[i],b=pfeSnap(nodes[i]);if(a.length!==b.length||a.some((x,j)=>x!==b[j]&&!(typeof x==='number'&&Math.abs(x-b[j])<1e-6)))ch.add(nodes[i]);}};
+  const ud=P.g.userData,read=new Set(),sv=[emit,emitS,sprayP,flash,shockwave,addFx];
+  emit=emitS=sprayP=flash=shockwave=()=>{};addFx=()=>({});
+  try{P.g.userData=new Proxy(ud,{get(o,k){if(typeof k==='string')read.add(k);return o[k];}});
+    const run=(t0,f)=>{for(let t=t0;t<t0+3;t+=.05){P.tick(t,f,0);cmp();}};run(0,.5);run(3,0);run(6,1.6);
+    const ks=[...read].filter(k=>ud[k]==null||typeof ud[k]==='number'),k0={};ks.forEach(k=>k0[k]=ud[k]);
+    for(const v of[1,.5])for(const k of ks){ud[k]=v;run(9,.5);ud[k]=k0[k];}if(ks.length>1){ks.forEach(k=>ud[k]=1);run(12,.5);}}
+  catch(e){console.error(e);nodes.forEach(o=>ch.add(o));}
+  finally{[emit,emitS,sprayP,flash,shockwave,addFx]=sv;P.g.userData=ud;}
+  return ch;}
+/* the plan: per anchor (by its path from the root), the sets of parts (by their paths) to merge. An anchor is the root, a part the model
+   points at, a part that changes, a mesh with children, a hidden group or one with userData; a group that is none of these never moves on
+   its own (an eye on a wheel, a feather on a wing), so its meshes are merged into the nearest anchor above it (the group itself stays) */
+const pfePath=(root,o)=>{const p=[];while(o&&o!==root){p.unshift(o.parent.children.indexOf(o));o=o.parent;}return p;};
+const pfeAt=(root,p)=>{let o=root;for(const i of p){o=o&&o.children[i];}return o;};
+const pfeKey=c=>c.material.uuid+'|'+(c.castShadow?1:0)+(c.receiveShadow?1:0)+'|'+c.renderOrder+'|'+(c.frustumCulled?1:0)+'|'+c.layers.mask;
+const pfeOk=(c,R,ch,b0)=>c.isMesh&&!c.isInstancedMesh&&!c.isSkinnedMesh&&!c.children.length&&c.visible&&!R.has(c)&&!ch.has(c)&&c!==b0&&pfMergeable(c.material)&&
+  c.geometry&&c.geometry.attributes.position&&!(c.geometry.morphAttributes&&Object.keys(c.geometry.morphAttributes).length)&&!Object.keys(c.userData).length&&c.onBeforeRender===THREE.Object3D.prototype.onBeforeRender;
+/* the snowy lands' shader (snowMat) turns normals by the plain model matrix, not its inverse transpose: a part scaled unevenly against
+   its anchor would get other snow once merged, so on bosses that can be snowed (snowOk) only evenly scaled parts are merged */
+function pfeEven(c,A){const m=new THREE.Matrix4().copy(A.matrixWorld).invert().multiply(c.matrixWorld),e=m.elements,x=Math.hypot(e[0],e[1],e[2]),y=Math.hypot(e[4],e[5],e[6]),z=Math.hypot(e[8],e[9],e[10]);
+  return Math.abs(x-y)<1e-5*x&&Math.abs(x-z)<1e-5*x&&Math.abs(e[0]*e[4]+e[1]*e[5]+e[2]*e[6])<1e-5*x*x&&Math.abs(e[0]*e[8]+e[1]*e[9]+e[2]*e[10])<1e-5*x*x&&Math.abs(e[4]*e[8]+e[5]*e[9]+e[6]*e[10])<1e-5*x*x;}
+function pfePlan(P,snowy){const R=pfeRefs(P),ch=pfeProbe(P),b0=P.b&&P.b.children[0],by=new Map();P.g.updateMatrixWorld(true);
+  const anchor=o=>{let p=o.parent;while(p!==P.g&&!R.has(p)&&!ch.has(p)&&!p.isMesh&&p.visible&&!Object.keys(p.userData).length&&p.onBeforeRender===THREE.Object3D.prototype.onBeforeRender)p=p.parent;return p;};
+  P.g.traverse(c=>{if(c===P.g||!pfeOk(c,R,ch,b0))return;let q=c.parent;while(q!==P.g){if(!q.visible)return;q=q.parent;}const A=anchor(c);if(snowy&&!pfeEven(c,A))return;const k=A.uuid+'|'+pfeKey(c);if(!by.has(k))by.set(k,{A,L:[]});by.get(k).L.push(c);});
+  P.g.updateMatrixWorld(true);const sets=[];let tie=0;for(const {A,L:L0} of by.values()){const T=pfeTies(L0),L=L0.filter(c=>!T.has(c));tie+=T.size;if(L.length>1)sets.push({path:pfePath(P.g,A),parts:L.map(c=>pfePath(P.g,c))});}
+  return{sig:pfeSig(P.g),sets,kept:ch.size,ties:tie,refs:R.size};}
+/* parts of one material whose faces lie in the same plane and overlap (a wing's feather tiles, a strut on a membrane) are drawn
+   with depth ties: which one shows depends on the order they are drawn in, and merging would change that order. They stay their own. */
+function pfeTies(L){const by=new Map(),bad=new Set(),a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3(),n=new THREE.Vector3(),e=new THREE.Vector3(),u=new THREE.Vector3(),w=new THREE.Vector3();
+  /* two triangles in one plane overlap (more than touching) unless an edge of either separates them */
+  const sep=(T,Q)=>{for(const X of[T,Q])for(let i=0;i<3;i++){const p=X[i],q=X[(i+1)%3],ax=q[1]-p[1],ay=p[0]-q[0];let t0=1e9,t1=-1e9,q0=1e9,q1=-1e9;
+      for(const r of T){const d=r[0]*ax+r[1]*ay;t0=Math.min(t0,d);t1=Math.max(t1,d);}for(const r of Q){const d=r[0]*ax+r[1]*ay;q0=Math.min(q0,d);q1=Math.max(q1,d);}
+      if(Math.min(t1,q1)-Math.max(t0,q0)<=1e-5*Math.hypot(ax,ay))return true;}return false;};
+  L.forEach((o,mi)=>{const P=o.geometry.attributes.position,I=o.geometry.index,nt=(I?I.count:P.count)/3,V=i=>I?I.getX(i):i;
+    for(let t=0;t<nt;t++){a.fromBufferAttribute(P,V(t*3)).applyMatrix4(o.matrixWorld);b.fromBufferAttribute(P,V(t*3+1)).applyMatrix4(o.matrixWorld);c.fromBufferAttribute(P,V(t*3+2)).applyMatrix4(o.matrixWorld);
+      n.subVectors(c,b).cross(e.subVectors(a,b));const l=n.length();if(l<1e-10)continue;n.divideScalar(l);
+      const k=Math.round(n.x*500)+','+Math.round(n.y*500)+','+Math.round(n.z*500)+','+Math.round(n.dot(a)*2000);
+      u.set(1,0,0);if(Math.abs(n.x)>.9)u.set(0,1,0);u.cross(n).normalize();w.crossVectors(n,u);const T=[a,b,c].map(p=>[p.dot(u),p.dot(w)]);T.mi=mi;
+      let q=by.get(k);if(!q)by.set(k,q=[]);for(const Q of q)if(Q.mi!==mi&&!sep(T,Q)){bad.add(L[mi]);bad.add(L[Q.mi]);}q.push(T);}});
+  return bad;}
+/* a geometry's content as a short hash (models build some parts afresh each time, an eye's iris for one), so equal parts share the cache */
+const PFE_GID=new WeakMap();
+function pfeGid(g){let h=PFE_GID.get(g);if(h)return h;let a=2166136261;const f=new Float32Array(1),u=new Uint32Array(f.buffer),mix=x=>{a=Math.imul(a^x,16777619)>>>0;};
+  for(const k of Object.keys(g.attributes).sort()){const A=g.attributes[k];mix(A.count);mix(A.itemSize);const S=A.array;for(let i=0;i<S.length;i++){f[0]=S[i];mix(u[0]);}}if(g.index){const I=g.index.array;for(let i=0;i<I.length;i++)mix(I[i]);}
+  h=a.toString(36)+'.'+g.attributes.position.count;PFE_GID.set(g,h);return h;}
+/* swap a fresh model's sets for merged meshes (geometry from the cache when the parts are the very same) */
+function pfeApply(m,key,plan){if(pfeSig(m.g)!==plan.sig)return -1;m.g.updateMatrixWorld(true);const b0=m.b&&m.b.children[0],jobs=[];
+  for(const S of plan.sets){const A=pfeAt(m.g,S.path),L=S.parts.map(p=>pfeAt(m.g,p));if(!A||L.some(c=>!c||c===b0||!c.isMesh||c.material!==L[0].material||pfeKey(c)!==pfeKey(L[0])))continue;jobs.push([S,A,L]);}
+  let saved=0;for(const [S,A,L] of jobs){const gk=key+'|'+S.path.join('.')+'|'+S.parts[0].join('.')+'|'+L.length,inv=new THREE.Matrix4().copy(A.matrixWorld).invert(),mm=new THREE.Matrix4(),
+      sig=L.map(c=>pfeGid(c.geometry)+':'+mm.multiplyMatrices(inv,c.matrixWorld).elements.map(x=>x.toFixed(5)).join(',')).join(';');
+    let C=PFE.geo.get(gk),G=C&&C.sig===sig?C.G:null,own=false;if(!G){G=pfMergeGeo(L,A);if(!G)continue;if(!C)PFE.geo.set(gk,{sig,G});else own=true;}
+    const me=new THREE.Mesh(G,L[0].material);me.castShadow=L[0].castShadow;me.receiveShadow=L[0].receiveShadow;me.renderOrder=L[0].renderOrder;me.frustumCulled=L[0].frustumCulled;
+    me.userData.pfBatch=1;me.matrixAutoUpdate=false;A.add(me);if(own)PF.made.add(me);for(const c of L)c.parent.remove(c);saved+=L.length-1;}
+  return saved;}
+function pfeBoss(m,type,variant,em){const key=type+'|'+(variant==null?'':variant),t0=performance.now();let plan=PFE.plan.get(key);
+  if(!plan){const P=em(type,variant);plan=P&&P.g?pfePlan(P,snowOk(type)):null;PFE.plan.set(key,plan);}if(!plan)return m;
+  const n=pfeApply(m,key,plan);PFE.stat[key]={saved:n,kept:plan.kept,ms:+(performance.now()-t0).toFixed(1)};return m;}
+{const em=enemyModel;enemyModel=function(type,variant){const m=em.apply(this,arguments);try{if(PF.on&&m&&m.g&&EN[type]&&EN[type].boss)pfeBoss(m,type,variant,(t,v)=>em(t,v));}catch(e){console.error(e);}return m;};}
+/* ---- end of bosses (v440) ---- */
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();

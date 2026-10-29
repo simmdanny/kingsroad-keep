@@ -67,7 +67,8 @@ try{
   {let err='';try{for(const[l,k,w]of[['snow','auroradrake',100],['snow','winterking',200],['tundra','irontusk',100],['tundra','greywindroc',200]]){go(l);clean();towerNear({x:0,z:0},'cannon');const e=spawnB(k,l+w,w);towers.forEach(t=>t.cd=0);run(4);renderer.render(scene,camera);}}catch(x){err=x.message;}
     ok('each boss walks, fights and renders without errors',!err,err);}
   /* v305: the left wings are true mirror images of the right ones (they used to be turned half round, feathers in front) */
-  for(const k of['greywindroc','auroradrake']){const m=enemyModel(k,0);if(m.tick)m.tick(.7,.6,0);m.g.updateMatrixWorld(true);let bad=0,n=0;const W=[];m.b.traverse(o=>{if(o.isGroup&&o.children[0]&&o.children[0].isGroup&&o.children[0].children.length>5&&o.parent===m.b)W.push(o);});
+  /* (v440: read as built, before the boss merging folds the arms' still feathers into the wing) */
+  for(const k of['greywindroc','auroradrake']){const pf0=typeof PF!=='undefined'&&PF.on;if(pf0)PF.on=false;const m=enemyModel(k,0);if(pf0)PF.on=true;if(m.tick)m.tick(.7,.6,0);m.g.updateMatrixWorld(true);let bad=0,n=0;const W=[];m.b.traverse(o=>{if(o.isGroup&&o.children[0]&&o.children[0].isGroup&&o.children[0].children.length>5&&o.parent===m.b)W.push(o);});
     for(let i=0;i+1<W.length;i+=2){const A=new THREE.Box3().setFromObject(W[i]),B=new THREE.Box3().setFromObject(W[i+1]);n++;if(Math.abs(A.min.z-B.min.z)>.01||Math.abs(A.max.z-B.max.z)>.01||Math.abs(A.min.x+B.max.x)>.01)bad++;}
     ok('the '+EN[k].nm.toLowerCase()+' spreads its wings as mirror images',n>0&&!bad,n+' pairs, '+bad+' wrong');}
   /* v305: developer mode opens the whole Bestiary, these bosses included, and gives the real one back */
