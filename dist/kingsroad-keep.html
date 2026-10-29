@@ -14164,6 +14164,9 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Mastery previews load ahead',d:'29 Oct',v:'v438',li:[
+    'The preview clips of the scrolls you own now download in the background a moment after the game opens, so hovering a mastery plays its clip at once instead of stuttering while it streams.',
+    'A clip that is not downloaded yet is never streamed: a loading ring shows for a moment, then it plays smoothly from memory.']},
   {t:'Hundred-Year Bloom masteries, redesigned',d:'28 Oct',v:'v437',li:[
     'Hundred-Year Bloom (Legendary) has five new masteries, for now in developer mode: Scent of Nectar (while the bud opens, golden scent streams out and draws foes up to 3.5 tiles away into the flower), Vine Lattice (thorned vines tie the held foes together, and a quarter of any other hit on one runs along them to the rest), Petal Storm (the burst throws 16 razor petals that whirl out and slice into the foes), Golden Haze (the pollen cloud is wider and thicker and drifts down the road with the foes in it) and A Hundred Years in a Breath (the fading flower goes to seed: ten glowing seeds drift onto the foes and sprout small blooms that grab them and burst).',
     'Its burst now billows up as a golden cloud of pollen in 3D, and the shaft of light over it fades as it rises instead of standing as a flat white bar over the foes.']},
@@ -31472,14 +31475,21 @@ const PVC_SRC=['../previews/','https://cdn.jsdelivr.net/gh/simmdanny/kingsroad-k
 /* the clip list, from the first place that has it (see above); null until it has arrived */
 function pvcMan(){if(PVC.man)return PVC.man;if(!PVC.load&&typeof fetch==='function'){
   const bases=PVC_SRC.filter(b=>/^https?:/.test(b)||/^https?:$/.test(location.protocol));
-  PVC.load=(async()=>{for(const b of bases){try{const r=await fetch(b+'manifest.json',{cache:'no-cache'});if(!r.ok)continue;const m=await r.json();if(m&&m.clips){PVC.base=b;PVC.man=m;return m;}}catch(e){}}return null;})();}
+  PVC.load=(async()=>{for(const b of bases){try{const r=await fetch(b+'manifest.json',{cache:'no-cache'});if(!r.ok)continue;const m=await r.json();if(m&&m.clips){PVC.base=b;PVC.man=m;setTimeout(()=>{try{pvcWarm();}catch(e){}},1500);return m;}}catch(e){}}return null;})();}
   return null;}
 const pvcId=(k,L)=>k+'-'+L;
 function pvcHas(k,L){const m=pvcMan();return!!(m&&m.clips&&m.clips[pvcId(k,L)]);}
 /* a clip already fetched plays from memory; one not fetched yet streams from where the list came from */
 function pvcUrl(k,L){const id=pvcId(k,L);return PVC.urls[id]||(PVC.man?PVC.base+id+'.mp4':null);}
-function pvcFetch(k,L){const id=pvcId(k,L);if(PVC.urls[id]||PVC.got[id]||!pvcHas(k,L))return;
-  PVC.got[id]=fetch(PVC.base+id+'.mp4').then(r=>r.ok?r.blob():null).then(b=>{if(b&&b.size)PVC.urls[id]=URL.createObjectURL(/^video\//.test(b.type)?b:new Blob([b],{type:'video/mp4'}));}).catch(()=>{PVC.got[id]=null;});}
+/* fetch a clip into memory (once); the promise gives its blob URL, or null if it could not be had */
+function pvcFetch(k,L){const id=pvcId(k,L);if(PVC.urls[id])return Promise.resolve(PVC.urls[id]);if(PVC.got[id])return PVC.got[id];if(!pvcHas(k,L))return Promise.resolve(null);
+  PVC.got[id]=fetch(PVC.base+id+'.mp4').then(r=>r.ok?r.blob():null).then(b=>{if(b&&b.size){PVC.urls[id]=URL.createObjectURL(/^video\//.test(b.type)?b:new Blob([b],{type:'video/mp4'}));return PVC.urls[id];}PVC.got[id]=null;return null;})
+    .catch(()=>{PVC.got[id]=null;return null;});return PVC.got[id];}
+/* v438 (Simon: "they should be pre-loaded so it just plays"): once the clip list is in, the clips of every scroll the player owns (the
+   masteries they may watch) are fetched into memory in the background, two at a time, so a preview plays from memory at once. A clip not
+   in memory yet is never streamed (that stuttered, above all at 720p): the panel shows that it is loading and plays it once it has arrived. */
+function pvcWarm(){if(PVC.warm||!PVC.man)return;PVC.warm=1;const Q=[];for(const k of Object.keys((meta&&meta.spells)||{}))for(let L=0;L<=5;L++)if(pvcHas(k,L)&&smPvCan('scroll',k,L))Q.push([k,L]);
+  PVC.warmQ=Q;PVC.warmN=Q.map(q=>pvcId(q[0],q[1]));const next=()=>{const q=Q.shift();if(!q)return;pvcFetch(q[0],q[1]).then(()=>setTimeout(next,60));};next();next();}
 /* (raw GitHub sends the clips as plain bytes: they are labelled video/mp4 so every browser plays them) */
 /* the clips of one scroll that can be watched (opening its mastery card) */
 function pvcPrefetch(k){if(!pvcMan())return;for(let L=0;L<=5;L++)if(smPvCan('scroll',k,L))pvcFetch(k,L);}
@@ -31508,9 +31518,13 @@ function pvcShow(k,L,anchor){if(!pvcHas(k,L))return false;const b=pvcBox(),S=SPE
   const nt=b.querySelector('.pvc-note');nt.textContent=c.note||'';nt.hidden=!c.note;
   b.querySelector('.pvc-tabs').innerHTML=[0,1,2,3,4,5].map(l=>{const ok=pvcHas(k,l)&&smPvCan('scroll',k,l);
     return`<button data-l="${l}" class="${l===L?'on':''}" ${ok?'':'disabled'} style="--mc:${l?pvcHex(MAST_COL[l-1]):'#c8b89a'}" title="${ok?(l?'Mastery '+l+': '+D[l-1].n:'No mastery'):'Reach Mastery '+l+' to watch it'}">${l?PVC_ROM[l]:'Base'}</button>`;}).join('');
-  const v=b.querySelector('video');if(!same){const u=pvcUrl(k,L);if(u&&v.getAttribute('src')!==u){v.setAttribute('src',u);}try{v.currentTime=0;}catch(e){}const p=v.play();if(p&&p.catch)p.catch(()=>{});
-      /* a bigger clip (720p) can still be loading when play() is called, and the call is then dropped: start it again once it can play */
-      v.oncanplay=()=>{if(v.paused&&v.isConnected&&PVC.el&&!PVC.el.hidden){const q=v.play();if(q&&q.catch)q.catch(()=>{});}};}
+  const v=b.querySelector('video');if(!same){const id=pvcId(k,L);
+      const play=u=>{b.classList.remove('pvc-wait');if(v.getAttribute('src')!==u)v.setAttribute('src',u);try{v.currentTime=0;}catch(e){}const p=v.play();if(p&&p.catch)p.catch(()=>{});
+        /* play() can be dropped while the clip is still being read: start it again once it can play */
+        v.oncanplay=()=>{if(v.paused&&v.isConnected&&PVC.el&&!PVC.el.hidden){const q=v.play();if(q&&q.catch)q.catch(()=>{});}};};
+      if(PVC.urls[id])play(PVC.urls[id]);
+      else{b.classList.add('pvc-wait');v.removeAttribute('src');try{v.load();}catch(e){}
+        pvcFetch(k,L).then(u=>{if(PVC.k!==k||PVC.L!==L||!PVC.el||PVC.el.hidden)return;play(u||PVC.base+id+'.mp4');});}}
   b.hidden=false;if(anchor!==null)pvcPlace(anchor||PVC.anchor);if(anchor)PVC.anchor=anchor;if(!PVC.raf)PVC.raf=requestAnimationFrame(pvcTick);return true;}
 function pvcPlace(anchor){const b=PVC.el;if(!b)return;
   const r=anchor&&anchor.isConnected?anchor.getBoundingClientRect():{left:innerWidth/2,right:innerWidth/2,top:innerHeight/2,bottom:innerHeight/2,height:0};let x,y,W=Math.min(440,innerWidth-16);
@@ -31540,6 +31554,8 @@ addEventListener('resize',()=>{if(PVC.el&&!PVC.el.hidden)pvcPlace(PVC.anchor);})
   '.pvc-hd{display:flex;align-items:center;gap:9px;margin-bottom:8px}.pvc-art{width:34px;height:34px;flex:none;display:grid;place-items:center}.pvc-art svg{width:34px;height:34px}'+
   '.pvc-ttl{flex:1;min-width:0}.pvc-ttl small{display:block;font-size:11px;color:var(--rc,var(--muted));letter-spacing:.02em}.pvc-ttl b{display:block;font-size:15px;color:var(--gold);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
   '.pvc-x{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid #6a5238;background:#1d1510;color:var(--gold);font-size:18px;line-height:1;cursor:pointer}.pvc-x:hover{background:#2e2218}'+
+  '.pvc-vid::after{content:"";position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:3px solid #ffffff22;border-top-color:var(--mc);opacity:0;transition:opacity .2s;pointer-events:none}'+
+  '#pvc.pvc-wait .pvc-vid::after{opacity:1;animation:pvcSpin .8s linear infinite}@keyframes pvcSpin{to{transform:rotate(360deg)}}'+
   '.pvc-vid{position:relative;aspect-ratio:3/2;border-radius:10px;overflow:hidden;background:#0b0806;box-shadow:inset 0 0 0 1px #0008,0 0 0 1px color-mix(in srgb,var(--mc) 55%,transparent)}'+
   '.pvc-vid video{display:block;width:100%;height:100%;object-fit:cover}'+
   '.pvc-badge{position:absolute;left:8px;top:8px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#0c0907d0;color:var(--mc);box-shadow:inset 0 0 0 1px var(--mc)}'+

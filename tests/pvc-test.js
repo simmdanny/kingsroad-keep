@@ -17,16 +17,25 @@ try{
   ok('every published scroll has a clip for no mastery and each of its 5 masteries ('+OPEN.length+' scrolls)',OPEN.length>=32&&!miss.length,miss.slice(0,8).join(' '));
   {const gone=[];await Promise.all(Object.keys(M.clips).map(async id=>{const r=await fetch('../previews/'+id+'.mp4',{method:'HEAD'});if(!r.ok)gone.push(id);}));ok('and every clip file exists',!gone.length,gone.join(' '));}
   ok('a clip for an Epic scroll is not there (it keeps the live preview)',!pvcHas('comet',1));
+  /* v438: the clips of the scrolls the player owns are fetched into memory in the background */
+  {meta.spells.cinders=meta.spells.cinders||{lvl:1,hero:null};for(const L of [0,1,2,3,4,5]){const id='cinders-'+L;if(PVC.urls[id])URL.revokeObjectURL(PVC.urls[id]);delete PVC.urls[id];delete PVC.got[id];}
+    PVC.warm=0;pvcWarm();const want=PVC.warmN.filter(id=>/^cinders-/.test(id)).length;for(let i=0;i<60&&!['cinders-0'].every(id=>PVC.urls[id]);i++)await wait(100);
+    ok('the clips of every scroll the player owns are fetched into memory in the background',want>=1&&/^blob:/.test(PVC.urls['cinders-0']||''),want+' queued; '+(PVC.urls['cinders-0']||'none'));}
   /* the card in developer mode: hovering a mastery plays its clip, without the live preview's frame */
   meta.dev=true;meta.spells.hexspark=meta.spells.hexspark||{lvl:1,hero:null};close();smOpen('hexspark');
   const md=$('#smModal'),rows=md.querySelectorAll('.mst-lvl');rows[3].dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(150);
-  const b=PVC.el,v=b&&b.querySelector('video');
-  ok('hovering Mastery 4 opens the panel with its clip',b&&!b.hidden&&PVC.k==='hexspark'&&PVC.L===4&&((v.getAttribute('src')||'')===pvcUrl('hexspark',4)||/hexspark-4/.test(v.getAttribute('src')||'')),v&&v.getAttribute('src'));
+  const b=PVC.el,v=b&&b.querySelector('video');{for(let i=0;i<40&&!/^blob:/.test(v.getAttribute('src')||'');i++)await wait(100);}
+  ok('hovering Mastery 4 opens the panel with its clip, played from memory (v438)',b&&!b.hidden&&PVC.k==='hexspark'&&PVC.L===4&&(v.getAttribute('src')||'')===pvcUrl('hexspark',4)&&/^blob:/.test(v.getAttribute('src')||''),v&&v.getAttribute('src'));
   ok('without starting a second copy of the game (no preview frame)',!document.querySelector('.smpv-fr')&&!(SMPW.el&&!SMPW.el.hidden));
   ok('it shows the mastery, its text and what the clip sets up',/Mastery IV/.test(b.querySelector('.pvc-ttl b').textContent)&&b.querySelector('.pvc-d').textContent===smDesc('hexspark',3)&&!b.querySelector('.pvc-note').hidden,b.querySelector('.pvc-ttl b').textContent);
   {let t=0;for(let i=0;i<40&&!(v.readyState>=2&&v.currentTime>0);i++){await wait(100);t+=100;}ok('the clip plays at once (no loading)',v.readyState>=2&&v.currentTime>0&&!v.paused,'ready '+v.readyState+' after '+t+' ms');}
   const tabs=b.querySelectorAll('.pvc-tabs button');ok('six tabs: no mastery and Masteries I-V, the shown one lit',tabs.length===6&&tabs[4].classList.contains('on')&&[...tabs].every(x=>!x.disabled));
-  tabs[1].click();await wait(50);ok('a tab switches the clip at once and pins the panel',PVC.L===1&&v.getAttribute('src')===pvcUrl('hexspark',1)&&PVC.pin,v.getAttribute('src'));
+  tabs[1].click();{for(let i=0;i<40&&!/^blob:/.test(pvcUrl('hexspark',1)||'');i++)await wait(100);}await wait(30);ok('a tab switches the clip and pins the panel',PVC.L===1&&v.getAttribute('src')===pvcUrl('hexspark',1)&&PVC.pin,v.getAttribute('src'));
+  /* v438: a clip not in memory yet is never streamed: the panel shows it is loading, then plays it from memory */
+  {const id='hexspark-2';if(PVC.urls[id])URL.revokeObjectURL(PVC.urls[id]);delete PVC.urls[id];delete PVC.got[id];pvcShow('hexspark',2,null);const s0=v.getAttribute('src')||'',w0=b.classList.contains('pvc-wait');
+    for(let i=0;i<40&&!/^blob:/.test(v.getAttribute('src')||'');i++)await wait(100);
+    ok('a clip not in memory yet waits for its download (a loading ring), never streams, then plays from memory',w0&&!/^https?:|\.mp4$/.test(s0)&&/^blob:/.test(v.getAttribute('src')||'')&&!b.classList.contains('pvc-wait'),JSON.stringify([w0,s0,v.getAttribute('src')]));}
+  pvcShow('hexspark',1,null);await wait(50);
   md.querySelector('.mst-head').dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(320);ok('a pinned panel stays open when the pointer leaves the masteries',!b.hidden);
   b.querySelector('.pvc-x').click();ok('the close button closes it',b.hidden&&!PVC.pin);
   rows[1].dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(60);md.querySelector('.mst-head').dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));await wait(320);
