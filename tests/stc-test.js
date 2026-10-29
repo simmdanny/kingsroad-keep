@@ -39,7 +39,9 @@ try{
     ok('Mastery 0: the old storm (bolts falling, strikes of 250 / 175) and none of the masteries',nb>20&&log.every(strike)&&!STC.dbg.length,nb+' bolts, '+log.length+' hits');
     ok('Mastery 0: nothing is left behind',smLeft(added)===0,smLeft(added));}
   /* ---- M1 Seeking Bolts ---- */
-  {play();STC.dbg=[];log=[];crowd();const added=go(1);const sk=ev('seek');
+  /* foes all along every road, so that some random bolts are sure to fall within 1.2 of one */
+  {play();STC.dbg=[];log=[];crowd();for(const rt of ROUTES)for(let d=.6;d<rt.len;d+=1.4){spawnEnemy({type:'soldier',v:0},20);const e=enemies[enemies.length-1];e.route=rt;e.dist=d;e.off=0;moveEnemy(e,0);e.spd=0;e.maxHp=e.hp=1e9;e.armor=0;e.res={};e.shield=0;}
+    const added=go(1);const sk=ev('seek');
     ok('M1: a bolt that would fall near a foe bends onto it (how many is chance)',sk.length>=1&&sk.filter(x=>log.some(h=>h.e===x.e&&strike(h)&&Math.abs(h.t-x.time)<.06)).length>=sk.length-1,sk.length+' seeking');
     ok('M1: nothing is left behind',smLeft(added)===0,smLeft(added));}
   /* ---- M2 Downpour ---- */
