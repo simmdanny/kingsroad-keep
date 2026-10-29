@@ -102,6 +102,8 @@ P.trkOn=()=>{P.trk=[];};
    let q=seen.get(o);const sc=o.scale.x;if(!q){q={t:P.T,x:V.x,z:V.z,y:V.y,s:sc};seen.set(o,q);}
    const live=P.T-q.t<.8||Math.abs(V.x-q.x)+Math.abs(V.z-q.z)+Math.abs(V.y-q.y)>.015||Math.abs(sc-q.s)>.004;q.x=V.x;q.z=V.z;q.y=V.y;q.s=sc;
    pts.push([+V.x.toFixed(2),+(V.z-.76*Math.min(h,3.5)).toFixed(2),live?1:0]);}
+  /* following the foes it hits: between hits the living foes keep the view (weak points) */
+  if(P.s.follow==='hits')for(const e of P.foes)if(!e.dead&&e.g&&e.g.parent)pts.push([+e.x.toFixed(2),+e.z.toFixed(2),0]);
   if(P.s.follow==='foes')for(const e of P.foes){if(e.dead||!e.g||!e.g.parent)continue;let q=seen.get(e);if(!q){q={x:e.x,z:e.z};seen.set(e,q);}
     if(Math.abs(e.x-q.x)+Math.abs(e.z-q.z)>.02)pts.push([+e.x.toFixed(2),+e.z.toFixed(2),1]);q.x=e.x;q.z=e.z;}
   P.trk.push([+P.T.toFixed(3),pts]);};}
@@ -156,7 +158,7 @@ function camPath(D, s, castT, dt) {
     if (t < castT + .7 || s.trackHero) { now.push(D.hero); for (const p of D.pack) now.push(p); }
     for (const p of (D.towers || [])) now.push(p);
     for (const h of D.hx) { if (h[3]) { if (h[2] >= t - 1 && h[2] <= t + 1) weak.push(h); continue; } if (h[2] >= t - .3 && h[2] <= t + .8) (h[2] > t ? next : now).push(h); }
-    if (s.follow !== 'hits') for (const [T, P] of D.trk) if (T >= t - .1 && T <= t + .6) for (const p of P) { if (!p[2]) { weak.push([p[0], p[1], T]); continue; } (T > t ? next : now).push([p[0], p[1], T, 'f']); }
+    for (const [T, P] of D.trk) if (T >= t - .1 && T <= t + .6) for (const p of P) { if (!p[2]) { weak.push([p[0], p[1], T]); continue; } if (s.follow !== 'hits') (T > t ? next : now).push([p[0], p[1], T, 'f']); }
     /* while foes are being hit (burning too), an effect more than 2.5 tiles from all of them is a sideshow (a mote drifting off the hero) */
     const anc = D.hx.filter(h => h[2] >= t - 1.5 && h[2] <= t + 1.5);
     if (anc.length && s.follow !== 'foes') { const far = p => p[3] === 'f' && !anc.some(h => (h[0] - p[0]) ** 2 + (h[1] - p[1]) ** 2 <= 6.25);
