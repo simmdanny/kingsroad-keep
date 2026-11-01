@@ -1791,3 +1791,38 @@ Each clip's probe (the moment its mastery must show) passed on the first seed; t
 - The recorder now writes `manifest.json` after every clip: a run stopped at a background job's 2-hour limit used to lose the whole manifest (it was written only at the end). The manifest of the 79 clips recorded before that stop was rebuilt from the run's log.
 - Size: the Epic and Legendary clips come to 184 MB (1.8 MB a clip, 210 KB a second, against 122 KB a second for the published clips at 720p): their effects are heavier and the tracking camera keeps the picture moving. The panel loads one clip at a time.
 - Also merged here: the third session's preview fixes from all-latest-test (v438: clips preloaded in the background, nothing else drawn while a clip plays). `tests/pvc-test.js` keeps both sets of rows. The full suite passes on the merged build (96 suites).
+
+## Piercing Judgment: a volley of lines (v447)
+Simon: "piercing judgment really cannot lose its identity so masteries should make it more powerful but not by adding crazy effects but picture it like fern from frieren where she fires alot of em and just more powerful ones". The v371 set (a burn, a Condemned mark, an afterimage line, +50% under a quarter of health, a pillar of light) is replaced by more of the same line, and stronger lines.
+
+| Mastery | What it does |
+|---|---|
+| 1 Follow-Up | the circle snaps back to a point and fires a second line through the foes the first one missed (a foe already pierced counts for a third when it picks its line): 50% |
+| 2 Honed Line | every line strikes 5% harder, pierces 0.08 tiles further off its path (0.48 to 0.56 for the Judgment's line, 0.34 to 0.42 for the smaller ones) and is drawn a quarter thicker |
+| 3 Volley | three more circles open in a fan behind the hand and fire one after another, each at the best line through the foes pierced least: 35% each |
+| 4 Executioner | every line finishes off non-boss foes under 25% of their health (the Judgment's own line: 15% before) |
+| 5 Barrage | ten circles open in an arc in the air behind the hero (all within half a second) and fire in turn over 1.5s, each at the best line through the foes still standing: 25% each |
+
+Like Fern's Zoltraak: the same killing spell, cast again and again. Every extra line is the Judgment's own smaller circle (the Verdict's), spinning up and compressing to a point before it fires the same white-violet line across the whole field; at Mastery 5 a cast is 15 lines.
+
+- How: `jvCast` (the live Judgment since v357) takes an optional set of options for one line (`X`: width, execution threshold, aim, where its circle opens, timing, thickness, callbacks); without it a cast is exactly as before (the Verdict tests still compare it with the old cast). `jdmCast` fires the Judgment's line with its options and schedules the others; the extra lines are `jvCast`'s smaller line given the Judgment's length (32 tiles) and its options. Every line of a mastered cast executes at the Judgment's threshold.
+- Numbers: on the Epic ladder (6 runs) 1.09 / 1.25 / 1.36 / 1.52 / 1.74 against 1.094 / 1.234 / 1.35 / 1.522 / 1.742, hidden factors `SMG.judgment` = 1.059 / 0.936 / 0.944 / 1.099 / 1.013. The first numbers (+15% and +0.14 wide, 40% and 35% lines) came out far over: where the foes stand close a wider line takes whole extra foes, and every line takes the whole pack.
+- Tests: `tests/jdm-test.js` (28 rows): each line logs where it ran, so the foes it pierces are checked exactly; the follow-up through the foes the first missed; the honed numbers and widths (and the width option itself, with a fixed aim); the volley's three lines at the rays no line had reached; execution at 25% and 15%, never a boss; ten barrage lines over 1.5s, 15 in all; nothing left behind; other casters and the Verdict unchanged. `tests/verdict-test.js` accepts the masteries' wrapper in front of `jvCast`.
+
+## Dimensional Slash: the same cut, deeper (v448)
+Simon: "its important you dont change the heart of the scroll, no aditional slashes, maybe just mor VFX by enhancing how it looks while making it more powerful without changing how it looks so it still 'feels' like the same spell". So the v371 set (a bleed, a Void Mark, an Echo Cut, +50% under 30%, a singularity) is replaced by masteries that each make one part of the cut more lethal and draw that same part a little stronger. There is still one draw and one cut.
+
+| Mastery | Part | Stronger | Drawn stronger |
+|---|---|---|---|
+| 1 Keen Edge | the cut | strikes foes up to 0.75 tiles off the line (0.5 before) | the blade's edge burns white, its glow brighter, the line a quarter bolder |
+| 2 Deeper Rift | the rift | open 7.5s (6 before), 50% a tick (45% before), slows 60% (45% before) | the tear opens wider and darker, smoke seeps out faster, twice the shards of broken space |
+| 3 The Still Heartbeat | the stillness | the foes on the line at the draw are held until space splits; the split strikes 25% harder | the stillness lasts a quarter second longer, the world drained of colour |
+| 4 Severance | the split | non-boss foes it leaves under 20% are cut down | their slice marks flare bigger and brighter |
+| 5 Worldsplitter | the split and the seal | the split strikes 50% harder; when the rift seals it snaps shut on every foe still inside it for 300% | the tear yawns open far wider; it closes with a crack of white light down the line |
+
+Like a sword being sharpened, not swapped: the same draw, the same black line, the same rift, a little more lethal at every mastery.
+
+- How: `castDSlash` takes an optional set of numbers and looks for one cut (`XO`, over `DSL`); without it the cut is exactly as before (`tests/dslash-test.js` passes unchanged). `dsmOpts` builds it from the mastery.
+- A bug found on the way: the stillness's grey is a filter on the game's canvas, and the browser writes `grayscale(.62)` back as `grayscale(0.62)`, so the first version never cleared it; it now does (the test checks the colour comes back).
+- Numbers: the rift is most of the cast's damage where foes stay in it, and 8s at 70% took Mastery 2 to 1.75 times Mastery 0 (target 1.23), so it is 7.5s at 50%. On the Legendary scroll's ladder (4 runs) the hidden factors `SMG.dslash` = 1.065 / 0.915 / 0.942 / 1.111 / 0.989 bring it to 1.09 / 1.28 / 1.38 / 1.53 / 1.72, against 1.094 / 1.234 / 1.35 / 1.522 / 1.742 (within the ladder's noise); Severance counts for little there (its foes do not drop under 20%).
+- Tests: `tests/dsm-test.js` (26 rows): the wider cut takes the foes beside the road; the rift's ticks, length and slow; the hold, the later split, the grey that comes and goes, 1500%; severance at 20% (not at 30%, not a boss); 2250% and the seal's 300% on the foes inside; nothing left behind; Mastery 0 and other casters unchanged, checked against the cut's own line.

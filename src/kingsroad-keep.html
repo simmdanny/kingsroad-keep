@@ -14175,6 +14175,15 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
+    'Dimensional Slash (Legendary) has five new masteries, for now in developer mode. Still one draw and one cut: each mastery makes a part the spell already has more lethal and draws it a little stronger.',
+    'Keen Edge: the blade\u2019s edge burns white and the cut strikes foes up to 0.75 tiles off the line (0.5 before). Deeper Rift: the tear opens wider and darker, stays open 7.5s (6 before), shreds for 50% a tick (45% before) and slows 60%.',
+    'The Still Heartbeat: the world stands still a beat longer, drained of colour, the foes on the line held in it, and the split strikes 25% harder. Severance: foes the split leaves under 20% of their health are cut down (not bosses).',
+    'Worldsplitter: the split strikes 50% harder, the tear yawns open along the whole line, and when it seals it snaps shut on everything still inside it for 300%.']},
+  {t:'Piercing Judgment: a volley of lines',d:'1 Nov',v:'v447',li:[
+    'Piercing Judgment (Epic) has five new masteries, for now in developer mode: more of the same line, and stronger ones. Every extra line is the Judgment\u2019s own circle compressing to a point and firing the same white-violet line across the whole field.',
+    'Follow-Up: the circle fires a second line through the foes the first one missed (50%). Honed Line: every line strikes 5% harder, pierces wider and burns brighter. Volley: three more circles open in a fan behind the hand and fire one after another (35% each).',
+    'Executioner: its lines finish off foes under 25% of their health (15% before; not bosses). Barrage: ten circles fill the air behind the hero and fire in turn over 1.5s, each at the best line through the foes still standing (25% each).']},
   {t:'Smoother frames',d:'29 Oct',v:'v446',li:[
     'The game draws the same picture with about half the work: the forest round the board, the grass and pebbles, the lore props and the still parts of every tower are drawn together instead of piece by piece, so phones and slower computers keep a steadier frame rate (and use less battery).']},
   {t:'Oakheart Treant: Battering Trunk and Growth Rings',d:'29 Oct',v:'v445',li:[
@@ -17486,7 +17495,11 @@ function dslInvert(){if(meta.spaceCalm)return;const cv=renderer.domElement,f=cv.
 function dslUninvert(){const cv=renderer.domElement;if((cv.style.filter||'').indexOf('invert(1)')===0)cv.style.filter='';}
 
 /* ---------- the cast ---------- */
-function castDSlash(t,PW,o,list){
+/* v448: XO (optional, Dimensional Slash's masteries): this cut's own numbers over DSL (W, SPLIT, RIFT, TDMG, SLOW, T_SPLIT, LIFE) and its looks
+   and payoffs: keen (a whiter edge, a bolder line: cutK, glowK), shards, yawn (the rift opens wider), still (the stillness lasts longer,
+   drained of colour, and the foes on the line are held in it), splitK, sev (cut down non-boss foes under this share), seal (the rift snaps
+   shut on the foes in it), and onHold/onSplit/onSever/onSeal(foes) for the log. Without XO: exactly as before. */
+function castDSlash(t,PW,o,list,XO){const D=XO?Object.assign({},DSL,XO):DSL;
   const TAU=Math.PI*2,root=new THREE.Group();scene.add(root);const geos=[],mats=[],reg=g=>{geos.push(g);return g;},regM=m=>{mats.push(m);return m;};
   const hx=t.x,hz=t.z;let ang=dslAim(t,list),ux=Math.sin(ang),uz=Math.cos(ang),L=dslLen(hx,hz,ux,uz);
   const hero=t&&t.rig&&t.g?t:null;if(hero){hero.anim={k:'dslash',t:.3,d:ANIM_D.dslash};hero.faceA=ang;hero.faceLock=Math.max(hero.faceLock||0,2.4);}
@@ -17501,8 +17514,8 @@ function castDSlash(t,PW,o,list){
   /* ---- the blade of dark magic ---- */
   const KL=.95,kat=new THREE.Group();kat.visible=false;root.add(kat);const blade=new THREE.Group();kat.add(blade);
   const bladeM=regM(new THREE.MeshBasicMaterial({color:0x07050c,side:THREE.DoubleSide,transparent:true,opacity:0}));
-  const haloM=regM(new THREE.MeshBasicMaterial({color:0x6a34d8,side:THREE.DoubleSide,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
-  const edgeM=regM(new THREE.MeshBasicMaterial({color:0xece0ff,side:THREE.DoubleSide,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+  const haloM=regM(new THREE.MeshBasicMaterial({color:D.keen?0x8a54ff:0x6a34d8,side:THREE.DoubleSide,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+  const edgeM=regM(new THREE.MeshBasicMaterial({color:D.keen?0xffffff:0xece0ff,side:THREE.DoubleSide,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
   blade.add(new THREE.Mesh(reg(dslBladeGeo(KL,.05,.07)),bladeM));{const h=new THREE.Mesh(reg(dslBladeGeo(KL*1.04,.05,.07,2.6)),haloM);h.position.y=-.01;h.renderOrder=41;blade.add(h);}
   {const e=new THREE.Mesh(reg(dslEdgeGeo(KL,.05,.07)),edgeM);e.renderOrder=42;blade.add(e);}
   const tsM=regM(new THREE.MeshPhongMaterial({color:0x5a4318,emissive:0x1a1004,shininess:60,flatShading:true,transparent:true,opacity:0})),hdM=regM(new THREE.MeshPhongMaterial({color:0x1c1028,flatShading:true,transparent:true,opacity:0}));
@@ -17511,7 +17524,7 @@ function castDSlash(t,PW,o,list){
   const kSet=(hp,a,el,k)=>{dirA(a,v2);Y.copy(v2).multiplyScalar(Math.cos(el)).addScaledVector(UP,Math.sin(el)).normalize();
     /* the edge leads the sweep: +x points the way the blade travels (towards a1) */
     dirA(a-sgn*Math.PI/2,X);X.addScaledVector(Y,-X.dot(Y)).normalize();Z.crossVectors(X,Y).normalize();M4.makeBasis(X,Y,Z);kat.quaternion.setFromRotationMatrix(M4);kat.position.copy(hp);
-    bladeM.opacity=Math.min(1,k*1.4);haloM.opacity=.38*k;edgeM.opacity=.9*k;tsM.opacity=hdM.opacity=Math.min(1,k*1.4);kat.visible=k>.01;};
+    bladeM.opacity=Math.min(1,k*1.4);haloM.opacity=(D.keen?.55:.38)*k;edgeM.opacity=(D.keen?1:.9)*k;tsM.opacity=hdM.opacity=Math.min(1,k*1.4);kat.visible=k>.01;};
   /* ---- the crescent of the cut, swept around the hero ---- */
   const cresM=regM(new THREE.ShaderMaterial({uniforms:{uA0:{value:aS*.92},uA1:{value:a1},uCur:{value:aS*.92},uA:{value:0},uRi:{value:.32},uRo:{value:1.22}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
     vertexShader:'varying vec2 vP;void main(){vP=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
@@ -17536,11 +17549,11 @@ function castDSlash(t,PW,o,list){
       'float tp=smoothstep(0.,.7,x*uLen)*smoothstep(0.,1.6,(1.-x)*uLen);float c=abs(vU.y-.5)*2.;float g=pow(max(0.,1.-c),2.2)*tp;float fl=.75+.25*dn(x*uLen*2.3-uT*2.);'+
       'gl_FragColor=vec4(vec3(.5,.26,1.)*g*fl,uA*g*(.35+.65*uOpen));}'}));
   const ribG=reg(new THREE.PlaneGeometry(1,1,96,1));ribG.translate(.5,0,0);
-  const cut=new THREE.Mesh(ribG,cutM);cut.rotation.x=-Math.PI/2;cut.position.set(S0,.42,0);cut.scale.set(LEN,.62,1);cut.renderOrder=46;frame.add(cut);
-  const glow=new THREE.Mesh(ribG,glowM);glow.rotation.x=-Math.PI/2;glow.position.set(S0,.41,0);glow.scale.set(LEN,1.9,1);glow.renderOrder=45;frame.add(glow);
+  const cut=new THREE.Mesh(ribG,cutM);cut.rotation.x=-Math.PI/2;cut.position.set(S0,.42,0);const CUTY=.62*(D.cutK||1),GLY=1.9*(D.glowK||1);cut.scale.set(LEN,CUTY,1);cut.renderOrder=46;frame.add(cut);
+  const glow=new THREE.Mesh(ribG,glowM);glow.rotation.x=-Math.PI/2;glow.position.set(S0,.41,0);glow.scale.set(LEN,GLY,1);glow.renderOrder=45;frame.add(glow);
   /* ---- black shards of broken space drifting out of the rift ---- */
   const shG=reg(new THREE.TetrahedronGeometry(.06,0)),shM=regM(new THREE.MeshBasicMaterial({color:0x0b0714,transparent:true,opacity:0})),SH=[];
-  for(let i=0;i<16;i++){const m=new THREE.Mesh(shG,shM);m.visible=false;root.add(m);SH.push({m,d:S0+rnd()*LEN,o:(rnd()-.5)*.3,h:.25+rnd()*.3,vy:.12+rnd()*.25,r:new THREE.Vector3(rnd(),rnd(),rnd()),s:.6+rnd()*.9});}
+  for(let i=0;i<(D.shards||16);i++){const m=new THREE.Mesh(shG,shM);m.visible=false;root.add(m);SH.push({m,d:S0+rnd()*LEN,o:(rnd()-.5)*.3,h:.25+rnd()*.3,vy:.12+rnd()*.25,r:new THREE.Vector3(rnd(),rnd(),rnd()),s:.6+rnd()*.9});}
   /* ---- white slice marks through the foes that are cut ---- */
   const slG=reg(new THREE.PlaneGeometry(1,.035)),SL=[];
   /* ---- the warp: space itself splits along the line (a slash slot of the shared space-distortion pass) ---- */
@@ -17549,12 +17562,13 @@ function castDSlash(t,PW,o,list){
   const release=()=>{if(slot>=0&&SDP.sl[slot]===SQ)SDP.sl[slot]=null;slot=-1;};let sdpOn=false;
   const alive=()=>enemies.filter(e=>!e.dead);
   let T=0,killed=false,done=false,swung=false,split=false,sealed=false,tickT=0,drone=null,lastA=aS;
-  const finish=()=>{if(done)return;done=true;release();if(sdpOn){SDP.n=Math.max(0,SDP.n-1);sdpOn=false;}if(W0)W0.visible=W0vis;if(drone){drone.stop();drone=null;}dslUninvert();};
+  let gray=false;const ungray=()=>{if(gray){gray=false;const cv=renderer.domElement;if(/^grayscale\(0?\.62\)/.test(cv.style.filter||''))cv.style.filter='';}};
+  const finish=()=>{if(done)return;done=true;ungray();release();if(sdpOn){SDP.n=Math.max(0,SDP.n-1);sdpOn=false;}if(W0)W0.visible=W0vis;if(drone){drone.stop();drone=null;}dslUninvert();};
   const cleanup=()=>{killed=true;finish();};SG_ACTIVE.add(cleanup);
   dslSound('gather');
-  addFx(root,DSL.LIFE,(f,dt)=>{if(killed){f.life=0;return;}T+=dt;const tt=time;
+  addFx(root,D.LIFE,(f,dt)=>{if(killed){f.life=0;return;}T+=dt;const tt=time;
     /* re-aim once, just before the draw, at where the foes are now */
-    if(!swung&&T>=DSL.T_SW-.05&&!f.aimed){f.aimed=1;const a2=dslAim(t,null);ang=a2;ux=Math.sin(ang);uz=Math.cos(ang);L=dslLen(hx,hz,ux,uz);
+    if(!swung&&T>=D.T_SW-.05&&!f.aimed){f.aimed=1;const a2=dslAim(t,null);ang=a2;ux=Math.sin(ang);uz=Math.cos(ang);L=dslLen(hx,hz,ux,uz);
       frame.rotation.y=Math.atan2(-uz,ux);const LEN2=Math.max(.5,L-S0);cutM.uniforms.uLen.value=glowM.uniforms.uLen.value=LEN2;cut.scale.x=glow.scale.x=LEN2;
       SQ.ax=hx+ux*S0;SQ.az=hz+uz*S0;SQ.bx=hx+ux*L;SQ.bz=hz+uz*L;if(hero){hero.faceA=ang;}
       for(const S of SH)S.d=S0+rnd()*LEN2;f.LEN=LEN2;}
@@ -17563,8 +17577,8 @@ function castDSlash(t,PW,o,list){
     if(W0&&T<2.35)W0.visible=false;else if(W0&&T>=2.35)W0.visible=W0vis;
     if(hero&&hero.rig.R&&hero.rig.R.hd)hero.rig.R.hd.getWorldPosition(v);else v.set(hx,.4,hz);
     const appear=SMS(T,.05,.35),fade=1-SMS(T,2.05,2.4);let a=aS,el=-.6;
-    if(T<DSL.T_SW){a=aS+Math.sin(tt*22)*.015*SMS(T,.4,.8);el=-.6;}
-    else if(T<DSL.T_SWE){const u=(T-DSL.T_SW)/(DSL.T_SWE-DSL.T_SW),e2=u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;a=aS+(a1-aS)*e2;el=-.6*(1-SMS(u,0,.35));}
+    if(T<D.T_SW){a=aS+Math.sin(tt*22)*.015*SMS(T,.4,.8);el=-.6;}
+    else if(T<D.T_SWE){const u=(T-D.T_SW)/(D.T_SWE-D.T_SW),e2=u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;a=aS+(a1-aS)*e2;el=-.6*(1-SMS(u,0,.35));}
     else if(T<1.95){a=a1;el=-.06-.03*Math.sin(T*3);}
     else{const u=SMS(T,1.95,2.25);a=a1+sgn*.35*u;el=-.06-.65*u;}
     /* the hilt sits in the hero's hand; it follows the sweep a little further out than the arm reaches */
@@ -17572,45 +17586,58 @@ function castDSlash(t,PW,o,list){
     /* dark smoke off the blade while it gathers, and the hero's own dark aura */
     if(appear*fade>.05&&T<2.4){for(let i=0;i<2;i++)if(rnd()<dt*28){const s=rnd()*KL;v2.copy(Y).multiplyScalar(s).add(kat.position);emitS(0,{x:v2.x+(rnd()-.5)*.04,y:v2.y,z:v2.z+(rnd()-.5)*.04,vx:(rnd()-.5)*.1,vy:.35+rnd()*.3,vz:(rnd()-.5)*.1,s:.05+rnd()*.03,s2:.16+rnd()*.06,c:0x0d0814,c2:0x241038,a:.55,life:.5+rnd()*.35,turb:.6,drag:.6,free:true});}
       if(rnd()<dt*16){const s=rnd()*KL;v2.copy(Y).multiplyScalar(s).add(kat.position);pool.sp(v2.x,v2.y,v2.z,(rnd()-.5)*.3,.3+rnd()*.4,(rnd()-.5)*.3,0x9a6aff,.8,.03+rnd()*.025,.5+rnd()*.3,1.5);}}
-    if(hero&&T<2.2)heroSmokeAura(hero,dt,SMS(T,0,.5)*(1-SMS(T,1.9,2.2))*(T<DSL.T_SPLIT?1:.6),[0x2a1250,0x0c0814,0x9a6aff,0x2a0a4a]);
+    if(hero&&T<2.2)heroSmokeAura(hero,dt,SMS(T,0,.5)*(1-SMS(T,1.9,2.2))*(T<D.T_SPLIT?1:.6),[0x2a1250,0x0c0814,0x9a6aff,0x2a0a4a]);
     /* gathering: darkness drawn in towards the hero */
-    if(T<DSL.T_SW){if(rnd()<dt*40){const r=1.2+rnd()*1.2,a3=rnd()*TAU;pool.sp(hx+Math.cos(a3)*r,.1+rnd()*.6,hz+Math.sin(a3)*r,-Math.cos(a3)*r*1.4,.1,-Math.sin(a3)*r*1.4,rnd()<.6?0x7a4ae0:0x2a1050,.75,.04+rnd()*.03,.65,0);}
+    if(T<D.T_SW){if(rnd()<dt*40){const r=1.2+rnd()*1.2,a3=rnd()*TAU;pool.sp(hx+Math.cos(a3)*r,.1+rnd()*.6,hz+Math.sin(a3)*r,-Math.cos(a3)*r*1.4,.1,-Math.sin(a3)*r*1.4,rnd()<.6?0x7a4ae0:0x2a1050,.75,.04+rnd()*.03,.65,0);}
       darkTarget=Math.max(darkTarget,.18*SMS(T,0,.8));vigTarget=Math.max(vigTarget,.35*SMS(T,0,.8));}
     /* ---- the draw: one sweep, and the cut runs out to the edge of the world ---- */
-    if(!swung&&T>=DSL.T_SW){swung=true;dslSound('draw');worldSlow=.08;slowT=Math.max(slowT,.62);camShake=Math.max(camShake,.12*SPACE_K+.04);if(!sdpOn){SDP.n++;sdpOn=true;}}
-    if(swung){cresM.uniforms.uCur.value=lastA;cresM.uniforms.uA.value=SMS(T,DSL.T_SW,DSL.T_SW+.03)*(1-SMS(T,1.15,1.6));
-      cutM.uniforms.uRev.value=glowM.uniforms.uRev.value=SMS(T,DSL.T_SW+.04,DSL.T_SWE+.07);
-      cutM.uniforms.uA.value=glowM.uniforms.uA.value=SMS(T,DSL.T_SW,DSL.T_SW+.05)*(1-SMS(T,DSL.LIFE-.5,DSL.LIFE-.1));}
-    darkTarget=Math.max(darkTarget,(T>=DSL.T_SW&&T<DSL.T_SPLIT?.32:0));
+    if(!swung&&T>=D.T_SW){swung=true;dslSound('draw');worldSlow=.08;slowT=Math.max(slowT,.62+(D.still||0));camShake=Math.max(camShake,.12*SPACE_K+.04);if(!sdpOn){SDP.n++;sdpOn=true;}
+      /* M3: the world stands still a beat longer, drained of colour, and the foes on the line are held in the stilled moment */
+      if(D.still){const H=[];for(const e of alive())if(dslOnLine(e,hx,hz,ux,uz,L,D.W)){e.stunT=Math.max(e.stunT||0,D.T_SPLIT-D.T_SW+.15);H.push(e);}if(D.onHold)D.onHold(H);
+        const cv=renderer.domElement;if(!meta.spaceCalm&&!(cv.style.filter&&cv.style.filter!=='none')){cv.style.transition='none';cv.style.filter='grayscale(.62) brightness(.9)';gray=true;}}}
+    if(swung){cresM.uniforms.uCur.value=lastA;cresM.uniforms.uA.value=SMS(T,D.T_SW,D.T_SW+.03)*(1-SMS(T,1.15,1.6));
+      cutM.uniforms.uRev.value=glowM.uniforms.uRev.value=SMS(T,D.T_SW+.04,D.T_SWE+.07);
+      cutM.uniforms.uA.value=glowM.uniforms.uA.value=SMS(T,D.T_SW,D.T_SW+.05)*(1-SMS(T,D.LIFE-.5,D.LIFE-.1));}
+    darkTarget=Math.max(darkTarget,(T>=D.T_SW&&T<D.T_SPLIT?.32:0));
     /* ---- the split ---- */
-    if(!split&&T>=DSL.T_SPLIT){split=true;dslSound('split');drone=dslSound('rift');dslInvert();flashA=Math.max(flashA,.28*SPACE_K+.08);flashCol='#b49aff';flashDecay=3.2;camShake=Math.max(camShake,.5*SPACE_K+.12);
-      const hitL=[];for(const e of alive())if(dslOnLine(e,hx,hz,ux,uz,L,DSL.W))hitL.push(e);
+    if(!split&&T>=D.T_SPLIT){split=true;ungray();dslSound('split');drone=dslSound('rift');dslInvert();flashA=Math.max(flashA,.28*SPACE_K+.08);flashCol='#b49aff';flashDecay=3.2;camShake=Math.max(camShake,.5*SPACE_K+.12);
+      const hitL=[];for(const e of alive())if(dslOnLine(e,hx,hz,ux,uz,L,D.W))hitL.push(e);
       for(const e of hitL){if(e.invis)e.revealT=Math.max(e.revealT||0,3);
         if(e.shield>0){e.shield=0;if(e.bubble){if(e.bubble.parent)e.bubble.parent.remove(e.bubble);e.bubble=null;if(e.eliteFx)e.eliteFx.shield=null;}burst(e.x,e.y+.3,e.z,0xd8c8ff,14);}
-        hurt(e,PW*DSL.SPLIT,'magic',o);jdgFlashWhite(e,1);
+        hurt(e,PW*D.SPLIT*(D.splitK||1),'magic',o);jdgFlashWhite(e,1);
+        /* M4: a foe the split leaves under D.sev of its health is cut down (not a boss) */
+        const sev=D.sev&&!e.dead&&!e.boss&&e.hp<e.maxHp*D.sev;if(sev){e.hp=0;kill(e,o&&o.src);if(D.onSever)D.onSever(e);}
         const sm=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});const sl=new THREE.Mesh(slG,sm);
-        sl.position.set(e.x,(e.y||0)+(e.hitY||.5)*.55,e.z);sl.rotation.set(-Math.PI/2,0,Math.atan2(-uz,ux));sl.scale.set(1.1,1,1);sl.renderOrder=48;root.add(sl);SL.push({m:sl,mat:sm,age:0});
+        sl.position.set(e.x,(e.y||0)+(e.hitY||.5)*.55,e.z);sl.rotation.set(-Math.PI/2,0,Math.atan2(-uz,ux));sl.scale.set(sev?1.7:1.1,sev?2.2:1,1);sl.renderOrder=48;root.add(sl);SL.push({m:sl,mat:sm,age:sev?-.2:0});
         for(let i=0;i<8;i++)emitS(0,{x:e.x,y:(e.y||0)+(e.hitY||.5)*.5,z:e.z,vx:pxx*(rnd()-.5)*2.4,vy:.3+rnd()*.8,vz:pzz*(rnd()-.5)*2.4,s:.05+rnd()*.04,s2:.14+rnd()*.06,c:0x08060c,c2:0x1a0c2a,a:.75,life:.45+rnd()*.3,turb:.4,drag:1.2,free:true});
         for(let i=0;i<10;i++)pool.sp(e.x,(e.y||0)+(e.hitY||.5)*.5,e.z,(rnd()-.5)*2.6,rnd()*2,(rnd()-.5)*2.6,rnd()<.5?0xffffff:0xa47aff,.9,.04+rnd()*.03,.4+rnd()*.3,2,1.5);}
-      f.hits=hitL.length;
+      f.hits=hitL.length;if(D.onSplit)D.onSplit(hitL,ang,L);
       /* debris and sparks flung off both lips of the tear */
       for(let i=0;i<90;i++){const d=S0+rnd()*(f.LEN||LEN),sd=rnd()<.5?-1:1;pool.sp(hx+ux*d+pxx*sd*.12,.42,hz+uz*d+pzz*sd*.12,pxx*sd*(1+rnd()*2.5),.4+rnd()*1.4,pzz*sd*(1+rnd()*2.5),rnd()<.35?0xffffff:0x8a5aff,.9,.04+rnd()*.04,.4+rnd()*.5,2.2,2);}}
-    if(split){const k=T-DSL.T_SPLIT;cutM.uniforms.uFlash.value=Math.max(0,1-k*5);cutM.uniforms.uOpen.value=glowM.uniforms.uOpen.value=SMS(k,0,.18)*(1-.4*SMS(k,.18,.8))*(1-SMS(T,DSL.LIFE-1,DSL.LIFE-.3));
-      SQ.amp2=(.3*Math.exp(-k*3.5)+.09*(1-SMS(T,DSL.LIFE-1.2,DSL.LIFE-.4)))*SPACE_K*(1+.12*Math.sin(tt*5));}
-    else SQ.amp2=T>=DSL.T_SW?.02*SPACE_K:0;
+    if(split){const k=T-D.T_SPLIT;cutM.uniforms.uFlash.value=Math.max(0,1-k*5,f.sealT!=null?1-(T-f.sealT)*3:0);cutM.uniforms.uOpen.value=glowM.uniforms.uOpen.value=SMS(k,0,.18)*(1-.4*SMS(k,.18,.8))*(1-SMS(T,D.LIFE-1,D.LIFE-.3));
+      /* M2/M5: the tear opens wider (yawn) while it is open */
+      if(D.yawn){const ok=cutM.uniforms.uOpen.value;cut.scale.y=CUTY*(1+D.yawn*ok);glow.scale.y=GLY*(1+D.yawn*.6*ok);}
+      SQ.amp2=(.3*Math.exp(-k*3.5)+.09*(1-SMS(T,D.LIFE-1.2,D.LIFE-.4)))*SPACE_K*(1+.12*Math.sin(tt*5));}
+    else SQ.amp2=T>=D.T_SW?.02*SPACE_K:0;
     if(sdpOn&&SQ.amp2>0)claim();else release();
-    const closeK=SMS(T,DSL.T_SPLIT+DSL.RIFT,DSL.T_SPLIT+DSL.RIFT+.7);cutM.uniforms.uClose.value=glowM.uniforms.uClose.value=closeK;
-    if(!sealed&&closeK>.02){sealed=true;dslSound('seal');if(drone){drone.stop();drone=null;}}
+    const closeK=SMS(T,D.T_SPLIT+D.RIFT,D.T_SPLIT+D.RIFT+.7);cutM.uniforms.uClose.value=glowM.uniforms.uClose.value=closeK;
+    if(!sealed&&closeK>.02){sealed=true;dslSound('seal');if(drone){drone.stop();drone=null;}
+      /* M5: the rift snaps shut on everything inside it, with a crack of white light along the whole line */
+      if(D.seal){const H=[];for(const e of alive())if(dslOnLine(e,hx,hz,ux,uz,L,D.W)){H.push(e);hurt(e,PW*D.seal,'magic',Object.assign({},o,{smx:1}));jdgFlashWhite(e,1);
+          for(let i=0;i<8;i++)pool.sp(e.x,(e.y||0)+(e.hitY||.5)*.5,e.z,(rnd()-.5)*2.4,rnd()*1.6,(rnd()-.5)*2.4,rnd()<.5?0xffffff:0xa47aff,.9,.04+rnd()*.03,.4+rnd()*.3,2,1.5);}
+        f.sealT=T;flashA=Math.max(flashA,.16*SPACE_K+.05);flashCol='#e8dcff';flashDecay=4;camShake=Math.max(camShake,.3*SPACE_K+.08);
+        const LL=f.LEN||LEN;for(let i=0;i<60;i++){const d=S0+rnd()*LL,sd=rnd()<.5?-1:1;pool.sp(hx+ux*d+uz*sd*.08,.42,hz+uz*d-ux*sd*.08,uz*sd*(.6+rnd()*1.6),.3+rnd()*1.2,-ux*sd*(.6+rnd()*1.6),rnd()<.5?0xffffff:0xc8a8ff,.95,.04+rnd()*.03,.35+rnd()*.35,2,2);}
+        if(D.onSeal)D.onSeal(H);}}
     cutM.uniforms.uT.value=glowM.uniforms.uT.value=tt;
     /* ---- the rift: it slows and shreds whatever is inside ---- */
-    if(split&&T<DSL.T_SPLIT+DSL.RIFT){tickT-=dt;if(tickT<=0){tickT+=DSL.TICK;for(const e of alive()){if(!dslOnLine(e,hx,hz,ux,uz,L,DSL.W))continue;if(!(e.slowT>0))e.slow=0;e.slow=Math.max(e.slow||0,DSL.SLOW);e.slowT=Math.max(e.slowT||0,DSL.TICK+.12);
-        hurt(e,PW*DSL.TDMG,'magic',{src:o.src,el:o.el,spell:o.spell,dot:true});if(!e.dead&&rnd()<.5)pool.sp(e.x,(e.y||0)+(e.hitY||.5)*.5,e.z,(rnd()-.5)*.6,.4+rnd()*.5,(rnd()-.5)*.6,0xa47aff,.8,.035,.45,1);}}
+    if(split&&T<D.T_SPLIT+D.RIFT){tickT-=dt;if(tickT<=0){tickT+=D.TICK;for(const e of alive()){if(!dslOnLine(e,hx,hz,ux,uz,L,D.W))continue;if(!(e.slowT>0))e.slow=0;e.slow=Math.max(e.slow||0,D.SLOW);e.slowT=Math.max(e.slowT||0,D.TICK+.12);
+        hurt(e,PW*D.TDMG,'magic',{src:o.src,el:o.el,spell:o.spell,dot:true});if(!e.dead&&rnd()<.5)pool.sp(e.x,(e.y||0)+(e.hitY||.5)*.5,e.z,(rnd()-.5)*.6,.4+rnd()*.5,(rnd()-.5)*.6,0xa47aff,.8,.035,.45,1);}}
       /* darkness seeping up out of the tear, violet sparks along its lips */
-      const LL=f.LEN||LEN;if(rnd()<dt*LL*2.4){const d=S0+rnd()*LL;emitS(0,{x:hx+ux*d+pxx*(rnd()-.5)*.12,y:.38,z:hz+uz*d+pzz*(rnd()-.5)*.12,vx:(rnd()-.5)*.1,vy:.3+rnd()*.35,vz:(rnd()-.5)*.1,s:.08+rnd()*.05,s2:.22+rnd()*.1,c:0x0a0612,c2:0x2a1446,a:.5,life:.9+rnd()*.5,turb:.6,drag:.5,free:true});}
+      const LL=f.LEN||LEN;if(rnd()<dt*LL*2.4*(D.seep||1)){const d=S0+rnd()*LL;emitS(0,{x:hx+ux*d+pxx*(rnd()-.5)*.12,y:.38,z:hz+uz*d+pzz*(rnd()-.5)*.12,vx:(rnd()-.5)*.1,vy:.3+rnd()*.35,vz:(rnd()-.5)*.1,s:.08+rnd()*.05,s2:.22+rnd()*.1,c:0x0a0612,c2:0x2a1446,a:.5,life:.9+rnd()*.5,turb:.6,drag:.5,free:true});}
       for(let i=0;i<2;i++)if(rnd()<dt*LL*1.6){const d=S0+rnd()*LL,sd=rnd()<.5?-1:1;pool.sp(hx+ux*d+pxx*sd*.16,.43,hz+uz*d+pzz*sd*.16,pxx*sd*.3,.2+rnd()*.3,pzz*sd*.3,rnd()<.3?0xffffff:0x9a6aff,.85,.025+rnd()*.02,.4+rnd()*.3,1);}}
     /* the shards */
-    const shA=split?SMS(T,DSL.T_SPLIT,DSL.T_SPLIT+.3)*(1-SMS(T,DSL.T_SPLIT+DSL.RIFT,DSL.T_SPLIT+DSL.RIFT+.6)):0;shM.opacity=shA;
-    for(const S of SH){S.m.visible=shA>.02;if(!S.m.visible)continue;const y=S.h+((T-DSL.T_SPLIT)*S.vy)%.9;S.m.position.set(hx+ux*S.d+pxx*S.o,y,hz+uz*S.d+pzz*S.o);S.m.rotation.set(tt*S.r.x*2,tt*S.r.y*2,tt*S.r.z*2);S.m.scale.setScalar(S.s*(1-SMS(y,S.h+.6,S.h+.9)));}
+    const shA=split?SMS(T,D.T_SPLIT,D.T_SPLIT+.3)*(1-SMS(T,D.T_SPLIT+D.RIFT,D.T_SPLIT+D.RIFT+.6)):0;shM.opacity=shA;
+    for(const S of SH){S.m.visible=shA>.02;if(!S.m.visible)continue;const y=S.h+((T-D.T_SPLIT)*S.vy)%.9;S.m.position.set(hx+ux*S.d+pxx*S.o,y,hz+uz*S.d+pzz*S.o);S.m.rotation.set(tt*S.r.x*2,tt*S.r.y*2,tt*S.r.z*2);S.m.scale.setScalar(S.s*(1-SMS(y,S.h+.6,S.h+.9)));}
     /* slice marks fade */
     for(let i=SL.length-1;i>=0;i--){const q=SL[i];q.age+=dt;q.mat.opacity=Math.max(0,1-q.age/.35);if(q.age>.35){root.remove(q.m);q.mat.dispose();SL.splice(i,1);}}
     /* the seal: sparks where the lips meet */
@@ -18582,11 +18609,14 @@ function jvHole(x,y,z,s){const m=new THREE.Mesh(JV.hg||(JV.hg=new THREE.PlaneGeo
   addFx(m,.85,(f,dt)=>{T+=dt;const a=1-Math.pow(1-Math.min(1,T/.08),3),b=1-SMS(T,.3,.82);m.scale.setScalar(s*(a*1.12-.12*SMS(T,.08,.22))*b+.001);m.material.opacity=Math.min(1,T/.04)*Math.sqrt(b);
     m.quaternion.copy(camera.quaternion);m.rotateZ(r0+T*1.5);
     if(T<.32&&rnd()<.5){const a2=rnd()*6.28,rr=s*.9;emit(1,{x:x+Math.cos(a2)*rr,y:y+Math.sin(a2)*rr*.7,z,vx:-Math.cos(a2)*rr*4,vy:-Math.sin(a2)*rr*3,vz:0,s:.025,s2:0,c:0xe8d8ff,c2:0x7a4aff,life:.22,drag:1});}},null,{mats:[m.material]});}
-function jvCast(t,P,o,rng,big){
-  const hv=jdgHand(t,new THREE.Vector3());const L=big?32:rng+4;
-  let aim=jdgAim(hv.x,hv.z,L,rng,t)||{ux:0,uz:-1,tg:null};
+/* v447: X (optional, Piercing Judgment's masteries): one line's own w (how far off its path it pierces), exec (finishes off non-boss foes
+   under this share of their health), len, aim() (where it fires), pos(hv,dir,out) (where its circle opens), tk (its circle's timings
+   scaled), thick (its line drawn thicker), noFace (the hero does not turn to it), onFire(foes), onExec(foe). Without X: exactly as before. */
+function jvCast(t,P,o,rng,big,X){
+  const hv=jdgHand(t,new THREE.Vector3());const L=X&&X.len||(big?32:rng+4),aimF=()=>X&&X.aim?X.aim(L):jdgAim(hv.x,hv.z,L,rng,t);
+  let aim=aimF()||{ux:0,uz:-1,tg:null};
   /* v409: Piercing Verdict's masteries (null at Mastery 0, for echoes, other casters and the Judgment: exactly the cast below) */
-  const V=!big&&typeof pvmStart==='function'?pvmStart(o,t,P/3.75):null;
+  const V=!big&&!X&&typeof pvmStart==='function'?pvmStart(o,t,P/3.75):null;
   const root=new THREE.Group();scene.add(root);const C=new THREE.Group();root.add(C);
   const pg=new THREE.PlaneGeometry(1,1),mats=[],geos=[pg];
   const addM=(c,map,noDepth)=>{const m=new THREE.MeshBasicMaterial({color:c,map:map||null,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:!noDepth,side:THREE.DoubleSide});mats.push(m);return m;};
@@ -18606,20 +18636,20 @@ function jvCast(t,P,o,rng,big){
   const gg=new THREE.PlaneGeometry(1,1);gg.rotateX(-Math.PI/2);geos.push(gg);const gpM=addM(big?0x8a5aff:0x7a4ae0,jvTex('soft')),gpool=new THREE.Mesh(gg,gpM);gpool.renderOrder=2;gpool.scale.setScalar(.001);root.add(gpool);
   /* the beam, the muzzle rings and the seared line: all drawn (unseen) from the start, so nothing compiles at the moment of the shot */
   const beam=big?jvRibbon(0xffffff,0xd0b0ff,0x8a5aff,.16):jvRibbon(0xf4ecff,0xa070ff,0x6a3ad0,.13);mats.push(beam.material);geos.push(beam.geometry);root.add(beam);beam.scale.set(1e-4,1e-4,1);
-  const bw0=big?.5:.17;
+  const bw0=(big?.5:.17)*(X&&X.thick||1);
   const muz=[];for(let i=0;i<(big?3:1);i++){const m=addM(i?0xd0b8ff:0xffffff,jvTex('ring'));const p=plane(m,7);p.scale.setScalar(.001);muz.push({p,m,d:[.14,.45,.9][i],t0:i*.025,s:(big?[.55,.85,1.15]:[.34])[i]});}
   const sg=new THREE.PlaneGeometry(1,1);sg.rotateX(-Math.PI/2);sg.translate(0,0,.5);geos.push(sg);
   const sGl=addM(big?0xb08aff:0x9a6aff,jvTex('gline')),sDk=new THREE.MeshBasicMaterial({color:0x1a0c2a,map:jvTex('gline'),transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide});mats.push(sDk);
   const searD=new THREE.Mesh(sg,sDk),searG=new THREE.Mesh(sg,sGl);searD.scale.set(.001,1,.001);searG.scale.set(.001,1,.001);searD.renderOrder=1;searG.renderOrder=2;root.add(searD,searG);
-  const FORM=big?.55:.32,HOLD=big?.85:.36,COMP=big?1.15:.56,FIRE=big?1.2:.6,EXT=big?.06:.045,D0=big?.42:.28,D1=big?.95:.62;
+  const TK=X&&X.tk||1,FORM=(big?.55:.32)*TK,HOLD=(big?.85:.36)*TK,COMP=(big?1.15:.56)*TK,FIRE=(big?1.2:.6)*TK,EXT=big?.06:.045,D0=big?.42:.28,D1=big?.95:.62;
   const dir=new THREE.Vector3(),dv=new THREE.Vector3(),toCam=new THREE.Vector3(),nrm=new THREE.Vector3(),Z=new THREE.Vector3(0,0,1),cpG=new THREE.Vector3(),cpV=new THREE.Vector3(),
     tmp=new THREE.Vector3(),tg2=new THREE.Vector3(),bA=new THREE.Vector3(),bB=new THREE.Vector3(),ax=new THREE.Vector3();
   let T=0,fired=false,ang=0,va=Math.atan2(aim.ux,aim.uz),moteA=0,penA=0,lineA=0,litOff=false;const hq=[];
-  const place=(d,out)=>{const fw=big?.75:Math.max(.32,(hv.x-t.x)*d.x+(hv.z-t.z)*d.z+.12);return out.set(t.x+d.x*fw,big?Math.max(1,hv.y+.45):Math.max(.35,hv.y),t.z+d.z*fw);};
+  const place=(d,out)=>{if(X&&X.pos)return X.pos(hv,d,out);const fw=big?.75:Math.max(.32,(hv.x-t.x)*d.x+(hv.z-t.z)*d.z+.12);return out.set(t.x+d.x*fw,big?Math.max(1,hv.y+.45):Math.max(.35,hv.y),t.z+d.z*fw);};
   addFx(root,FIRE+1.7,(f,dt)=>{T+=dt;jdgHand(t,hv);
     /* keep tracking the best line while charging; the circle turns to it smoothly, the shot uses the line itself */
-    if(!fired&&rnd()<dt*6){const a2=jdgAim(hv.x,hv.z,L,rng,t);if(a2)aim=a2;}
-    dir.set(aim.ux,0,aim.uz);if(T<FIRE+.35){t.faceA=Math.atan2(aim.ux,aim.uz);t.faceLock=.1;}
+    if(!fired&&rnd()<dt*6){const a2=aimF();if(a2)aim=a2;}
+    dir.set(aim.ux,0,aim.uz);if(T<FIRE+.35&&!(X&&X.noFace)){t.faceA=Math.atan2(aim.ux,aim.uz);t.faceLock=.1;}
     place(dir,cpG);
     if(!fired){va=lerpAng(va,Math.atan2(aim.ux,aim.uz),Math.min(1,dt*12));dv.set(Math.sin(va),0,Math.cos(va));place(dv,cpV);
       C.position.copy(cpV);toCam.copy(camera.position).sub(cpV).normalize();nrm.copy(dv).addScaledVector(toCam,big?1.25:1.4).normalize();C.quaternion.setFromUnitVectors(Z,nrm);}
@@ -18655,16 +18685,18 @@ function jvCast(t,P,o,rng,big){
       jvLight(cpV.x,cpV.y,cpV.z,0xa47cff,(big?.42:.2)*(1-.4*k),big?4.5:2.8);if(V)V.still(k,cpV,[star,streak]);}
     else{
       if(!fired){fired=true;LY.forEach(l=>l.p.visible=false);rings.forEach(r=>r.r.visible=false);imp.visible=back.visible=glow.visible=false;
-        const a2=jdgAim(hv.x,hv.z,L,rng,t);if(a2)aim=a2;dir.set(aim.ux,0,aim.uz);
+        const a2=aimF();if(a2)aim=a2;dir.set(aim.ux,0,aim.uz);
         /* the line itself is exactly the old one: from the circle point of this frame's aim, along the final aim */
         const hy=cpG.y,ty=aim.tg&&!aim.tg.dead?tpos(aim.tg).y:.3,td=aim.tg?Math.max(.5,Math.hypot(aim.tg.x-cpG.x,aim.tg.z-cpG.z)):3;const slope=Math.max((ty-hy)/td,(.12-hy)/L);
         bB.set(cpG.x+dir.x*L,hy+slope*L,cpG.z+dir.z*L);bA.copy(cpV);ax.subVectors(bB,bA).normalize();
         searD.position.set(cpG.x,.012,cpG.z);searG.position.set(cpG.x,.016,cpG.z);searD.rotation.y=searG.rotation.y=Math.atan2(dir.x,dir.z);searD.scale.set(big?.34:.1,1,L);searG.scale.set(big?.3:.09,1,L);
         camShake=Math.max(camShake,big?.22:.07);if(big){flashA=Math.max(flashA,.07);flashCol='#efe4ff';flashDecay=3.5;}
-        for(const en of enemies){if(en.dead)continue;const px=en.x-cpG.x,pz=en.z-cpG.z,pr=px*dir.x+pz*dir.z;if(pr<-.2||pr>L)continue;const cx=px-dir.x*pr,cz=pz-dir.z*pr,w=(big?.48:.34)+(en.boss?.25:0);if(cx*cx+cz*cz>w*w)continue;
-          const by=hy+slope*Math.max(0,pr);hurt(en,P,'magic',o);if(V)V.hit(en,by,pr,L);
-          if(big&&!en.dead&&!en.boss&&en.hp<en.maxHp*.15){en.hp=0;kill(en,o&&o.src);}
+        const W0=X&&X.w!=null?X.w:(big?.48:.34),EX=X&&X.exec!=null?X.exec:(big?.15:0),HIT=[];
+        for(const en of enemies){if(en.dead)continue;const px=en.x-cpG.x,pz=en.z-cpG.z,pr=px*dir.x+pz*dir.z;if(pr<-.2||pr>L)continue;const cx=px-dir.x*pr,cz=pz-dir.z*pr,w=W0+(en.boss?.25:0);if(cx*cx+cz*cz>w*w)continue;
+          const by=hy+slope*Math.max(0,pr);hurt(en,P,'magic',o);if(V)V.hit(en,by,pr,L);HIT.push(en);
+          if(EX>0&&!en.dead&&!en.boss&&en.hp<en.maxHp*EX){en.hp=0;kill(en,o&&o.src);if(X&&X.onExec)X.onExec(en);}
           hq.push({en,by,at:FIRE+EXT*clamp(pr/L,0,1)});}
+        if(X&&X.onFire)X.onFire(HIT,cpG.clone(),dir.clone());
         if(V){V.fire(cpG.clone(),dir.clone(),L,hy,slope,[star,streak],bA.clone());if(V.ownBeam)beam.visible=false;}}
       const tb=T-FIRE,e=1-Math.pow(1-clamp(tb/EXT,0,1),2),u=beam.material.uniforms;
       /* the beam: shoots out with a hot tip, thins to a hairline, then dissolves from the hand outward */
@@ -31801,6 +31833,128 @@ addEventListener('resize',()=>{if(PVC.el&&!PVC.el.hidden)pvcPlace(PVC.anchor);})
   '@media (max-width:899px){#pvc{padding:8px}.pvc-ttl b{font-size:14px}}';
   document.head.appendChild(st);}
 
+/* ================= Piercing Judgment's masteries (v447), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: the hero raises one hand, a geometric circle forms at the palm, spins up and compresses to a point, and one thin white-violet
+   line pierces everything across the whole battlefield (700%), finishing off non-boss foes left under 15%. Simon (v447): "piercing
+   judgment really cannot lose its identity so masteries should make it more powerful but not by adding crazy effects but picture it like
+   fern from frieren where she fires alot of em and just more powerful ones". So every mastery is more of the same spell, or the same spell
+   stronger: each extra line is the Judgment's own circle (the smaller one, as in the Verdict) compressing to a point and firing the same
+   white-violet line across the whole field; no burns, marks or pillars (the v371 set had them).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Follow-Up | what if it fired again? | the circle after the shot | more lines |
+   | 2 | Honed Line | what if every line were sharper? | every line | stronger lines |
+   | 3 | Volley | what if more circles opened? | the hand | more lines |
+   | 4 | Executioner | what if it finished more? | the execution | stronger lines |
+   | 5 | Barrage | what if the air filled with circles? | the whole cast | signature payoff: Fern's volley |
+   - M1 Follow-Up: the circle snaps back to a point at the palm and fires a second line through the foes the first one missed (the best line,
+     counting a foe already pierced for a third): JDM.follow.
+   - M2 Honed Line: every line (the main one and the others) deals JDM.hone more, pierces JDM.honeW tiles further off its path and is drawn
+     JDM.honeK times as thick.
+   - M3 Volley: three more circles open in a fan behind the hand, one after another, each firing its own line at the best line through the
+     foes the lines before have pierced least: JDM.volley each.
+   - M4 Executioner: every line finishes off non-boss foes left under JDM.exec of their health (the Judgment's own line: 15% before).
+   - M5 Barrage: then JDM.barrageN circles open in an arc in the air behind the hero (all within half a second) and fire in turn over
+     JDM.barrageT s, each a line at the best line through the foes still standing: JDM.barrage each.
+   Every line of a mastered cast finishes off non-boss foes under the Judgment's threshold (15%, 25% from Mastery 4), since they are all the
+   Judgment's line. Percentages are of the scroll's power (the main line is 700%). Every mastered Piercing Judgment cast runs jdmCast (a
+   castJudgment wrapper, after jvCast): the same cast, given a line's options (jvCast X), and the extra lines are jvCast's smaller line
+   with the Judgment's length and options. Power on the Epic ladder (tests/sm-ladder.js, 6 runs) with the hidden factors below:
+   1.09 / 1.25 / 1.36 / 1.52 / 1.74 against 1.094 / 1.234 / 1.35 / 1.522 / 1.742 (Honed Line's width counts for a lot where the foes
+   stand close: a wider line takes whole extra foes, so its own damage bonus is 5%). JDM.dbg (an array) logs the events for the tests. */
+const JDM={dbg:null,follow:.5,hone:.05,honeW:.08,honeK:1.25,volley:.35,volleyN:3,exec:.25,exec0:.15,barrage:.25,barrageN:10,barrageT:1.5,w:.48,ws:.34};
+const jdmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='judgment'&&c.L?c:null;};
+const jdmLog=d=>{if(JDM.dbg){d.t=time;JDM.dbg.push(d);}};
+SM_D.judgment=[
+  {n:'Follow-Up',d:'The circle snaps back to a point and fires a second line through the foes the first one missed: {50}%.'},
+  {n:'Honed Line',d:'Every line strikes {5}% harder, pierces a little wider and burns brighter.'},
+  {n:'Volley',d:'Three more circles open in a fan behind the hand and fire one after another down three more lines: {35}% each.'},
+  {n:'Executioner',d:'Its lines finish off foes left under 25% of their health (was 15%; not bosses).'},
+  {n:'Barrage',d:'Circles fill the air behind the hero and fire ten more lines over 1.5s, each at the best line through the foes still standing: {25}% each.'}];
+SMF.judgment={m:7};
+SMA.judgment=[1,1,1,1,1];
+SMG.judgment=[1.059,.936,.944,1.099,1.013];
+/* the best line from (ox,oz) through the foes the cast's lines have pierced least (a foe pierced n times counts 1/(1+2n)); aim points are
+   the foes in reach, as for the Judgment's own line */
+function jdmAim(ox,oz,L,w,t,rng,S){const R=(rng+1)*(rng+1),al=enemies.filter(e=>!e.dead&&!e.fake&&(e.x-t.x)**2+(e.z-t.z)**2<R).sort((a,b)=>b.dist-a.dist).slice(0,16);let best=null,bs=0;
+  for(const c of al){const dx=c.x-ox,dz=c.z-oz,dl=Math.hypot(dx,dz)||1,ux=dx/dl,uz=dz/dl;let s=0;for(const e of enemies){if(e.dead||e.fake)continue;const px=e.x-ox,pz=e.z-oz,pr=px*ux+pz*uz;if(pr<0||pr>L)continue;
+      const cx=px-ux*pr,cz=pz-uz*pr;if(cx*cx+cz*cz<w*w)s+=1/(1+2*(S.pierced.get(e)||0));}
+    if(s>bs+1e-9){bs=s;best={ux,uz,tg:c};}}return best;}
+function jdmCast(t,P,o,rng,c){const L=c.L,a=c.a,S={pierced:new Map(),dir:null,n:0};const D=c.P,hone=L>=2?1+JDM.hone*a[1]:1,thick=L>=2?JDM.honeK:1,wB=JDM.w+(L>=2?JDM.honeW:0),wS=JDM.ws+(L>=2?JDM.honeW:0),ex=L>=4?JDM.exec:JDM.exec0;
+  jdmLog({ev:'cast',L});
+  const pierce=(H,kind,cp,dir,w)=>{for(const e of H)S.pierced.set(e,(S.pierced.get(e)||0)+1);S.n++;jdmLog({ev:'line',kind,L:H.slice(),n:S.n,cp,dir,w});};
+  const onExec=e=>jdmLog({ev:'exec',e});
+  /* the Judgment's own line, given its options */
+  JDM_OLD(t,P*hone,o,rng,true,{w:wB,exec:ex,thick,onExec,onFire:(H,cp,dir)=>{S.dir=dir;S.cp=cp;pierce(H,'main',cp,dir,wB);}});
+  /* one more line: the Judgment's smaller circle, at pos (null: before the hero, as the Judgment's own), compressing faster (tk) */
+  const line=(kind,pct,pos,tk)=>{if(state!=='playing'||!enemies.some(e=>!e.dead&&!e.fake))return;const oo=smO(o);let O=null;
+    JDM_OLD(t,D*pct*hone,oo,rng,false,{len:32,w:wS,exec:ex,thick,tk,noFace:true,onExec,
+      pos:pos?(hv,d,out)=>out.copy(pos):null,
+      aim:(Ln)=>{const hv=jdgHand(t,new THREE.Vector3()),ox=pos?pos.x:hv.x,oz=pos?pos.z:hv.z;return jdmAim(ox,oz,Ln,wS,t,rng,S);},
+      onFire:(H,cp,dir)=>pierce(H,kind,cp,dir,wS)});};
+  const fan=()=>{const f=S.dir||new THREE.Vector3(Math.sin(t.faceA||0),0,Math.cos(t.faceA||0)),sx=-f.z,sz=f.x,hv=jdgHand(t,new THREE.Vector3());return{f,sx,sz,hv};};
+  /* M1: the circle snaps back to a point and fires again */
+  if(L>=1)mxLater(1.25,()=>line('follow',JDM.follow*a[0],null,.7));
+  /* M3: three circles in a fan behind the hand */
+  if(L>=3)for(let i=0;i<JDM.volleyN;i++)mxLater(1.35+i*.13,()=>{const F=fan(),s=i-1,p=new THREE.Vector3(F.hv.x-F.f.x*.3+F.sx*s*.55,Math.max(.6,F.hv.y)+.4+.14*(1-Math.abs(s)),F.hv.z-F.f.z*.3+F.sz*s*.55);line('volley',JDM.volley*a[2],p,.8);});
+  /* M5: an arc of circles in the air behind the hero, one after another */
+  /* (they all open within half a second and hang there charging, each firing in its turn: the later ones charge longer) */
+  if(L>=5){const N=JDM.barrageN,dt=JDM.barrageT/N;for(let i=0;i<N;i++)mxLater(2.05+i*.05,()=>{const F=fan(),k=Math.floor(i/2),u=(i%2?1:-1)*(k+.5)/(N/2),an=u*1.5,r=1.2+.35*(k%2),
+      bx=-F.f.x*Math.cos(an)+F.sx*Math.sin(an),bz=-F.f.z*Math.cos(an)+F.sz*Math.sin(an),p=new THREE.Vector3(t.x+bx*r,(t.topY||1)+.6+.5*(k%2)+.15*Math.abs(u),t.z+bz*r);line('barrage',JDM.barrage*a[4],p,(.36+(dt-.05)*i)/.6);});}}
+const JDM_OLD=castJudgment;
+castJudgment=function(t,P,o,rng,big,X){const c=big&&!X&&t?jdmC(o):null;return c?jdmCast(t,P,o,rng,c):JDM_OLD.apply(this,arguments);};
+/* ================= Dimensional Slash's masteries (v448), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: the hero coats the blade in dark magic; one draw, one cut that runs across the whole battlefield; a heartbeat in which the world
+   stands still; then space splits along the line (1200% to every foe on it, shields cut away) and the tear stays open as a rift that slows
+   and shreds (45% every 0.25s) until it seals. Simon (v448): "its important you dont change the heart of the scroll, no aditional slashes,
+   maybe just mor VFX by enhancing how it looks while making it more powerful without changing how it looks so it still 'feels' like the
+   same spell". So there is still one cut: each mastery makes one part the spell already has more lethal, and draws that same part a little
+   stronger (a whiter edge, a deeper rift, a longer stillness, brighter slice marks, a wider tear) instead of adding anything new; no
+   second cut, bleeds, marks or singularity (the v371 set had them).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Keen Edge | what if the edge were keener? | the blade and the cut | stronger cut |
+   | 2 | Deeper Rift | what if the tear went deeper? | the rift | stronger rift |
+   | 3 | The Still Heartbeat | what if the stillness held them? | the heartbeat before the split | stronger split |
+   | 4 | Severance | what if the split finished the job? | the split | stronger split |
+   | 5 | Worldsplitter | what if the whole world split? | the split and the seal | signature payoff |
+   - M1 Keen Edge: the cut strikes foes up to DSM.w tiles off the line (0.5 before); the blade's edge burns white, its glow brighter, and the
+     line is drawn a quarter bolder.
+   - M2 Deeper Rift: the rift stays open DSM.rift s (6 before), shreds DSM.tdmg every 0.25s (45% before) and slows DSM.slow (45% before);
+     the tear opens wider (yawn), darker smoke seeps out of it faster, and twice the shards of broken space drift out.
+   - M3 The Still Heartbeat: the stillness lasts DSM.still s longer, the world drained of colour while it does, and the foes on the line at
+     the draw are held in it until space splits; the split strikes DSM.stillK harder.
+   - M4 Severance: a foe the split leaves under DSM.sev of its health is cut down outright (not bosses); its slice mark flares bigger and
+     brighter.
+   - M5 Worldsplitter: the split strikes DSM.wsK harder, the tear yawns open far wider along the whole line, and when the rift seals it snaps
+     shut on every foe inside it: DSM.seal, with a crack of white light running down the line.
+   Percentages are of the scroll's power. Every mastered Dimensional Slash cast runs castDSlash with its XO (dsmOpts): the same cut, with this
+   cast's numbers and looks; Mastery 0, echoes and other casters cut exactly as before. The rift is most of the cast's damage where the
+   foes stay in it, so Deeper Rift is 7.5s and 50% a tick (8s and 70% took Mastery 2 to 1.75 times Mastery 0, against 1.23); Severance
+   counts for little on the ladder (its foes do not drop under 20%), so its factor carries it. On the ladder (4 runs) with the factors
+   below: 1.09 / 1.28 / 1.38 / 1.53 / 1.72 against 1.094 / 1.234 / 1.35 / 1.522 / 1.742. DSM.dbg (an array) logs the events. */
+const DSM={dbg:null,w:.75,rift:7.5,tdmg:.5,slow:.6,still:.25,stillK:.25,sev:.2,wsK:.5,seal:3};
+const dsmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='dslash'&&c.L?c:null;};
+const dsmLog=d=>{if(DSM.dbg){d.t=time;DSM.dbg.push(d);}};
+SM_D.dslash=[
+  {n:'Keen Edge',d:'The edge burns whiter and the cut runs wider: it strikes foes up to 0.75 tiles off the line (0.5 before).'},
+  {n:'Deeper Rift',d:'The tear opens wider and darker and stays open 7.5s (6 before): it shreds for {50}% a tick (45% before) and slows 60% (45% before).'},
+  {n:'The Still Heartbeat',d:'The world stands still a beat longer, drained of colour: the foes on the line are held until space splits, and the split strikes them {25}% harder.'},
+  {n:'Severance',d:'Foes the split leaves under 20% of their health are cut down outright (not bosses).'},
+  {n:'Worldsplitter',d:'The split strikes {50}% harder and the tear yawns open along the whole line; when it seals it snaps shut on everything inside it: {300}%.'}];
+SMF.dslash={m:1};
+SMA.dslash=[1,1,1,1,1];
+SMG.dslash=[1.065,.915,.942,1.111,.989];
+/* this cast's numbers and looks (castDSlash's X) */
+function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
+  if(L>=1){X.W=DSM.w;X.keen=1;X.cutK=1.25;X.glowK=1.2;}
+  if(L>=2){X.RIFT=DSM.rift;X.TDMG=DSL.TDMG+(DSM.tdmg-DSL.TDMG)*a[1];X.SLOW=DSM.slow;X.shards=32;X.yawn=.35;X.seep=1.8;}
+  if(L>=3){X.still=DSM.still;X.T_SPLIT=DSL.T_SPLIT+DSM.still;splitK*=1+DSM.stillK*a[2];}
+  if(L>=4)X.sev=DSM.sev;
+  if(L>=5){splitK*=1+DSM.wsK*a[4];X.seal=DSM.seal*a[4];X.yawn=.8;}
+  X.splitK=splitK;X.LIFE=DSL.LIFE+((X.RIFT||DSL.RIFT)-DSL.RIFT)+((X.T_SPLIT||DSL.T_SPLIT)-DSL.T_SPLIT);
+  X.onHold=H=>dsmLog({ev:'hold',L:H.slice()});X.onSplit=(H,ang,len)=>dsmLog({ev:'split',L:H.slice(),ang,len,W:X.W||DSL.W});X.onSever=e=>dsmLog({ev:'sever',e});X.onSeal=H=>dsmLog({ev:'seal',L:H.slice()});
+  dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
+const DSM_OLD=castDSlash;
+castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.

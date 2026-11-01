@@ -126,11 +126,14 @@ const S = {
     3: { spd: 1.7, len: 10.2, note: 'Fast foes, so they go round the 8-tile loop more than once: each lap hurts more.' },
     4: { towers: [{ t: 'archer', at: -5 }, { t: 'archer', at: -1, side: -1 }], note: 'Archer towers shoot the foes the fold sent back: they take more from everything for 3s.' },
     5: { len: null, cap: 11.8, probe: "LPM.dbg.some(d=>d.ev==='snap')", note: 'The fold holds 10 seconds; when it lets go the looped road snaps back.' } },
+  /* v447 (Fern's volley): foes further back give the extra lines something the first one missed */
   judgment: {
-    2: { also: [{ k: 'lightbolt', at: 1.5 }], note: 'A Light Bolt follows: light scrolls hit the Condemned foes harder.' },
-    3: { pack: swap(5, TOUGH({ tag: 'Strongest' })), note: 'The ram is the strongest foe in reach: the second line goes for it.' },
-    4: { pack: PACK.map((p, j) => j < 3 ? Object.assign({}, p, { hp: 40, frac: .2, tag: 'Low HP', tc: TAG.hp1 }) : p), note: 'Three foes are under a quarter of their health: the line hits them harder and they fall.' },
-    5: { pack: swap(2, TOUGH({ tag: 'Strongest' })), note: 'A pillar of light falls on the strongest foe it pierced, the ram.' } },
+    base: { dbg: 'JDM', trail: TRAIL },
+    1: { probe: "JDM.dbg.some(d=>d.ev==='line'&&d.kind==='follow'&&d.L.length>0)", note: 'The circle snaps back to a point and fires a second line through the foes the first one missed.' },
+    2: { note: 'Every line strikes harder, pierces wider and burns brighter.' },
+    3: { probe: "JDM.dbg.filter(d=>d.ev==='line'&&d.kind==='volley'&&d.L.length>0).length>=2", note: 'Three more circles open in a fan behind the hand and fire one after another.' },
+    4: { pack: PACK.map((p, j) => j < 3 ? Object.assign({}, p, { hp: 40, frac: .4, tag: 'Worn down', tc: TAG.hp1 }) : p), probe: "JDM.dbg.some(d=>d.ev==='exec')", note: 'Three foes are worn down: the line leaves them under a quarter of their health, and finishes them off.' },
+    5: { probe: "JDM.dbg.filter(d=>d.ev==='line'&&d.kind==='barrage'&&d.L.length>0).length>=6", note: 'Ten circles fill the air behind the hero and fire in turn: fifteen lines in one cast.' } },
   cataclysm: {
     base: { dbg: 'CCM' },
     1: { spd: .45, probe: "CCM.dbg.some(d=>d.ev==='fence')", note: 'Seven standing stones rise in a ring at the rune\u2019s edge: the foes walking through are fenced in until the sky falls.' },
@@ -214,8 +217,14 @@ const S = {
     3: { pack: PACK.map((p, j) => j % 2 ? Object.assign({}, p, { hp: 40, frac: .32, tag: 'Low HP', tc: TAG.hp1 }) : p), probe: "GHM.dbg.some(d=>d.ev==='creep')", note: 'Low-health foes die withering, and burst into new clouds of Wither.' },
     4: { pack: ONES(3), also: [{ k: 'darkpulse', at: 6.4 }], cap: 9.5, probe: "GHM.dbg.some(d=>d.ev==='spend')", note: 'The souls stay with the hero; the next scroll (a Dark Pulse) takes them and is stronger.' },
     5: { pack: swap(2, TOUGH({ tag: 'Strongest' })), probe: "GHM.dbg.some(d=>d.ev==='toll')", note: 'A skeletal hand rises under the strongest foe, the ram, and tears its soul out.' } },
+  /* v448 (the same cut, deeper): one cut at every mastery; the clips run to the seal */
   dslash: {
-    4: { pack: PACK.map((p, j) => j < 3 ? Object.assign({}, p, { hp: 40, frac: .25, tag: 'Low HP', tc: TAG.hp1 }) : p), note: 'Three foes are under 30% of their health: the cut hits them harder.' } },
+    base: { dbg: 'DSM', cap: 10.5 },
+    1: { pack: PACK.concat([{ t: 'soldier', at: .2, off: .66 }, { t: 'peasant', at: -.5, off: -.66 }]), probe: "DSM.dbg.some(d=>d.ev==='split'&&d.L.length>=7)", note: 'The edge burns white and the cut runs wider: the foes beside the road are struck too.' },
+    2: { note: 'The tear opens wider and darker, stays open longer and shreds harder.' },
+    3: { probe: "DSM.dbg.some(d=>d.ev==='hold'&&d.L.length>0)", note: 'The world stands still a beat longer: the foes on the line are held until space splits, and it splits harder.' },
+    4: { pack: PACK.map((p, j) => j < 3 ? Object.assign({}, p, { hp: 40, frac: .55, tag: 'Worn down', tc: TAG.hp1 }) : p), probe: "DSM.dbg.some(d=>d.ev==='sever')", note: 'Three foes are worn down: the split leaves them under 20% of their health, and cuts them down.' },
+    5: { cap: 12, probe: "DSM.dbg.some(d=>d.ev==='seal'&&d.L.length>0)", note: 'The tear yawns open along the whole line, and when it seals it snaps shut on everything inside it.' } },
   bloom: {
     base: { dbg: 'HYB' },
     1: { pack: PACK.slice(0, 4).concat([{ t: 'soldier', at: 2.9, off: .1, spd: .45 }, { t: 'peasant', at: 3.3, off: -.12, spd: .45 }, { t: 'soldier', at: -3.0, off: .05, spd: .45 }, { t: 'knight', at: -3.4, off: -.1, spd: .45 }]),

@@ -22,7 +22,7 @@ function trial(fn,big){go();const L=crowd(false),t=caster(),o=O(big?'judgment':'
 function walk(fn,big,d0,n){go();const L=crowd(true).slice(0,n),t=caster(),o=O(big?'judgment':'verdict');o.src=t;enemies.filter(e=>!L.includes(e)).forEach(e=>removeEnemy(e));enemies=enemies.filter(e=>L.includes(e));
   L.forEach((e,i)=>{e.dist=d0+i*.18;moveEnemy(e,0);});fn(t,P*(big?7:3.75),o,3,big);for(let i=0;i<60;i++){heroU&&(heroU.cd=1e9);update(.17);updFx(.17);}return Math.round(L.reduce((s,e)=>s+(e.maxHp-Math.max(0,e.hp)),0));}
 try{
-  ok('the new cast is in place, the old one kept for comparison',castJudgment===jvCast&&asBeam===jvAsBeam&&JV.old&&typeof JV.old.castJudgment==='function'&&JV.old.castJudgment!==jvCast);
+  ok('the new cast is in place (from v447 behind the Judgment masteries\' wrapper), the old one kept for comparison',(castJudgment===jvCast||typeof JDM_OLD!=='undefined'&&JDM_OLD===jvCast)&&asBeam===jvAsBeam&&JV.old&&typeof JV.old.castJudgment==='function'&&JV.old.castJudgment!==jvCast);
   for(const big of [true,false]){const nm=big?'Judgment':'Verdict';
     const A=trial(JV.old.castJudgment,big),B=trial(jvCast,big);
     ok(nm+': nothing is hit before the shot',A.pre===0&&B.pre===0,A.pre+' / '+B.pre);
