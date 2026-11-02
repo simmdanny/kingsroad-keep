@@ -30,7 +30,7 @@ try{
     if(L){L.g.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(L.g),c=box.getCenter(new THREE.Vector3());const rc=new THREE.Raycaster(new THREE.Vector3(c.x,5,c.z),new THREE.Vector3(0,-1,0));ok('a lore prop can still be clicked',rc.intersectObjects(LORE.map(l=>l.g),true).length>0);}
     else ok('a lore prop can still be clicked (none merged on this board)',true);
     const k=Object.keys(TREEM)[0];ok('board trees keep their own meshes (scorch and clearing work per tree)',!k||TREEM[k].children.length>=2&&TREEM[k].parent===TERRAIN,k);
-    ok('the outer forest is a few meshes now',PF.stat.trees&&PF.stat.trees.batches<=12&&PF.stat.trees.meshes>100,JSON.stringify(PF.stat.trees));}
+    {const ot=TERRAIN.children.filter(o=>o.userData.ot);ok('the outer forest is a few meshes now (or, since v449, hidden for the woods)',PF.stat.trees&&PF.stat.trees.batches<=12&&PF.stat.trees.meshes>100||ot.length>0&&ot.every(o=>!o.visible),JSON.stringify(PF.stat.trees));}}
   /* the snow caps keep their place (they read each mesh's own height) */
   {board('snow');batchAll();let v=0;TERRAIN.traverse(o=>{if(o.userData.pfBatch&&o.material.userData&&o.material.userData.pfLoc){if(o.geometry.attributes.pfLoc)v++;}});ok('snow caps on merged trees read each tree\'s own height (pfLoc)',v>0,v);}
   /* the Infinite Void still dissolves the merged scenery */

@@ -14173,6 +14173,8 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'The lands round the board',d:'2 Nov',v:'v449',li:[
+    'Every land is a place now, not an empty plain round the board: woods and glades, meadows of wild flowers and long grass, bushes, stones, fallen logs, snowdrifts, ice spires, heather and bracken, each land its own. The ground darkens under the trees and the roads leaving the gates go on into the land as worn tracks. Plants sway in the wind.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
     'Dimensional Slash (Legendary) has five new masteries, for now in developer mode. Still one draw and one cut: each mastery makes a part the spell already has more lethal and draws it a little stronger.',
     'Keen Edge: the blade\u2019s edge burns white and the cut strikes foes up to 0.75 tiles off the line (0.5 before). Deeper Rift: the tear opens wider and darker, stays open 7.5s (6 before), shreds for 50% a tick (45% before) and slows 60%.',
@@ -31953,6 +31955,206 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
   dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
+/* ================= Arena surroundings (v449) =================
+   Simon: "visually improve and perfect all arena backgrounds when youre playing, not the tiled arena but rather the rest". Since v427 the land
+   round the board sits at the board's height and wears the tiles' colours; it was still mostly an empty plain with a few scattered props.
+   Now every land dresses the band round its board (out to ~17 tiles on the sides, further above) as a place:
+   - one density map per board (arsField: fbm noise on the board's seed) says where the woods, glades, meadows, bare ground and stones are;
+     it is baked into a small texture the ground's shader reads (arsGround), so the ground darkens under the trees, brightens in the meadows
+     and shows dirt and stone where the props stand on it, and the roads leaving the gates go on into the land as worn tracks;
+   - a kit of props per land (ARS_KITS), each kind one InstancedMesh (low-poly, vertex-coloured, flat-shaded like the rest of the game;
+     every instance its own tint, size and turn), scattered by the same map, kept off the board's edge, the gate tracks, the tundra's sea
+     and the props a land already has (arsOcc);
+   - plants sway in the wind (a vertex-shader bend that grows with height, phase from the instance's position; uAsT ticks in anim).
+   Each kind is one draw call (two with its shadow), so the whole dressing costs a few dozen draws (see v446). ARS.dbg holds counts. */
+const ARS={on:true,T:{value:0},meshes:[],stat:{},tex:null};
+/* ---- noise ---- */
+function arsHash(x,z,s){const h=Math.sin(x*127.1+z*311.7+s*74.7)*43758.5453;return h-Math.floor(h);}
+function arsNoise(x,z,s){const xi=Math.floor(x),zi=Math.floor(z),xf=x-xi,zf=z-zi,u=xf*xf*(3-2*xf),v=zf*zf*(3-2*zf);
+  const a=arsHash(xi,zi,s),b=arsHash(xi+1,zi,s),c=arsHash(xi,zi+1,s),d=arsHash(xi+1,zi+1,s);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;}
+function arsFbm(x,z,s,o){let t=0,a=.5,f=1,n=0;for(let i=0;i<(o||4);i++){t+=a*arsNoise(x*f,z*f,s+i*13);n+=a;a*=.5;f*=2.03;}return t/n;}
+const arsSS=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
+/* distance from the board's rectangle (0 on it) */
+function arsOut(x,z){const hx=W/2,hz=H/2,dx=Math.max(0,Math.abs(x-(-OX+hx-.5))-hx),dz=Math.max(0,Math.abs(z-(-OZ+hz-.5))-hz);return Math.hypot(dx,dz);}
+/* the land's fields at a point: wood, meadow, bare, stone (0..1) and the gate tracks */
+function arsField(x,z){const s=ARS.seed,K=ARS.kit,o=arsOut(x,z);
+  const w0=arsFbm(x*.075+3,z*.075,s,4),m0=arsFbm(x*.11+40,z*.11,s+5,3),r0=arsFbm(x*.16,z*.16+70,s+9,3),b0=arsFbm(x*.2+11,z*.2,s+3,3);
+  const near=arsSS(.4,1.3,o);/* nothing tall right at the board's edge */
+  const g0=arsFbm(x*.05+90,z*.05,s+17,3),frame=arsSS(.8,3.5,o)*(.5+.5*arsSS(.3,.62,g0))*(K.frameK==null?.95:K.frameK);
+  let wood=Math.max(arsSS(K.wood[0],K.wood[1],w0),frame)*near,meadow=arsSS(.5,.72,m0)*(1-wood*.8),stone=arsSS(K.stone[0],K.stone[1],r0),bare=arsSS(.62,.8,b0)*(1-wood);
+  const tr=arsTrack(x,z);wood*=1-tr;meadow*=1-tr*.7;bare=Math.max(bare,tr);
+  const grove=arsSS(.38,.62,arsFbm(x*.19+23,z*.19,s+31,3)),patch=arsSS(.45,.66,arsFbm(x*.32+61,z*.32,s+41,3));
+  const fringe=arsSS(.4,.8,o)*(1-arsSS(1.8,3,o))*arsSS(.3,.55,grove)*(1-tr);
+  return{o,wood,meadow,stone,bare,track:tr,grove,patch,fringe};}
+/* worn tracks from each gate out into the land, wandering a little */
+function arsTrack(x,z){let best=0;for(const T of ARS.tracks){const dx=x-T.x,dz=z-T.z,along=dx*T.ux+dz*T.uz;if(along<0||along>T.len)continue;
+    const off=Math.abs(dx*-T.uz+dz*T.ux-Math.sin(along*.22+T.ph)*1.1*arsSS(1,6,along));best=Math.max(best,1-arsSS(.35,.95,off));}return best;}
+function arsTracks(){ARS.tracks=[];for(const g of MAP.gates||[]){const p=g.side==='top'?tw(g.c,-1):g.side==='left'?tw(-1,g.r):tw(W,g.r);const u=g.side==='top'?[0,-1]:g.side==='left'?[-1,0]:[1,0];
+    ARS.tracks.push({x:p.x,z:p.z,ux:u[0],uz:u[1],len:30,ph:arsHash(p.x,p.z,ARS.seed)*6});}}
+/* where props may not stand: the board and a margin, the lead roads, the tundra's sea, and whatever the land already put there */
+function arsOcc(){const G=new Map(),cs=.5,key=(x,z)=>Math.round(x/cs)+','+Math.round(z/cs),mark=(x,z,r)=>{for(let a=-r;a<=r;a+=cs)for(let b=-r;b<=r;b+=cs)if(a*a+b*b<=r*r)G.set(key(x+a,z+b),1);};
+  const T=TERRAIN;if(T){T.updateMatrixWorld(true);const v=new THREE.Vector3(),sph=new THREE.Sphere();
+    for(const o of T.children){if(o===TILES||!o.visible||o.userData.gl||o.userData.as||o.userData.pfBatch&&o.userData.glOuter)continue;
+      if(o.isInstancedMesh){const m=new THREE.Matrix4();if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();const r=o.geometry.boundingSphere.radius;for(let i=0;i<o.count;i++){o.getMatrixAt(i,m);v.setFromMatrixPosition(m);const s=Math.cbrt(Math.abs(m.determinant()))||1;if(arsOut(v.x,v.z)>.3&&r*s<6)mark(v.x,v.z,Math.min(2.5,r*s*.8));}continue;}
+      const b=new THREE.Box3().setFromObject(o);if(b.isEmpty())continue;b.getBoundingSphere(sph);if(sph.radius>9)continue;if(arsOut(sph.center.x,sph.center.z)<.3)continue;mark(sph.center.x,sph.center.z,Math.min(3,sph.radius*.85));}}
+  ARS.occ=G;ARS.occKey=key;}
+const arsFree=(x,z)=>!ARS.occ.has(ARS.occKey(x,z))&&!(ARS.sea&&x<ARS.sea(z)+.8);
+
+/* ---- geometry: little low-poly pieces with vertex colours, merged into one geometry per kind ---- */
+function arsPiece(geo,col,x,y,z,sx,sy,sz,ry,rx,rz,jit){let g=geo.index?geo.toNonIndexed():geo.clone();if(jit)g=arsJit(g,jit);
+  const m=new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(rx||0,ry||0,rz||0)),new THREE.Vector3(sx,sy==null?sx:sy,sz==null?sx:sz));g.applyMatrix4(m);
+  const n=g.attributes.position.count,C=new Float32Array(n*3),c=new THREE.Color(),p=g.attributes.position;
+  for(let i=0;i<n;i++){if(typeof col==='function')col(c,p.getX(i),p.getY(i),p.getZ(i));else c.set(col);C[i*3]=c.r;C[i*3+1]=c.g;C[i*3+2]=c.b;}
+  g.setAttribute('color',new THREE.BufferAttribute(C,3));if(g.attributes.uv)g.deleteAttribute('uv');return g;}
+/* jitter a non-indexed geometry's corners consistently (shared corners move together) */
+function arsJit(g,a){const p=g.attributes.position,M=new Map();for(let i=0;i<p.count;i++){const k=p.getX(i).toFixed(3)+','+p.getY(i).toFixed(3)+','+p.getZ(i).toFixed(3);let d=M.get(k);if(!d){d=[(Math.random()-.5)*a,(Math.random()-.5)*a,(Math.random()-.5)*a];M.set(k,d);}p.setXYZ(i,p.getX(i)+d[0],p.getY(i)+d[1],p.getZ(i)+d[2]);}return g;}
+function arsMerge(parts){let n=0;for(const g of parts)n+=g.attributes.position.count;const P=new Float32Array(n*3),C=new Float32Array(n*3);let o=0;
+  for(const g of parts){P.set(g.attributes.position.array,o*3);C.set(g.attributes.color.array,o*3);o+=g.attributes.position.count;g.dispose();}
+  const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.BufferAttribute(P,3));G.setAttribute('color',new THREE.BufferAttribute(C,3));G.computeVertexNormals();G.computeBoundingSphere();return G;}
+const arsMix=(a,b,t)=>new THREE.Color(a).lerp(new THREE.Color(b),t).getHex();
+/* shading by height: darker at the bottom of a canopy, lighter on top */
+const arsGrad=(lo,hi,y0,y1)=>(c,x,y)=>{c.set(lo).lerp(new THREE.Color(hi),arsSS(y0,y1,y));};
+
+/* ---- the material: flat-shaded Phong with vertex and instance colours, swaying in the wind ---- */
+function arsMat(sway,o){o=o||{};const m=new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:o.shine||4,specular:o.spec||0x111111,side:o.dbl?THREE.DoubleSide:THREE.FrontSide});m.userData.as=1;
+  if(sway){m.onBeforeCompile=sh=>{sh.uniforms.uAsT=ARS.T;sh.vertexShader='uniform float uAsT;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\n  #ifdef USE_INSTANCING\n  {vec2 ip=vec2(instanceMatrix[3][0],instanceMatrix[3][2]);float h=max(0.,position.y);float w=sin(uAsT*1.3+ip.x*.37+ip.y*.29)*.6+sin(uAsT*2.1+ip.x*.11-ip.y*.23)*.4;'+
+      'transformed.x+=w*'+sway.toFixed(3)+'*h*h;transformed.z+=w*'+(sway*.6).toFixed(3)+'*h*h*.7;}\n  #endif');};m.customProgramCacheKey=()=>'as'+sway+(o.dbl?'d':'');}
+  return m;}
+
+/* ---- the kits: what grows round each land ---- */
+const ARS_GEO={};
+function arsG(name,make){if(!ARS_GEO[name])ARS_GEO[name]=make();return ARS_GEO[name];}
+const arsIco=(d)=>new THREE.IcosahedronGeometry(1,d||0),arsCone=(s,open)=>new THREE.ConeGeometry(1,1,s||6,1,!!open),arsCyl=(s)=>new THREE.CylinderGeometry(1,1,1,s||6,1),arsDod=()=>new THREE.DodecahedronGeometry(1,0);
+/* a broadleaf tree: a short trunk and four lumpy blobs of leaves, lit from above */
+const arsOak=(lo,hi)=>()=>{const P=[arsPiece(arsCyl(5),0x5a4028,0,.35,0,.07,.7,.07,0,0,0,.01)];
+  P.push(arsPiece(arsIco(0),arsGrad(lo,hi,.55,1.25),0,.95,0,.48,.42,.48,0,0,0,.08),arsPiece(arsIco(0),arsGrad(lo,hi,.55,1.25),.28,.8,.12,.32,.3,.32,1,0,0,.06),
+    arsPiece(arsIco(0),arsGrad(lo,hi,.55,1.25),-.24,.82,-.16,.34,.3,.34,2,0,0,.06),arsPiece(arsIco(0),arsGrad(lo,hi,.55,1.25),.05,1.18,-.05,.3,.26,.3,0,0,0,.05));return arsMerge(P);};
+/* a conifer: a trunk and three stacked cones, optionally snowed on */
+const arsPine=(lo,hi,snow)=>()=>{const P=[arsPiece(arsCyl(5),0x4a3422,0,.15,0,.05,.3,.05)];const col=(y0,y1)=>(c,x,y)=>{c.set(lo).lerp(new THREE.Color(hi),arsSS(y0,y1,y));if(snow&&y>y1-.06)c.lerp(new THREE.Color(0xeef4f8),.85);};
+  [[.3,.5,.42],[.62,.42,.34],[.9,.32,.26]].forEach(([y,h,r],i)=>P.push(arsPiece(arsCone(7),col(y-h/2,y+h/2),0,y,0,r,h,r,i,0,0,.03)));return arsMerge(P);};
+const arsBush=(lo,hi,berry)=>()=>{const P=[arsPiece(arsIco(0),arsGrad(lo,hi,0,.35),0,.16,0,.27,.21,.27,0,0,0,.07),arsPiece(arsIco(0),arsGrad(lo,hi,0,.35),.17,.12,.06,.19,.16,.19,1,0,0,.05),arsPiece(arsIco(0),arsGrad(lo,hi,0,.35),-.15,.11,-.08,.18,.15,.18,2,0,0,.05)];
+  if(berry)for(let i=0;i<6;i++){const a=i*1.1;P.push(arsPiece(new THREE.TetrahedronGeometry(1,0),berry,Math.cos(a)*.2,.18+(i%2)*.08,Math.sin(a)*.2,.04));}return arsMerge(P);};
+/* a clump of grass: thin bent blades */
+const arsBlade=()=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([-.5,0,0,.5,0,0,.15,1,0],3));return g;};
+const arsGrass=(lo,hi,n,h)=>()=>{const P=[];for(let i=0;i<(n||7);i++){const a=i/(n||7)*6.28+Math.random()*.6,r=.04+Math.random()*.07,hh=(h||.3)*(.7+Math.random()*.6);
+    P.push(arsPiece(arsBlade(),arsGrad(lo,hi,0,hh),Math.cos(a)*r,0,Math.sin(a)*r,.05,hh,1,a+Math.random()*1.5,Math.cos(a)*.3,Math.sin(a)*.3));}return arsMerge(P);};
+/* a patch of flowers: stems and little star heads */
+const arsFlowers=(cols)=>()=>{const P=[];for(let i=0;i<6;i++){const a=Math.random()*6.28,r=Math.random()*.22,x=Math.cos(a)*r,z=Math.sin(a)*r,h=.1+Math.random()*.12,c=cols[i%cols.length];
+    P.push(arsPiece(arsBlade(),0x4a7a2a,x,0,z,.02,h,1,a),arsPiece(new THREE.OctahedronGeometry(1,0),c,x,h+.02,z,.06,.03,.06,a));}return arsMerge(P);};
+const arsRock=(lo,hi,moss)=>()=>{const P=[arsPiece(arsDod(),(c,x,y)=>{c.set(lo).lerp(new THREE.Color(hi),arsSS(-.1,.25,y));if(moss&&y>.12)c.lerp(new THREE.Color(moss),.55);},0,.12,0,.32,.24,.28,0,0,0,.12)];
+  P.push(arsPiece(arsDod(),(c,x,y)=>c.set(lo).lerp(new THREE.Color(hi),arsSS(-.05,.15,y)),.3,.06,.12,.14,.1,.12,1,0,0,.05));return arsMerge(P);};
+/* heather: a low wide clump, dark and woody below, a haze of small lilac flowers on top */
+const arsHeather=()=>{const P=[];for(let i=0;i<5;i++){const a=i*1.26,r=i?.17:0;P.push(arsPiece(arsIco(0),(c,x,y)=>{c.set(0x3a3428).lerp(new THREE.Color(0x6a4a6a),arsSS(.02,.12,y));if(y>.11)c.lerp(new THREE.Color(0xb07ab8),.6);},Math.cos(a)*r,.06,Math.sin(a)*r,.2,.1,.2,a,0,0,.04));}
+  for(let i=0;i<8;i++){const a=i*.8,r=.05+(i%3)*.08;P.push(arsPiece(new THREE.OctahedronGeometry(1,0),i%2?0xc890d0:0x9a5aa8,Math.cos(a)*r,.16+(i%2)*.03,Math.sin(a)*r,.025,.04,.025));}return arsMerge(P);};
+const arsLog=(bark,cut)=>()=>{const P=[arsPiece(arsCyl(7),(c,x,y)=>c.set(bark),0,.09,0,.09,.9,.09,0,0,Math.PI/2,.015)];P.push(arsPiece(arsCyl(7),cut,.455,.09,0,.085,.012,.085,0,0,Math.PI/2));
+  P.push(arsPiece(arsIco(0),0x4a6a2a,.1,.17,.02,.08,.03,.06));return arsMerge(P);};
+const arsStump=()=>arsMerge([arsPiece(arsCyl(7),0x5a4028,0,.07,0,.11,.14,.11,0,0,0,.01),arsPiece(arsCyl(7),0xc8a06a,0,.142,0,.1,.006,.1)]);
+const arsMound=(lo,hi)=>()=>arsMerge([arsPiece(new THREE.SphereGeometry(1,14,4,0,6.29,0,1.0),arsGrad(lo,hi,-.08,.1),0,-.42,0,1.1,.5,.7,0,0,0,.015)]);
+const arsFern=(lo,hi)=>()=>{const P=[];for(let i=0;i<7;i++){const a=i/7*6.28;P.push(arsPiece(arsCone(3),arsGrad(lo,hi,0,.25),Math.cos(a)*.13,.12,Math.sin(a)*.13,.06,.32,.012,a+Math.PI/2,Math.sin(a)*.9,-Math.cos(a)*.9));}return arsMerge(P);};
+const arsShroom=(cap)=>()=>{const P=[];for(let i=0;i<3;i++){const x=(i-1)*.07,z=(i%2)*.05,h=.05+i*.02;P.push(arsPiece(arsCyl(5),0xe8e0cc,x,h/2,z,.012,h,.012),arsPiece(new THREE.SphereGeometry(1,6,3,0,6.29,0,1.6),cap,x,h,z,.035,.025,.035));}return arsMerge(P);};
+const arsIce=(lo,hi)=>()=>{const P=[];for(let i=0;i<4;i++){const a=i*1.6,h=.35+Math.random()*.5;P.push(arsPiece(new THREE.OctahedronGeometry(1,0),arsGrad(lo,hi,0,h),Math.cos(a)*.1,h*.45,Math.sin(a)*.1,.07+Math.random()*.04,h,.07,a,Math.cos(a)*.3,Math.sin(a)*.3,.02));}return arsMerge(P);};
+const arsDead=(col)=>()=>{const P=[arsPiece(arsCyl(5),col,0,.45,0,.035,.9,.035,0,0,0,.01)];for(let i=0;i<4;i++){const a=i*1.7,y=.45+i*.12;P.push(arsPiece(arsCyl(4),col,Math.cos(a)*.12,y,Math.sin(a)*.12,.015,.3,.015,a,Math.cos(a)*.9,Math.sin(a)*.9));}return arsMerge(P);};
+
+/* kind: geo, count, where (a function of the fields giving a weight 0..1), size [min,max], tint jitter, shadow, sway, lean */
+const arsTW=f=>Math.pow(f.wood,1.4)*(.25+.75*f.grove);/* trees: in the woods, gathered into groves */
+const ARS_KITS={
+  plains:{wood:[.5,.62],stone:[.66,.8],ground:{wood:0x34582a,meadow:0x96bc58,bare:0x8a7448,stone:0x7a7a6a,track:0x9c845a},
+    kinds:[
+      {k:'oak',geo:arsOak(0x2f5a22,0x6aa040),n:420,w:arsTW,s:[.95,1.6],tint:.12,shadow:1,sway:.04,canopy:.9},
+      {k:'oak2',geo:arsOak(0x3a6a28,0x88b850),n:150,w:f=>arsTW(f)*.6+f.meadow*f.patch*.04,s:[.8,1.3],tint:.1,shadow:1,sway:.04,canopy:.8},
+      {k:'pine',geo:arsPine(0x24482a,0x3f7a3c),n:200,w:f=>arsTW(f)*arsSS(.5,.9,f.wood),s:[1.1,1.8],tint:.08,shadow:1,sway:.03,canopy:.7},
+      {k:'bush',geo:arsBush(0x2f5a24,0x5e9a3a),n:700,w:f=>arsSS(.1,.5,f.wood)*(1-arsTW(f)*.5)*(.4+.6*f.grove)+f.meadow*.05+f.fringe*.8,s:[.8,1.5],tint:.1,shadow:1,sway:.08},
+      {k:'berry',geo:arsBush(0x2a5222,0x4f8a34,0xc0283a),n:120,w:f=>arsSS(.2,.6,f.wood)*(1-f.wood*.6)*f.patch,s:[.8,1.2],tint:.06,shadow:1,sway:.08},
+      {k:'grass',geo:arsGrass(0x4a7a2a,0x9ac85a,7,.3),n:4200,w:f=>.35+f.meadow*.5+f.patch*.2-f.track,s:[.8,1.5],tint:.14,sway:.6},
+      {k:'flowerY',geo:arsFlowers([0xf2d040,0xf8e070,0xffffff]),n:1000,w:f=>f.patch*(.4+f.meadow)*(1-arsTW(f))+f.fringe*.35,s:[.8,1.3],tint:.04,sway:.8},
+      {k:'flowerP',geo:arsFlowers([0xb070e0,0xe85a8a,0xffffff,0x6a8ae0]),n:700,w:f=>arsSS(.3,.8,f.meadow)*f.patch*(1-arsTW(f)),s:[.8,1.2],tint:.04,sway:.8},
+      {k:'rock',geo:arsRock(0x6e6a60,0xa09a8c,0x5a7a34),n:200,w:f=>f.stone*.9+f.bare*.12,s:[.6,1.6],tint:.08,shadow:1},
+      {k:'log',geo:arsLog(0x5a4028,0xc8a06a),n:50,w:f=>arsTW(f),s:[.8,1.3],tint:.05,shadow:1},
+      {k:'stump',geo:arsStump,n:60,w:f=>arsSS(.25,.6,f.wood)*f.grove,s:[.8,1.4],tint:.05,shadow:1}]}};
+ARS_KITS.snow={wood:[.5,.62],stone:[.62,.78],ground:{wood:0x9aaebc,meadow:0xf4f8fb,bare:0x9aa0a8,stone:0x8a9098,track:0xb0aaa0},
+  kinds:[
+    {k:'spruce',geo:arsPine(0x1e3a32,0x2f5a4a,true),n:520,w:arsTW,s:[1,1.9],tint:.06,shadow:1,sway:.02,canopy:.7},
+    {k:'rock',geo:arsRock(0x6a707a,0xb4bcc6,0xf2f6fa),n:260,w:f=>f.stone*.9+f.bare*.2+f.fringe*.3,s:[.6,1.5],tint:.06,shadow:1},
+    {k:'twig',geo:arsDead(0x3a3028),n:160,w:f=>(.1+f.bare*.5)*f.patch,s:[.4,.8],tint:.05,sway:.15},
+    {k:'grass',geo:arsGrass(0x8a8460,0xc8c098,5,.22),n:900,w:f=>(f.bare*.8+.1)*(.3+.7*f.patch),s:[.7,1.2],tint:.08,sway:.5},
+    {k:'berry',geo:arsBush(0x2a3a30,0x4a5e50,0xb8203a),n:300,w:f=>arsSS(.2,.6,f.wood)*(1-f.wood*.6)*(.3+.7*f.grove)+f.fringe*.6,s:[.8,1.2],tint:.05,shadow:1,sway:.05},
+    {k:'log',geo:arsLog(0x3a2e26,0xd8d0c4),n:40,w:f=>arsTW(f)*.8,s:[.8,1.3],tint:.05,shadow:1}]};
+ARS_KITS.tundra={frameK:0,wood:[.62,.72],stone:[.55,.72],ground:{wood:0x5a3a22,meadow:0x9a6a3a,bare:0x7a6a58,stone:0x6a6660,track:0x8a7a62},
+  kinds:[
+    {k:'shrub',geo:arsBush(0x8a2a18,0xd8642a),n:420,w:f=>(.2+f.meadow*.5+f.wood*.4)*(.3+.7*f.patch),s:[.6,1.1],tint:.14,shadow:1,sway:.06},
+    {k:'shrubY',geo:arsBush(0xa0601a,0xe8b03a),n:280,w:f=>(.15+f.meadow*.6)*(.3+.7*f.patch),s:[.5,.9],tint:.12,shadow:1,sway:.06},
+    {k:'tussock',geo:arsGrass(0x8a6a3a,0xd0b070,9,.26),n:2000,w:f=>.45+f.meadow*.4-f.track,s:[.8,1.4],tint:.12,sway:.5},
+    {k:'rock',geo:arsRock(0x5e5a54,0x9a948a,0xb0b06a),n:260,w:f=>f.stone+f.bare*.3,s:[.6,1.8],tint:.08,shadow:1},
+    {k:'birch',geo:arsOak(0xb0601a,0xf0a83a),n:90,w:arsTW,s:[.8,1.2],tint:.1,shadow:1,sway:.04,canopy:.6}]};
+ARS_KITS.whitewaste={frameK:.4,wood:[.66,.76],stone:[.55,.7],ground:{wood:0xb4c4d4,meadow:0xf6f9fb,bare:0xb4c4d2,stone:0xa8b6c4,track:0xc4ccd4},
+  kinds:[
+    {k:'spire',geo:arsIce(0x7ab0d8,0xe8f6ff),n:510,w:f=>(f.stone*.7+.15)*(.3+.7*f.grove)+f.fringe*.5,s:[.8,2.2],tint:.06,shadow:1},
+    {k:'dead',geo:arsDead(0x4a4a52),n:204,w:f=>arsTW(f)*.8+.02,s:[.9,1.6],tint:.05,shadow:1,sway:.01,canopy:.4},
+    {k:'rock',geo:arsRock(0x6a7684,0xc8d4e0,0xffffff),n:374,w:f=>(f.bare*.7+f.stone*.3)*(.3+.7*f.patch),s:[.6,1.6],tint:.05,shadow:1},
+    {k:'twig',geo:arsGrass(0x8a9098,0xc8d0d8,5,.2),n:850,w:f=>.15*f.patch+f.bare*.2,s:[.7,1.1],tint:.05,sway:.4}]};
+ARS_KITS.taiga={frameK:.5,wood:[.38,.52],stone:[.6,.76],ground:{wood:0x223620,meadow:0x5a7a3a,bare:0x5a4a34,stone:0x5a5e54,track:0x6a5a40},
+  kinds:[
+    {k:'fern',geo:arsFern(0x2f5a24,0x6a9a3a),n:1300,w:f=>(.2+f.wood*.7-f.track)*(.4+.6*f.patch)+f.fringe*.6,s:[.8,1.6],tint:.1,sway:.3},
+    {k:'shroom',geo:arsShroom(0xc02a20),n:180,w:f=>f.wood*.8*f.patch,s:[.8,1.4],tint:.06},
+    {k:'shroomB',geo:arsShroom(0xb08a4a),n:160,w:f=>f.wood*.7*f.grove,s:[.8,1.3],tint:.06},
+    {k:'log',geo:arsLog(0x4a3424,0xb08a5a),n:80,w:f=>f.wood*f.grove,s:[.9,1.5],tint:.05,shadow:1},
+    {k:'rock',geo:arsRock(0x55584e,0x8a8c80,0x4a7a2a),n:220,w:f=>f.stone+f.wood*.15,s:[.6,1.7],tint:.08,shadow:1},
+    {k:'berry',geo:arsBush(0x2a4a22,0x4a7a30,0x3a3aa0),n:240,w:f=>arsSS(.2,.6,f.wood)*(1-f.track)*f.patch,s:[.7,1.2],tint:.06,shadow:1,sway:.06},
+    {k:'grass',geo:arsGrass(0x3a5a24,0x7aa04a,6,.24),n:1300,w:f=>.2+f.meadow*.6-f.track,s:[.8,1.3],tint:.1,sway:.5}]};
+ARS_KITS.highlands={frameK:.3,wood:[.6,.7],stone:[.55,.7],ground:{wood:0x4a5a2a,meadow:0x5e4a62,bare:0x6a5a44,stone:0x6a665e,track:0x7a6a50},
+  kinds:[
+    {k:'heather',geo:arsHeather,n:2600,w:f=>.22+f.patch*.55+f.meadow*.3-f.track+f.fringe*.4,s:[.6,1.1],tint:.12,shadow:1,sway:.05},
+    {k:'gorse',geo:arsBush(0x3a5a22,0x6a8a2a,0xf0c020),n:280,w:f=>(.1+f.bare*.4+f.wood*.4)*f.grove,s:[.7,1.2],tint:.08,shadow:1,sway:.05},
+    {k:'bracken',geo:arsFern(0x7a4a1a,0xc07a2a),n:600,w:f=>(.15+f.wood*.5)*(.3+.7*f.grove),s:[.8,1.4],tint:.1,sway:.3},
+    {k:'tussock',geo:arsGrass(0x6a6a3a,0xb0b070,8,.28),n:1800,w:f=>.4+f.bare*.3-f.track,s:[.8,1.3],tint:.1,sway:.5},
+    {k:'rock',geo:arsRock(0x5e5c58,0x9a968c,0x7a8a4a),n:300,w:f=>f.stone+f.bare*.3,s:[.6,2],tint:.08,shadow:1}]};
+
+/* ---- the ground: a small texture of the fields that the ground's shader reads ---- */
+const ARS_EXT={x0:-28,x1:28,z0:-38,z1:26,n:160};
+function arsBake(){const E=ARS_EXT,n=E.n,D=new Uint8Array(n*n*4),F={wood:new Float32Array(n*n),meadow:new Float32Array(n*n),bare:new Float32Array(n*n),stone:new Float32Array(n*n),track:new Float32Array(n*n),fringe:new Float32Array(n*n),grove:new Float32Array(n*n),patch:new Float32Array(n*n)};
+  for(let j=0;j<n;j++)for(let i=0;i<n;i++){const x=E.x0+(i+.5)/n*(E.x1-E.x0),z=E.z0+(j+.5)/n*(E.z1-E.z0),f=arsField(x,z),q=j*n+i,k=q*4,o=arsSS(.2,1.2,f.o);
+    F.wood[q]=f.wood;F.meadow[q]=f.meadow;F.grove[q]=f.grove;F.fringe[q]=f.fringe;F.patch[q]=f.patch;F.bare[q]=f.bare;F.stone[q]=f.stone;F.track[q]=f.track;
+    D[k]=40*f.wood*o;D[k+1]=255*f.meadow*o;D[k+2]=255*Math.max(f.bare*.7,f.track)*o;D[k+3]=255*f.stone*o;}
+  ARS.F=F;ARS.D=D;return null;}
+function arsTex(){const E=ARS_EXT,n=E.n,D=ARS.D;
+  if(ARS.tex)ARS.tex.dispose();const t=new THREE.DataTexture(D,n,n,THREE.RGBAFormat);t.magFilter=t.minFilter=THREE.LinearFilter;t.needsUpdate=true;ARS.tex=t;return t;}
+function arsGround(){const G=typeof GLD!=='undefined'&&GLD.ground;if(!G||!G.material)return;const m=G.material,K=ARS.kit.ground,E=ARS_EXT,ob=m.onBeforeCompile,ck=m.customProgramCacheKey?m.customProgramCacheKey():'';
+  const U={uAsMap:{value:ARS.tex},uAsW:{value:new THREE.Color(K.wood)},uAsM:{value:new THREE.Color(K.meadow)},uAsB:{value:new THREE.Color(K.bare)},uAsS:{value:new THREE.Color(K.stone)},uAsTr:{value:new THREE.Color(K.track)}};
+  m.onBeforeCompile=function(sh,r){if(ob)ob.call(this,sh,r);Object.assign(sh.uniforms,U);
+    sh.fragmentShader='uniform sampler2D uAsMap;uniform vec3 uAsW,uAsM,uAsB,uAsS,uAsTr;\n'+sh.fragmentShader.replace('#include <emissivemap_fragment>',
+      '  {vec2 q=vec2((vGlW.x-('+E.x0.toFixed(1)+'))/'+(E.x1-E.x0).toFixed(1)+',(vGlW.z-('+E.z0.toFixed(1)+'))/'+(E.z1-E.z0).toFixed(1)+');vec4 a=texture2D(uAsMap,q);'+
+      'float l=dot(diffuseColor.rgb,vec3(.3,.59,.11));float n=glN(vGlW.xz*1.7)*.5+glN(vGlW.xz*.43+9.)*.5;'+
+      'diffuseColor.rgb=mix(diffuseColor.rgb,uAsM*(.9+.2*n),a.g*.45);diffuseColor.rgb=mix(diffuseColor.rgb,uAsW*(.8+.35*n),smoothstep(.0,.7,a.r)*.7);'+
+      'diffuseColor.rgb=mix(diffuseColor.rgb,uAsB*(.85+.3*n),a.b*smoothstep(.25,.6,n+a.b*.5)*.8);diffuseColor.rgb=mix(diffuseColor.rgb,uAsS*(.8+.3*n),a.a*smoothstep(.4,.75,n)*.55);}\n#include <emissivemap_fragment>');};
+  m.customProgramCacheKey=()=>ck+'|as'+ARS.land;m.needsUpdate=true;}
+
+/* ---- scattering ---- */
+/* the baked fields at a point (nearest cell), with the exact distance from the board */
+function arsLook(x,z){const E=ARS_EXT,n=E.n,i=Math.max(0,Math.min(n-1,Math.floor((x-E.x0)/(E.x1-E.x0)*n))),j=Math.max(0,Math.min(n-1,Math.floor((z-E.z0)/(E.z1-E.z0)*n))),q=j*n+i,F=ARS.F;
+  return{o:arsOut(x,z),wood:F.wood[q],meadow:F.meadow[q],bare:F.bare[q],stone:F.stone[q],track:F.track[q],grove:F.grove[q],patch:F.patch[q],fringe:F.fringe[q]};}
+function arsScatter(){const K=ARS.kit,R=mulberry((MAP.seed|0)*7+311),T=TERRAIN,dummy=new THREE.Object3D(),col=new THREE.Color(),E=ARS_EXT;ARS.stat={};
+  for(const kd of K.kinds){const geo=arsG(ARS.land+':'+kd.k,kd.geo),mat=arsMat(kd.sway||0,{dbl:/grass|tussock|flower|twig/.test(kd.k)}),mesh=new THREE.InstancedMesh(geo,mat,kd.n);let c=0,tries=0;
+    while(c<kd.n&&tries<kd.n*40){tries++;const x=E.x0+R()*(E.x1-E.x0),z=E.z0+R()*(E.z1-E.z0);const f=arsLook(x,z);if(f.o<.35)continue;
+      const w=Math.max(0,Math.min(1,kd.w(f)))*arsSS(.3,.8,f.o);if(R()>w)continue;if(!arsFree(x,z))continue;
+      const s=(kd.s[0]+(kd.s[1]-kd.s[0])*Math.pow(R(),1.4))*(kd.shadow?.7+.3*arsSS(.6,2.5,f.o):1);dummy.position.set(x,-.002,z);dummy.rotation.set((R()-.5)*.08,R()*6.28,(R()-.5)*.08);dummy.scale.set(s*(.9+R()*.2),s*(.9+R()*.2),s*(.9+R()*.2));
+      dummy.updateMatrix();mesh.setMatrixAt(c,dummy.matrix);const t=kd.tint||0;col.setRGB(1-t+R()*t*2,1-t+R()*t*2,1-t+R()*t*2);mesh.setColorAt(c,col);c++;}
+    mesh.count=c;mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.frustumCulled=false;mesh.castShadow=!!kd.shadow;mesh.receiveShadow=true;
+    mesh.userData.as=1;mesh.userData.keep=1;T.add(mesh);ARS.meshes.push(mesh);ARS.stat[kd.k]=c;
+    if(kd.canopy){const m4=new THREE.Matrix4(),v=new THREE.Vector3(),n=E.n,cw=(E.x1-E.x0)/n;for(let i=0;i<c;i++){mesh.getMatrixAt(i,m4);v.setFromMatrixPosition(m4);const r=kd.canopy*(m4.elements[0]**2+m4.elements[1]**2+m4.elements[2]**2)**.5,ci=(v.x-E.x0)/cw,cj=(v.z-E.z0)/((E.z1-E.z0)/n),rr=r/cw;
+      for(let j=Math.max(0,Math.floor(cj-rr));j<=Math.min(n-1,Math.ceil(cj+rr));j++)for(let q=Math.max(0,Math.floor(ci-rr));q<=Math.min(n-1,Math.ceil(ci+rr));q++){const d=Math.hypot(q-ci,j-cj)/rr;if(d>=1)continue;const k=(j*n+q)*4;ARS.D[k]=Math.min(255,ARS.D[k]+90*(1-d*d));}}}}}
+/* the whole dressing, after every land has built its board (an outermost buildMap wrapper) */
+function arsDress(){ARS.meshes.forEach(m=>{if(m.parent)m.parent.remove(m);m.material.dispose();});ARS.meshes=[];if(!ARS.on||!TERRAIN||!MAP||MAP.open)return;
+  const land=typeof arenaNow==='function'?arenaNow():'plains';ARS.land=ARS_KITS[land]?land:'plains';ARS.kit=ARS_KITS[ARS.land];ARS.seed=((MAP.seed|0)%997)+1;
+  ARS.sea=ARS.land==='tundra'&&typeof tunShore==='function'?tunShore:null;
+  /* the plains' and snow's old outer forest (three meshes a tree, scattered at random) gives way to the woods */
+  if(ARS.land==='plains'||ARS.land==='snow')for(const o of TERRAIN.children)if(o.userData.ot)o.visible=false;
+  /* the highlands' old heather (little pebbles of purple) gives way to the new clumps */
+  if(ARS.land==='highlands')for(const o of TERRAIN.children)if(o.isInstancedMesh&&o.userData.hl==='heather')o.visible=false;
+  arsTracks();arsOcc();arsBake();arsScatter();arsTex();arsGround();}
+{const bm=buildMap;buildMap=function(){const r=bm.apply(this,arguments);try{arsDress();}catch(e){console.error(e);}return r;};}
+{const a0=anim;anim=function(dt,rt){ARS.T.value=rt||0;return a0.apply(this,arguments);};}
+/* ---- end of arena surroundings (v449) ---- */
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
