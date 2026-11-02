@@ -1786,6 +1786,7 @@ function heroModel(id){
     for(let k=0;k<3;k++){const a=k/3*Math.PI*2;P(cone(.006,.05,4),gold,Math.cos(a)*.016,.245,Math.sin(a)*.016,Math.sin(a)*.4,0,-Math.cos(a)*.4,sc);}P(oct(.022),M(0x3a0a5a,{emissive:0x9a30ff,emissiveIntensity:.9}),0,.25,0,0,0,0,sc).scale.set(1,1.5,1);glowOrb(sc,0,.25,0,0xb070ff,.012);
     for(let k=0;k<3;k++){const a=k/3*Math.PI*2+.4;glowOrb(g,Math.cos(a)*.12,.2+k*.04,Math.sin(a)*.12,0x8a30ff,.01);P(ico(.014,0),0x0a0610,Math.cos(a)*.12,.2+k*.04,Math.sin(a)*.12);}
     g.scale.setScalar(1.12);}
+  else if(h.elem){ehModel(h,{P,G,g,robe,torso,belt,cape,arm,head,hair,beard,glowOrb,WP,gold,white,wep:x=>{WEP=x;}});}
   else if(id==='sentinel'){const ivory=0xf2ead8,silver=0xe4e8ee,blue=0x2a48a8;
     robe(ivory,gold,.2);torso(0xe8e0cc,1.1,gold);belt(0x8a6a2a,gold,1.1);P(box(.05,.13,.012),blue,0,.1,.08,-.26);P(oct(.013),GLOW(0xffe08c),0,.15,.085);
     P(box(.13,.012,.07),gold,0,.25,0);[-1,1].forEach(sd=>{const pa=G(g,sd*.075,.255,0,0,0,sd*-.3);P(ico(.034,0),gold,0,0,0,0,0,0,pa).scale.set(1.2,.7,1.1);P(ico(.026,0),silver,sd*.004,.012,0,0,0,0,pa).scale.set(1.1,.6,1);for(let k=0;k<3;k++)P(cone(.007,.04,4),ivory,sd*(-.01+k*.016),.028,-.012+k*.008,0,0,sd*.25,pa);});
@@ -6389,7 +6390,7 @@ function fireScroll(t,k,s,list){const S=SPELLS_S[k],ri=RB[S.r].i,lv=meta.spells[
       let use=l2.length?l2:(S.global?al:[]);if(!use.length&&aim){const near=al.filter(e=>(e.x-aim.x)**2+(e.z-aim.z)**2<4);use=near.length?near:[aim];}if(!use.length)use=[{x:t.x,z:t.z}];castScrollNow(k,t,s2,use,(s2.spellP||s2.dmg)*(1+.05*(lv-1))*tsd(t,k),o);});}
   else castScrollNow(k,t,s,list,P,o);}
 const TSP=new Set(['citadel','chronostasis','deflect','loop','compress','shatter','singularity']);
-const tsd=(t,k)=>t&&t.hero==='aevorian'&&TSP.has(k)?1.15:1,tsc=(t,k)=>t&&t.hero==='aevorian'&&TSP.has(k)?.9:1;
+const tsd=(t,k)=>t&&t.hero==='aevorian'&&TSP.has(k)?1.15:ehMastery(t,k)?1+EH.dmg:1,tsc=(t,k)=>t&&t.hero==='aevorian'&&TSP.has(k)?.9:ehMastery(t,k)?EH.cd:1;   /* v449: the elemental specialists' Element Mastery */
 const scrAuto=()=>meta.scrAuto!==false;
 function scrollCasts(t,s,list,dt){
   const h=HB[t.hero];if(!h||!h.scrolls)return;const ks=heroSpells(t.hero);if(!ks.length)return;
@@ -6632,7 +6633,7 @@ function renderHome(){$('#tCrowns').textContent=fmt(meta.crowns);$('#tGems').tex
   if(curTab==='battle')renderMenu();else if(curTab==='heroes')renderArchive();else if(curTab==='spells')renderSpells();else if(curTab==='shop')renderShop();else if(curTab==='more')renderSaves();}
 /* ---- Hero Archive ---- */
 const CLS_COL={ranger:'#74c24e',engineer:'#e3923c',mage:'#5aa2ff',cryo:'#8fe3ff',bolt:'#e25a4a',miner:'#eac24a'},DARK_COL='#b068ff';
-const heroCol=h=>h.time?'#7fe8ff':h.dark?DARK_COL:h.light?'#ffd86a':CLS_COL[clsKey(h)];
+const heroCol=h=>h.elem?EH.css[h.elem]:h.time?'#7fe8ff':h.dark?DARK_COL:h.light?'#ffd86a':CLS_COL[clsKey(h)];
 const hexA=(hx,a)=>{const n=parseInt(hx.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
 const CLS_IC={ranger:'<path d="M7 3c6 3 9 9 7 18M7 3l6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>',
   engineer:'<circle cx="12" cy="12" r="3.6" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4M5.3 5.3l2.8 2.8M15.9 15.9l2.8 2.8M5.3 18.7l2.8-2.8M15.9 8.1l2.8-2.8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>',
@@ -9074,7 +9075,7 @@ function refreshSheet(force){
     if(!force&&sig===sheetSig)return;
     html=`<div class="sh-head"><h3>Choose a ${CLASSES[cl]}</h3><span class="sub"><span class="gem"></span>${meta.gems}</span><button class="x" data-act="back" aria-label="Back">\u2039</button></div><div class="hlist">`+
       HEROES.filter(h=>h.cl===cl).sort((a,b)=>(owns(b.id)-owns(a.id))||a.price-b.price).map(h=>{const at=heroTower(h.id),st=hs(h.id);
-        if(!owns(h.id))return`<button class="hcard locked" data-act="recruit:${h.id}" ${meta.gems>=h.price?'':'disabled style="opacity:.6"'}><img src="${hthumbs[h.id]}" alt=""><div class="hi"><b>${fullName(h)}${h.dark?' <span class="chip dark">Dark</span>':''}</b><span><b style="display:inline;font-size:12.5px;color:var(--gold)">${h.tn}</b>: ${h.td}</span><span class="price"><span class="gem"></span>${fmt(h.price)} \u00B7 Power \u00D7${h.pow} \u00B7 ${meta.gems>=h.price?'Tap to recruit':'Not enough gems'}</span></div></button>`;
+        if(!owns(h.id))return`<button class="hcard locked" data-act="recruit:${h.id}" ${meta.gems>=h.price?'':'disabled style="opacity:.6"'}><img src="${hthumbs[h.id]}" alt=""><div class="hi"><b>${fullName(h)}${h.dark?' <span class="chip dark">Dark</span>':''}${ehChip(h)}</b><span><b style="display:inline;font-size:12.5px;color:var(--gold)">${h.tn}</b>: ${h.td}</span><span class="price"><span class="gem"></span>${fmt(h.price)} \u00B7 Power \u00D7${h.pow} \u00B7 ${meta.gems>=h.price?'Tap to recruit':'Not enough gems'}</span></div></button>`;
         return`<button class="hcard ${t.hero===h.id?'cur':''}" data-act="assign:${h.id}"><img src="${hthumbs[h.id]}" alt=""><div class="hi"><b>${fullName(h)}</b><span>Level ${st.lvl} \u00B7 Power \u00D7${h.pow} \u00B7 <b style="display:inline;font-size:12.5px;color:var(--gold)">${h.tn}</b>: ${h.td}</span>${at?`<span class="busy">${at===t?'Running this building':'Busy elsewhere (tap to move here)'}</span>`:''}</div></button>`;}).join('')+
       `</div>${t.hero?'<div style="height:8px"></div><button class="btn warn" data-act="unassign" style="width:100%">Send hero back to the roster</button>':''}`;
   }else if(sel&&sel.isHero){
@@ -10814,7 +10815,7 @@ function renderRoster(){
     const info=own?`<span>${h.title||clsName(h)} \u00B7 ${bld} \u00B7 Level ${st.lvl}</span><div class="xp"><i style="width:${pct}%"></i></div><span class="num" style="font-size:11px">${fmt(st.xp)} / ${fmt(need)} xp</span>`
       :`<span>${h.title||clsName(h)} \u00B7 runs the ${bld}</span>`;
     const buy=own?'':`<button class="btn gembtn" data-rec="${h.id}" ${meta.gems>=h.price?'':'disabled'} style="width:100%;margin-top:6px">Recruit<small class="num"><span class="gem"></span>${fmt(h.price)} gems</small></button>`;
-    return`<div class="rh ${own?'':'locked'} ${h.dark?'dark':h.light?'light':h.time?'time':''}"><div class="rh-top"><img src="${hthumbs[h.id]}" alt=""><div class="hi"><b>${h.n}</b>${h.dark?'<span class="chip dark">Dark</span> ':''}${info}</div></div>
+    return`<div class="rh ${own?'':'locked'} ${h.dark?'dark':h.light?'light':h.time?'time':h.elem?'e-'+h.elem:''}"><div class="rh-top"><img src="${hthumbs[h.id]}" alt=""><div class="hi"><b>${h.n}</b>${h.dark?'<span class="chip dark">Dark</span> ':''}${h.elem?ehChip(h)+' ':''}${info}</div></div>
       <div class="trait"><b>Power \u00D7${h.pow}</b> \u00B7 <b>${h.tn}:</b> ${h.td}${AURA[h.id]?'<br><b>Aura:</b> '+AURA[h.id].d:''}</div>${perks}${own&&h.scrolls?scrollHtml(h.id):''}${!own&&h.scrolls?`<div class="hint" style="margin-top:4px">Can equip ${h.light?12:h.dark?10:5} spells.</div>`:''}${own?blessHtml(h.id,'rbless'):''}${buy}</div>`;}).join('');
 }
 if($('#rosterList'))$('#rosterList').addEventListener('click',e=>{const rb=e.target.closest('[data-rec]');if(rb){recruit(rb.dataset.rec);renderHome();return;}
@@ -14175,6 +14176,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Six elemental heroes',d:'2 Nov',v:'v449',li:[
+    'Six new 4-star spellcasters, each a master of one element, priced by their power: Sylvara Thornwood (nature, 2,600 gems), Isolde Rimeheart (ice, 2,800), Ignatia Emberveil (fire, 3,000), Corvin Ashveil (dark, 3,100), Vesper Stormborn (lightning, 3,200) and Seraphine Dawnveil (light, 3,400).',
+    'Element Mastery: scrolls of their own element deal 30% more damage and recharge 10% faster.',
+    'Their bolts are orbs of their element and hit as it: fire sets foes burning, ice chills them, lightning chains to 2 more foes, nature can root them in place, dark withers them, and every 6th light bolt flares in a burst of light.',
+    'Each has an aura for the towers around them and a look of their own: a crown of flame, a crown of ice, a storm-mage\u2019s hat, a druid\u2019s antlers, a horned hood and a halo.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
     'Dimensional Slash (Legendary) has five new masteries, for now in developer mode. Still one draw and one cut: each mastery makes a part the spell already has more lethal and draws it a little stronger.',
     'Keen Edge: the blade\u2019s edge burns white and the cut strikes foes up to 0.75 tiles off the line (0.5 before). Deeper Rift: the tear opens wider and darker, stays open 7.5s (6 before), shreds for 50% a tick (45% before) and slows 60%.',
@@ -32088,6 +32094,132 @@ function pfHeroFreeze(root){if(!PF.on||!root||root.userData.pfHero)return 0;root
   return saved;}
 {const sh=spawnHero;spawnHero=function(){const r=sh.apply(this,arguments);try{if(heroU&&heroU.g)PF.stat.hero=pfHeroFreeze(heroU.g);}catch(e){console.error(e);}return r;};}
 /* ---- end of performance (v446) ---- */
+/* ================= Elemental specialists (v449): six heroes, each a master of one element ================= */
+/* Simon: "add more heros that have some sort of a specialization to a certain element, so a hero thats better with fire damage, another with
+   nature, another with dark etc etc please so it would be 6 new heros please, price them similarily but no the same, based on their power".
+   Six 4-star spellcasters (they cast scrolls like the other mages), one for each element. Each one:
+   - Element Mastery: scrolls of their element deal +30% damage and recharge 10% faster (in tsd/tsc, so the cooldown bar follows).
+   - Their own bolt: an orb of their element instead of the violet bolt, hitting as that element (so element reactions fire), with a touch of it:
+       fire burns (25% of the hit a second for 2.5s), ice chills (30% slower for 1.5s), lightning chains to 2 more foes, nature roots
+       (a 20% chance to hold 0.6s, Resolve applies), dark withers (30% a second for 3s), light flares every 6th bolt (a burst of 100% within 0.9).
+   - An aura for the towers around them, and a model of their own.
+   Prices follow power (pow): 2600 to 3400 gems for x2.5 to x3.3, between Elowen (2500, x2.4) and Thaddeus (3500, x3.8). EH.dbg logs hits. */
+const EH={dbg:null,dmg:.3,cd:.9,burn:.25,burnT:2.5,chill:.3,chillT:1.5,chain:2,root:.2,rootT:.6,wither:.3,witherT:3,flareN:6,flare:1,flareR:.9,
+  col:{fire:0xff7a20,ice:0x9fe6ff,lightning:0xb89cff,nature:0x7ad04a,dark:0xa040ff,light:0xffd86a},
+  css:{fire:'#ff8a3a',ice:'#9fe6ff',lightning:'#c0a8ff',nature:'#8ad65a',dark:'#b068ff',light:'#ffd86a'},
+  nm:{fire:'Fire',ice:'Ice',lightning:'Lightning',nature:'Nature',dark:'Dark',light:'Light'}};
+const ehLog=d=>{if(EH.dbg){d.t=time;EH.dbg.push(d);}};
+[
+  {id:'sylvara',n:'Sylvara Thornwood',title:'Grove Druid',elem:'nature',price:2600,pow:2.5,col:0x3a6a2a,tn:'Heart of the Grove',td:'Nature scrolls deal +30% damage and recharge 10% faster; her thorn bolts can root foes in place'},
+  {id:'isolde',n:'Isolde Rimeheart',title:'Frost Sorceress',elem:'ice',price:2800,pow:2.7,col:0x3a7ab8,tn:'Heart of Winter',td:'Ice scrolls deal +30% damage and recharge 10% faster; her bolts chill foes 30% slower'},
+  {id:'ignatia',n:'Ignatia Emberveil',title:'Pyromancer',elem:'fire',price:3000,pow:2.9,col:0x8a1e10,tn:'Kindled Soul',td:'Fire scrolls deal +30% damage and recharge 10% faster; her bolts set foes burning'},
+  {id:'corvin',n:'Corvin Ashveil',title:'Shadowcaller',elem:'dark',price:3100,pow:3,col:0x2a1636,tn:'Pact of Shadows',td:'Dark scrolls deal +30% damage and recharge 10% faster; her bolts wither foes'},
+  {id:'vesper',n:'Vesper Stormborn',title:'Storm Mage',elem:'lightning',price:3200,pow:3.1,col:0x1e2a5a,tn:'Eye of the Storm',td:'Lightning scrolls deal +30% damage and recharge 10% faster; his bolts chain to 2 more foes'},
+  {id:'seraphine',n:'Seraphine Dawnveil',title:'Lightbringer',elem:'light',price:3400,pow:3.3,col:0xf0e6d0,tn:'Dawn\u2019s Grace',td:'Light scrolls deal +30% damage and recharge 10% faster; every 6th bolt flares in a burst of light'}
+].forEach(h=>{Object.assign(h,{scrolls:true,stars:4,cl:'mage',cls:EH.nm[h.elem]+' Spellcaster',slots:6,eh:true});h.mage=true;HEROES.push(h);HB[h.id]=h;});
+Object.assign(AURA,{
+  sylvara:{r:2.8,d:'Nearby towers +10% range',t:(t,s)=>{if(s.range)s.range*=1.1;}},
+  isolde:{r:2.8,d:'Nearby Frost Spires slow 10% more; nearby towers +8% damage',t:(t,s)=>{if(t.type==='frost'&&s.slow!=null)s.slow=Math.min(.85,s.slow+.1);if(s.dmg)s.dmg*=1.08;}},
+  ignatia:{r:2.8,d:'Nearby Cannons and Wizard Towers +15% damage',t:(t,s)=>{if((t.type==='cannon'||t.type==='mage')&&s.dmg)s.dmg*=1.15;}},
+  corvin:{r:2.8,d:'Foes inside his aura take +8% damage; nearby towers +6% damage',t:(t,s)=>{if(s.dmg)s.dmg*=1.06;},vuln:1.08},
+  vesper:{r:2.8,d:'Nearby Wizard Towers +1 chain jump and +10% attack speed',t:(t,s)=>{if(t.type==='mage'){s.chain=(s.chain||0)+1;if(s.rate)s.rate*=1.1;}}},
+  seraphine:{r:2.9,d:'Nearby towers +10% attack speed and +8% damage',t:(t,s)=>{if(s.rate)s.rate*=1.1;if(s.dmg)s.dmg*=1.08;}}});
+/* the patch-notes and hero-card colours */
+{const st=document.createElement('style');st.textContent=Object.keys(EH.css).map(k=>`.rh.e-${k}{border-color:${EH.css[k]}88}.chip.e-${k}{background:${EH.css[k]}22;color:${EH.css[k]};border:1px solid ${EH.css[k]}66}`).join('');document.head.appendChild(st);}
+const ehChip=h=>h&&h.elem?` <span class="chip e-${h.elem}">${EH.nm[h.elem]}</span>`:'';
+const ehOf=t=>{const id=t&&t.hero,h=id&&HB[id];return h&&h.elem?h.elem:null;};
+
+/* ---- Element Mastery lives in tsd/tsc (the scroll damage and recharge factors, beside Aevorian's), so the cooldown bar follows ---- */
+const ehMastery=(t,k)=>{const el=ehOf(t);return!!el&&SPELL_EL[k]===el;};
+
+/* ---- their bolts: an orb of the element with a short tail (shared meshes and materials) ---- */
+EH.pj={};
+const ehPJ=el=>{if(!EH.pj[el]){const c=EH.col[el],core=el==='dark'?0xe0b0ff:el==='fire'?0xfff0a0:0xffffff,mats=[GLOW(core),haloMat(c),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false})];
+    const tail=new THREE.ConeGeometry(.06,.45,6);tail.rotateX(-Math.PI/2);tail.translate(0,0,-.24);EH.pj[el]={mats,tail};}
+  const P=EH.pj[el],g=new THREE.Group();g.add(new THREE.Mesh(el==='ice'?oct(.07):el==='nature'?tet(.08):ico(.06,1),P.mats[0]));const h=new THREE.Mesh(ico(.13,1),P.mats[1]);g.add(h);g.add(new THREE.Mesh(P.tail,P.mats[2]));return g;};
+['fire','ice','lightning','nature','dark','light'].forEach(el=>{PJ['eh_'+el]=()=>ehPJ(el);});
+/* a small 3D burst of the element where a bolt lands */
+function ehHit(el,x,y,z){const c=EH.col[el];if(el==='fire')cfmBoom(x,y,z,.13,{lobes:2,T:.35,ground:false});else if(el==='ice'){cfmBoom(x,y,z,.12,{pal:'ice',lobes:2,T:.35,ground:false});nsSplinters(x,y,z,4,1);}
+  else if(el==='dark')cfmBoom(x,y,z,.12,{pal:'void',lobes:2,T:.35,ground:false});else if(el==='nature'){for(let i=0;i<8;i++)emit(0,{x,y,z,vx:(rnd()-.5)*1.6,vy:.4+rnd()*.8,vz:(rnd()-.5)*1.6,s:.05,s2:.03,c:0x7ad04a,c2:0x3a6a22,a:.95,life:.6,g:2});burst(x,y,z,0x6ab040,3);}
+  else burst(x,y,z,c,4);sprayP(1,x,y,z,10,{c:0xffffff,c2:c,sp:1.6,s:.04,s2:0,life:.35,drag:1});}
+/* a root of thorny vines round a foe for a moment (nature) */
+function ehRoot(e,T){const g=smTag(new THREE.Group());scene.add(g);const m=M(0x4a6a22,{emissive:0x2a5a10,emissiveIntensity:.4}),th=M(0x6a8a3a);for(let i=0;i<5;i++){const a=i/5*6.28,v=new THREE.Mesh(cone(.02,.22,5),m);v.position.set(Math.cos(a)*.12,.1,Math.sin(a)*.12);v.rotation.set(Math.sin(a)*.6,0,-Math.cos(a)*.6);g.add(v);
+    const t2=new THREE.Mesh(cone(.008,.04,3),th);t2.position.set(Math.cos(a)*.09,.15,Math.sin(a)*.09);t2.rotation.z=a;g.add(t2);}
+  let tt=0;addFx(g,T+.2,(f,dt)=>{tt+=dt;g.position.set(e.x,gy(e.x,e.z),e.z);const k=Math.min(1,tt/.12)*Math.min(1,f.life/.2);g.scale.set(1,Math.max(.01,k),1);},null,{mats:[m,th]});}
+
+/* ---- the attack of an elemental specialist: the mage's bolt and chain, in their element ---- */
+function ehFire(v,tgt,s,el){const H=heroU,ox=H.x+Math.sin(H.face)*.12,oy=H.topY*.7,oz=H.z+Math.cos(H.face)*.12;
+  if(!tgt||tgt.dead){const l=sortTargets(H,inRange(H,s));tgt=l[0];if(!tgt)return;}
+  const o={src:H,bane:s.bane,el},c=EH.col[el];
+  shoot('eh_'+el,ox,oy,oz,tgt,7.5,.15,p=>{const e=p.target;if(e.dead)return;hurt(e,s.dmg,'magic',o);ehHit(el,p.x,p.y,p.z);const d={ev:'bolt',el,e};
+    if(!e.dead){if(el==='fire'){applyBurn(e,s.dmg*EH.burn,EH.burnT,o);d.burn=true;}
+      else if(el==='ice'){e.slow=Math.max(e.slow||0,EH.chill);e.slowT=Math.max(e.slowT||0,EH.chillT);d.chill=true;}
+      else if(el==='nature'&&rnd()<EH.root){if(stunE(e,e.boss?EH.rootT*.4:EH.rootT)>0){ehRoot(e,EH.rootT);d.root=true;}}
+      else if(el==='dark'&&!(e.wither&&e.wither.t>1)){e.wither={t:EH.witherT,dps:s.dmg*EH.wither,o:{src:H,el:'dark',dot:true}};e.ashT=0;d.wither=true;}}
+    if(el==='light'){H.ehN=(H.ehN||0)+1;if(H.ehN%EH.flareN===0){const x=e.x,z=e.z,y=gy(x,z);cfmBoom(x,y+.3,z,.35,{pal:'ice',lobes:4,skirt:4,T:.6});sprayP(1,x,y+.3,z,30,{c:0xfff6c8,c2:0xffc040,sp:2.5,up:1,s:.05,s2:0,life:.5,g:2});
+        const L=[];for(const q of enemies.slice()){if(q.dead||q.fake)continue;if((q.x-x)**2+(q.z-z)**2<EH.flareR*EH.flareR){hurt(q,s.dmg*EH.flare,'magic',o);L.push(q);}}d.flare=L;}}
+    const hit=new Set([e]);let cur=e,dmg=s.dmg;const n=s.chain+(el==='lightning'?EH.chain:0);d.chain=[];
+    for(let j=0;j<n;j++){let best=null,bd=(DOM.on?3.6:1.8)**2;for(const q of enemies){if(q.dead||hit.has(q))continue;const dd=(q.x-cur.x)**2+(q.z-cur.z)**2;if(dd<bd){bd=dd;best=q;}}
+      if(!best)break;dmg*=el==='lightning'?Math.max(s.chainKeep,.85):s.chainKeep;lightning(cur,best,c);hurt(best,dmg,'magic',o);d.chain.push(best);hit.add(best);cur=best;}
+    ehLog(d);});}
+{const hf0=heroFire;heroFire=function(v,tgt,s){const H=heroU,el=H&&ehOf(H);if(el&&HB[H.hero].cl==='mage')return ehFire(v,tgt,s,el);return hf0.apply(this,arguments);};}
+/* ---- their models: called from heroModel with its own helpers (K) ---- */
+function ehModel(h,K){const {P,G,g,robe,torso,belt,cape,arm,head,hair,beard,glowOrb,WP,gold,white}=K,el=h.elem;let st;
+  const staff=(hR,shaft,len)=>{const pr=WP(hR);st=G(g,pr.x,pr.y,pr.z+.012);K.wep(st);P(cyl(.006,.007,len||.32,6),shaft,0,(len||.32)/2-.07,0,0,0,0,st);return st;};
+  const motes=(col,n,r,y0)=>{for(let k=0;k<n;k++){const a=k/n*6.28+.3;P(oct(.009),GLOW(col),Math.cos(a)*r,y0+(k%3)*.05,Math.sin(a)*r);}};
+  if(el==='fire'){const red=0x8a1e10,char=0x2a1410,ember=0xff7a20;
+    robe(red,0xe8a040,.2);torso(char,1,0xe8a040);belt(0x3a2010,gold);P(box(.05,.12,.012),0xc0401a,0,.1,.078,-.26);
+    cape(0x5a1208,.25,.15,.12);for(let k=0;k<5;k++)P(cone(.014,.05,4),GLOW(k%2?0xffb040:ember),-.06+k*.03,.02,-.06,Math.PI,0,0);   /* the cape's hem burns */
+    arm(-1,char,-.4,.25,-.6,0xe8a040,red);const hR=arm(1,char,-.7,.12,-.6,0xe8a040,red);
+    const hg=head({glow:0xffb040});hair(hg,0xc0301a,.14);for(let k=0;k<7;k++){const a=-.9+k*.3;P(cone(.012,.05+(k%2)*.03,4),GLOW(k%2?0xffd060:ember),Math.sin(a)*.04,.05+Math.cos(a)*.008,Math.cos(a)*.008-.01,0,0,a*.2,hg);}   /* a crown of flame */
+    P(cyl(.05,.05,.01,10),gold,0,.03,0,0,0,0,hg);
+    staff(hR,0x2a1a14);P(cyl(.02,.012,.04,6),gold,0,.25,0,0,0,0,st);for(let k=0;k<4;k++){const a=k/4*6.28;P(cone(.01,.06,4),GLOW(k%2?0xffd060:ember),Math.cos(a)*.016,.3,Math.sin(a)*.016,Math.sin(a)*.3,0,-Math.cos(a)*.3,st);}glowOrb(st,0,.285,0,ember,.018);
+    motes(ember,5,.13,.12);}
+  else if(el==='ice'){const blue=0x3a7ab8,frost=0xd8ecf8,crys=0xbff0ff;
+    robe(frost,blue,.21);torso(0xa8d0ec,1,white);belt(0x2a4a6a,0xbfe8ff);P(box(.05,.13,.012),blue,0,.1,.078,-.26);
+    cape(0x5a9ad0,.26,.16,.1);[-1,1].forEach(sd=>{for(let k=0;k<3;k++)P(oct(.014),GLOW(crys),sd*(.07+k*.012),.25+k*.02,-.01,0,0,sd*.4).scale.set(.7,2.4-k*.4,.7);});   /* crystals on the shoulders */
+    arm(-1,0xa8d0ec,-.3,.3,-.5,white,frost);const hR=arm(1,0xa8d0ec,-.6,.12,-.6,white,frost);
+    const hg=head({eye:0x3a7ab0});hair(hg,0xf4f8ff,.16);for(let k=0;k<7;k++){const a=-.9+k*.3;P(oct(.012),GLOW(crys),Math.sin(a)*.042,.055+Math.cos(a)*.006,-.008,0,0,a*.3,hg).scale.set(.6,2.6-Math.abs(k-3)*.45,.6);}   /* a crown of ice */
+    staff(hR,0xcfe8f5);for(let k=0;k<5;k++){const a=k/5*6.28;P(oct(.016),GLOW(crys),Math.cos(a)*.02,.27+(k%2)*.012,Math.sin(a)*.02,Math.sin(a)*.35,a,-Math.cos(a)*.35,st).scale.set(.7,2.3,.7);}glowOrb(st,0,.26,0,0x9fe6ff,.016);
+    motes(crys,6,.13,.1);}
+  else if(el==='lightning'){const navy=0x1e2a5a,silver=0xd8dee8;
+    robe(navy,gold,.2);torso(0x2a3a7a,1.05,gold);belt(0x14183a,gold,1.05);P(box(.05,.13,.012),gold,0,.1,.078,-.26);
+    for(let k=0;k<3;k++)P(box(.008,.04,.004),GLOW(0xd8c8ff),-.03+k*.03,.1+k*.03,.08,-.26,0,k%2?.6:-.6);   /* bolts stitched on the robe */
+    cape(0x141c44,.26,.16,.12);arm(-1,0x2a3a7a,-.35,.25,-.6,gold,navy);const hR=arm(1,0x2a3a7a,-.75,.1,-.5,gold,navy);
+    const hg=head({glow:0xd8c8ff});hair(hg,silver,.08);beard(hg,silver,.07);
+    P(cyl(.085,.085,.01,10),navy,0,.028,0,0,0,0,hg);P(cone(.05,.17,9),navy,0,.12,-.012,-.15,0,0,hg);P(cyl(.052,.052,.014,10),gold,0,.036,0,0,0,0,hg);   /* a storm-mage's hat */
+    for(let k=0;k<3;k++)P(box(.006,.03,.004),GLOW(0xe8dcff),.02-k*.012,.1+k*.03,.03-k*.008,-.2,0,k%2?.7:-.7,hg);
+    staff(hR,0x3a3a48);P(box(.008,.08,.008),silver,-.018,.27,0,0,0,.4,st);P(box(.008,.08,.008),silver,.018,.27,0,0,0,-.4,st);P(box(.008,.06,.008),silver,0,.3,0,0,0,0,st);   /* a forked crown */
+    glowOrb(st,0,.27,0,0xb89cff,.017);for(let k=0;k<3;k++)P(box(.004,.05,.004),GLOW(0xffffff),Math.cos(k*2.1)*.03,.27,Math.sin(k*2.1)*.03,k,.5,k*.9,st);
+    motes(0xd8c8ff,5,.13,.14);}
+  else if(el==='nature'){const moss=0x3a6a2a,bark=0x5a3a20,leaf=0x6ab040;
+    robe(moss,0x8a6a3a,.2);torso(0x4a7a32,1,0x8a6a3a);belt(bark,0x9acd50);for(let k=0;k<5;k++)P(ico(.014,0),k%2?leaf:0x8ad65a,-.05+k*.025,.142,.04);   /* a belt of leaves */
+    cape(0x2a5a20,.26,.16,.12);for(let k=0;k<6;k++)P(tet(.02),k%2?leaf:0x4a8a2a,-.06+k*.024,.04+(k%2)*.02,-.05,0,0,k);
+    arm(-1,0x4a7a32,-.35,.25,-.6,bark,moss);const hR=arm(1,0x4a7a32,-.7,.12,-.6,bark,moss);
+    const hg=head({eye:0x2a5a1a,brow:0x5a3a1a});hair(hg,0x6a3a1a,.15);P(ico(.05,1),moss,0,.018,-.022,0,0,0,hg).scale.set(1.08,1,1);   /* a hood of moss */
+    [-1,1].forEach(sd=>{const an=G(hg,sd*.03,.05,-.01,0,0,sd*-.3);P(cyl(.005,.007,.07,5),bark,0,.035,0,0,0,0,an);P(cyl(.004,.005,.035,5),bark,sd*.012,.05,0,0,0,sd*-.7,an);P(cyl(.004,.005,.03,5),bark,-sd*.008,.065,0,0,0,sd*.6,an);});   /* antlers */
+    for(let k=0;k<6;k++){const a=-1+k*.4;P(tet(.012),k%2?leaf:0x9acd50,Math.sin(a)*.045,.045,Math.cos(a)*.01,0,a,0,hg);}
+    staff(hR,bark,.34);for(let k=0;k<5;k++)P(cyl(.004,.005,.08,4),bark,Math.cos(k*1.3)*.012,.06+k*.04,Math.sin(k*1.3)*.012,.2,k,.3,st);   /* vines twisting up the staff */
+    for(let k=0;k<6;k++){const a=k/6*6.28;P(tet(.018),k%2?leaf:0x9acd50,Math.cos(a)*.03,.26+(k%2)*.02,Math.sin(a)*.03,a,a,0,st);}glowOrb(st,0,.27,0,0x9ae060,.016);
+    motes(0xb0f070,5,.13,.1);}
+  else if(el==='dark'){const ink=0x1a1022,plum=0x3a1a4a;
+    robe(ink,0x6a2a8a,.21);torso(plum,1,0x6a2a8a);belt(0x0e0814,0xa040ff);P(box(.05,.13,.012),0x6a2a8a,0,.1,.078,-.26);
+    const cp=cape(0x120a18,.28,.17,.1);for(let k=0;k<5;k++)P(cone(.014,.04,3),0x120a18,-.06+k*.03,.0,-.055,Math.PI,0,0);   /* a ragged hem */
+    arm(-1,plum,-.3,.3,-.5,0x6a2a8a,ink);const hR=arm(1,plum,-.7,.12,-.6,0x6a2a8a,ink);
+    const hg=head({glow:0xc070ff});P(ico(.055,1),ink,0,.014,-.026,0,0,0,hg).scale.set(1.08,1.1,1.02);P(cone(.04,.09,7),ink,0,.075,-.045,-.6,0,0,hg);P(box(.07,.012,.02),ink,0,.042,.03,.3,0,0,hg);   /* a deep hood */
+    [-1,1].forEach(sd=>P(cone(.01,.06,5),0x2a1a30,sd*.035,.06,-.02,-.3,0,sd*-.6,hg));   /* horns through it */
+    staff(hR,0x1a1420);P(ico(.026,0),0xd8ccc0,0,.27,0,0,0,0,st).scale.set(1,1.15,1.05);P(box(.008,.006,.004),GLOW(0xc070ff),-.009,.272,.024,0,0,0,st);P(box(.008,.006,.004),GLOW(0xc070ff),.009,.272,.024,0,0,0,st);   /* a skull with violet eyes */
+    for(let k=0;k<3;k++){const a=k/3*6.28;P(cone(.005,.05,4),0x2a1a30,Math.cos(a)*.02,.24,Math.sin(a)*.02,Math.sin(a)*.6,0,-Math.cos(a)*.6,st);}glowOrb(st,0,.31,0,0xa040ff,.013);
+    motes(0xa040ff,5,.13,.1);}
+  else{const ivory=0xf0e6d0,sun=0xffd86a;   /* light */
+    robe(ivory,gold,.21);torso(0xfaf4e4,1,gold);belt(0xc8a040,gold);P(box(.05,.13,.012),gold,0,.1,.078,-.26);P(oct(.013),GLOW(0xfff0c0),0,.15,.083);
+    cape(0xf8f0dc,.26,.16,.1);[-1,1].forEach(sd=>{const wg=G(g,sd*.05,.25,-.07,0,sd*.45,0);for(let k=0;k<4;k++){const a=.3+k*.3;P(box(.012,.11-k*.012,.004),GLOW(k%2?0xfff0c0:sun),sd*Math.sin(a)*.06,Math.cos(a)*.05,0,0,0,sd*-a,wg);}});   /* small wings of light */
+    arm(-1,0xfaf4e4,-.3,.3,-.5,gold,ivory);const hR=arm(1,0xfaf4e4,-.7,.12,-.6,gold,ivory);
+    const hg=head({glow:0xffe08c});hair(hg,0xf0d890,.16);P(cyl(.049,.049,.008,12),gold,0,.02,0,.1,0,0,hg);P(oct(.01),GLOW(0xfff0c0),0,.026,.048,0,0,0,hg);
+    {const hl=G(hg,0,.035,-.05);P(new THREE.TorusGeometry(.068,.004,4,36),GLOW(sun),0,0,0,0,0,0,hl);for(let k=0;k<10;k++){const a=k/10*6.28;P(cone(.003,k%2?.014:.024,3),GLOW(0xfff0c0),Math.cos(a)*.078,Math.sin(a)*.078,0,0,0,a-Math.PI/2,hl);}}   /* a halo */
+    staff(hR,ivory);P(cyl(.026,.026,.005,16),gold,0,.27,0,Math.PI/2,0,0,st);for(let k=0;k<8;k++){const a=k/8*6.28;P(cone(.005,.026,3),gold,Math.cos(a)*.036,.27+Math.sin(a)*.036,0,0,0,a-Math.PI/2,st);}   /* a sun disc */
+    glowOrb(st,0,.27,.004,sun,.014);motes(0xfff0c0,5,.13,.12);}
+  g.scale.setScalar(1.06);}
 buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;
 makeThumbs();renderer.setClearColor(0x000000,0);applyShadows();fit();
 showOverlay('menu');updSpells();
@@ -32095,7 +32227,9 @@ if(GAME.setAside)setTimeout(()=>toast('Your open-world run now belongs to Kingsg
 requestAnimationFrame(frame);
 /* ---- What's new: shown once per notes version (per account), on the first open after an update ---- */
 const NOTES_V='masteries-4';
-const NOTES_HTML=`<h3>\u2726 Hall of Champions, and profiles</h3><ul>
+const NOTES_HTML=`<h3>\u2726 Six elemental heroes</h3><ul>
+<li>Six new spellcasters, each a master of one element: Sylvara (nature), Isolde (ice), Ignatia (fire), Corvin (dark), Vesper (lightning) and Seraphine (light). Their own element&rsquo;s scrolls deal 30% more and come back 10% sooner, and their bolts carry the element: burning, chilling, chaining, rooting, withering or flaring with light.</li></ul>
+<h3>\u2726 Hall of Champions, and profiles</h3><ul>
 <li>A leaderboard for you and your friends: tap the gold trophy on the land card to see everyone&rsquo;s best wave on every land, carve your name in and climb the podium. New records go up by themselves.</li>
 <li>Your profile: tap your portrait at the top left to pick a portrait (a Knight or a Mage), rename your account and see your records.</li></ul>
 <h3>\u2726 Scroll masteries reworked</h3><ul>
