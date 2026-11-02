@@ -7995,21 +7995,21 @@ function castEmberTitan(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.fak
 
 /* ---- Eternal Winter ---- */
 let MY_AUR=false,MY_FROST=null;
-function myAurora(k){let el=$('#myAurora');if(!el){if(!(k>0))return;el=document.createElement('div');el.id='myAurora';el.innerHTML='<i></i><i></i><i></i>';document.body.appendChild(el);}
+function myAurora(k,b){let el=$('#myAurora');if(!el){if(!(k>0))return;el=document.createElement('div');el.id='myAurora';el.innerHTML='<i></i><i></i><i></i>';document.body.appendChild(el);}
   if(!MY_AUR){MY_AUR=true;const st=document.createElement('style');st.textContent='#myAurora{position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;display:none;mix-blend-mode:screen;overflow:hidden}'+
    '#myAurora i{position:absolute;left:-30%;width:160%;height:58%;top:-10%;background:repeating-linear-gradient(90deg,rgba(60,255,170,0) 0,rgba(60,255,170,.55) 2.5%,rgba(110,210,255,.28) 6%,rgba(60,255,170,0) 10%);filter:blur(7px);'+
    '-webkit-mask:linear-gradient(transparent,#000 25%,#000 50%,transparent);mask:linear-gradient(transparent,#000 25%,#000 50%,transparent);transform:skewX(-20deg);animation:myAur 9s ease-in-out infinite alternate}'+
    '#myAurora i:nth-child(2){top:-4%;height:48%;background:repeating-linear-gradient(90deg,rgba(170,120,255,0) 0,rgba(170,120,255,.42) 3.5%,rgba(70,255,200,.22) 8%,rgba(170,120,255,0) 13%);animation-duration:12s;animation-delay:-5s}'+
    '#myAurora i:nth-child(3){top:2%;height:38%;opacity:.7;background:repeating-linear-gradient(90deg,rgba(120,255,220,0) 0,rgba(120,255,220,.5) 1.5%,rgba(120,255,220,0) 4.5%);animation-duration:7s;animation-delay:-2s}'+
    '@keyframes myAur{0%{transform:skewX(-22deg) translateX(-7%) scaleY(1)}50%{transform:skewX(-8deg) translateX(3%) scaleY(1.18)}100%{transform:skewX(-26deg) translateX(9%) scaleY(.9)}}';document.head.appendChild(st);}
-  el.style.opacity=Math.max(0,k).toFixed(3);el.style.display=k>.004?'block':'none';}
+  el.style.opacity=Math.max(0,k).toFixed(3);el.style.display=k>.004?'block':'none';el.style.filter=b>1.001?'brightness('+b.toFixed(2)+') saturate(1.15)':'';}
 /* frost spreading over the whole board from one point: cellular ice plates and a bright front; then the shatter wave (uW) races out,
    lights every crack and breaks the plates away one by one */
 function myFrostFloor(){if(MY_FROST)return MY_FROST;const c0=tw(0,0),c1=tw(W-1,H-1),cx=(c0.x+c1.x)/2,cz=(c0.z+c1.z)/2,w=Math.abs(c1.x-c0.x)+1.2,h=Math.abs(c1.z-c0.z)+1.2;
   const g=new THREE.PlaneGeometry(w,h,1,1);g.rotateX(-Math.PI/2);
-  const m=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uR:{value:0},uO:{value:new THREE.Vector2()},uK:{value:0},uW:{value:-9},uC:{value:new THREE.Vector2(cx,cz)},uS:{value:new THREE.Vector2(w/2,h/2)}},transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,
+  const m=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uR:{value:0},uO:{value:new THREE.Vector2()},uK:{value:0},uW:{value:-9},uF:{value:0},uC:{value:new THREE.Vector2(cx,cz)},uS:{value:new THREE.Vector2(w/2,h/2)}},transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,
     vertexShader:'varying vec3 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
-    fragmentShader:'uniform float uT,uR,uK,uW;uniform vec2 uO,uC,uS;varying vec3 vW;'+
+    fragmentShader:'uniform float uT,uR,uK,uW,uF;uniform vec2 uO,uC,uS;varying vec3 vW;'+
      'float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}'+
      'vec2 h22(vec2 p){return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453);}'+
      'vec2 cell(vec2 p){vec2 i=floor(p),f=fract(p),id=i;float d1=8.,d2=8.;for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 b=vec2(float(x),float(y));vec2 r=b+h22(i+b)-f;float d=dot(r,r);if(d<d1){d2=d1;d1=d;id=i+b;}else if(d<d2)d2=d;}return vec2(sqrt(d2)-sqrt(d1),h2(id));}'+
@@ -8017,12 +8017,13 @@ function myFrostFloor(){if(MY_FROST)return MY_FROST;const c0=tw(0,0),c1=tw(W-1,H
      'float d=length(p-uO);float inside=1.-smoothstep(uR-.6,uR,d);float front=exp(-abs(d-uR)*2.2)*step(.01,uR)*(1.-step(-1.,uW));'+
      'vec2 cc=cell(p*1.1);float crack=1.-smoothstep(.0,.06,cc.x);float fine=1.-smoothstep(0.,.05,cell(p*3.1+7.).x);'+
      'float wv=step(0.,uW)*exp(-abs(d-uW)*.8);float gone=smoothstep(0.,1.,uW-d-.8-4.5*cc.y);'+
-     'vec3 base=mix(vec3(.74,.87,1.),vec3(.93,.97,1.),cc.y);vec3 col=base+vec3(.6,.85,1.)*crack*(.6+2.4*wv)+vec3(.4,.6,1.)*fine*(.25+wv)+vec3(.6,.8,1.)*wv*.4;'+
-     'float a=(inside*(.5+crack*(.28+.6*wv)+wv*.2)*(1.-gone)+front*.7)*uK*edge;'+
+     'float fc=uF*exp(-abs(d-uR)*.7)*inside*step(.01,uR)*(1.-step(-1.,uW));'+
+     'vec3 base=mix(vec3(.74,.87,1.),vec3(.93,.97,1.),cc.y);vec3 col=base+vec3(.6,.85,1.)*crack*(.6+2.4*wv)+vec3(.4,.6,1.)*fine*(.25+wv)+vec3(.6,.8,1.)*wv*.4+vec3(.7,.9,1.)*(crack*1.9+fine*.9)*fc;'+
+     'float a=(inside*(.5+crack*(.28+.6*wv)+wv*.2)*(1.-gone)+front*.7+(crack*.5+fine*.22)*fc)*uK*edge;'+
      'gl_FragColor=vec4(col+vec3(.5,.7,1.)*front,clamp(a,0.,.92));}'});
   const mesh=new THREE.Mesh(g,m);mesh.position.set(0,.016,0);mesh.renderOrder=1;mesh.frustumCulled=false;mesh.visible=false;scene.add(mesh);MY_FROST=mesh;return mesh;}
 function myFrozenStep(frozen,dt){for(let i=frozen.length-1;i>=0;i--){const z=frozen[i],e=z.e;z.t+=dt;
-    if(e.dead||z.t>=z.hold||!e.g||!e.g.parent){if(z.g.parent)z.g.parent.remove(z.g);frozen.splice(i,1);const q=tpos2(e);nsSplinters(q.x,q.y,q.z,e.dead?6:3,e.dead?1.6:1);continue;}
+    if(e.dead||z.t>=z.hold||!e.g||!e.g.parent){if(z.g.parent)z.g.parent.remove(z.g);frozen.splice(i,1);const q=tpos2(e);nsSplinters(q.x,q.y,q.z,e.dead?6:(z.n||3),e.dead?1.6:1);continue;}
     z.g.scale.setScalar(Math.max(.001,nsBackE(Math.min(1,z.t/.14))));}}
 /* the Heart lands on open ground next to the pack (not on it, so the frozen foes stay in sight) */
 function myHeartSpot(c){let best=null,bs=1e9;for(let r=0;r<H;r++)for(let q=0;q<W;q++){if(!grid[r]||grid[r][q]!==0)continue;const p=tw(q,r),d=Math.hypot(p.x-c.x,p.z-c.z);let nb=0;
@@ -8041,8 +8042,14 @@ function myHeart(mats,geos){const g=new THREE.Group(),hm=new THREE.MeshPhongMate
   const rayM=nsAM(mats,0xffffff,0),rays=new THREE.Group();rayM.vertexColors=true;rays.position.y=2.6;g.add(rays);
   const up=new THREE.Vector3(0,1,0);for(let i=0;i<11;i++){const d=new THREE.Vector3(rnd()-.5,(rnd()-.25)*.9,rnd()-.5).normalize(),p=new THREE.Group(),m=new THREE.Mesh(rg,rayM);p.quaternion.setFromUnitVectors(up,d);p.add(m);p.userData.L=.7+rnd()*.6;p.userData.ph=rnd()*6;rays.add(p);}
   return {g,hm,core,orb,hal,rays,rayM};}
-function castEternalWinter(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.fake),c=pool.length?densest(pool):(list[0]||{x:0,z:0}),sp=myHeartSpot(c),hx=sp.x,hz=sp.z,cy=gy(hx,hz),mats=[],geos=[];
-  const F=myFrostFloor();F.visible=true;const u=F.material.uniforms;u.uO.value.set(hx,hz);u.uR.value=0;u.uK.value=1;u.uW.value=-9;
+/* the numbers the masteries change (v453); a cast without options (XO) is exactly the plain cast. FROST and SHAT are the frost's and the
+   shatter's damage (times the power), SH when the Heart bursts (everything after it moves with it), GATH how long it gathers itself first,
+   SLOWT the slow after a hold, BOSS a boss's hold (bossWave: until the wave reaches it, between 1.2s and BOSS), rayK how far its rays
+   reach, aur the aurora's brightness, front the light in the cracks behind the frost's front, shardK the burst's shards' size; freeze
+   (an ice block for a frozen foe), burst (at the shatter), onFrost and onShatter are the masteries' hooks */
+const EWL={FROST:2,SHAT:12,SH:4.5,GATH:1.5,SLOWT:1.5,BOSS:1.2,bossWave:0,rayK:7.5,aur:1,front:0,shardK:1,freeze:null,burst:null,onFrost:null,onShatter:null};
+function castEternalWinter(t,list,P,o,XO){const D=XO?Object.assign({},EWL,XO):EWL,XT=D.SH-EWL.SH;const pool=enemies.filter(e=>!e.dead&&!e.fake),c=pool.length?densest(pool):(list[0]||{x:0,z:0}),sp=myHeartSpot(c),hx=sp.x,hz=sp.z,cy=gy(hx,hz),mats=[],geos=[];
+  const F=myFrostFloor();F.visible=true;const u=F.material.uniforms;u.uO.value.set(hx,hz);u.uR.value=0;u.uK.value=1;u.uW.value=-9;u.uF.value=D.front;
   const R=new THREE.Group();nsOwn(R);const HT=myHeart(mats,geos),FY=5.2;HT.g.position.set(hx,cy+FY,hz);HT.g.scale.setScalar(.001);R.add(HT.g);
   const pil=new THREE.Mesh(cyl(.42,.42,26,18),nsAM(mats,0xbfe6ff,0));pil.position.set(hx,cy+13,hz);R.add(pil);
   /* a frost sigil marks where it will land */
@@ -8052,13 +8059,13 @@ function castEternalWinter(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.
   const trail=nsTrail(mats,[[0xa8dcff,.32,.5],[0xffffff,.7,.14]]),tp=new THREE.Vector3();
   const crown=[];for(let i=0;i<10;i++){const a=i/10*6.283+rnd()*.3,r=1.35+rnd()*.5,m=new THREE.Mesh(oct(1),HT.hm),s=.22+rnd()*.18;m.position.set(hx+Math.cos(a)*r,cy,hz+Math.sin(a)*r);m.rotation.set(Math.sin(a)*(.5+rnd()*.3),0,-Math.cos(a)*(.5+rnd()*.3));m.userData.s=s;m.scale.setScalar(.001);m.visible=false;R.add(m);crown.push(m);}
   const ringM=nsAM(mats,0xdff4ff,0),rgeo=new THREE.RingGeometry(.94,1,96);rgeo.rotateX(-Math.PI/2);geos.push(rgeo);const ring=new THREE.Mesh(rgeo,ringM);ring.position.set(hx,cy+.07,hz);ring.visible=false;R.add(ring);
-  cineLock=Math.max(cineLock,5.8);darkTarget=Math.max(darkTarget,.5);vigTarget=Math.max(vigTarget,.45);if(typeof sfxWind==='function')sfxWind(5,.25);
+  cineLock=Math.max(cineLock,5.8+XT);darkTarget=Math.max(darkTarget,.5);vigTarget=Math.max(vigTarget,.45);if(typeof sfxWind==='function')sfxWind(5,.25);
   const nova=[],mkNova=()=>{for(const [n,r0,r1,s0,s1] of [[14,2.1,2.8,.15,.25],[18,3.1,3.9,.11,.19]])for(let i=0;i<n;i++){const a=i/n*6.283+rnd()*.25,r=r0+rnd()*(r1-r0),x=hx+Math.cos(a)*r,z=hz+Math.sin(a)*r,gc=Math.round(x/TS+OX),gr=Math.round(z/TS+OZ);
       if(grid[gr]&&grid[gr][gc]===1)continue;if(enemies.some(e=>!e.dead&&(e.x-x)**2+(e.z-z)**2<.36))continue;   /* the road and the foes stay in sight */
       const m=new THREE.Mesh(oct(1),HT.hm),s=s0+rnd()*(s1-s0),lean=.55+rnd()*.35;m.position.set(x,gy(x,z),z);m.rotation.set(Math.sin(a)*lean,rnd()*2,-Math.cos(a)*lean);m.userData={s,d:r/9};m.scale.setScalar(.001);R.add(m);nova.push(m);}};
-  const LAND=1.6,SH=4.5,WS=17,frozen=[],caught=new Map(),broke=new Set(),shards=[],WX=.8,WZ=.45,e0=new THREE.Color(0x4a9ad8),e1=new THREE.Color(0xa8dcff);let tt=0,landed=false,shat=false,sm=null,formed=false;
-  addFx(R,6.8,(f,dt)=>{if(state!=='playing'){myAurora(0);nsFrostVeil(0);F.visible=false;frozen.forEach(z=>{if(z.g.parent)z.g.parent.remove(z.g);});f.life=0;return;}tt+=dt;
-    const k=SMS(tt,0,.8)*(1-SMS(tt,5.6,6.8)),kc=SMS(tt,SH-1.5,SH)*(shat?0:1);myAurora(.9*k*(1+.25*SMS(tt,LAND,LAND+.6)*(1-SMS(tt,SH,SH+.4))));nsFrostVeil(.55*k);
+  const LAND=1.6,SH=D.SH,WS=17,frozen=[],caught=new Map(),broke=new Set(),shards=[],WX=.8,WZ=.45,e0=new THREE.Color(0x4a9ad8),e1=new THREE.Color(0xa8dcff);let tt=0,landed=false,shat=false,sm=null,formed=false;
+  addFx(R,6.8+XT,(f,dt)=>{if(state!=='playing'){myAurora(0);nsFrostVeil(0);F.visible=false;frozen.forEach(z=>{if(z.g.parent)z.g.parent.remove(z.g);});f.life=0;return;}tt+=dt;
+    const k=SMS(tt,0,.8)*(1-SMS(tt,5.6+XT,6.8+XT)),kc=SMS(tt,SH-D.GATH,SH)*(shat?0:1);myAurora(.9*k*(1+.25*SMS(tt,LAND,LAND+.6)*(1-SMS(tt,SH,SH+.4))),D.aur);nsFrostVeil(.55*k);
     if(dt>0&&k>0){const vc=viewCenter(),n=Math.round(dt*170*k);for(let i=0;i<n;i++){const x=vc.x+(rnd()-.5)*14-WX*2,z=vc.z+(rnd()-.5)*20-WZ*2,sv=1.2+rnd()*1.4;emit(0,{x,y:1.2+rnd()*3.2,z,vx:WX*sv,vy:-.6-rnd()*.5,vz:WZ*sv,s:.05+rnd()*.05,s2:.025,c:0xffffff,c2:0xdff0ff,a:.9,a2:.2,life:1.6+rnd(),turb:.8});}}
     /* the Heart forms high above: shards and snow spiral in, it swells out of them, then it plunges with a comet's tail of frost */
     const kf=Math.min(1,tt/LAND),kd=SMS(tt,1,LAND),dive=kd*kd*kd;pil.material.opacity=.2*SMS(tt,0,.5)*(1-SMS(tt,LAND,LAND+.5));pil.scale.set(1-.5*kd,1,1-.5*kd);
@@ -8079,7 +8086,7 @@ function castEternalWinter(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.
       /* it gathers itself: the shards close in, it glows white, trembles, and light breaks out of it */
       HT.g.position.set(hx+(rnd()-.5)*.1*kc,cy+(rnd()-.5)*.05*kc,hz+(rnd()-.5)*.1*kc);HT.hm.emissive.copy(e0).lerp(e1,kc);HT.hm.emissiveIntensity=.6+.55*kc;
       HT.core.material.opacity=.5+.35*kc;HT.core.scale.set(.55+.25*kc,2.2+.6*kc,.55+.25*kc);HT.rayM.opacity=.55*kc;HT.rays.rotation.y+=dt*.5;
-      HT.rays.children.forEach(p=>{const L=(1+7.5*kc)*p.userData.L*(.8+.2*Math.sin(tt*9+p.userData.ph));p.scale.set(.25+.55*kc,L,.25+.55*kc);});
+      HT.rays.children.forEach(p=>{const L=(1+D.rayK*kc)*p.userData.L*(.8+.2*Math.sin(tt*9+p.userData.ph));p.scale.set(.25+.55*kc,L,.25+.55*kc);});
       if(kc>0&&dt>0){darkTarget=Math.max(darkTarget,.5+.2*kc);const n=Math.round(dt*40*kc+rnd());for(let i=0;i<n;i++){const a=rnd()*6.283,r=2.2+rnd()*1.6,y=cy+.5+rnd()*4.5;emit(1,{x:hx+Math.cos(a)*r,y,z:hz+Math.sin(a)*r,vx:-Math.cos(a)*r*2.4,vy:(cy+2.6-y)*2.4,vz:-Math.sin(a)*r*2.4,s:.1,s2:0,c:0xffffff,c2:0x9fe4ff,life:.4});}}}
     HT.orb.rotation.y+=dt*(.8+2.5*kc);HT.orb.children.forEach(m=>{const r=1.9-.9*kc;m.position.x=Math.cos(m.userData.a)*r;m.position.z=Math.sin(m.userData.a)*r;m.rotation.x+=dt*2;});
     if(landed&&tt<LAND+.5)trail.fade(Math.max(0,1-(tt-LAND)/.3));
@@ -8088,27 +8095,27 @@ function castEternalWinter(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.
       if(kk>0&&!m.userData.p&&dt>0){m.userData.p=1;sprayP(1,m.position.x,m.position.y+.1,m.position.z,6,{c:0xffffff,c2:0x9fdcff,sp:1.2,up:1.4,s:.05,s2:0,life:.4,g:3});}});
     /* the frost wave freezes every foe it reaches; each stays frozen until the shatter wave reaches it */
     if(landed){const Rr=Math.min(40,(tt-LAND)*26);u.uR.value=Rr;u.uT.value+=dt;
-      if(!shat)for(const e of enemies){if(e.dead||caught.has(e))continue;const d=Math.hypot(e.x-hx,e.z-hz);if(d<Rr){caught.set(e,d);hurt(e,P*2,'magic',o);if(e.dead)continue;const hold=e.boss?1.2:Math.max(.3,SH+d/WS+.05-tt);
-        e.stunT=Math.max(e.stunT||0,hold);e.slow=Math.max(e.slow||0,.5);e.slowT=Math.max(e.slowT||0,hold+1.5);nsFreezeFoe(e,hold+.02,frozen);}}}
+      if(!shat)for(const e of enemies){if(e.dead||caught.has(e))continue;const d=Math.hypot(e.x-hx,e.z-hz);if(d<Rr){caught.set(e,d);hurt(e,P*D.FROST,'magic',o);if(e.dead)continue;const hw=Math.max(.3,SH+d/WS+.05-tt),hold=e.boss?(D.bossWave?Math.min(D.BOSS,Math.max(EWL.BOSS,hw)):D.BOSS):hw;
+        e.stunT=Math.max(e.stunT||0,hold);e.slow=Math.max(e.slow||0,.5);e.slowT=Math.max(e.slowT||0,hold+D.SLOWT);(D.freeze||nsFreezeFoe)(e,hold+.02,frozen);if(D.onFrost)D.onFrost(e,hold,d);}}}
     /* the shatter: the Heart bursts and a wave of breaking ice sweeps the world */
     if(!shat&&tt>=SH){shat=true;worldSlow=.3;slowT=.3;camShake=Math.max(camShake,.7);flashA=Math.max(flashA,.6);flashCol='#ffffff';if(typeof sfxBoom==='function')sfxBoom(.8,false);
       HT.g.visible=false;crown.forEach(m=>m.visible=false);nova.forEach(m=>{if(m.visible&&rnd()<.5)nsSplinters(m.position.x,m.position.y+.3,m.position.z,2,1.4);m.visible=false;});flash(hx,cy+2.4,hz,0xbfe6ff,1.6,.3);shockwave(hx,hz,5,0xffffff,.6,0xa8c8e8);nsSplinters(hx,cy+2,hz,30,3.4);
       sm=HT.hm.clone();sm.emissive.copy(e1);sm.emissiveIntensity=.9;mats.push(sm);
-      for(let i=0;i<30;i++){const a=rnd()*6.283,r=rnd()*.9,y=cy+.4+rnd()*5,m=new THREE.Mesh(oct(1),sm),s=.14+rnd()*.32,hs=3.5+rnd()*5.5;m.scale.set(s,s*(1.4+rnd()*2.2),s);m.position.set(hx+Math.cos(a)*r,y,hz+Math.sin(a)*r);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);R.add(m);
+      for(let i=0;i<30;i++){const a=rnd()*6.283,r=rnd()*.9,y=cy+.4+rnd()*5,m=new THREE.Mesh(oct(1),sm),s=(.14+rnd()*.32)*D.shardK,hs=3.5+rnd()*5.5;m.scale.set(s,s*(1.4+rnd()*2.2),s);m.position.set(hx+Math.cos(a)*r,y,hz+Math.sin(a)*r);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);R.add(m);
         shards.push({m,v:new THREE.Vector3(Math.cos(a)*hs,2+rnd()*5,Math.sin(a)*hs),w:new THREE.Vector3((rnd()-.5)*12,(rnd()-.5)*12,(rnd()-.5)*12),s});}
       for(let i=0;i<20;i++){const a=rnd()*6.283;emitS(0,{x:hx,y:cy+.5+rnd()*3,z:hz,vx:Math.cos(a)*4,vy:.3+rnd(),vz:Math.sin(a)*4,s:.6,s2:2.6,c:0xffffff,c2:0xd4e6f4,a:.5,life:1.8,drag:1.4,turb:.3});}
-      ring.visible=true;}
+      ring.visible=true;if(D.burst)D.burst({hx,hz,cy,R,sm,shards,mats,geos,P,o,WS,SH,tt,end:6.8+XT});}
     if(shat){const Wd=(tt-SH)*WS;u.uW.value=Wd;ring.scale.set(Math.max(.01,Wd),1,Math.max(.01,Wd));ringM.opacity=.7*(1-SMS(Wd,18,34));
       if(dt>0&&Wd<34){const n=Math.round(dt*110);for(let i=0;i<n;i++){const a=rnd()*6.283,x=hx+Math.cos(a)*Wd,z=hz+Math.sin(a)*Wd,q=tw(0,0),q1=tw(W-1,H-1);if(x<Math.min(q.x,q1.x)-.5||x>Math.max(q.x,q1.x)+.5||z<Math.min(q.z,q1.z)-.5||z>Math.max(q.z,q1.z)+.5)continue;
         emitS(0,{x,y:.25,z,vx:Math.cos(a)*1.6,vy:.5+rnd()*.5,vz:Math.sin(a)*1.6,s:.35,s2:1.2,c:0xffffff,c2:0xdcecf8,a:.4,life:.8,drag:1.2});}}
-      for(const [e,d0] of caught){if(broke.has(e))continue;const d=e.dead?d0:Math.hypot(e.x-hx,e.z-hz);if(d>Wd)continue;broke.add(e);if(e.dead)continue;hurt(e,P*12,'magic',o);
+      for(const [e,d0] of caught){if(broke.has(e))continue;const d=e.dead?d0:Math.hypot(e.x-hx,e.z-hz);if(d>Wd)continue;broke.add(e);if(e.dead)continue;hurt(e,P*D.SHAT,'magic',o);if(D.onShatter)D.onShatter(e,d);
         const q=tpos2(e);nsSplinters(q.x,q.y,q.z,5,1.6);sprayP(1,q.x,q.y,q.z,10,{c:0xffffff,c2:0x8fdcff,sp:1.8,up:.6,s:.05,s2:0,life:.45,g:2});flash(q.x,q.y+.2,q.z,0xcfefff,.45,.16);
         frozen.forEach(z=>{if(z.e===e)z.hold=Math.min(z.hold,z.t);});}
       const fa=1-SMS(tt,SH+1.3,SH+2.2);sm.opacity=.88*fa;sm.emissiveIntensity=.4+.6*(1-SMS(tt,SH,SH+.6));
       for(const s of shards){s.v.y-=9*dt;s.m.position.addScaledVector(s.v,dt);s.m.rotation.x+=s.w.x*dt;s.m.rotation.y+=s.w.y*dt;s.m.rotation.z+=s.w.z*dt;
         const gyv=gy(s.m.position.x,s.m.position.z)+s.s*.5;if(s.m.position.y<gyv){s.m.position.y=gyv;s.v.y=Math.abs(s.v.y)*.25;s.v.x*=.5;s.v.z*=.5;s.w.multiplyScalar(.5);}}}
-    myFrozenStep(frozen,dt);u.uK.value=1-SMS(tt,5.8,6.8);
-    if(tt>5.4){darkTarget=Math.max(0,darkTarget-dt*.45);vigTarget=Math.max(0,vigTarget-dt*.45);}},
+    myFrozenStep(frozen,dt);u.uK.value=1-SMS(tt,5.8+XT,6.8+XT);
+    if(tt>5.4+XT){darkTarget=Math.max(0,darkTarget-dt*.45);vigTarget=Math.max(0,vigTarget-dt*.45);}},
     ()=>{nsFree(R);trail.free();F.visible=false;myAurora(0);nsFrostVeil(0);frozen.forEach(z=>{if(z.g.parent)z.g.parent.remove(z.g);});darkTarget=0;vigTarget=0;},{mats,geos});}
 
 {const rc=resetCine;resetCine=function(){myAurora(0);if(MY_FROST)MY_FROST.visible=false;rc();};}
@@ -14180,6 +14187,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Eternal Winter: the same winter, colder',d:'2 Nov',v:'v453',li:[
+    'Eternal Winter (Mythic) has five new masteries, for now in developer mode. Still the same Heart, the same frost and the same wave: each mastery strengthens a part the spell already has and draws it richer.',
+    'Biting Frost: the frost strikes 320% as it reaches each foe (200% before); its ice is larger, with longer spikes, and the cracks behind its front light up. The Long Freeze: the Heart gathers itself 0.6s longer, so the foes it freezes stay frozen 0.6s longer (bosses as before), and slowed 2.5s after (1.5s before); its rays reach further and the aurora burns brighter.',
+    'Shards of the Heart: when the Heart bursts, 6 of its 30 shards fly at the nearest foes, larger and brighter, trailing frost: 100% each where they land. Winter\u2019s Hold: bosses stay frozen until the wave reaches them too, up to 2.4s (1.2s before), in thicker ice.',
+    'Absolute Zero: the shatter wave strikes 1500% (1200% before); the sheet of ice bursts up into tumbling plates as it breaks, and all the Heart\u2019s shards fly larger.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -31967,6 +31979,99 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
   dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
+/* ================= Eternal Winter's masteries (v453), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: the Heart of Winter falls, frost freezes the whole world, and the Heart bursts so a wave of breaking ice shatters everything
+   frozen (the frost strikes 200% as it reaches each foe and freezes it until the wave comes; the wave shatters every caught foe for 1200%).
+   Simon: "lets do the same way all the mythics ancients and secrets where their identity is preserved but their visuals barely change and
+   change only to better", and "new stuff CAN appear ... but just nothing that over shines the spell". So each mastery strengthens one part
+   the spell already has and draws that same part richer; the one new thing (Shards of the Heart) is six of the thirty shards the burst
+   already throws. No brittleness marks, snowfall, spires, frostbite or echoes (the generic set had them).
+   | # | Mastery | Part of the spell | What changes | How it looks |
+   | 1 | Biting Frost | the frost's touch | the frost strikes EWM.frost (2 before) | larger ice blocks with longer spikes; brighter cracks at the frost's front |
+   | 2 | The Long Freeze | the hold | the Heart gathers EWM.gath s longer (the burst at 5.1s, not 4.5), so every foe held until the wave is held that much longer, and stays slowed EWM.slowT s after (1.5) | longer rays from the Heart; a brighter aurora |
+   | 3 | Shards of the Heart | the burst's shards | EWM.aimN of its 30 shards fly at the nearest foes: EWM.aim each where they land | those shards larger and brighter, with frost trails |
+   | 4 | Winter's Hold | the boss rule | bosses stay frozen until the wave reaches them too, up to EWM.boss s (1.2s before; never less) | thicker ice on bosses |
+   | 5 | Absolute Zero | the shatter | the wave strikes EWM.shat (12 before) | the floor's ice plates burst up as it breaks, a sheet of ice with height; all 30 shards larger |
+   Percentages are of the scroll's power. Every mastered cast runs castEternalWinter with its XO (ewmOpts): the same Heart, frost and wave
+   with this cast's numbers and looks; Mastery 0, echoes and other casters cast exactly as before. The Long Freeze moves the whole end of
+   the cast with the burst: its length (6.8s), the fade (5.8-6.8s) and the cinematic lock (5.8s) all come 0.6s later. Holds still ignore
+   Resolve, as the plain cast's do, so Winter's Hold is capped at 2.4s. Holds, slows and Winter's Hold count for nothing on the ladder
+   (its foes stand still), so their levels' factors carry them. Power on the Mythic half-step ladder (pack .6 / one .4; the ladder's foes
+   stand still, so runs agree): without factors 1.086 / 1.086 / 1.136 / 1.136 / 1.35 (Biting Frost +8.6%, the six shards about +5%,
+   Absolute Zero +21%); with the hidden factors below 1.078 / 1.162 / 1.225 / 1.302 / 1.35 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35.
+   The factor falls back to 1 at Mastery 5, where Absolute Zero's own damage reaches the target. EWM.dbg (an array) logs the events. */
+const EWM={dbg:null,frost:3.2,gath:.6,slowT:2.5,aimN:6,aim:1,boss:2.4,shat:15,blockK:1.18,spikeK:1.7,bossK:1.06,rayK:11,aur:1.3,aimK:1.7,shardK:1.45,plateN:.5};
+const ewmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='eternalwinter'&&c.L?c:null;};
+const ewmLog=d=>{if(EWM.dbg){d.t=time;EWM.dbg.push(d);}};
+SM_D.eternalwinter=[
+  {n:'Biting Frost',d:'The frost strikes {320}% as it reaches each foe (200% before), and the ice it leaves is larger, with longer spikes.'},
+  {n:'The Long Freeze',d:'The Heart gathers itself 0.6s longer, so the foes it freezes stay frozen 0.6s longer (bosses as before) and stay slowed 2.5s after (1.5s before). Its rays reach further and the aurora burns brighter.'},
+  {n:'Shards of the Heart',d:'When the Heart bursts, 6 of its shards fly at the nearest foes, larger and brighter: {100}% each where they land.'},
+  {n:'Winter\'s Hold',d:'Bosses stay frozen until the wave reaches them too, up to 2.4s (1.2s before), in thicker ice.'},
+  {n:'Absolute Zero',d:'The shatter wave strikes {1500}% (1200% before). The ice sheet bursts up as it breaks, and all the Heart\'s shards fly larger.'}];
+SMF.eternalwinter={m:1};
+SMA.eternalwinter=[1,1,1,1,1];
+SMG.eternalwinter=[.993,1.07,1.079,1.146,1];
+/* the ice on a frozen foe: the plain block (nsFreezeFoe), larger and with longer spikes; a boss's (Winter's Hold) thicker still, a second
+   shell of ice round it and crystals jutting from its foot */
+function ewmFreeze(e,hold,list,L){const n0=list.length;nsFreezeFoe(e,hold,list);if(list.length===n0)return;const z=list[list.length-1],g=z.g,boss=L>=4&&!!e.boss,k=boss?EWM.bossK:EWM.blockK,sp=boss?1.4:EWM.spikeK;
+  g.children.forEach((m,i)=>{m.position.multiplyScalar(k);m.scale.multiplyScalar(k);if(i){const S=m.scale.y;m.scale.y=S*sp;m.position.y+=S*(sp-1)*.8;}});z.n=5;
+  if(boss){const G=nsIceGeos(),b=g.children[0],h=(e.hitY||.4)/(e.g.scale.y||1)*1.3*k,sh=new THREE.Mesh(b.geometry,b.material);sh.scale.set(b.scale.x*1.1,b.scale.y*1.05,b.scale.z*1.1);sh.position.y=b.position.y*1.05;sh.rotation.y=b.rotation.y+.52;sh.renderOrder=3;g.add(sh);
+    for(let i=0;i<7;i++){const a=i/7*6.283+rnd()*.5,m=new THREE.Mesh(G[(2*i+1)%6],NS_ICE),w=h*(.06+rnd()*.03),hh=h*(.2+rnd()*.16);m.scale.set(w,hh,w);m.position.set(Math.sin(a)*h*.5,hh*.5,Math.cos(a)*h*.5);m.rotation.set(Math.cos(a)*.6,0,-Math.sin(a)*.6);g.add(m);}
+    z.n=9;}}
+/* Shards of the Heart: n of the burst's shards fly at the nearest foes (one each), larger and brighter, trailing frost, and strike where they land */
+function ewmAim(B,X){const T=enemies.filter(e=>!e.dead&&!e.fake).map(e=>({e,d:(e.x-B.hx)**2+(e.z-B.hz)**2})).sort((a,b)=>a.d-b.d).slice(0,X.aimN).map(q=>q.e);if(!T.length)return;
+  const am=new THREE.MeshPhongMaterial({color:0xdcf2ff,emissive:0x7cc0f0,emissiveIntensity:.95,specular:0xffffff,shininess:120,flatShading:true,transparent:true,opacity:.95});B.mats.push(am);
+  const gm=nsAM(B.mats,0x8fd4ff,.14);   /* a soft glow round each of them */
+  const up=new THREE.Vector3(0,1,0),dv=new THREE.Vector3(),q0=new THREE.Vector3(),q1=new THREE.Vector3(),S=B.shards.splice(0,T.length).map((s,i)=>{const e=T[i],p0=s.m.position.clone().setY(B.cy+1.2+rnd()*1.6),p=tpos2(e),d=Math.hypot(p.x-p0.x,p.z-p0.z),
+      w=(.22+.04*(i%3))*X.aimK*(X.shardK?1.15:1)*.62,gl=new THREE.Mesh(s.m.geometry,gm);s.m.material=am;s.m.scale.set(w,w*3.4,w);gl.scale.set(1.4,1.15,1.4);s.m.add(gl);
+      return{m:s.m,e,p0,p1:new THREE.Vector3(p.x,p.y,p.z),T:Math.min(1,.28+d*.045)+i*.035,hA:.7+d*.12,u:0,hit:false,k:1,tr:nsTrail(B.mats,[[0x8fd0ff,.22,.14],[0xd4f0ff,.48,.04]])};});
+  ewmLog({ev:'aim',L:T.slice(),hx:B.hx,hz:B.hz});
+  const pos=(s,u,out)=>out.copy(s.p0).lerp(s.p1,u).setY(s.p0.y+(s.p1.y-s.p0.y)*u+4*s.hA*u*(1-u));
+  addFx(new THREE.Group(),1.6,(f,dt)=>{if(state!=='playing'){f.life=0;return;}for(const s of S){if(s.hit){s.k=Math.max(0,s.k-dt*4);s.tr.fade(s.k);continue;}
+      if(!s.e.dead){const p=tpos2(s.e);s.p1.set(p.x,p.y,p.z);}s.u=Math.min(1,s.u+dt/s.T);pos(s,s.u,q0);pos(s,Math.min(1,s.u+.02),q1);dv.subVectors(q1,q0);
+      if(s.u<1&&dv.lengthSq()>1e-8)s.m.quaternion.setFromUnitVectors(up,dv.normalize());s.m.position.copy(q0);s.tr.push(q0,10);s.tr.draw(1);s.tr.fade(1);
+      if(dt>0)for(let i=0;i<2;i++)emit(1,{x:q0.x+(rnd()-.5)*.12,y:q0.y+(rnd()-.5)*.12,z:q0.z+(rnd()-.5)*.12,vx:(rnd()-.5)*.3,vy:-.2,vz:(rnd()-.5)*.3,s:.08,s2:0,c:0xffffff,c2:0x8fd4ff,life:.4});
+      if(s.u>=1){s.hit=true;s.m.visible=false;const e=s.e,x=q0.x,y=q0.y,z=q0.z;let ok=false;if(!e.dead&&state==='playing'){ok=true;hurt(e,B.P*X.AIM,'magic',smO(B.o));}ewmLog({ev:'shard',e,hit:ok});
+        nsSplinters(x,y,z,7,1.7);sprayP(1,x,y,z,10,{c:0xffffff,c2:0x9fdcff,sp:2.2,up:1.1,s:.05,s2:0,life:.45,g:2.5});flash(x,y+.1,z,0xcfeeff,.32,.12);
+        for(let i=0;i<5;i++){const a=rnd()*6.283;emitS(0,{x,y:y-.1,z,vx:Math.cos(a)*.9,vy:.5+rnd()*.5,vz:Math.sin(a)*.9,s:.25,s2:.8,c:0xf4faff,c2:0xd4e6f4,a:.4,life:.8,drag:1.4});}}}},
+    ()=>{S.forEach(s=>s.tr.free());});}
+/* Absolute Zero: the floor's ice plates burst up as the wave breaks them (one instanced mesh, animated on the CPU only while they fly) */
+function ewmPlates(B,X){const c0=tw(0,0),c1=tw(W-1,H-1),x0=Math.min(c0.x,c1.x)-.55,x1=Math.max(c0.x,c1.x)+.55,z0=Math.min(c0.z,c1.z)-.55,z1=Math.max(c0.z,c1.z)+.55,sp=.92,P=[];
+  for(let x=x0+sp/2;x<x1;x+=sp)for(let z=z0+sp/2;z<z1;z+=sp){if(rnd()>EWM.plateN)continue;const px=x+(rnd()-.5)*sp*.5,pz=z+(rnd()-.5)*sp*.5,gc=Math.round(px/TS+OX),gr=Math.round(pz/TS+OZ),road=grid[gr]&&grid[gr][gc]===1;
+    if(enemies.some(e=>!e.dead&&(e.x-px)**2+(e.z-pz)**2<.2))continue;   /* not under a foe: they shatter in plain sight */
+    const a=rnd()*6.283;P.push({x:px,z:pz,y0:gy(px,pz),d:Math.hypot(px-B.hx,pz-B.hz)+.3+rnd()*.9,vy:(2.2+rnd()*2.2)*(road?.7:1),ax:Math.cos(a),az:Math.sin(a),w:(2.6+rnd()*2.2)*(rnd()<.5?-1:1),
+      ry:rnd()*6.283,sx:.32+rnd()*.24,sz:.32+rnd()*.24,th:.09+rnd()*.06,dx:(px-B.hx),dz:(pz-B.hz),t:-1});}
+  if(!P.length)return;
+  const s0=new THREE.CylinderGeometry(1,.9,1,5,1),g=jitterGeo(s0,.34);s0.dispose();B.geos.push(g);
+  const mat=new THREE.MeshPhongMaterial({color:0xeaf6ff,emissive:0x8cbce8,emissiveIntensity:.5,specular:0xffffff,shininess:110,flatShading:true,transparent:true,opacity:.82});B.mats.push(mat);
+  const im=new THREE.InstancedMesh(g,mat,P.length);im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);im.frustumCulled=false;im.renderOrder=2;im.castShadow=true;
+  const M=new THREE.Matrix4(),Z=new THREE.Matrix4().makeScale(0,0,0),q=new THREE.Quaternion(),qy=new THREE.Quaternion(),ax=new THREE.Vector3(),v=new THREE.Vector3(),sc=new THREE.Vector3();
+  for(let i=0;i<P.length;i++)im.setMatrixAt(i,Z);B.R.add(im);ewmLog({ev:'plates',n:P.length});
+  const LF=.55,G=12,t0=B.tt-B.SH;let t=t0;
+  addFx(new THREE.Group(),Math.max(.05,B.end-B.tt),(f,dt)=>{if(state!=='playing'){f.life=0;return;}t+=dt;const Wd=t*B.WS,fade=1-SMS(B.SH+t,B.end-1,B.end);let ch=false;
+    for(let i=0;i<P.length;i++){const p=P[i];if(p.t>LF)continue;if(p.t<0){if(Wd<p.d)continue;p.t=0;if(rnd()<.25)sprayP(1,p.x,p.y0+.1,p.z,4,{c:0xffffff,c2:0x9fdcff,sp:1,up:1.2,s:.045,s2:0,life:.35,g:3});}
+      p.t+=dt;ch=true;if(p.t>LF){im.setMatrixAt(i,Z);if(rnd()<.3)emit(1,{x:p.x,y:p.y0+.15,z:p.z,vx:0,vy:.3,vz:0,s:.07,s2:0,c:0xffffff,c2:0x9fdcff,life:.3});continue;}
+      const tt=p.t,y=Math.max(0,p.vy*tt-G*.5*tt*tt),k=(1-SMS(tt,LF-.2,LF))*fade,dl=Math.hypot(p.dx,p.dz)||1,out=.4*tt;
+      ax.set(p.az,0,-p.ax);q.setFromAxisAngle(ax,p.w*tt*.85);qy.setFromAxisAngle(v.set(0,1,0),p.ry);q.multiply(qy);
+      sc.set(p.sx*k,p.th*(.5+.5*k),p.sz*k);v.set(p.x+p.dx/dl*out,p.y0+.03+y,p.z+p.dz/dl*out);M.compose(v,q,sc);im.setMatrixAt(i,M);}
+    if(ch)im.instanceMatrix.needsUpdate=true;});}
+function ewmBurst(B,X){if(X.aimN)ewmAim(B,X);if(X.plates)ewmPlates(B,X);}
+/* this cast's numbers and looks (castEternalWinter's XO) */
+function ewmOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.FROST=EWL.FROST+(EWM.frost-EWL.FROST)*a[0];X.front=1;}
+  if(L>=2){X.SH=EWL.SH+EWM.gath;X.GATH=EWL.GATH+EWM.gath;X.SLOWT=EWM.slowT;X.rayK=EWM.rayK;X.aur=EWM.aur;}
+  if(L>=3){X.aimN=EWM.aimN;X.AIM=EWM.aim*a[2];X.aimK=EWM.aimK;}
+  if(L>=4){X.bossWave=1;X.BOSS=EWM.boss;}
+  if(L>=5){X.SHAT=EWL.SHAT+(EWM.shat-EWL.SHAT)*a[4];X.shardK=EWM.shardK;X.plates=1;}
+  X.freeze=(e,hold,list)=>ewmFreeze(e,hold,list,L);
+  if(L>=3)X.burst=B=>ewmBurst(B,X);
+  X.onFrost=(e,hold,d)=>ewmLog({ev:'frost',e,hold,boss:!!e.boss,d});X.onShatter=(e,d)=>ewmLog({ev:'shatter',e,d});
+  ewmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
+const EWM_OLD=castEternalWinter;
+castEternalWinter=function(t,list,P,o,XO){const c=!XO?ewmC(o):null;return EWM_OLD(t,list,P,o,c?ewmOpts(c):XO);};
+/* the mastery preview waits for the cast to end (its frost floor is shared: a cast on top of the last one's fade would lose it) */
+SMPV_BUSY.push(()=>!!(MY_FROST&&MY_FROST.visible));
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
