@@ -1836,3 +1836,18 @@ All twelve clips (Piercing Judgment and Dimensional Slash, Mastery 0 to 5) are r
 | Dimensional Slash, every mastery | A least length (`minLen`): in the stilled moment the world runs at a twelfth of its speed, the count of effects can fall to where it was before the cast, and that ended the clip there. Each clip now runs to the seal. |
 | Dimensional Slash 5 | Foes with 70 health, so some are still inside the rift when it snaps shut; the hero and the pack held in view (`trackHero`), because between the cast and the cut almost nothing moves and a single mote off the blade had steered the view down the field. |
 | Piercing Judgment 5 | A wide view (zoom 1 to 1.1) set half a tile toward the hero. The camera frames the foes the lines hit, and the arc of circles behind the hero is more than 2.5 tiles from all of them, so it counted them as a sideshow and they drifted off the right edge. |
+
+## Masteries count in play for every scroll (v450)
+
+A fix. A scroll's power is spell power x (1 + 5% a scroll level) x the Aevorian's time-and-space bonus x the mastery's own factor (`smP`: its hidden factor `SMG`, or its ladder). Epic and greater scrolls are cast a moment after the button (a banner, a cinematic beat), and work their power out again then, in case the hero changed; that second sum left `smP` out. So in play no Epic, Legendary, Mythic, Ancient or Secret mastery ever got its factor, while every ladder and test (which call `castScrollNow` with `100*smP(k)`) measured it with the factor. Common to Rare scrolls are cast at once and always had it.
+
+| Scroll | Mastery | Factor | Power in play before | Now |
+|---|---|---|---|---|
+| Piercing Judgment (Epic) | 3 | 0.944 | 12.21 | 11.53 |
+| Piercing Judgment (Epic), scroll level 3 | 4 | 1.099 | 13.43 | 14.76 |
+| Dimensional Slash (Legendary) | 5 | 0.989 | 12.21 | 12.08 |
+| Spatial Shatter (Mythic) | 2 | 1.16 | 12.21 | 14.16 |
+
+- How: one function, `scrollPow(t,k,s,lv)`, works the power out for both paths, so they cannot drift apart again. The factor is applied once (artifact recasts such as Sun Disc reuse the power they are given).
+- Masteries above Rare are still developer mode only: outside it the factor is 1, as before.
+- Tests: `tests/smpow-test.js` (9 rows, in run-all) fires real casts through `fireScroll` with `castScrollNow` swapped for a recorder: a Common scroll at once with its factor once; delayed Epic, Legendary and Mythic casts with theirs; Mastery 0 and non-developer play unchanged; and the page's own `fireScroll` uses `scrollPow` on both paths.
