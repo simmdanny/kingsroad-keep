@@ -6390,7 +6390,7 @@ function fireScroll(t,k,s,list){const S=SPELLS_S[k],ri=RB[S.r].i,lv=meta.spells[
       let use=l2.length?l2:(S.global?al:[]);if(!use.length&&aim){const near=al.filter(e=>(e.x-aim.x)**2+(e.z-aim.z)**2<4);use=near.length?near:[aim];}if(!use.length)use=[{x:t.x,z:t.z}];castScrollNow(k,t,s2,use,(s2.spellP||s2.dmg)*(1+.05*(lv-1))*tsd(t,k),o);});}
   else castScrollNow(k,t,s,list,P,o);}
 const TSP=new Set(['citadel','chronostasis','deflect','loop','compress','shatter','singularity']);
-const tsd=(t,k)=>t&&t.hero==='aevorian'&&TSP.has(k)?1.15:ehMastery(t,k)?1+EH.dmg:1,tsc=(t,k)=>t&&t.hero==='aevorian'&&TSP.has(k)?.9:ehMastery(t,k)?EH.cd:1;   /* v449: the elemental specialists' Element Mastery */
+const tsd=(t,k)=>t&&t.hero==='aevorian'&&TSP.has(k)?1.15:ehMastery(t,k)?1+EH.dmg:1,tsc=(t,k)=>t&&t.hero==='aevorian'&&TSP.has(k)?.9:ehMastery(t,k)?EH.cd:1;   /* v474: the elemental specialists' Element Mastery */
 const scrAuto=()=>meta.scrAuto!==false;
 function scrollCasts(t,s,list,dt){
   const h=HB[t.hero];if(!h||!h.scrolls)return;const ks=heroSpells(t.hero);if(!ks.length)return;
@@ -14176,7 +14176,7 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
-  {t:'Six elemental heroes',d:'2 Nov',v:'v449',li:[
+  {t:'Six elemental heroes',d:'2 Nov',v:'v474',li:[
     'Six new 4-star spellcasters, each a master of one element, priced by their power: Sylvara Thornwood (nature, 2,600 gems), Isolde Rimeheart (ice, 2,800), Ignatia Emberveil (fire, 3,000), Corvin Ashveil (dark, 3,100), Vesper Stormborn (lightning, 3,200) and Seraphine Dawnveil (light, 3,400).',
     'Element Mastery: scrolls of their own element deal 30% more damage and recharge 10% faster.',
     'Their bolts are orbs of their element and hit as it: fire sets foes burning, ice chills them, lightning chains to 2 more foes, nature can root them in place, dark withers them, and every 6th light bolt flares in a burst of light.',
@@ -32094,7 +32094,7 @@ function pfHeroFreeze(root){if(!PF.on||!root||root.userData.pfHero)return 0;root
   return saved;}
 {const sh=spawnHero;spawnHero=function(){const r=sh.apply(this,arguments);try{if(heroU&&heroU.g)PF.stat.hero=pfHeroFreeze(heroU.g);}catch(e){console.error(e);}return r;};}
 /* ---- end of performance (v446) ---- */
-/* ================= Elemental specialists (v449): six heroes, each a master of one element ================= */
+/* ================= Elemental specialists (v474): six heroes, each a master of one element ================= */
 /* Simon: "add more heros that have some sort of a specialization to a certain element, so a hero thats better with fire damage, another with
    nature, another with dark etc etc please so it would be 6 new heros please, price them similarily but no the same, based on their power".
    Six 4-star spellcasters (they cast scrolls like the other mages), one for each element. Each one:

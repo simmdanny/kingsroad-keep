@@ -1,5 +1,5 @@
 (function(){
-/* The six elemental specialists (v449). Run on the dev page: __kk.ev(await (await fetch('/tests/ehr-test.js')).text())
+/* The six elemental specialists (v474). Run on the dev page: __kk.ev(await (await fetch('/tests/ehr-test.js')).text())
    returns [name, ok, detail] rows. Each hero is recruited, equipped and spawned; its bolts are fired at foes standing on the road and the
    projectiles stepped (updProjs) until they land, with hurt wrapped to log each hit. Puts the account back afterwards. */
 const out=[],ok=(n,c,d)=>out.push([n,!!c,d===undefined?'':String(d)]);const m0=JSON.stringify(meta),r0=lsGet(KR),a0=meta.arena,H0=hurt;

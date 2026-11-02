@@ -1837,7 +1837,7 @@ All twelve clips (Piercing Judgment and Dimensional Slash, Mastery 0 to 5) are r
 | Dimensional Slash 5 | Foes with 70 health, so some are still inside the rift when it snaps shut; the hero and the pack held in view (`trackHero`), because between the cast and the cut almost nothing moves and a single mote off the blade had steered the view down the field. |
 | Piercing Judgment 5 | A wide view (zoom 1 to 1.1) set half a tile toward the hero. The camera frames the foes the lines hit, and the arc of circles behind the hero is more than 2.5 tiles from all of them, so it counted them as a sideshow and they drifted off the right edge. |
 
-## Six elemental heroes (v449)
+## Six elemental heroes (v474)
 Simon: "add more heros that have some sort of a specialization to a certain element, so a hero thats better with fire damage, another with nature, another with dark etc etc please so it would be 6 new heros please, price them similarily but no the same, based on their power but similar". A block before the boot line (search `Elemental specialists`) adds six 4-star spellcasters (`cl:'mage'`, they cast scrolls, 6 scroll slots), one for each element (`h.elem`):
 
 | Hero | Element | Price | Power | Talent | Aura |
