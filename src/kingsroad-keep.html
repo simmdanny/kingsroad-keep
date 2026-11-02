@@ -7099,10 +7099,10 @@ function nsTrail(mats,layers){const R={hist:[],meshes:layers.map(([col,op])=>{co
   R.free=()=>{R.meshes.forEach(m=>{nsFree(m);m.geometry.dispose();});};return R;}
 
 /* glowing cracks in the ground: a dark wide edge under a bright core, grown outward from the centre */
-function nsSeams(cx,cz,R,n,col,dark,mats,geos,wid){const segs=[];for(let b=0;b<n;b++){let a=b/n*6.28+(rnd()-.5)*.6,x=cx+Math.cos(a)*R*.06,z=cz+Math.sin(a)*R*.06,w=(wid||.05)*(.8+rnd()*.5);const steps=4+Math.floor(rnd()*3),L=R/steps*(.8+rnd()*.4);
+function nsSeams(cx,cz,R,n,col,dark,mats,geos,wid,up){const segs=[];for(let b=0;b<n;b++){let a=b/n*6.28+(rnd()-.5)*.6,x=cx+Math.cos(a)*R*.06,z=cz+Math.sin(a)*R*.06,w=(wid||.05)*(.8+rnd()*.5);const steps=4+Math.floor(rnd()*3),L=R/steps*(.8+rnd()*.4);
     for(let s2=0;s2<steps;s2++){a+=(rnd()-.5)*.9;const nx=x+Math.cos(a)*L,nz=z+Math.sin(a)*L;segs.push([x,z,nx,nz,w,w*.7]);if(rnd()<.35){const a2=a+(rnd()<.5?1:-1)*(.7+rnd()*.6);segs.push([nx,nz,nx+Math.cos(a2)*L*.6,nz+Math.sin(a2)*L*.6,w*.6,0]);}x=nx;z=nz;w*=.72;}}
   segs.sort((p,q)=>Math.hypot(p[0]-cx,p[1]-cz)-Math.hypot(q[0]-cx,q[1]-cz));const y=gy(cx,cz)+.034;
-  const build=k=>{const pos=[],idx=[];let vi=0;for(const [x,z,nx,nz,w0,w1] of segs){const dx=nx-x,dz=nz-z,dl=Math.hypot(dx,dz)||1,px=-dz/dl,pz=dx/dl,a=w0*k,b=w1*k;pos.push(x+px*a,y,z+pz*a,x-px*a,y,z-pz*a,nx+px*b,y,nz+pz*b,nx-px*b,y,nz-pz*b);idx.push(vi,vi+1,vi+2,vi+1,vi+3,vi+2);vi+=4;}
+  const build=k=>{const pos=[],idx=[];let vi=0;for(const [x,z,nx,nz,w0,w1] of segs){const dx=nx-x,dz=nz-z,dl=Math.hypot(dx,dz)||1,px=-dz/dl,pz=dx/dl,a=w0*k,b=w1*k;pos.push(x+px*a,y,z+pz*a,x-px*a,y,z-pz*a,nx+px*b,y,nz+pz*b,nx-px*b,y,nz-pz*b);if(up)idx.push(vi,vi+2,vi+1,vi+1,vi+2,vi+3);else idx.push(vi,vi+1,vi+2,vi+1,vi+3,vi+2);vi+=4;}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);geos.push(g);return g;};
   const md=new THREE.MeshBasicMaterial({color:dark,transparent:true,opacity:0,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}),mb=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});mats.push(md,mb);
   const g1=build(2.4),g2=build(1),m1=new THREE.Mesh(g1,md),m2=new THREE.Mesh(g2,mb);m1.renderOrder=3;m2.renderOrder=4;nsOwn(m1);nsOwn(m2);const tri=segs.length*6;
@@ -7390,8 +7390,9 @@ Object.assign(SPELL_FX,{icetomb:'Encases the strongest foe on the field (a boss 
 /* ================= Legendary scrolls batch 3: Skyfall (fire), Glacial Rift (ice), Grim Harvest (dark) =================
    Builds on batch 1/2 helpers (nsDecal, nsSeams, nsTrail, nsSplinters, nsIceGeos, NS_ICE, nsFireTrail, nsLead, nsDiveLead, nsAM). */
 /* glowing seams that grow in, glow and fade by themselves */
-function nsSeamFx(x,z,R,n,col,dark,wid,life){const mats=[],geos=[],S=nsSeams(x,z,R,n,col,dark,mats,geos,wid);let t=0;
-  addFx(new THREE.Group(),life,(f,dt)=>{t+=dt;S.grow(t/.22);const k=Math.min(1,f.life/1.3);S.op(.8*k,(.85+rnd()*.15)*k);},()=>S.free(),{mats,geos});}
+/* (v452: o, optional: o.up draws them facing the sky, o.k scales their opacity, o.grow is how long they take to spread) */
+function nsSeamFx(x,z,R,n,col,dark,wid,life,o){const mats=[],geos=[],S=nsSeams(x,z,R,n,col,dark,mats,geos,wid,o&&o.up);let t=0;const K=o&&o.k||1,G=o&&o.grow||.22;
+  addFx(new THREE.Group(),life,(f,dt)=>{t+=dt;S.grow(t/G);const k=Math.min(1,f.life/1.3)*K;S.op(.8*k,(.85+rnd()*.15)*k);},()=>S.free(),{mats,geos});}
 /* glowing seams that follow the road between two distances */
 function nsPathSeams(rt,d0,d1,col,dark,mats,geos,wid){const segs=[],step=.22;let side=0;
   for(let d=d0;d>d1;d-=step){const p=posAt(d,rt),q=posAt(Math.max(d1,d-step),rt),a=p[2];side+=(rnd()-.5)*.08;side=clamp(side,-.14,.14);const ox=Math.cos(a)*side,oz=-Math.sin(a)*side;
@@ -7892,26 +7893,31 @@ function myTitanModel(mats,geos){const g=new THREE.Group(),body=new THREE.Group(
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setIndex(I);g.computeVertexNormals();geos.push(g);return g;};
   const blade=new THREE.Mesh(bladeGeo(.3,.09,.4,.25,5.2),metal);blade.castShadow=true;sword.add(blade);
   const hotM=new THREE.MeshBasicMaterial({color:0xffa030,transparent:true,opacity:1});mats.push(hotM);
-  sword.add(new THREE.Mesh(bladeGeo(.36,.03,.4,.24,5.27),hotM));   /* only the rims show past the iron */
-  sword.add(new THREE.Mesh(bladeGeo(.12,.097,.4,.45,4.3),hotM));   /* a strip just over the flat of each face */
+  const rim=new THREE.Mesh(bladeGeo(.36,.03,.4,.24,5.27),hotM);sword.add(rim);   /* only the rims show past the iron */
+  const vein=new THREE.Mesh(bladeGeo(.12,.097,.4,.45,4.3),hotM);sword.add(vein);   /* a strip just over the flat of each face */
   const edgeM=nsAM(mats,0xff7a1a,.2),edge=new THREE.Mesh(bladeGeo(.46,.02,.4,.2,5.4),edgeM);sword.add(edge);
   const guard=new THREE.Mesh(bx(1.5,.24,.3,.04),darkM);guard.position.z=.18;sword.add(guard);[-1,1].forEach(s=>{const gc=new THREE.Mesh(cone(.12,.4,5),darkM);gc.position.set(s*.85,0,.18);gc.rotation.z=-s*Math.PI/2;sword.add(gc);});
   const hilt=new THREE.Mesh(cyl(.09,.09,.7,6),darkM);hilt.rotation.x=Math.PI/2;hilt.position.z=-.25;sword.add(hilt);const gem=new THREE.Mesh(oct(.14),GLOW(0xffd060));gem.position.set(0,.15,.18);sword.add(gem);
-  return{g,body,head,rig,sword,blade,edgeM,eyes,rockM,darkM,metal};}
+  return{g,body,head,rig,sword,blade,edgeM,eyes,rockM,darkM,metal,hotM,rim,blades:[blade,rim,vein,edge]};}
 function myGeyser(x,z){const y=gy(x,z);sprayP(1,x,y+.05,z,22,{c:0xfff0a0,c2:0xff3a00,sp:.9,up:3.2,s:.11,s2:.01,life:.6,g:3,r:.25});emitS(0,{x,y:y+.3,z,vx:0,vy:1.2,vz:0,s:.4,s2:1.4,c:0x3a1a0c,c2:0x120806,a:.45,life:1.6,lift:.4,turb:.4});flash(x,y+.4,z,0xff8a30,.6,.18);}
 function myRock(x,y,z,m){const me=new THREE.Mesh(dod(.25+rnd()*.25),m);me.position.set(x,y,z);me.rotation.set(rnd()*6,rnd()*6,0);scene.add(me);const v=new THREE.Vector3((rnd()-.5)*1.5,.5+rnd(),(rnd()-.5)*1.5),rs=(rnd()-.5)*8;
   addFx(me,1.6,(f,dt)=>{v.y-=9*dt;me.position.addScaledVector(v,dt);me.rotation.x+=rs*dt;const fl=gy(me.position.x,me.position.z);if(me.position.y<fl){me.position.y=fl;v.multiplyScalar(.3);}if(f.life<.5)me.scale.setScalar(Math.max(.01,f.life/.5));});}
-/* glowing road cracks as nsPathSeams draws them, but grown from dA towards dB in either direction along the road */
-function myRoadSeams(rt,dA,dB,col,dark,mats,geos,wid){const segs=[],step=.22,dir=dB>dA?1:-1,n=Math.ceil(Math.abs(dB-dA)/step);let side=0;
+/* glowing road cracks as nsPathSeams draws them, but grown from dA towards dB in either direction along the road (v452: o, optional, adds
+   layers over them: o.core, a narrow hot core in that colour; o.flare, a wide glow in that colour whose opacity flare(a) sets; and o.up draws
+   them facing the sky: drawn as before, their quads face the ground and the camera never sees them) */
+function myRoadSeams(rt,dA,dB,col,dark,mats,geos,wid,o){const segs=[],step=.22,dir=dB>dA?1:-1,n=Math.ceil(Math.abs(dB-dA)/step);let side=0;
   for(let i=0;i<n;i++){const d=dA+dir*i*step,d2=dir>0?Math.min(dB,d+step):Math.max(dB,d-step),p=posAt(d,rt),q=posAt(d2,rt),a=p[2];side+=(rnd()-.5)*.08;side=clamp(side,-.14,.14);const ox=Math.cos(a)*side,oz=-Math.sin(a)*side;
     segs.push([p[0]+ox,p[1]+oz,q[0]+ox+(rnd()-.5)*.05,q[1]+oz+(rnd()-.5)*.05,wid*(.8+rnd()*.5),wid*(.7+rnd()*.4)]);
     if(rnd()<.3){const s2=rnd()<.5?1:-1,b=.2+rnd()*.35,bx=p[0]+Math.cos(a)*s2*b,bz=p[1]-Math.sin(a)*s2*b;segs.push([p[0]+ox,p[1]+oz,bx,bz,wid*.6,0]);}}
   const y=gy(posAt(dA,rt)[0],posAt(dA,rt)[1])+.035;
-  const build=k=>{const pos=[],idx=[];let vi=0;for(const [x,z,nx,nz,w0,w1] of segs){const dx=nx-x,dz=nz-z,dl=Math.hypot(dx,dz)||1,px=-dz/dl,pz=dx/dl,a=w0*k,b=w1*k;pos.push(x+px*a,y,z+pz*a,x-px*a,y,z-pz*a,nx+px*b,y,nz+pz*b,nx-px*b,y,nz-pz*b);idx.push(vi,vi+1,vi+2,vi+1,vi+3,vi+2);vi+=4;}
+  const build=k=>{const pos=[],idx=[];let vi=0;for(const [x,z,nx,nz,w0,w1] of segs){const dx=nx-x,dz=nz-z,dl=Math.hypot(dx,dz)||1,px=-dz/dl,pz=dx/dl,a=w0*k,b=w1*k;pos.push(x+px*a,y,z+pz*a,x-px*a,y,z-pz*a,nx+px*b,y,nz+pz*b,nx-px*b,y,nz-pz*b);if(o&&o.up)idx.push(vi,vi+2,vi+1,vi+1,vi+2,vi+3);else idx.push(vi,vi+1,vi+2,vi+1,vi+3,vi+2);vi+=4;}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);geos.push(g);return g;};
   const md=new THREE.MeshBasicMaterial({color:dark,transparent:true,opacity:0,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}),mb=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});mats.push(md,mb);
   const g1=build(2.4),g2=build(1),m1=new THREE.Mesh(g1,md),m2=new THREE.Mesh(g2,mb);m1.renderOrder=3;m2.renderOrder=4;nsOwn(m1);nsOwn(m2);const tri=segs.length*6;
-  return{grow(k){const n2=Math.floor(tri*clamp(k,0,1)/6)*6;g1.setDrawRange(0,n2);g2.setDrawRange(0,n2);},op(a,b){md.opacity=a;mb.opacity=b;},free(){nsFree(m1);nsFree(m2);}};}
+  const ex=[];for(const [key,k,f] of [['core',.38,-4],['flare',2.1,-5]])if(o&&o[key]!=null){const g=build(k),m=new THREE.MeshBasicMaterial({color:o[key],transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,polygonOffset:true,polygonOffsetFactor:f,polygonOffsetUnits:f});mats.push(m);
+    const me=new THREE.Mesh(g,m);me.renderOrder=f===-4?5:3;nsOwn(me);ex.push({key,g,m,me});}
+  const exm=key=>{const q=ex.find(q=>q.key===key);return q?q.m:null;},mc=exm('core'),mf=exm('flare');
+  return{grow(k){const n2=Math.floor(tri*clamp(k,0,1)/6)*6;g1.setDrawRange(0,n2);g2.setDrawRange(0,n2);for(const q of ex)q.g.setDrawRange(0,n2);},op(a,b){md.opacity=a;mb.opacity=b;if(mc)mc.opacity=b;},flare(a){if(mf)mf.opacity=a;},free(){nsFree(m1);nsFree(m2);for(const q of ex)nsFree(q.me);}};}
 /* a fireball that swells, churns and cools to soot: a sphere pushed out by noise, coloured white-hot to orange to smoke by noise, facing and age */
 let MY_FBG=null;
 function myFireball(x,y,z,R,dur,rise){if(!MY_FBG)MY_FBG=new THREE.IcosahedronGeometry(1,3);
@@ -7949,33 +7955,42 @@ function myBlast(x,z,R,rockM){const y=gy(x,z);
   for(let i=0;i<18;i++){const a=rnd()*6.283;emitS(1,{x:x+Math.cos(a)*.3,y:y+.4+rnd()*.8,z:z+Math.sin(a)*.3,vx:Math.cos(a)*(2+rnd()*3),vy:1+rnd()*3,vz:Math.sin(a)*(2+rnd()*3),s:.6,s2:1.8,c:0xffe090,c2:0xff3000,a:.85,life:.6+rnd()*.4,drag:2.4,turb:.6});}}
 /* where the titan stands: spots on the road behind the pack (facing on along the road) and ahead of it (facing back up the road), scored by
    the foes the blade will land on, where they will be when it lands; stronger foes count a little more, and on a tie it faces the camera */
-function myTitanSpot(c,TI){const rt=c.route||ROUTES[0],cs=Math.max(1,nsStrong(c)),cd=c.dist+(c.spd||0)*TI*.85,cv=new THREE.Vector3();camera.getWorldDirection(cv);const cl=Math.hypot(cv.x,cv.z)||1;
+function myTitanSpot(c,TI,D){D=D||ETL;const rt=c.route||ROUTES[0],cs=Math.max(1,nsStrong(c)),cd=c.dist+(c.spd||0)*TI*.85,cv=new THREE.Vector3();camera.getWorldDirection(cv);const cl=Math.hypot(cv.x,cv.z)||1;
   const pred=enemies.filter(e=>!e.dead&&!e.fake).map(e=>{const r=e.route||ROUTES[0];let x=e.x,z=e.z;if(r===rt&&!e.fly&&e.dist!=null){const q=posAt(Math.min(r.len,e.dist+(e.spd||0)*TI*.85),r);x=q[0];z=q[1];}return{x,z,w:1+.3*Math.min(3,nsStrong(e)/cs)};});
   let best=null;for(const dir of[1,-1])for(let off=2.5;off<=7.01;off+=.5){const d=cd-dir*off;if(d<.3||d>rt.len-.3)continue;const p=posAt(d,rt),q=posAt(Math.max(0,Math.min(rt.len,d+dir*4.4)),rt);let fx=q[0]-p[0],fz=q[1]-p[1];const fl=Math.hypot(fx,fz);if(fl<.5)continue;fx/=fl;fz/=fl;
-    const tx=p[0]+fx*6.3,tz=p[1]+fz*6.3;let sc=-off*.01-(dir<0?.05:0)-(fx*cv.x+fz*cv.z)/cl*.9;   /* facing the camera keeps its body from hiding the blow */
-    for(const e of pred){const ex=e.x-p[0],ez=e.z-p[1],al=ex*fx+ez*fz,lat=Math.abs(ex*fz-ez*fx);if(al>1.8&&al<6.9&&lat<.95)sc+=e.w*3;if((e.x-tx)**2+(e.z-tz)**2<6.76)sc+=e.w;}
+    const tx=p[0]+fx*D.SPOT_TIP,tz=p[1]+fz*D.SPOT_TIP;let sc=-off*.01-(dir<0?.05:0)-(fx*cv.x+fz*cv.z)/cl*.9;   /* facing the camera keeps its body from hiding the blow */
+    for(const e of pred){const ex=e.x-p[0],ez=e.z-p[1],al=ex*fx+ez*fz,lat=Math.abs(ex*fz-ez*fx);if(al>1.8&&al<D.B1&&lat<.95)sc+=e.w*3;if((e.x-tx)**2+(e.z-tz)**2<D.SPOT_R2)sc+=e.w;}
     if(!best||sc>best.sc)best={sc,d,dir,fx,fz};}
   return best;}
-function castEmberTitan(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.fake&&e.dist!=null),cand=list.filter(e=>!e.fake&&!e.dead&&e.dist!=null),c=cand.length?densest(cand):(pool.length?densest(pool):null),TI=2.45;let rt,dT;
-  let dir=1,sp=c?myTitanSpot(c,TI):null;if(sp){rt=c.route||ROUTES[0];dT=sp.d;dir=sp.dir;}else if(c){rt=c.route||ROUTES[0];dT=Math.max(.3,Math.min(rt.len-.5,c.dist+(c.spd||0)*TI*.85)-4.4);}else{const q=nsRouteNear(list[0].x,list[0].z);rt=q.rt;dT=Math.max(.3,q.d-4.4);}
+/* v452: XO (optional, Wrath of the Ember Titan's masteries): this cast's numbers over ETL (BLADE and B1, the blade's damage and reach; TIP, TIPD
+   and TIPR, the tip blast's damage, distance and radius; STUN and BSTUN, the stun under the blade for foes and for bosses; GEY, TRAIL, FISS,
+   GROW, BURN and SEAM, the fissure's geysers, fire patches, length, growing time, burn and seam width; LIFE and SEAMEND; BLAST and SHAKE, the
+   blow's look; SPOT_TIP and SPOT_R2, the tip's zone as the spot scores it; SWING and RXE, the arc of the blow), and its looks and log: seamO
+   (myRoadSeams' options: up, so the fissure's seams are seen at last, at every mastery; core and flare), geyser(x,z) (draws a geyser), fx.build/frame/blow (the masteries' looks), onBlow(blade foes, tip foes, tip),
+   onGeyser(d, foes) and onEnd. Without XO: exactly as before. */
+const ETL={BLADE:22,B1:6.9,TIP:10,TIPD:6.1,TIPR:3,STUN:.6,BSTUN:0,GEY:3,TRAIL:.35,FISS:11.5,GROW:.65,BURN:4.3,SEAM:.1,LIFE:8.6,SEAMEND:8,BLAST:2.6,SHAKE:.95,SPOT_TIP:6.3,SPOT_R2:6.76,SWING:3.05,RXE:.55,seamO:{up:true}};
+function castEmberTitan(t,list,P,o,XO){const D=XO?Object.assign({},ETL,XO):ETL,F=D.fx||null;const pool=enemies.filter(e=>!e.dead&&!e.fake&&e.dist!=null),cand=list.filter(e=>!e.fake&&!e.dead&&e.dist!=null),c=cand.length?densest(cand):(pool.length?densest(pool):null),TI=2.45;let rt,dT;
+  let dir=1,sp=c?myTitanSpot(c,TI,D):null;if(sp){rt=c.route||ROUTES[0];dT=sp.d;dir=sp.dir;}else if(c){rt=c.route||ROUTES[0];dT=Math.max(.3,Math.min(rt.len-.5,c.dist+(c.spd||0)*TI*.85)-4.4);}else{const q=nsRouteNear(list[0].x,list[0].z);rt=q.rt;dT=Math.max(.3,q.d-4.4);}
   const p0=posAt(dT,rt),p1=posAt(Math.min(rt.len,dT+3),rt),px=p0[0],pz=p0[1],aim=c?nsLead(c,TI):{x:p1[0],z:p1[1]},face=sp?Math.atan2(sp.fx,sp.fz):Math.hypot(aim.x-px,aim.z-pz)>1.2?Math.atan2(aim.x-px,aim.z-pz):Math.atan2(p1[0]-px,p1[1]-pz),fx=Math.sin(face),fz=Math.cos(face),py=gy(px,pz),mats=[],geos=[],T=myTitanModel(mats,geos);
   T.g.position.set(px,py-5.6,pz);T.g.rotation.y=face;T.rig.rotation.x=.25;nsOwn(T.g);
   const pit=nsDecal(px,pz,2.6,0x0c0402,0,8.6,{manual:true}),glow=nsDecal(px,pz,2.3,0xff5a10,0,8.6,{manual:true,add:true});nsSeamFx(px,pz,3.2,12,0xff6a1a,0x2a0802,.06,8);
   cineLock=Math.max(cineLock,5);darkTarget=Math.max(darkTarget,.5);vigTarget=Math.max(vigTarget,.45);if(typeof sfxRumble==='function')sfxRumble(3.5,.55);
-  let tt=0,hit=false,fiss=null,fd=0,burnT=0,grown=false;const dA=dT+.9*dir,dB=dir>0?Math.min(rt.len-.2,dT+11.5):Math.max(.2,dT-11.5),geyHit=new Set(),tmp=new THREE.Vector3();
-  const slam=()=>{const tip={x:px+fx*6.1,z:pz+fz*6.1};worldSlow=.2;slowT=.42;camShake=Math.max(camShake,.95);flashA=Math.max(flashA,.65);flashCol='#ff8a30';if(typeof sfxBoom==='function'){sfxBoom(1,true);sfxBoom(.6,false);}
-    myBlast(tip.x,tip.z,2.6,T.rockM);for(const u of[2.7,4.3]){const x=px+fx*u,z=pz+fz*u;myFireball(x,gy(x,z)+.2,z,.7+rnd()*.2,1,1.2);}
+  let tt=0,hit=false,fiss=null,fd=0,burnT=0,grown=false;const dA=dT+.9*dir,dB=dir>0?Math.min(rt.len-.2,dT+D.FISS):Math.max(.2,dT-D.FISS),geyHit=new Set(),tmp=new THREE.Vector3();
+  const C=F?{T,px,pz,py,fx,fz,rt,dA,dB,dir,mats,geos,fiss:null,TI}:null;if(F&&F.build)F.build(C);
+  const slam=()=>{const tip={x:px+fx*D.TIPD,z:pz+fz*D.TIPD};worldSlow=.2;slowT=.42;camShake=Math.max(camShake,D.SHAKE);flashA=Math.max(flashA,.65);flashCol='#ff8a30';if(typeof sfxBoom==='function'){sfxBoom(1,true);sfxBoom(.6,false);}
+    myBlast(tip.x,tip.z,D.BLAST,T.rockM);for(const u of[2.7,4.3]){const x=px+fx*u,z=pz+fz*u;myFireball(x,gy(x,z)+.2,z,.7+rnd()*.2,1,1.2);}
+    const HB=D.onBlow?[]:null,HT=D.onBlow?[]:null;
     for(const e of enemies){if(e.dead)continue;const ex=e.x-px,ez=e.z-pz,al=ex*fx+ez*fz,lat=Math.abs(ex*fz-ez*fx);
-      if(al>1.8&&al<6.9&&lat<.95){hurt(e,P*22,'magic',o);if(!e.dead&&!e.boss)e.stunT=Math.max(e.stunT||0,.6);}
-      if(!e.dead&&(e.x-tip.x)**2+(e.z-tip.z)**2<3*3)hurt(e,P*10,'magic',o);}
-    for(let i=0;i<10;i++){const u=1.8+i*.5,x=px+fx*u,z=pz+fz*u;sprayP(1,x,gy(x,z)+.1,z,14,{c:0xfff0b0,c2:0xff3a00,sp:2.6,up:1.6,s:.09,s2:.01,life:.7,g:4,drag:.6,r:.3});sprayP(0,x,gy(x,z)+.1,z,6,{c:0x4a2a1a,c2:0x1a0e08,sp:1.8,up:1.6,s:.08,s2:.04,a:.95,life:1,g:6});}
-    fiss=myRoadSeams(rt,dA,dB,0xff7a20,0x1a0602,mats,geos,.1);fiss.grow(0);fd=dA;};
-  addFx(new THREE.Group(),8.6,(f,dt)=>{if(state!=='playing'){f.life=0;return;}tt+=dt;   /* the battle ended mid-cast: resetCine has taken its objects away */
+      if(al>1.8&&al<D.B1&&lat<.95){hurt(e,P*D.BLADE,'magic',o);if(HB)HB.push(e);const st=e.boss?D.BSTUN:D.STUN;if(!e.dead&&st>0)e.stunT=Math.max(e.stunT||0,st);}
+      if(!e.dead&&(e.x-tip.x)**2+(e.z-tip.z)**2<D.TIPR*D.TIPR){hurt(e,P*D.TIP,'magic',o);if(HT)HT.push(e);}}
+    for(let i=0;i<Math.floor((D.B1-1.8)/.5);i++){const u=1.8+i*.5,x=px+fx*u,z=pz+fz*u;sprayP(1,x,gy(x,z)+.1,z,14,{c:0xfff0b0,c2:0xff3a00,sp:2.6,up:1.6,s:.09,s2:.01,life:.7,g:4,drag:.6,r:.3});sprayP(0,x,gy(x,z)+.1,z,6,{c:0x4a2a1a,c2:0x1a0e08,sp:1.8,up:1.6,s:.08,s2:.04,a:.95,life:1,g:6});}
+    fiss=myRoadSeams(rt,dA,dB,0xff7a20,0x1a0602,mats,geos,D.SEAM,D.seamO);fiss.grow(0);fd=dA;if(C){C.fiss=fiss;C.tip=tip;}if(F&&F.blow)F.blow(C,tip);if(D.onBlow)D.onBlow(HB,HT,tip);};
+  addFx(new THREE.Group(),D.LIFE,(f,dt)=>{if(state!=='playing'){f.life=0;return;}tt+=dt;   /* the battle ended mid-cast: resetCine has taken its objects away */
     const rise=SMS(tt,0,1.4),sink=SMS(tt,4.7,6.3);
     T.g.position.y=py-5.6*(1-rise)-6*sink+(tt<1.4?(rnd()-.5)*.06:0);
     pit.material.opacity=.85*Math.min(1,tt/.4)*(1-SMS(tt,7,8.6));glow.material.opacity=(.7+.2*Math.sin(tt*7))*Math.min(1,tt/.5)*(1-SMS(tt,6.5,8.4));
     /* the swing: it rises with the blade low, lifts it overhead, then brings it down faster and faster */
-    const up=SMS(tt,.9,2.1);let rx=.25-2.75*up;if(tt>=2.12){const k=Math.min(1,(tt-2.12)/(TI-2.12));rx=-2.5+3.05*k*k;}if(tt>4.4)rx=.55-.4*SMS(tt,4.4,5.2);T.rig.rotation.x=rx;
+    const up=SMS(tt,.9,2.1);let rx=.25-2.75*up;if(tt>=2.12){const k=Math.min(1,(tt-2.12)/(TI-2.12));rx=-2.5+D.SWING*k*k;}if(tt>4.4)rx=D.RXE-.4*SMS(tt,4.4,5.2);T.rig.rotation.x=rx;
     T.body.rotation.x=tt<2.12?-.12*up:(tt<TI?.22*SMS(tt,2.12,TI):.22-.1*SMS(tt,2.6,3.6));T.head.rotation.x=tt<2.12?-.25*up:.15;
     T.eyes.forEach(e=>e.scale.setScalar((.6+rnd()*.3)*SMS(tt,.8,1.2)+(tt>1.8&&tt<2.6?.6:0)));T.edgeM.opacity=.12+.2*up+(rnd()<.2?.06:0);T.metal.emissiveIntensity=.8+.7*up;
     if(dt>0){if(tt<5.5)for(let i=0;i<3;i++){const a=rnd()*6.28,r=rnd()*2.2;emit(1,{x:px+Math.cos(a)*r,y:py+.05,z:pz+Math.sin(a)*r,vx:Math.cos(a)*.3,vy:1+rnd()*1.6,vz:Math.sin(a)*.3,s:.09,s2:0,c:0xffc060,c2:0xb01a00,life:.8,g:2.5});}
@@ -7985,13 +8000,14 @@ function castEmberTitan(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.fak
     if(tt>1.5&&tt<2.2)camShake=Math.max(camShake,.05);
     if(!hit&&tt>=TI){hit=true;slam();}
     /* the fissure runs down the road from the blade: geysers of fire, then it burns */
-    if(fiss){const k=Math.min(1,(tt-TI)/.65),fl=Math.min(1,(8-tt)/1.5);if(!grown){fiss.grow(k);if(k>=1)grown=true;}fiss.op(.8*fl,(.85+rnd()*.15)*fl);const dNow=dA+(dB-dA)*k;
-      while((dNow-fd)*dir>0){const p=posAt(fd,rt);myGeyser(p[0],p[1]);for(const e of enemies){if(e.dead||geyHit.has(e))continue;if((e.x-p[0])**2+(e.z-p[1])**2<.75*.75){geyHit.add(e);hurt(e,P*3,'magic',o);}}if(rnd()<.35)nsFireTrail(p[0]+(rnd()-.5)*.4,p[1]+(rnd()-.5)*.4,P,o);fd+=.45*dir;}
-      burnT-=dt;if(burnT<=0&&tt<TI+4.3){burnT=.5;for(const e of enemies){if(e.dead||e.fly||e.dist==null||(e.route||ROUTES[0])!==rt)continue;if(e.dist>=Math.min(dA,dNow)-.3&&e.dist<=Math.max(dA,dNow)+.3){const p=posAt(e.dist,rt);if((e.x-p[0])**2+(e.z-p[1])**2<.8)hurt(e,P*.5,'magic',Object.assign({},o,{dot:true}));}}}}
+    if(fiss){const k=D.GROW>0?Math.min(1,(tt-TI)/D.GROW):1,fl=Math.min(1,(D.SEAMEND-tt)/1.5);if(!grown){fiss.grow(k);if(k>=1)grown=true;}fiss.op(.8*fl,(.85+rnd()*.15)*fl);const dNow=dA+(dB-dA)*k;
+      while((dNow-fd)*dir>0){const p=posAt(fd,rt),GH=D.onGeyser?[]:null;(D.geyser||myGeyser)(p[0],p[1]);for(const e of enemies){if(e.dead||geyHit.has(e))continue;if((e.x-p[0])**2+(e.z-p[1])**2<.75*.75){geyHit.add(e);hurt(e,P*D.GEY,'magic',o);if(GH)GH.push(e);}}if(D.onGeyser)D.onGeyser(fd,GH);if(rnd()<D.TRAIL)nsFireTrail(p[0]+(rnd()-.5)*.4,p[1]+(rnd()-.5)*.4,P,o);fd+=.45*dir;}
+      burnT-=dt;if(burnT<=0&&tt<TI+D.BURN){burnT=.5;for(const e of enemies){if(e.dead||e.fly||e.dist==null||(e.route||ROUTES[0])!==rt)continue;if(e.dist>=Math.min(dA,dNow)-.3&&e.dist<=Math.max(dA,dNow)+.3){const p=posAt(e.dist,rt);if((e.x-p[0])**2+(e.z-p[1])**2<.8)hurt(e,P*.5,'magic',Object.assign({},o,{dot:true}));}}}}
     /* it crumbles: chunks break away as it sinks back into the pit */
     if(tt>4.7&&tt<6.3&&dt>0){if(rnd()<dt*10){const a=rnd()*6.28;myRock(px+Math.cos(a)*1.2,py+2+rnd()*2.5,pz+Math.sin(a)*1.2,T.rockM);}for(let i=0;i<3;i++)emitS(0,{x:px+(rnd()-.5)*2.2,y:py+1+rnd()*3,z:pz+(rnd()-.5)*2.2,vx:(rnd()-.5)*.6,vy:.4+rnd()*.5,vz:(rnd()-.5)*.6,s:.5,s2:1.6,c:0x2a1a14,c2:0x0c0806,a:.5,life:2.2,lift:.3,turb:.5});}
-    if(tt>6.8){darkTarget=Math.max(0,darkTarget-dt*.4);vigTarget=Math.max(0,vigTarget-dt*.4);}},
-    ()=>{nsFree(T.g);if(fiss)fiss.free();darkTarget=0;vigTarget=0;},{mats,geos});}
+    if(tt>6.8){darkTarget=Math.max(0,darkTarget-dt*.4);vigTarget=Math.max(0,vigTarget-dt*.4);}
+    if(F&&F.frame)F.frame(C,tt,dt);},
+    ()=>{nsFree(T.g);if(fiss)fiss.free();darkTarget=0;vigTarget=0;if(D.onEnd)D.onEnd();},{mats,geos});}
 
 /* ---- Eternal Winter ---- */
 let MY_AUR=false,MY_FROST=null;
@@ -14180,6 +14196,12 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Wrath of the Ember Titan: a river of fire',d:'2 Nov',v:'v452',li:[
+    'Wrath of the Ember Titan (Mythic) has five new masteries, for now in developer mode. Still one titan, one blow and one fissure: each mastery makes a part of the blow stronger and draws that part richer.',
+    'Molten Edge: the greatsword is drawn longer and white-hot, embers streaming off its edges; it strikes 2450% (2200% before) and reaches 0.6 tiles further. Deeper Fissure: the fissure tears 14 tiles down the road (11.5) and burns 5.5s (4.3s); more of its geysers leave fire on the road (55%, 35% before), its seams glow wider and brighter and its geysers stand taller.',
+    'Furnace Heart: the blast at the blade\u2019s tip strikes 1300% (1000%) within 3.5 tiles (3): a bigger fireball and ring of fire, more lava thrown. Titan\u2019s Weight: foes under the blade are stunned 1.2s (0.6s), and bosses now 0.4s; a wider crater, more debris and a heavier shake.',
+    'The Road Splits: the blow tears the whole fissure open at once: its seams flare white down the whole road and every geyser bursts as the sword lands, 30% harder.',
+    'A fix: the fissure\u2019s glowing seams were drawn facing the ground, so they never showed. The river of fire now shows on the road at every mastery.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -31967,6 +31989,109 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
   dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
+/* ================= Wrath of the Ember Titan's masteries (v452), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: a colossus of living lava heaves itself out of a burning pit on the road where its blade will catch the most foes, raises one
+   greatsword and brings it down along the road: the blade crushes and stuns what is under it, its tip bursts in a fireball, and the road
+   tears open into a river of fire that runs on down the road, geysers bursting along it, and burns. Simon, for every Mythic, Ancient and
+   Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is preserved but their visuals barely
+   change and change only to better", and "new stuff CAN appear ... but just nothing that over shines the spell". So there is still one
+   titan, one blow and one fissure: each mastery makes one part of the blow stronger and draws that same part richer (Simon approved the
+   table). The v373 set (White-Hot Blade, Ember Rain, Magma Fists, Molten Spray, Titan's Roar: generic add-ons) is replaced.
+   | # | Mastery | Strengthens | What changes | How it looks |
+   | 1 | Molten Edge | the blade | 2450% (2200%), reaches 0.6 tiles further | the sword drawn 12% longer, its edges white-hot, more embers |
+   | 2 | Deeper Fissure | the fissure | 14 tiles (11.5), burns 5.5s (4.3), 55% of geysers leave fire (35%) | seams 40% wider and brighter, taller geysers |
+   | 3 | Furnace Heart | the tip blast | 1300% (1000%) within 3.5 tiles (3) | a bigger fireball and fire ring, more lava rocks thrown |
+   | 4 | Titan's Weight | the stun | foes under the blade stunned 1.2s (0.6), bosses 0.4s (not at all) | wider crater cracks, more debris, a heavier shake |
+   | 5 | The Road Splits | the blow and the fissure | the whole fissure tears open as the sword lands: every geyser at once, 30% harder | the seams flare white down the whole road in one stroke; one line of tall geysers |
+   - M1 Molten Edge: the blade strikes EMT.blade (x100%) and reaches EMT.reach further (its zone 1.8-7.5 along it); the tip lands as much
+     further on, the swing ends a little flatter so the longer blade meets the road there, and the titan picks its spot for the longer
+     blade (myTitanSpot reads the cast's numbers). The rims of the blade are white-hot, its glow brighter, embers stream off its edges.
+   - M2 Deeper Fissure: the fissure runs EMT.fiss tiles from the titan, burns EMT.burn s after the blow, and EMT.trail of its geysers leave
+     a patch of fire (nsFireTrail); it grows at the same speed as before (so over a little longer), its seams are 40% wider with a hot core
+     and embers climb off them while it burns, and its geysers stand taller. The cast lives as much longer (the seams fade after the burn).
+   - M3 Furnace Heart: the tip blast strikes EMT.tip within EMT.tipR; its fireball, ring of fire and crater scale with it, and 7 more
+     (cosmetic) lava rocks are thrown.
+   - M4 Titan's Weight: foes under the blade are stunned EMT.stun s, bosses EMT.bstun s (set directly, as Mythic holds are); a second,
+     wider crater of cracks, debris and dust thrown up the whole length of the blade, and a heavier shake with an aftershock.
+   - M5 The Road Splits: the fissure does not grow, it is torn open whole by the blow: every geyser bursts in the frame the sword lands,
+     EMT.split harder (390%), and the seams flare white down the whole road and cool back to orange; a line of fire runs between the
+     geysers. The burn covers the whole fissure from the first tick.
+   Percentages are of the scroll's power. Every mastered cast runs castEmberTitan with its XO (emtOpts); Mastery 0, echoes and other
+   casters cast exactly as before. EMT.dbg (an array) logs the events for the tests and previews. Stuns measure as nothing on the ladder
+   (its foes stand still), so Titan's Weight's factor carries it. On the Mythic ladder (kit ladder.js: pack .6 / one .4, 4 runs of 4 casts
+   13s apart) with the hidden factors below (SMG.embertitan = 1.027 / 1.067 / 1.05 / 1.12 / 1.128): 1.085 / 1.162 / 1.229 / 1.312 / 1.364
+   against 1.078 / 1.162 / 1.226 / 1.302 / 1.35.
+   A bug found on the way: myRoadSeams (like nsSeams and nsPathSeams) built its quads facing the ground, so the camera never saw the
+   fissure's glowing seams: only its geysers and fire patches showed. The titan's fissure is drawn facing the sky now (myRoadSeams' o.up)
+   at every mastery, Mastery 0 too, as its card promises ("the ground tears open into a river of fire"). The crater cracks of nsSeamFx,
+   shared with many spells, are left as they were (seen, the titan's would cover the grass round the blow in a flat orange web for 6s);
+   only Titan's Weight's wider crater is drawn facing up, smaller and dimmer. */
+const EMT={dbg:null,blade:24.5,reach:.6,fiss:14,burn:5.5,trail:.55,tip:13,tipR:3.5,stun:1.2,bstun:.4,split:.3,len:1.12,busy:0};
+const EMT_V=new THREE.Vector3();
+const emtC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='embertitan'&&c.L?c:null;};
+const emtLog=d=>{if(EMT.dbg){d.t=time;EMT.dbg.push(d);}};
+SM_D.embertitan=[
+  {n:'Molten Edge',d:'The greatsword is drawn longer and white-hot: it strikes {2450}% (2200% before) and reaches 0.6 tiles further.'},
+  {n:'Deeper Fissure',d:'The fissure tears 14 tiles down the road (11.5 before) and burns 5.5s (4.3s before), and more of its geysers leave fire on the road (55%, 35% before).'},
+  {n:'Furnace Heart',d:'The blast at the blade\'s tip strikes {1300}% (1000% before) within 3.5 tiles (3 before).'},
+  {n:'Titan\'s Weight',d:'Foes under the blade are stunned 1.2s (0.6s before), and bosses now 0.4s.'},
+  {n:'The Road Splits',d:'The blow tears the whole fissure open at once: every geyser bursts as the sword lands, {30}% harder.'}];
+SMF.embertitan={m:1};
+SMA.embertitan=[1,1,1,1,1];
+SMG.embertitan=[1.027,1.067,1.05,1.12,1.128];
+/* a geyser of the fissure, taller (K): a spray of fire, a white-hot jet up its middle and a plume of smoke; split: the whole road at once,
+   so its flash is smaller (thirty of them light up together) */
+function emtGeyser(x,z,K,split){const y=gy(x,z);sprayP(1,x,y+.05,z,split?22:26,{c:0xfff0a0,c2:0xff3a00,sp:.9,up:3.2*K,s:.12,s2:.01,life:.6+.12*K,g:3.4,r:.25});
+  for(let i=0;i<7;i++)emit(1,{x:x+(rnd()-.5)*.14,y:y+.1,z:z+(rnd()-.5)*.14,vx:(rnd()-.5)*.25,vy:(2.8+rnd()*1.8)*K,vz:(rnd()-.5)*.25,s:.26+rnd()*.1,s2:.05,c:0xfff6d8,c2:0xff6a10,life:.45+rnd()*.25,g:3,drag:.3,turb:.3});
+  for(let i=0;i<2;i++)emitS(1,{x:x+(rnd()-.5)*.1,y:y+.15+i*.25,z:z+(rnd()-.5)*.1,vx:(rnd()-.5)*.2,vy:(1.7+i*.7)*K,vz:(rnd()-.5)*.2,s:.3,s2:.85,c:0xffd890,c2:0xff3a00,a:.75,life:.55+rnd()*.2,drag:1.1,turb:.4});
+  emitS(0,{x,y:y+.4,z,vx:0,vy:1.3*K,vz:0,s:.45,s2:1.6,c:0x3a1a0c,c2:0x120806,a:.42,life:1.7,lift:.4,turb:.4});if(!split||rnd()<.5)flash(x,y+.5,z,0xff8a30,split?.5:.6,.18);}
+/* this cast's numbers and looks (castEmberTitan's XO) */
+function emtOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.BLADE=EMT.blade*a[0];X.B1=ETL.B1+EMT.reach;X.TIPD=ETL.TIPD+EMT.reach;X.SPOT_TIP=ETL.SPOT_TIP+EMT.reach;X.SWING=2.97;X.RXE=.47;}
+  if(L>=2){X.FISS=EMT.fiss;X.BURN=EMT.burn;X.TRAIL=EMT.trail;X.SEAM=ETL.SEAM*1.4;X.GROW=ETL.GROW*(EMT.fiss-.9)/(ETL.FISS-.9);X.seamO={up:true,core:0xffd47a};X.geyser=(x,z)=>emtGeyser(x,z,1.35);}
+  if(L>=3){X.TIP=EMT.tip*a[2];X.TIPR=EMT.tipR;X.BLAST=ETL.BLAST*EMT.tipR/ETL.TIPR;const r=Math.sqrt(ETL.SPOT_R2)*EMT.tipR/ETL.TIPR;X.SPOT_R2=r*r;}
+  if(L>=4){X.STUN=EMT.stun;X.BSTUN=EMT.bstun;X.SHAKE=1.25;}
+  if(L>=5){X.GROW=0;X.GEY=ETL.GEY*(1+EMT.split*a[4]);X.seamO.flare=0xffe2a8;X.geyser=(x,z)=>emtGeyser(x,z,1.6,true);}
+  X.LIFE=ETL.LIFE+(X.BURN||ETL.BURN)-ETL.BURN;X.SEAMEND=ETL.SEAMEND+(X.BURN||ETL.BURN)-ETL.BURN;
+  X.fx={build:C=>emtBuild(C,L),frame:(C,tt,dt)=>emtFrame(C,L,tt,dt),blow:(C,tip)=>emtBlow(C,L,tip,X)};
+  X.onBlow=(B,T,tip)=>emtLog({ev:'blow',B:B.slice(),T:T.slice(),tip});X.onGeyser=(d,H)=>emtLog({ev:'geyser',d,H:H.slice()});X.onEnd=()=>emtLog({ev:'end'});
+  const N={};for(const k in X)if(typeof X[k]==='number')N[k]=X[k];emtLog({ev:'cast',L,X:N});return X;}
+/* M1: the greatsword drawn longer, its rims white-hot */
+function emtBuild(C,L){const T=C.T;if(L<1)return;for(const m of T.blades)m.scale.z=EMT.len;
+  const wh=new THREE.MeshBasicMaterial({color:0xfff0c8,transparent:true,opacity:1});C.mats.push(wh);T.rim.material=wh;T.edgeM.color.setHex(0xffa040);T.hotM.color.setHex(0xffc060);}
+function emtFrame(C,L,tt,dt){const T=C.T,TI=C.TI,up=SMS(tt,.9,2.1);
+  if(L>=1){T.edgeM.opacity=Math.min(1,T.edgeM.opacity*1.7);T.metal.emissiveIntensity=.8+1.1*up;
+    /* embers streaming off both edges (they trail behind the blade as it swings) */
+    if(dt>0&&tt>.6&&tt<4.6){T.blade.updateWorldMatrix(true,false);const v=EMT_V;for(let i=0;i<4;i++){const z=.4+rnd()*5,k=Math.max(.08,1-(z-.25)/5.2*.86),s=rnd()<.5?-1:1;
+      v.set(s*.38*k,(rnd()-.5)*.04,z).applyMatrix4(T.blade.matrixWorld);emit(1,{x:v.x,y:v.y,z:v.z,vx:(rnd()-.5)*.5,vy:.7+rnd()*.9,vz:(rnd()-.5)*.5,s:.1+rnd()*.05,s2:0,c:rnd()<.5?0xfff6d0:0xffb050,c2:0xa01800,life:.5+rnd()*.35,turb:1,drag:.6});}}}
+  const F=C.fiss;if(!F)return;const fl=Math.min(1,((ETL.SEAMEND+EMT.burn-ETL.BURN)-tt)/1.5);
+  /* M2: embers climb off the seams while the fissure burns */
+  if(L>=2&&dt>0&&tt<TI+EMT.burn){const k=L>=5?1:Math.min(1,(tt-TI)/(ETL.GROW*(EMT.fiss-.9)/(ETL.FISS-.9))),n=dt*70;for(let i=0;i<n;i++){const d=C.dA+(C.dB-C.dA)*k*rnd(),p=posAt(d,C.rt),y=gy(p[0],p[1]);
+    emit(1,{x:p[0]+(rnd()-.5)*.25,y:y+.05,z:p[1]+(rnd()-.5)*.25,vx:(rnd()-.5)*.15,vy:.5+rnd()*.9,vz:(rnd()-.5)*.15,s:.08+rnd()*.06,s2:0,c:rnd()<.3?0xfff0a0:0xff8a20,c2:0x901400,life:.5+rnd()*.5,turb:1.1});}}
+  /* M5: the seams flare white down the whole road as the blow lands, and cool back to orange */
+  if(L>=5){const k=tt-TI;F.flare(k<0?0:.6*Math.exp(-k*3.2)*Math.max(0,fl));}}
+function emtBlow(C,L,tip,X){const y=gy(tip.x,tip.z),R=X.BLAST||ETL.BLAST;
+  /* M3: more molten rocks thrown out of the bigger blast (cosmetic) */
+  if(L>=3)for(let i=0;i<7;i++)myLavaRock(tip.x+(rnd()-.5)*.6,y+.5,tip.z+(rnd()-.5)*.6,C.T.rockM,R/2.6);
+  /* M4: a wider crater, debris and dust up the whole blade, and an aftershock */
+  if(L>=4){nsSeamFx(tip.x,tip.z,R*.85,16,0xff7a20,0x2a0802,.07,4,{up:true,k:.5,grow:.3});debris(tip.x,tip.z,24,0x3a2214);for(let i=0;i<8;i++)emtChunk(tip.x+(rnd()-.5)*1.2,tip.z+(rnd()-.5)*1.2,1.3);
+    for(let u=2;u<(X.B1||ETL.B1);u+=1.1){const x=C.px+C.fx*u,z=C.pz+C.fz*u,yy=gy(x,z);debris(x,z,4,0x3a2214);for(let i=0;i<3;i++)emtChunk(x+(rnd()-.5)*.5,z+(rnd()-.5)*.5,1);
+      sprayP(0,x,yy+.1,z,8,{c:0x4a2a1a,c2:0x1a0e08,sp:2.4,up:2.2,s:.08,s2:.04,a:.95,life:1.1,g:7});
+      for(let i=0;i<3;i++)emitS(0,{x:x+(rnd()-.5)*.7,y:yy+.2,z:z+(rnd()-.5)*.7,vx:(rnd()-.5)*1,vy:.5+rnd()*.7,vz:(rnd()-.5)*1,s:.6,s2:2,c:0x6a5440,c2:0x2a2018,a:.48,life:2+rnd()*.6,lift:.3,drag:.8,turb:.5});}
+    mxLater(.2,()=>{camShake=Math.max(camShake,.45);if(typeof sfxBoom==='function')sfxBoom(.5,false);});}
+  /* M5: the fissure erupts whole: a running line of fire between the geysers */
+  if(L>=5){const dir=C.dir,n=Math.floor(Math.abs(C.dB-C.dA)/.225);for(let i=0;i<n;i++){const p=posAt(C.dA+dir*(i+.5)*.225,C.rt),yy=gy(p[0],p[1]);
+    sprayP(1,p[0],yy+.05,p[1],5,{c:0xfff6d8,c2:0xff4a00,sp:.5,up:2.2,s:.1,s2:.01,life:.5,g:3,r:.3});}}}
+/* M4: a chunk of the road thrown up by the blow: it arcs, bounces once in a puff of dust and crumbles */
+function emtChunk(x,z,sp){const r=[.07,.1,.13][Math.floor(rnd()*3)],y=gy(x,z),me=new THREE.Mesh(dod(r),M(rnd()<.5?0x3a2a20:0x24180f));me.position.set(x,y+.1,z);me.rotation.set(rnd()*6,rnd()*6,0);me.castShadow=true;scene.add(me);
+  const a=rnd()*6.283,h=(.6+rnd()*1.3)*sp,v=new THREE.Vector3(Math.cos(a)*h,2.6+rnd()*2.6,Math.sin(a)*h),rs=(rnd()-.5)*12;let b=0;
+  addFx(me,1.5,(f,dt)=>{v.y-=12*dt;me.position.addScaledVector(v,dt);me.rotation.x+=rs*dt;me.rotation.z+=rs*.5*dt;const fl=gy(me.position.x,me.position.z)+r*.6;
+    if(me.position.y<fl){me.position.y=fl;v.y=Math.abs(v.y)*.28;v.x*=.45;v.z*=.45;if(!b++)emitS(0,{x:me.position.x,y:fl,z:me.position.z,vx:0,vy:.3,vz:0,s:.25,s2:.7,c:0x6a5440,c2:0x2a2018,a:.4,life:1,lift:.2,turb:.4});}
+    if(f.life<.4)me.scale.setScalar(Math.max(.01,f.life/.4));});}
+const EMT_OLD=castEmberTitan;
+castEmberTitan=function(t,list,P,o,XO){const c=!XO?emtC(o):null,X=c?emtOpts(c):XO;EMT.busy=Math.max(EMT.busy>time+12?0:EMT.busy,time+((X&&X.LIFE)||ETL.LIFE));return EMT_OLD(t,list,P,o,X);};
+/* the mastery preview waits for the titan to sink and its fissure to cool (it outlives its cineLock) */
+SMPV_BUSY.push(()=>EMT.busy>time&&EMT.busy-time<12);
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
