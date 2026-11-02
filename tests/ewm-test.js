@@ -42,9 +42,10 @@ function trial(L,o){o=o||{};const S=stage();EWM.dbg=[];setL(L);const log=[],adde
 const untilWave=(T,e,shat)=>{const h=T.H.get(e),ts=T.tOf(e,shat);return h&&ts!=null&&Math.abs(h.hold-(ts-h.tf+.05))<=.051;};
 try{
   /* ---- the card ---- */
-  ok('the five masteries: Biting Frost, The Long Freeze, Shards of the Heart, Winter\'s Hold, Absolute Zero (v453)',SM_D.eternalwinter.map(x=>x.n).join('|')==='Biting Frost|The Long Freeze|Shards of the Heart|Winter\'s Hold|Absolute Zero',SM_D.eternalwinter.map(x=>x.n).join('|'));
+  ok('the five masteries: Biting Frost, The Long Freeze, Shards of the Heart, Winter\'s Hold, The Heart Breaks (v453)',SM_D.eternalwinter.map(x=>x.n).join('|')==='Biting Frost|The Long Freeze|Shards of the Heart|Winter\'s Hold|The Heart Breaks',SM_D.eternalwinter.map(x=>x.n).join('|'));
   {const own=SM_D.eternalwinter.map(x=>x.n),other=[];for(const k in SM_D)if(k!=='eternalwinter')for(const m of SM_D[k])other.push(m.n);const sc=SCROLL_IDS.map(k=>SPELLS_S[k].n);
-    ok('no name is a scroll\'s or another mastery\'s (the old Deep Cold is also a Glacial Rift mastery)',own.every(n=>!other.includes(n)&&!sc.includes(n)),own.filter(n=>other.includes(n)||sc.includes(n)).join(','));}
+    const sy=(typeof COMBOS!=='undefined'?COMBOS:[]).map(x=>x.n);
+    ok('no name is a scroll\'s, another mastery\'s or a synergy\'s (the old Deep Cold is also a Glacial Rift mastery; Absolute Zero is a synergy)',own.every(n=>!other.includes(n)&&!sc.includes(n)&&!sy.includes(n))&&sy.includes('Absolute Zero'),own.filter(n=>other.includes(n)||sc.includes(n)||sy.includes(n)).join(','));}
   ok('the numbers on the card are the ones in the code (320%; 0.6s / 2.5s; 6 shards, 100%; 2.4s; 1500%)',/320%/.test(smDesc('eternalwinter',0))&&/200%/.test(smDesc('eternalwinter',0))&&/0\.6s/.test(smDesc('eternalwinter',1))&&/2\.5s/.test(smDesc('eternalwinter',1))&&/\b6\b/.test(smDesc('eternalwinter',2))&&/100%/.test(smDesc('eternalwinter',2))&&/2\.4s/.test(smDesc('eternalwinter',3))&&/1\.2s/.test(smDesc('eternalwinter',3))&&/1500%/.test(smDesc('eternalwinter',4))
     &&EWM.frost===3.2&&EWM.gath===.6&&EWM.slowT===2.5&&EWM.aimN===6&&EWM.aim===1&&EWM.boss===2.4&&EWM.shat===15&&EWL.FROST===2&&EWL.SHAT===12&&EWL.SH===4.5&&EWL.BOSS===1.2);
   ok('the old masteries are gone (no brittleness, snowfall, spires, frostbite or echo hooks); calibrated with hidden factors',!SMF.eternalwinter.hit&&!SMF.eternalwinter.cast&&SMA.eternalwinter.every(x=>x===1)&&SMG.eternalwinter.length===5&&SMG.eternalwinter.every(x=>x>=.8&&x<1.3),SMG.eternalwinter.join());
@@ -93,11 +94,11 @@ try{
     ok('M4: the other foes are held as before (until the wave)',S.L.every(e=>untilWave(T,e,1200)));
     ok('M4: nothing is left behind',T.left===0&&T.floorOff,T.left+' '+T.leftD);}
   {const T=trial(3,{visAt:[7.3,7.55]});ok('M4 needs Mastery 4 (the boss held 1.2s at Mastery 3)',near(T.H.get(T.S.B).hold,1.2));}
-  /* ---- M5 Absolute Zero ---- */
+  /* ---- M5 The Heart Breaks ---- */
   {const T=trial(5,{visAt:[7.3,7.55]}),{S}=T,pl=ev('plates')[0];
     ok('M5: the shatter wave strikes 1500% (1200% before)',S.F.every(e=>T.hits(e,1500).length===1&&!T.hits(e,1200).length));
     ok('M5: the ice sheet bursts up as the wave breaks it (plates of ice)',pl&&pl.n>40,pl&&pl.n);
-    ok('M5: all the burst\'s shards are larger (x1.45)',ev('cast')[0].X.shardK===1.45);
+    ok('M5: all the burst\'s shards are larger (x1.25)',ev('cast')[0].X.shardK===1.25);
     ok('M5: Masteries 1-4 ride it (320% frost, the long freeze, 6 shards, the boss held 2.4s)',S.F.every(e=>T.hits(e,320).length===1)&&ev('aim')[0].L.length===6&&ev('shard').length===6&&near(T.H.get(S.B).hold,2.4,.051)&&near(T.cine,6.4)&&S.L.every(e=>untilWave(T,e,1500)));
     ok('M5: nothing is left behind (the plates, the floor, the aurora)',T.left===0&&T.floorOff&&T.aurOff&&T.filtEnd==='',T.left);}
   {const T=trial(4,{visAt:[7.3,7.55]});ok('M5 needs Mastery 5',!ev('plates').length&&T.S.F.every(e=>T.hits(e,1200).length===1));}
