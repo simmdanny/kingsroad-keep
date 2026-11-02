@@ -20,7 +20,7 @@ try{
   ok('plains light is the old light',DC_D.k.getHex()===0x8fb4cf,DC_D.k.getHexString());
   go('snow');TILES.getColorAt(0,pc);ok('Frostvale board: snow tiles',ARENA_BUILT==='snow'&&pc.r>.55&&pc.b>pc.r,pc.getHexString());
   ok('Frostvale light',DC_D.k.getHex()===0xa3b6c9,DC_D.k.getHexString());
-  {let tops=0,rocks=0,inst=0;TERRAIN.traverse(o=>{if(o.isInstancedMesh&&o!==TILES)inst++;if(o.isMesh&&o.material&&o.material.userData){if(o.material.userData.snowTop)tops++;if(o.material.userData.snow)rocks++;}});
+  {let tops=0,rocks=0,inst=0;TERRAIN.traverse(o=>{if(o.isInstancedMesh&&o!==TILES&&!o.userData.as)inst++;if(o.isMesh&&o.material&&o.material.userData){if(o.material.userData.snowTop)tops++;if(o.material.userData.snow)rocks++;}});
     ok('snow on trees, roofs and rocks without extra meshes',tops>20&&rocks>0&&inst===2,tops+' tops, '+rocks+' rocks, '+inst+' instanced');}
   {const pv=arenaPV();ok('home preview uses the snow palette',pv.snow===true&&pv.g0==='#eaf0f3');}
   /* the Greywind Tundra board */
@@ -32,7 +32,7 @@ try{
     ok('the road is clearly lighter grey gravel',mr>mf*1.6&&road.every(c=>Math.abs(c.r-c.b)<.06),mr.toFixed(2)+' vs '+mf.toFixed(2));}
   ok('tundra light: a low warm sun under a pale blue sky',DC_D.k.getHex()===TUN_LIGHT[0].k&&DC_D.s.r>DC_D.s.b&&DC_D.k.b>DC_D.k.r,DC_D.s.getHexString()+' / '+DC_D.k.getHexString());
   {anim(.016,1);const o=DAYC.off,d=sun.position.clone().sub(sun.target.position);ok('the sun sits half as high in the tundra (long shadows)',Math.abs(d.y/d.length()-(o.y*.5)/new THREE.Vector3(o.x,o.y*.5,o.z).length())<.01,(d.y/d.length()).toFixed(3));}
-  {let inst=0,tags=[],wind=0,lich=0,rockCol=true,snowy=0,peb=0,pebHid=0;TERRAIN.traverse(o=>{if(o.isInstancedMesh&&o!==TILES){inst++;tags.push(o.userData.tun);}if(o.userData.tunWind)wind++;
+  {let inst=0,tags=[],wind=0,lich=0,rockCol=true,snowy=0,peb=0,pebHid=0;TERRAIN.traverse(o=>{if(o.isInstancedMesh&&o!==TILES&&!o.userData.as){inst++;tags.push(o.userData.tun);}if(o.userData.tunWind)wind++;
       if(o.isMesh&&o.material&&o.material.userData){if(o.material.userData.lichen&&!o.isInstancedMesh&&o.parent===TERRAIN){lich++;if(!TUN_ROCK.has(o.material.color.getHex()))rockCol=false;}if(o.visible&&(o.material.userData.snowTop||o.material.userData.snow))snowy++;}
       if(o.isMesh&&o.parent===TERRAIN&&o.material&&o.material.color&&TUN_HIDE.has(o.material.color.getHex())){peb++;if(!o.visible)pebHid++;}});
     let lore=0;for(const L of LORE)L.g.traverse(o=>{if(o.isMesh&&o.material&&o.material.userData&&o.material.userData.snow)lore++;});
