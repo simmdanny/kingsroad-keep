@@ -11,7 +11,7 @@ const play=()=>{meta.arena='plains';meta.dev=true;meta.scrAuto=false;lsSet(KR,nu
 const run=sec=>{for(let i=0;i<Math.round(sec/.05);i++){updFx(.05);time+=.05;}};
 const setL=L=>{meta.smast=meta.smast||{};if(L)meta.smast.judgment=SM_XP[L-1];else delete meta.smast.judgment;};
 /* a foe standing at (x,z) */
-const foeAt=(x,z,hp)=>{spawnEnemy({type:'soldier',v:0},20);const e=enemies[enemies.length-1];e.route=ROUTES[0];e.dist=1;moveEnemy(e,0);e.spd=0;e.x=x;e.z=z;e.y=gy(x,z);e.g.position.set(x,0,z);e.maxHp=e.hp=hp||1e9;e.armor=0;e.res={};e.shield=0;return e;};
+const foeAt=(x,z,hp)=>{spawnEnemy({type:'soldier',v:0},20);const e=enemies[enemies.length-1];e.gem=0;e.scroll=0;e.route=ROUTES[0];e.dist=1;moveEnemy(e,0);e.spd=0;e.x=x;e.z=z;e.y=gy(x,z);e.g.position.set(x,0,z);e.maxHp=e.hp=hp||1e9;e.armor=0;e.res={};e.shield=0;return e;};
 /* foes on a ray from the hero's hand (where the Judgment aims from) at angle a (radians), at these distances, and off it by off */
 const ray=(a,ds,off,hp)=>{const hv=jdgHand(heroU,new THREE.Vector3());return ds.map(d=>foeAt(hv.x+Math.sin(a)*d+Math.cos(a)*(off||0),hv.z+Math.cos(a)*d-Math.sin(a)*(off||0),hp));};
 let log=[];const wrapHurt=()=>{hurt=function(e,amt,kind,o){log.push({e,amt,smx:!!(o&&o.smx),dot:!!(o&&o.dot),t:time});return H0.apply(this,arguments);};};

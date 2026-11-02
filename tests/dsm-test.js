@@ -12,7 +12,7 @@ function go(){lsSet(KR,null);meta.arena='plains';meta.dev=true;meta.scrAuto=fals
   const d0=best==null?2:best,A=posAt(d0,R),B=posAt(d0+5,R),ux=(B[0]-A[0])/5,uz=(B[1]-A[1])/5;
   let hc=null,hb=1e9;for(let r=0;r<H;r++)for(let c=0;c<W;c++){if(grid[r][c]!==0)continue;const q=tw(c,r),tx=A[0]-ux*1.6,tz=A[1]-uz*1.6,dd=(q.x-tx)**2+(q.z-tz)**2;if(dd<hb){hb=dd;hc=[c,r];}}
   spawnHero(hc[0],hc[1]);heroU.cd=1e9;for(const e of enemies.slice())removeEnemy(e);enemies=[];state='playing';paused=false;speed=0;window.__fz=true;worldSlow=1;slowT=0;return{R,d0};}
-function foe(R,d,off,hp){spawnEnemy({type:'soldier',v:0},20);const e=enemies[enemies.length-1];e.route=R;e.dist=d;e.off=off||0;e.hp=e.maxHp=hp||1e7;e.armor=0;e.res={};e.spd=0;moveEnemy(e,0);return e;}
+function foe(R,d,off,hp){spawnEnemy({type:'soldier',v:0},20);const e=enemies[enemies.length-1];e.gem=0;e.scroll=0;e.route=R;e.dist=d;e.off=off||0;e.hp=e.maxHp=hp||1e7;e.armor=0;e.res={};e.spd=0;moveEnemy(e,0);return e;}
 const setL=L=>{meta.smast=meta.smast||{};if(L)meta.smast.dslash=SM_XP[L-1];else delete meta.smast.dslash;};
 const cast=L=>{setL(L);castScrollNow('dslash',heroU,heroStats(),enemies.filter(e=>!e.dead),100,{src:heroU,bane:0,el:'dark',anc:false,spell:'dslash'});};
 let log=[];const wrapHurt=()=>{hurt=function(e,amt,kind,o){log.push({e,amt,smx:!!(o&&o.smx),dot:!!(o&&o.dot),t:time});return H0.apply(this,arguments);};};
@@ -23,7 +23,8 @@ const exact=(s,F)=>F.every(e=>onCut(s,e)===s.L.includes(e));
 const hits=(e,amt,o)=>log.filter(h=>h.e===e&&near(h.amt,amt)&&(!o||((o.dot==null||h.dot===o.dot)&&(o.smx==null||h.smx===o.smx))));
 const left=added=>added.filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
-/* nine foes along the road, and two beside it 0.62 off its middle */
+/* nine foes along the road, and two beside it 0.62 off its middle (none of them a gem or scroll carrier: a carrier twinkles every 0.18s,
+   and the twinkles still alive when a trial ends would count as left behind) */
 const stage=()=>{const G=go(),L=[];for(let i=0;i<9;i++)L.push(foe(G.R,G.d0+i*.55));const S=[foe(G.R,G.d0+1.9,.62),foe(G.R,G.d0+3.6,-.62)];return{G,L,S,F:L.concat(S)};};
 try{
   /* ---- the card ---- */
