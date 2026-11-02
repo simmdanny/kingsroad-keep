@@ -3996,7 +3996,13 @@ function eclAssets(){if(!ECL)ECL={ritual:ritualTex(1280,0),inner:ritualTex(896,1
 setTimeout(()=>{try{eclAssets();}catch(e){}},2500);
 
 /* ---- Eclipse of the Damned (mythic) ---- */
-function castEclipse(t,P,o){
+/* v451: XO (optional, Eclipse of the Damned's masteries): this cast's own numbers over ECLD (BEAM: a star beam's share, HEAVY: the chance of
+   a heavy gold beam, HEAVYK: how much harder it strikes, R/RH: their reach, GAP: a star every GAP s, NS: the stars in the sky, SHAT: the
+   shatter's share, SHARDS/SHARDK: its glass shards and their size) and its looks (thick: the beams' width, coreW/tint: whiter cores, starA:
+   the waiting stars' brightness, waveA/waveFS: the shatter's wave), aim() (where a star falls, and the foe its sigil follows while it
+   charges and the beam drops), onImpact (a beam's 3D burst) and onBeam/onHit/onShatter for the log. Without XO: exactly as before. */
+const ECLD={BEAM:1.5,HEAVY:.18,HEAVYK:1.5,R:.55,RH:.85,GAP:.07,NS:320,SHAT:10,SHARDS:60,SHARDK:1,thick:1,coreW:.45,tint:0,starA:1,waveA:1};
+function castEclipse(t,P,o,XO){const D=XO?Object.assign({},ECLD,XO):ECLD;
   const A=eclAssets(),root=new THREE.Group();scene.add(root);cineLock=Math.max(cineLock,11.5);
   const C=new THREE.Vector3(0,4.6,-6.4),G={x:0,z:-.5},GR=6.6,geos=[],mats=[],reg=(g,m)=>{if(g)geos.push(g);if(m)mats.push(m);return m;};
   const ADD=THREE.AdditiveBlending;
@@ -4020,7 +4026,7 @@ function castEclipse(t,P,o){
   const pilG=new THREE.CylinderGeometry(.08,.14,3.4,14,1,true);pilG.translate(0,1.7,0);const pilM=reg(pilG,new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:0},uC:{value:new THREE.Color(0xffc860)}},vertexShader:VS_UV,fragmentShader:PILLAR_FS,transparent:true,depthWrite:false,blending:ADD,side:THREE.DoubleSide}));
   const nodes=[];for(let i=0;i<12;i++){const a=i/12*Math.PI*2-Math.PI/2,x=Math.cos(a)*GR*.815,z=Math.sin(a)*GR*.815,m=new THREE.Mesh(pilG,pilM);m.position.set(x,.05,z);ritG.add(m);nodes.push({x,z});}
   // --- stars ---
-  const NS=320,sp=new Float32Array(NS*3),sph=new Float32Array(NS),ssz=new Float32Array(NS);for(let i=0;i<NS;i++){sp[i*3]=(rnd()-.5)*11;sp[i*3+1]=3.2+rnd()*4.8;sp[i*3+2]=(rnd()-.5)*16-1.5;sph[i]=rnd();ssz[i]=.1+Math.pow(rnd(),3)*.34;}
+  const NS=D.NS,sp=new Float32Array(NS*3),sph=new Float32Array(NS),ssz=new Float32Array(NS);for(let i=0;i<NS;i++){sp[i*3]=(rnd()-.5)*11;sp[i*3+1]=3.2+rnd()*4.8;sp[i*3+2]=(rnd()-.5)*16-1.5;sph[i]=rnd();ssz[i]=.1+Math.pow(rnd(),3)*.34;}
   const stG=new THREE.BufferGeometry();stG.setAttribute('position',new THREE.BufferAttribute(sp,3));stG.setAttribute('ph',new THREE.BufferAttribute(sph,1));stG.setAttribute('sz',new THREE.BufferAttribute(ssz,1));
   const stM=reg(stG,starMat());root.add(new THREE.Points(stG,stM));
   // --- god rays from the eclipse ---
@@ -4030,7 +4036,8 @@ function castEclipse(t,P,o){
   for(let i=0;i<7;i++){const a=i/7*Math.PI*2,tp=new THREE.Vector3(G.x+Math.cos(a)*4.4-C.x,-C.y,G.z+Math.sin(a)*4.4-C.z),m=new THREE.Mesh(grG,grM);m.scale.set(1,tp.length(),1);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),tp.normalize());rays.add(m);}
   // --- tendrils ---
   const al0=()=>enemies.filter(e=>!e.dead);
-  const spotNear=()=>{const al=al0();if(al.length&&rnd()<.75){const e=pick(al);return{x:e.x+(rnd()-.5)*.9,z:e.z+(rnd()-.5)*.9};}const a=rnd()*6.28,r=rnd()*GR*.8;return{x:G.x+Math.cos(a)*r,z:G.z+Math.sin(a)*r};};
+  const spotRing=()=>{const a=rnd()*6.28,r=rnd()*GR*.8;return{x:G.x+Math.cos(a)*r,z:G.z+Math.sin(a)*r};};
+  const spotNear=()=>{const al=al0();if(al.length&&rnd()<.75){const e=pick(al);return{x:e.x+(rnd()-.5)*.9,z:e.z+(rnd()-.5)*.9};}return spotRing();};
   const tendrils=[];for(let i=0;i<13;i++){const pos=spotNear(),h=1.4+rnd()*1.2,pts=[],bend=rnd()*6.28;for(let k=0;k<6;k++){const u=k/5;pts.push(new THREE.Vector3(Math.cos(bend)*u*u*.5+(rnd()-.5)*.12*u,u*h,Math.sin(bend)*u*u*.5+(rnd()-.5)*.12*u));}
     pts[5].add(new THREE.Vector3(Math.cos(bend+1.4)*.25,-.1,Math.sin(bend+1.4)*.25));const tg=taperTube(pts,.075+rnd()*.04,.006,9,40);const tm=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uGrow:{value:0},uSeed:{value:rnd()*10},uA:{value:1}},vertexShader:TVS,fragmentShader:TFS});
     reg(tg,tm);const m=new THREE.Mesh(tg,tm);m.position.set(pos.x,0,pos.z);m.visible=false;root.add(m);tendrils.push({m,tm,d:4.45+rnd()*1,x:pos.x,z:pos.z,h});}
@@ -4050,7 +4057,7 @@ function castEclipse(t,P,o){
   const frags=[];
   // --- darkness wave + crack decals (made at shatter) ---
   let wave=null,waveM=null;const decals=[];
-  const beams=[],usedStars=new Set(),bGs=new THREE.CylinderGeometry(1,1,1,12,1,true),sgG=new THREE.PlaneGeometry(1,1),ckG=new THREE.PlaneGeometry(1,1);bGs.translate(0,-.5,0);sgG.rotateX(-Math.PI/2);ckG.rotateX(-Math.PI/2);geos.push(bGs,sgG,ckG);
+  const beams=[],usedStars=new Set(),bGs=new THREE.CylinderGeometry(1,1,1,12,1,true),sgG=new THREE.PlaneGeometry(1,1),ckG=new THREE.PlaneGeometry(1,1),crG0=new THREE.RingGeometry(.78,1,48);bGs.translate(0,-.5,0);sgG.rotateX(-Math.PI/2);ckG.rotateX(-Math.PI/2);geos.push(bGs,sgG,ckG,crG0);   /* v451: one ring for every star's collapse (it was made per beam) */
   let tt=0,shattered=false,nextBeam=0;const pulled=new Set();
   addFx(root,11.5,(f,dt)=>{tt+=dt;const T=tt;
     corM.uniforms.uT.value=T;stM.uniforms.uT.value=T;flM.uniforms.uT.value=T;rM.uniforms.uT.value=T;rM2.uniforms.uT.value=T;glM.uniforms.uT.value=T;pilM.uniforms.uT.value=T;grM.uniforms.uT.value=T;GM.uniforms.uT.value=T;
@@ -4069,7 +4076,7 @@ function castEclipse(t,P,o){
     const pk=clamp((T-2.6)/.8,0,1)*(shattered?Math.max(0,1-(T-7.4)/.5):1);pilM.uniforms.uA.value=pk*(.75+.25*Math.sin(T*5));
     if(pk>0){const ca=Math.cos(ritG.rotation.y),sa=Math.sin(ritG.rotation.y);for(let i=0;i<3;i++){const nd=pick(nodes),wx=G.x+nd.x*ca+nd.z*sa,wz=G.z-nd.x*sa+nd.z*ca;emit(1,{x:wx+(rnd()-.5)*.15,y:.1,z:wz+(rnd()-.5)*.15,vy:.8+rnd()*1.4,s:.05+rnd()*.04,s2:0,c:0xfff0c0,c2:0xffa030,life:1.1,turb:.3});}}
     // C: stars 2.4-3.8
-    stM.uniforms.uA.value=clamp((T-2.4)/1.4,0,1)*(shattered?Math.max(0,1-(T-7.4)/.6):1);
+    stM.uniforms.uA.value=clamp((T-2.4)/1.4,0,1)*(shattered?Math.max(0,1-(T-7.4)/.6):1)*D.starA;
     // corona dust
     if(!shattered&&T>.3){const q=sun2.position,sr=sun2.scale.x;for(let i=0;i<5;i++){const a=rnd()*6.28,r=sr*rd*(1.05+rnd()*.7);emit(1,{x:q.x+Math.cos(a)*r,y:q.y+Math.sin(a)*r*.85,z:q.z+(rnd()-.5)*.3,vx:Math.cos(a)*.35*(T>4.4?-2:1),vy:-.25-rnd()*.5,vz:(rnd()-.5)*.3,s:.05+rnd()*.07,s2:0,c:rnd()<.7?0xffd060:0xfff4d0,c2:0x8a4a00,life:1.2+rnd(),turb:.5});}}
     // D: rotation, pull, rays, beams 4.4-7.4
@@ -4079,7 +4086,7 @@ function castEclipse(t,P,o){
         if(rnd()<.25)emitS(0,{x:en.x,y:.15,z:en.z,vx:(G.x-en.x)*.4,vy:.2,vz:(G.z-en.z)*.4,s:.2,s2:.6,c:0x1a1024,c2:0x0a0612,a:.5,life:1,turb:.5});}}
       for(let i=0;i<7;i++){const a=rnd()*6.28,r=3.5+rnd()*3.5,tx2=-Math.sin(a),tz2=Math.cos(a);emitS(rnd()<.2?1:0,{x:G.x+Math.cos(a)*r,y:.15+rnd()*.5,z:G.z+Math.sin(a)*r,vx:(tx2*1.6-Math.cos(a)*1.2),vy:.05+rnd()*.2,vz:(tz2*1.6-Math.sin(a)*1.2),s:.35+rnd()*.3,s2:.9,c:rnd()<.5?0x4a2a66:0x5a3a1c,c2:0x1a0c26,a:.5,life:1.6,drag:.3,turb:.4});}
       for(let i=0;i<6;i++){const a=rnd()*6.28,r=2+rnd()*4.5;emit(1,{x:G.x+Math.cos(a)*r,y:.1+rnd()*.6,z:G.z+Math.sin(a)*r,vx:-Math.sin(a)*2-Math.cos(a)*1.5,vy:.2,vz:Math.cos(a)*2-Math.sin(a)*1.5,s:.05,s2:.01,c:0xffc050,c2:0xa050ff,life:.8,turb:.3});}
-      if(T>4.75&&T<6.95){nextBeam-=dt;while(nextBeam<=0){nextBeam+=.07;const tg=spotNear();let si=-1,bd=1e9;for(let q=0;q<24;q++){const c2=Math.floor(rnd()*NS);if(usedStars.has(c2))continue;const d2=(sp[c2*3]-tg.x)**2+(sp[c2*3+2]-tg.z)**2;if(d2<bd){bd=d2;si=c2;}}if(si<0)break;usedStars.add(si);starBeam(si,tg.x,tg.z);}}}
+      if(T>4.75&&T<6.95){nextBeam-=dt;while(nextBeam<=0){nextBeam+=D.GAP;const tg=D.aim?D.aim(spotRing):spotNear();let si=-1,bd=1e9;for(let q=0;q<24;q++){const c2=Math.floor(rnd()*NS);if(usedStars.has(c2))continue;const d2=(sp[c2*3]-tg.x)**2+(sp[c2*3+2]-tg.z)**2;if(d2<bd){bd=d2;si=c2;}}if(si<0)break;usedStars.add(si);starBeam(si,tg.x,tg.z,tg.e);}}}
     // tendrils
     tendrils.forEach(td=>{if(T<td.d)return;if(!td.m.visible){td.m.visible=true;debris(td.x,td.z,6,0x07030c);sprayP(0,td.x,.1,td.z,8,{c:0x2a2018,c2:0x120c0a,sp:1,flat:true,s:.12,s2:.3,a:.6,life:.9,turb:.5});}
       const gk=ease(clamp((T-td.d)/.55,0,1)),out=T>7.3?clamp((T-7.3)/.5,0,1):0;td.tm.uniforms.uT.value=T;td.tm.uniforms.uGrow.value=gk*(1-out);td.tm.uniforms.uA.value=1-out*.5;
@@ -4094,20 +4101,20 @@ function castEclipse(t,P,o){
     beams.forEach(b=>b.u.forEach(m=>m.uniforms.uT.value=T));
     // E: shatter 7.4
     if(T>=7.4&&!shattered){shattered=true;sun2.visible=false;flashA=.95;flashCol='#fff0c0';flashDecay=1.7;camShake=.42;
-      for(let i=0;i<60;i++){const vi=Math.floor(rnd()*triGs.length),m=new THREE.Mesh(triGs[vi],glassM);m.add(new THREE.LineSegments(triEs[vi],edgeM));m.position.copy(C).add(new THREE.Vector3((rnd()-.5)*1.2,(rnd()-.5)*1.2,(rnd()-.5)*1.2));m.scale.setScalar(.3+rnd()*.8);root.add(m);
+      for(let i=0;i<D.SHARDS;i++){const vi=Math.floor(rnd()*triGs.length),m=new THREE.Mesh(triGs[vi],glassM);m.add(new THREE.LineSegments(triEs[vi],edgeM));m.position.copy(C).add(new THREE.Vector3((rnd()-.5)*1.2,(rnd()-.5)*1.2,(rnd()-.5)*1.2));m.scale.setScalar((.3+rnd()*.8)*D.SHARDK);root.add(m);
         frags.push({m,v:new THREE.Vector3((rnd()-.5)*7.5,(rnd()-.25)*5.5,(rnd()-.5)*7.5),r:new THREE.Vector3((rnd()-.5)*8,(rnd()-.5)*8,(rnd()-.5)*8)});}
       sprayP(1,C.x,C.y,C.z,160,{c:0xfff0c0,c2:0xff9a10,sp:6,r:1.4,s:.1,s2:0,life:1.7,g:1,drag:.7});sprayP(0,C.x,C.y,C.z,40,{c:0x05030a,c2:0x1a0a20,sp:3,r:1,s:.12,s2:.06,a:.9,life:2,g:.6,drag:.5,turb:.6});
       for(let i=0;i<36;i++){const a=rnd()*6.28,e2=rnd()*2-1,v=1.5+rnd()*2.5;emitS(rnd()<.3?1:0,{x:C.x,y:C.y,z:C.z,vx:Math.cos(a)*v*Math.sqrt(1-e2*e2),vy:e2*v,vz:Math.sin(a)*v*Math.sqrt(1-e2*e2),s:.6+rnd()*.5,s2:2+rnd(),c:rnd()<.5?0x140a1c:0x6a3a10,c2:0x05030a,a:.7,life:2.4+rnd(),drag:1.1,turb:.5});}
-      const wG=new THREE.PlaneGeometry(2,2);wG.rotateX(-Math.PI/2);waveM=reg(wG,new THREE.ShaderMaterial({uniforms:{uR:{value:0},uT:{value:0},uA:{value:1}},vertexShader:VS_UV,fragmentShader:WAVE_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide}));
+      const wG=new THREE.PlaneGeometry(2,2);wG.rotateX(-Math.PI/2);waveM=reg(wG,new THREE.ShaderMaterial({uniforms:{uR:{value:0},uT:{value:0},uA:{value:1}},vertexShader:VS_UV,fragmentShader:D.waveFS||WAVE_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide}));
       wave=new THREE.Mesh(wG,waveM);wave.position.set(t.x,.08,t.z);wave.scale.setScalar(15);wave.rotation.y=rnd()*6.28;root.add(wave);
       shockwave(t.x,t.z,13,0xffc040,1.3,0x000000);
       const dG2=new THREE.PlaneGeometry(1,1);dG2.rotateX(-Math.PI/2);geos.push(dG2);
       for(let i=0;i<14;i++){const a=rnd()*6.28,r=rnd()*GR*.95,dm=reg(null,new THREE.MeshBasicMaterial({map:pick(A.cracks),color:rnd()<.6?0xffb040:0xb060ff,transparent:true,opacity:0,blending:ADD,depthWrite:false}));
         const d=new THREE.Mesh(dG2,dm);d.position.set(G.x+Math.cos(a)*r,.055+i*.001,G.z+Math.sin(a)*r);d.rotation.y=rnd()*6.28;const sc=1.2+rnd()*2.4;d.scale.set(sc*(.7+rnd()*.6),1,sc);root.add(d);decals.push({d,dm,delay:rnd()*.6});}
-      for(const en of enemies){if(en.dead)continue;hurt(en,P*10,'magic',o);if(!en.dead){en.dist=Math.max(0,en.dist-(en.boss?.2:.7));en.ox=0;en.oz=0;}}
+      const SH=[];for(const en of enemies){if(en.dead)continue;SH.push(en);hurt(en,P*D.SHAT,'magic',o);if(!en.dead){en.dist=Math.max(0,en.dist-(en.boss?.2:.7));en.ox=0;en.oz=0;}}if(D.onShatter)D.onShatter(SH);
       darkTarget=.82;vigTarget=.58;}
     if(shattered){const sT=T-7.4;
-      if(wave){const wk=ease(clamp(sT/1.3,0,1));waveM.uniforms.uR.value=wk*.98;waveM.uniforms.uT.value=T;waveM.uniforms.uA.value=1-clamp((sT-.9)/.7,0,1);
+      if(wave){const wk=ease(clamp(sT/1.3,0,1));waveM.uniforms.uR.value=wk*.98;waveM.uniforms.uT.value=T;waveM.uniforms.uA.value=(1-clamp((sT-.9)/.7,0,1))*D.waveA;
         if(wk<1)for(let i=0;i<12;i++){const a=rnd()*6.28,r=wk*.98*15*(.93+rnd()*.12);emitS(0,{x:t.x+Math.cos(a)*r,y:.15+rnd()*.3,z:t.z+Math.sin(a)*r,vx:Math.cos(a)*1.4,vy:.25+rnd()*.5,vz:Math.sin(a)*1.4,s:.4+rnd()*.35,s2:1.2,c:0x3a2448,c2:0x5a4030,a:.55,life:1.4,turb:.6});}}
       decals.forEach(dc=>{const a=clamp((sT-dc.delay)/.25,0,1)*(1-clamp((T-8.8)/2.2,0,1));dc.dm.opacity=a*(.75+.25*Math.sin(T*7+dc.delay*20));if(a>.2&&rnd()<.15)emit(1,{x:dc.d.position.x+(rnd()-.5),y:.06,z:dc.d.position.z+(rnd()-.5),vy:.5+rnd()*.6,s:.04,s2:0,c:0xffd080,c2:0xa050ff,life:.8,turb:.4});});
       frags.forEach(q=>{q.v.y-=1.1*dt;q.v.multiplyScalar(1-dt*.9);q.m.position.addScaledVector(q.v,dt);q.m.rotation.x+=q.r.x*dt;q.m.rotation.y+=q.r.y*dt;q.m.rotation.z+=q.r.z*dt;
@@ -4118,32 +4125,36 @@ function castEclipse(t,P,o){
         for(let i=0;i<2;i++){const a=rnd()*6.28,r=rnd()*GR;emitS(0,{x:G.x+Math.cos(a)*r,y:.1,z:G.z+Math.sin(a)*r,vx:(rnd()-.5)*.3,vy:.05,vz:(rnd()-.5)*.3,s:.8,s2:1.8,c:0x3a2450,c2:0x1a1024,a:.4,life:3,drag:.4,turb:.3});}}
       if(T>9){darkTarget=Math.max(0,.82*(1-(T-9)/1.7));vigTarget=Math.max(0,.58*(1-(T-9)/1.7));}}},
     ()=>{darkTarget=0;vigTarget=0;pulled.forEach(en=>{en.ox=0;en.oz=0;});},{mats,geos});
-  function starBeam(si,tx,tz){
-    const sx=sp[si*3],sy=sp[si*3+1],sz=sp[si*3+2],heavy=rnd()<.18,W=heavy?1.8:1;
-    const S0=new THREE.Vector3(sx,sy,sz),T0=new THREE.Vector3(tx,.05,tz),dir=T0.clone().sub(S0),len=dir.length();dir.normalize();
+  /* fe (XO.aim, None Escape): the foe this star falls on; its sigil and aim follow it until the beam strikes */
+  function starBeam(si,tx,tz,fe){
+    const sx=sp[si*3],sy=sp[si*3+1],sz=sp[si*3+2],heavy=rnd()<D.HEAVY,W=heavy?1.8:1,R0=heavy?D.RH:D.R,sk=R0/(heavy?ECLD.RH:ECLD.R);
+    const S0=new THREE.Vector3(sx,sy,sz),T0=new THREE.Vector3(tx,.05,tz),dir=T0.clone().sub(S0);let len=dir.length();dir.normalize();
     const pa=new THREE.Vector3().crossVectors(dir,new THREE.Vector3(0,1,0));if(pa.lengthSq()<1e-4)pa.set(1,0,0);pa.normalize();const pb=new THREE.Vector3().crossVectors(dir,pa).normalize();
     const g=new THREE.Group();root.add(g);
     const fG=new THREE.BufferGeometry(),fsz=new THREE.Float32BufferAttribute([.4],1);fG.setAttribute('position',new THREE.Float32BufferAttribute([sx,sy,sz],3));fG.setAttribute('ph',new THREE.Float32BufferAttribute([.9],1));fG.setAttribute('sz',fsz);
     const fM=starMat();fM.uniforms.uA.value=1;g.add(new THREE.Points(fG,fM));
-    const crG=new THREE.RingGeometry(.78,1,48),crM=new THREE.MeshBasicMaterial({color:0xe8d0ff,transparent:true,opacity:0,blending:ADD,depthWrite:false,side:THREE.DoubleSide}),cr=new THREE.Mesh(crG,crM);cr.position.copy(S0);g.add(cr);
+    const crG=crG0,crM=new THREE.MeshBasicMaterial({color:0xe8d0ff,transparent:true,opacity:0,blending:ADD,depthWrite:false,side:THREE.DoubleSide}),cr=new THREE.Mesh(crG,crM);cr.position.copy(S0);g.add(cr);
     const lG=new THREE.BufferGeometry().setFromPoints([S0,T0]),lM=new THREE.LineBasicMaterial({color:heavy?0xffc870:0xb080ff,transparent:true,opacity:0,blending:ADD});g.add(new THREE.Line(lG,lM));
     const sgM=new THREE.MeshBasicMaterial({map:A.sigil,color:heavy?0xffc860:0xc090ff,transparent:true,opacity:0,blending:ADD,depthWrite:false}),sg=new THREE.Mesh(sgG,sgM);sg.position.set(tx,.07,tz);g.add(sg);
-    const m1=new THREE.ShaderMaterial({uniforms:{uT:{value:tt},uA:{value:1},uCore:{value:0},uC:{value:new THREE.Color(heavy?0xc070ff:0x8a40ff)}},vertexShader:VS_UV,fragmentShader:BEAM_FS,transparent:true,depthWrite:false,blending:ADD,side:THREE.DoubleSide}),m2=m1.clone();m2.uniforms.uCore.value=1;
+    const m1=new THREE.ShaderMaterial({uniforms:{uT:{value:tt},uA:{value:1},uCore:{value:D.tint},uC:{value:new THREE.Color(heavy?0xc070ff:0x8a40ff)}},vertexShader:VS_UV,fragmentShader:BEAM_FS,transparent:true,depthWrite:false,blending:ADD,side:THREE.DoubleSide}),m2=m1.clone();m2.uniforms.uCore.value=1;
     const bm=new THREE.Group();bm.position.copy(S0);bm.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),dir);const b1=new THREE.Mesh(bGs,m1),b2=new THREE.Mesh(bGs,m2);bm.add(b1,b2);bm.visible=false;g.add(bm);
     const hG=new THREE.BufferGeometry(),hpos=new THREE.Float32BufferAttribute([sx,sy,sz],3);hG.setAttribute('position',hpos);hG.setAttribute('ph',new THREE.Float32BufferAttribute([.95],1));hG.setAttribute('sz',new THREE.Float32BufferAttribute([heavy?1.1:.75],1));
     const hM=starMat();hM.uniforms.uA.value=0;g.add(new THREE.Points(hG,hM));
     const bo={u:[m1,m2,fM,hM]};beams.push(bo);
+    const reAim=()=>{T0.set(tx,.05,tz);dir.subVectors(T0,S0);len=dir.length();dir.normalize();pa.crossVectors(dir,new THREE.Vector3(0,1,0));if(pa.lengthSq()<1e-4)pa.set(1,0,0);pa.normalize();pb.crossVectors(dir,pa).normalize();
+      bm.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),dir);const lp=lG.attributes.position;lp.setXYZ(1,tx,.05,tz);lp.needsUpdate=true;sg.position.set(tx,.07,tz);};
+    if(D.onBeam)D.onBeam({fe,heavy,x:tx,z:tz,R:R0});
     let lt=0,hit=false,collapsed=false,ckM=null;
-    addFx(g,1.05,(e,dt)=>{lt+=dt;cr.quaternion.copy(camera.quaternion);
+    addFx(g,1.05,(e,dt)=>{lt+=dt;cr.quaternion.copy(camera.quaternion);if(fe&&!fe.dead&&!hit){tx=fe.x;tz=fe.z;reAim();}
       if(lt<.32){const k=lt/.32;fsz.array[0]=(.4+k*1.1)*(1+.25*Math.sin(lt*60))*W;fsz.needsUpdate=true;lM.opacity=(.06+.32*k)*(.5+.5*Math.sin(lt*45));
-        sgM.opacity=k*.85;sg.scale.setScalar((1.9-1.1*ease(k))*W);sg.rotation.y+=dt*(3+k*7);
+        sgM.opacity=k*.85;sg.scale.setScalar((1.9-1.1*ease(k))*W*sk);sg.rotation.y+=dt*(3+k*7);
         for(let i=0;i<3;i++){const a=rnd()*6.28,r=.25+rnd()*.35;emit(1,{x:sx+Math.cos(a)*r,y:sy+(rnd()-.5)*r,z:sz+Math.sin(a)*r,vx:-Math.cos(a)*r*3.6,vy:0,vz:-Math.sin(a)*r*3.6,s:.035,s2:.01,c:0xffffff,c2:0xb070ff,life:.18});}
         if(rnd()<.5)emit(1,{x:tx+(rnd()-.5)*.6*W,y:.08,z:tz+(rnd()-.5)*.6*W,vy:.4+rnd()*.5,s:.04,s2:0,c:heavy?0xffd890:0xd0a0ff,life:.45});}
       else if(!collapsed){collapsed=true;ssz[si]=0;stG.attributes.sz.needsUpdate=true;crM.opacity=.9;emit(1,{x:sx,y:sy,z:sz,s:.9*W,s2:0,c:0xffffff,c2:0xa050ff,life:.14});sprayP(1,sx,sy,sz,10,{c:0xffffff,c2:0x9a50ff,sp:1.6,s:.04,s2:0,life:.25,drag:3});}
       if(collapsed&&lt<.42){const k=(lt-.32)/.1;fsz.array[0]=Math.max(0,2.2*(1-k))*W;fsz.needsUpdate=true;cr.scale.setScalar(Math.max(.01,.75*(1-k))*W);crM.opacity=.9*(1-k);}
       else if(lt>=.42&&fsz.array[0]!==0){fsz.array[0]=0;fsz.needsUpdate=true;crM.opacity=0;}
-      if(lt>=.34){bm.visible=true;const dk=clamp((lt-.34)/.12,0,1),hl=Math.max(.01,len*ease(dk)),fade=lt>.62?clamp((lt-.62)/.38,0,1):0,w=(.075*(1-fade)+.004)*W*(1+.15*Math.sin(lt*70));
-        b1.scale.set(w*1.6,hl,w*1.6);b2.scale.set(w*.45,hl,w*.45);m1.uniforms.uA.value=1-fade*.9;m2.uniforms.uA.value=1-fade;lM.opacity=0;
+      if(lt>=.34){bm.visible=true;const dk=clamp((lt-.34)/.12,0,1),hl=Math.max(.01,len*ease(dk)),fade=lt>.62?clamp((lt-.62)/.38,0,1):0,w=(.075*(1-fade)+.004)*W*D.thick*(1+.15*Math.sin(lt*70));
+        b1.scale.set(w*1.6,hl,w*1.6);b2.scale.set(w*D.coreW,hl,w*D.coreW);m1.uniforms.uA.value=1-fade*.9;m2.uniforms.uA.value=1-fade;lM.opacity=0;
         const hp=S0.clone().addScaledVector(dir,hl);hpos.setXYZ(0,hp.x,hp.y,hp.z);hpos.needsUpdate=true;hM.uniforms.uA.value=dk<1?1:Math.max(0,1-(lt-.46)*8);
         if(dk<1){for(let i=0;i<3;i++)emit(1,{x:hp.x+(rnd()-.5)*.1,y:hp.y,z:hp.z+(rnd()-.5)*.1,vx:(rnd()-.5)*.6,vy:(rnd()-.5)*.6,vz:(rnd()-.5)*.6,s:.06,s2:0,c:0xffffff,c2:0x9a50ff,life:.25});
           if(rnd()<.7)zap({x:hp.x,y:hp.y,z:hp.z},{x:hp.x+(rnd()-.5)*.55,y:hp.y+.3+rnd()*.45,z:hp.z+(rnd()-.5)*.55},0xe8d0ff,.08);}
@@ -4151,16 +4162,17 @@ function castEclipse(t,P,o){
           const p0=S0.clone().addScaledVector(dir,len*u).addScaledVector(pa,Math.cos(ang)*rr).addScaledVector(pb,Math.sin(ang)*rr);
           emit(1,{x:p0.x,y:p0.y,z:p0.z,vx:dir.x*3,vy:dir.y*3,vz:dir.z*3,s:.035+rnd()*.03,s2:0,c:rnd()<.5?0xffffff:(heavy?0xffd080:0xc080ff),c2:0x5a10b0,life:.22});}
         if(fade>0&&fade<1)for(let i=0;i<6;i++){const p0=S0.clone().addScaledVector(dir,len*rnd());emit(1,{x:p0.x+(rnd()-.5)*.12,y:p0.y,z:p0.z+(rnd()-.5)*.12,vx:(rnd()-.5)*.3,vy:.4+rnd()*.6,vz:(rnd()-.5)*.3,s:.04,s2:0,c:0xd0b0ff,c2:0x3a0a6a,life:.55,turb:.8});}
-        if(!hit&&dk>=1){hit=true;const R0=heavy?.85:.55;
+        if(!hit&&dk>=1){hit=true;
           flash(tx,.15,tz,0xe0c0ff,.5*W,.18);flash(tx,.1,tz,0xffffff,.25*W,.1);shockwave(tx,tz,heavy?2:1.2,heavy?0xffc060:0xb070ff,.45);
           sprayP(1,tx,.1,tz,heavy?36:20,{c:0xf4e0ff,c2:0x6a10c0,sp:2.4,up:1,s:.055,s2:0,life:.55,g:3});sprayP(1,tx,.1,tz,heavy?14:8,{c:0xffd080,c2:0xa04000,sp:1.6,up:1.6,s:.04,s2:0,life:.8,g:4});
-          debris(tx,tz,heavy?7:3);emitS(0,{x:tx,y:.15,z:tz,vy:.35,s:.35*W,s2:1.1*W,c:0x3a2450,c2:0x14081e,a:.6,life:1.5,turb:.5});emitS(1,{x:tx,y:.12,z:tz,s:.3*W,s2:.8*W,c:0x6a30b0,c2:0x14041e,a:.55,life:.6});
-          sgM.opacity=1;sg.scale.setScalar(1.15*W);
-          ckM=new THREE.MeshBasicMaterial({map:pick(A.cracks),color:heavy?0xffb050:0xc080ff,transparent:true,opacity:.95,blending:ADD,depthWrite:false});const ck=new THREE.Mesh(ckG,ckM);ck.position.set(tx,.058,tz);ck.rotation.y=rnd()*6.28;ck.scale.setScalar((.9+rnd()*.6)*W);g.add(ck);
-          for(const en of enemies)if(!en.dead&&(en.x-tx)**2+(en.z-tz)**2<R0*R0){hurt(en,P*1.5*(heavy?1.5:1),'magic',o);if(!en.dead)flash(en.x,en.y+en.hitY*.5,en.z,0xffffff,.2,.08);}
+          debris(tx,tz,heavy?7:3);if(D.onImpact)D.onImpact(tx,tz,heavy,W);emitS(0,{x:tx,y:.15,z:tz,vy:.35,s:.35*W,s2:1.1*W,c:0x3a2450,c2:0x14081e,a:.6,life:1.5,turb:.5});emitS(1,{x:tx,y:.12,z:tz,s:.3*W,s2:.8*W,c:0x6a30b0,c2:0x14041e,a:.55,life:.6});
+          sgM.opacity=1;sg.scale.setScalar(1.15*W*sk);
+          ckM=new THREE.MeshBasicMaterial({map:pick(A.cracks),color:heavy?0xffb050:0xc080ff,transparent:true,opacity:.95,blending:ADD,depthWrite:false});const ck=new THREE.Mesh(ckG,ckM);ck.position.set(tx,.058,tz);ck.rotation.y=rnd()*6.28;ck.scale.setScalar((.9+rnd()*.6)*W*sk);g.add(ck);
+          const H=[];for(const en of enemies)if(!en.dead&&(en.x-tx)**2+(en.z-tz)**2<R0*R0){H.push(en);hurt(en,P*D.BEAM*(heavy?D.HEAVYK:1),'magic',o);if(!en.dead)flash(en.x,en.y+en.hitY*.5,en.z,0xffffff,.2,.08);}
+          if(D.onHit)D.onHit(H,{fe,heavy,x:tx,z:tz,R:R0});
           camShake=Math.max(camShake,heavy?.08:.035);}
         if(hit){const hk=clamp((lt-.46)/.5,0,1);sgM.opacity=Math.max(0,1-hk*1.4);sg.rotation.y+=dt*2;if(ckM)ckM.opacity=.95*(1-hk);}}},
-      ()=>{const i2=beams.indexOf(bo);if(i2>=0)beams.splice(i2,1);if(ckM)ckM.dispose();},{mats:[fM,crM,lM,sgM,m1,m2,hM],geos:[fG,crG,lG,hG]});
+      ()=>{const i2=beams.indexOf(bo);if(i2>=0)beams.splice(i2,1);if(ckM)ckM.dispose();},{mats:[fM,crM,lM,sgM,m1,m2,hM],geos:[fG,lG,hG]});
   }
 }
 function castHexspark(e,dmg,o){
@@ -14180,6 +14192,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Eclipse of the Damned: more stars, and none escape',d:'2 Nov',v:'v451',li:[
+    'Eclipse of the Damned (Mythic) has five new masteries, for now in developer mode. The same rite plays out at every mastery (the black sun, the ritual circle that holds the foes, the falling stars and the shatter): each mastery makes a part it already has stronger and draws that part richer.',
+    'Starfire: every star beam strikes 12% harder and a little wider (0.6 tiles, a gold one 0.9), burns thicker and whiter, and bursts up in starfire where it lands. Greater Stars: the heavy gold beams fall 30% of the time (18% before).',
+    'Falling Sky: a star falls every 0.0625s (0.07 before), about 35 beams instead of 32, from a sky of 400 stars twinkling brighter. None Escape: the stars that fall on foes pick one no star has struck yet (then the least struck) and land on it without scatter, the sigil locked under it.',
+    'The Sun Breaks: the shatter strikes every foe on the map for 1200% (1000% before); the sun breaks into 90 larger shards and a darker, deeper wave rolls across the map.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -31967,6 +31984,92 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
   dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
+/* ================= Eclipse of the Damned's masteries (v451), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: a black sun swallows the sky, its ritual circle holds the foes, its stars fall on them as beams, and the sun shatters over the
+   whole map. Simon (for every Mythic, Ancient and Secret): "lets do the same way all the mythics ancients and secrets where their identity
+   is preserved but their visuals barely change and change only to better", and "new stuff CAN appear ... but just nothing that over shines
+   the spell". So the same rite plays out at every mastery (the sun, the circle, the hold, the falling stars, the shatter, the same 11.5s and
+   the same beats): each mastery makes one part the spell already has stronger and draws that same part richer. It replaces the old generic
+   set (Umbral Mark, Black Corona, Grasping Dead, Dying Stars, Second Sunset).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Starfire | what if each star burned hotter? | the star beams | stronger beams |
+   | 2 | Greater Stars | what if more of them were great stars? | the gold beams | more of what it has |
+   | 3 | Falling Sky | what if the sky held more stars? | how many fall | a denser fall |
+   | 4 | None Escape | what if no foe were spared? | where the stars aim | targeting |
+   | 5 | The Sun Breaks | what if the sun broke harder? | the shatter | signature payoff |
+   - M1 Starfire: every beam strikes ECM.beam harder (168%, a gold one 252%) and a little wider (ECM.R tiles, 0.55 before; a gold one ECM.RH,
+     0.85 before). The beams burn a quarter thicker (ECM.thick) with wider white cores, the sigil under each star is drawn larger with its
+     reach, and each impact bursts up in starfire (ecmBurst: two noise-churned balls of violet light, gold for a gold beam, that swell,
+     stretch and climb, and jets of sparks streaming up and out), so it has height instead of only the flat shockwave (the explosion rule).
+   - M2 Greater Stars: the heavy gold beams (1.5 times a beam, wider) fall ECM.heavy of the time (18% before).
+   - M3 Falling Sky: a star falls every ECM.gap s (0.07 before): about 35 beams instead of 32, in the same window (4.75-6.95s). The sky
+     holds ECM.ns stars (320 before), twinkling ECM.starA times as bright while they wait.
+   - M4 None Escape: the stars that fall on foes (ECM.aim of them, as before) pick a foe no star has struck yet (then the least struck; a
+     foe a falling star is already locked on counts as struck) and land on it without scatter (0.45 before); the sigil locks under the foe
+     and follows it while the star charges and the beam drops, so a walking foe (or one the circle drags in) is struck where it is. The
+     other quarter still fall anywhere on the ritual ground.
+   - M5 The Sun Breaks: the shatter strikes every foe on the map for ECM.shat (1000% before); the sun breaks into ECM.shards glass shards (60
+     before), ECM.shardK times as large, and a darker, deeper wave rolls across the map (its dark band ECM.waveW wide, 0.22 before, and
+     ECM.waveA times as dark).
+   Percentages are of the scroll's power. Every mastered Eclipse cast runs castEclipse with its XO (ecmOpts): the same rite with this cast's
+   numbers and looks; Mastery 0, echoes and other casters are exactly as before. ECM.dbg (an array) logs the events for the tests.
+   The approved design's numbers were starting points: as drawn up (0.65 / 0.95 tiles, 40% gold, a star every 0.055s, every star on a foe)
+   the ladder measured 1.20 / 1.32 / 1.63 / 2.21 / 2.31 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35, which would have needed hidden factors
+   near 0.6. None Escape alone was +35% when every star fell on a foe (the quarter that fall anywhere on the ground mostly miss a lone foe or
+   a small pack), so that quarter still falls where it did, and the others were tuned down (0.6 / 0.9 tiles, 30% gold, a star every
+   0.0625s, a shatter of 1200%), so that no part of a mastered cast strikes weaker than at Mastery 0 once the hidden factor is applied
+   (a beam at Mastery 5 is 168% x 0.897 = 150.7%).
+   On the Mythic ladder (half steps; the standing pack and the lone foe, SMW .6 / .4; ladder.js eclipse 8 6 14.5), pooled over six runs (33
+   repetitions; one run swings by about 3%), with the hidden factors below: 1.077 / 1.154 / 1.228 / 1.302 / 1.355 against 1.078 / 1.162 /
+   1.226 / 1.302 / 1.35 (without them 1.137 / 1.210 / 1.313 / 1.440 / 1.510). */
+const ECM={dbg:null,beam:.12,R:.6,RH:.9,thick:1.25,coreW:.52,tint:0,heavy:.3,gap:.0625,ns:400,aim:.75,starA:1.3,shat:12,shards:90,shardK:1.3,waveA:1.2,waveW:.3,
+  pal:[0x2a0a5a,0x8a4aff,0xe2ccff],palH:[0x4a1a80,0xffc458,0xfff2cc]};
+const ecmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='eclipse'&&c.L?c:null;};
+const ecmLog=d=>{if(ECM.dbg){d.t=time;ECM.dbg.push(d);}};
+SM_D.eclipse=[
+  {n:'Starfire',d:'Every star beam strikes 12% harder and a little wider (0.6 tiles, a gold one 0.9), burns thicker and whiter, and bursts up in starfire where it lands.'},
+  {n:'Greater Stars',d:'The heavy gold beams (225%, wider) fall 30% of the time (18% before).'},
+  {n:'Falling Sky',d:'A star falls every 0.0625s (0.07 before): about 35 beams instead of 32, from a sky of 400 stars twinkling brighter.'},
+  {n:'None Escape',d:'The stars that fall on foes pick one no star has struck yet (then the least struck) and land on it without scatter, the sigil locked under it.'},
+  {n:'The Sun Breaks',d:'The shatter strikes every foe on the map for {1200}% (1000% before): the sun breaks into 90 larger shards and a darker wave rolls across the map.'}];
+SMF.eclipse={m:1};
+SMA.eclipse=[1,1,1,1,1];
+SMG.eclipse=[.947,.954,.935,.904,.897];
+/* M1: a ball of starfire that swells, churns, stretches up as it climbs and burns out (the violet twin of ftmBall; normal blending, so
+   many on one spot do not stack into a white blot) */
+const ECM_VS='uniform float uT,uK;varying float vN;varying vec3 vNo,vVi;void main(){vec3 p=position;float n=sin(p.x*4.1+uT*3.)*sin(p.y*3.7-uT*2.2)*sin(p.z*4.3+uT*2.6)+.55*sin(p.x*8.7+p.y*7.1-uT*5.)*sin(p.z*7.9+uT*4.);vN=n;'+
+  'p+=normal*n*(.17+.12*uK);vec4 mv=modelViewMatrix*vec4(p,1.);vNo=normalize(normalMatrix*normal);vVi=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
+  ECM_FS='uniform float uK;uniform vec3 uC0,uC1,uC2;varying float vN;varying vec3 vNo,vVi;void main(){float f=clamp(dot(vNo,vVi),0.,1.);float h=clamp(.5+.36*vN+.4*f-uK*1.05,0.,1.);'+
+  'vec3 c=mix(uC0,uC1,smoothstep(.12,.42,h));c=mix(c,uC2,smoothstep(.42,.74,h));c=mix(c,vec3(1.),smoothstep(.82,.98,h));'+
+  'float a=(1.-smoothstep(.2,.75,uK))*(.25+.55*f)*mix(.2,1.,smoothstep(.1,.45,h));gl_FragColor=vec4(c,a);}';
+function ecmBall(x,y,z,R,dur,rise,heavy){if(!MY_FBG)MY_FBG=new THREE.IcosahedronGeometry(1,3);const C=heavy?ECM.palH:ECM.pal;
+  const m=new THREE.ShaderMaterial({uniforms:{uT:{value:rnd()*10},uK:{value:0},uC0:{value:new THREE.Color(C[0])},uC1:{value:new THREE.Color(C[1])},uC2:{value:new THREE.Color(C[2])}},vertexShader:ECM_VS,fragmentShader:ECM_FS,transparent:true,depthWrite:false});
+  const me=new THREE.Mesh(MY_FBG,m);me.position.set(x,y,z);me.rotation.set(rnd()*6,rnd()*6,rnd()*6);me.scale.setScalar(.01);me.renderOrder=6;scene.add(smTag(me));let t=0;
+  addFx(me,dur,(f,dt)=>{t+=dt;const k=Math.min(1,t/dur),g=1-Math.pow(1-Math.min(1,t/.2),3),s=Math.max(.01,R*(.2+.8*g));m.uniforms.uT.value+=dt;m.uniforms.uK.value=k;
+    me.scale.set(s*(1+.15*k),s*(1+.6*k),s*(1+.15*k));me.position.y=y+rise*k*k;me.rotation.y+=dt*.8;},null,{mats:[m]});}
+function ecmBurst(x,z,heavy){const y=.1,R=heavy?.34:.24;
+  ecmBall(x,y,z,R,.45,R*1.2,heavy);mxLater(.05,()=>ecmBall(x+(rnd()-.5)*.1,y+R*.7,z+(rnd()-.5)*.1,R*.62,.4,R*2,heavy));
+  /* jets of starfire streaming up and out, hot at the front */
+  const nt=heavy?9:6;for(let i=0;i<nt;i++){const a=i/nt*6.283+rnd()*.6,el=.6+rnd()*.7,dx=Math.cos(a)*Math.cos(el),dy=Math.sin(el),dz=Math.sin(a)*Math.cos(el),sp=(1.7+rnd()*1.1)*(heavy?1.25:1);
+    for(let j=0;j<4;j++){const f=.4+j*.2;emit(1,{x:x+dx*.05,y:y+.04,z:z+dz*.05,vx:dx*sp*f,vy:dy*sp*f,vz:dz*sp*f,s:(heavy?.1:.08)*(1.15-j*.12),s2:.01,c:j%2?0xffffff:(heavy?0xffe0a0:0xe0c8ff),c2:heavy?0xb060ff:0x7a30e0,life:.34+rnd()*.14,drag:2.2,g:1.2});}}}
+/* M4: the foe a star picks: one no star has struck yet, then the least struck (a foe a falling star is locked on counts as struck) */
+function ecmAim(S){let bs=1e9,B=[];for(const e of enemies){if(e.dead)continue;const v=(S.hit.get(e)||0)+(S.claim.get(e)||0);if(v<bs){bs=v;B=[e];}else if(v===bs)B.push(e);}
+  if(!B.length)return null;const e=B[Math.floor(rnd()*B.length)];return{x:e.x,z:e.z,e};}
+/* WAVE_FS with a wider dark band (The Sun Breaks) */
+const ECM_WAVE=WAVE_FS.indexOf('smoothstep(f-.22,f,r)')>=0?WAVE_FS.replace('smoothstep(f-.22,f,r)','smoothstep(f-'+ECM.waveW+',f,r)'):null;
+/* this cast's numbers and looks (castEclipse's XO) */
+function ecmOpts(c){const L=c.L,a=c.a,X={},S={hit:new Map(),claim:new Map(),n:0,nh:0};
+  if(L>=1){X.BEAM=ECLD.BEAM*(1+ECM.beam*a[0]);X.R=ECM.R;X.RH=ECM.RH;X.thick=ECM.thick;X.coreW=ECM.coreW;X.tint=ECM.tint;X.onImpact=ecmBurst;}
+  if(L>=2)X.HEAVY=ECM.heavy;
+  if(L>=3){X.GAP=ECM.gap;X.NS=ECM.ns;X.starA=ECM.starA;}
+  if(L>=4)X.aim=ring=>rnd()<ECM.aim&&ecmAim(S)||ring();
+  if(L>=5){X.SHAT=ECM.shat*a[4];X.SHARDS=ECM.shards;X.SHARDK=ECM.shardK;X.waveA=ECM.waveA;if(ECM_WAVE)X.waveFS=ECM_WAVE;}
+  X.onBeam=b=>{S.n++;if(b.heavy)S.nh++;if(b.fe)S.claim.set(b.fe,(S.claim.get(b.fe)||0)+1);ecmLog({ev:'beam',n:S.n,heavy:b.heavy,x:b.x,z:b.z,R:b.R,e:b.fe||null});};
+  X.onHit=(H,b)=>{if(b.fe)S.claim.set(b.fe,Math.max(0,(S.claim.get(b.fe)||0)-1));for(const e of H)S.hit.set(e,(S.hit.get(e)||0)+1);ecmLog({ev:'hit',L:H.slice(),heavy:b.heavy,x:b.x,z:b.z,R:b.R,e:b.fe||null});};
+  X.onShatter=H=>ecmLog({ev:'shatter',L:H.slice(),n:S.n,nh:S.nh});
+  ecmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
+const ECM_OLD=castEclipse;
+castEclipse=function(t,P,o,X){const c=!X?ecmC(o):null;return ECM_OLD(t,P,o,c?ecmOpts(c):X);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
