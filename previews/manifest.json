@@ -71,7 +71,7 @@
   "lightbolt-3": {
    "k": "lightbolt",
    "L": 3,
-   "len": 3.0,
+   "len": 3,
    "seed": 1,
    "bytes": 255957,
    "note": ""
@@ -87,7 +87,7 @@
   "lightbolt-4": {
    "k": "lightbolt",
    "L": 4,
-   "len": 3.0,
+   "len": 3,
    "seed": 1,
    "bytes": 259463,
    "note": ""
@@ -111,7 +111,7 @@
   "wither-1": {
    "k": "wither",
    "L": 1,
-   "len": 7.0,
+   "len": 7,
    "seed": 1,
    "bytes": 600226,
    "note": ""
@@ -311,7 +311,7 @@
   "staticspark-2": {
    "k": "staticspark",
    "L": 2,
-   "len": 5.0,
+   "len": 5,
    "seed": 1,
    "bytes": 353012,
    "note": "Three foes have 1 HP: the spark kills them and leaves sparks on the ground."
@@ -351,7 +351,7 @@
   "cinders-1": {
    "k": "cinders",
    "L": 1,
-   "len": 6.0,
+   "len": 6,
    "seed": 1,
    "bytes": 638798,
    "note": ""
@@ -359,7 +359,7 @@
   "cinders-2": {
    "k": "cinders",
    "L": 2,
-   "len": 6.0,
+   "len": 6,
    "seed": 1,
    "bytes": 567006,
    "note": "A raven flies over the smoke."
@@ -847,7 +847,7 @@
   "balllightning-3": {
    "k": "balllightning",
    "L": 3,
-   "len": 9.0,
+   "len": 9,
    "seed": 1,
    "bytes": 1034638,
    "note": ""
@@ -1359,7 +1359,7 @@
   "crows-1": {
    "k": "crows",
    "L": 1,
-   "len": 8.0,
+   "len": 8,
    "seed": 1,
    "bytes": 1090530,
    "note": ""
@@ -1375,7 +1375,7 @@
   "crows-3": {
    "k": "crows",
    "L": 3,
-   "len": 8.0,
+   "len": 8,
    "seed": 1,
    "bytes": 1486416,
    "note": ""
@@ -1383,7 +1383,7 @@
   "crows-4": {
    "k": "crows",
    "L": 4,
-   "len": 8.0,
+   "len": 8,
    "seed": 1,
    "bytes": 1759767,
    "note": ""
@@ -1407,7 +1407,7 @@
   "firetornado-1": {
    "k": "firetornado",
    "L": 1,
-   "len": 8.0,
+   "len": 8,
    "seed": 1,
    "bytes": 827617,
    "note": ""
@@ -1864,34 +1864,47 @@
   "dslash-0": {
    "k": "dslash",
    "L": 0,
-   "len": 9.53,
+   "len": 10.53,
    "seed": 1,
-   "bytes": 1061015,
+   "bytes": 1179985,
    "note": ""
   },
   "dslash-1": {
    "k": "dslash",
    "L": 1,
-   "len": 9.53,
+   "len": 10.53,
    "seed": 1,
-   "bytes": 1070594,
-   "note": ""
+   "bytes": 1356637,
+   "note": "The edge burns white and the cut runs wider: the foes beside the road are struck too.",
+   "ev": {
+    "cast": 1,
+    "split": 1
+   }
   },
   "dslash-2": {
    "k": "dslash",
    "L": 2,
-   "len": 9.53,
+   "len": 11.53,
    "seed": 1,
-   "bytes": 1165162,
-   "note": ""
+   "bytes": 1240085,
+   "note": "The tear opens wider and darker, stays open longer and shreds harder.",
+   "ev": {
+    "cast": 1,
+    "split": 1
+   }
   },
   "dslash-3": {
    "k": "dslash",
    "L": 3,
-   "len": 9.53,
+   "len": 11.6,
    "seed": 1,
-   "bytes": 1212177,
-   "note": ""
+   "bytes": 1241351,
+   "note": "The world stands still a beat longer: the foes on the line are held until space splits, and it splits harder.",
+   "ev": {
+    "cast": 1,
+    "hold": 1,
+    "split": 1
+   }
   },
   "bloom-0": {
    "k": "bloom",
@@ -1904,10 +1917,16 @@
   "dslash-4": {
    "k": "dslash",
    "L": 4,
-   "len": 8.33,
+   "len": 11.57,
    "seed": 1,
-   "bytes": 1022412,
-   "note": "Three foes are under 30% of their health: the cut hits them harder."
+   "bytes": 1125763,
+   "note": "Three foes are worn down: the split leaves them under 20% of their health, and cuts them down.",
+   "ev": {
+    "cast": 1,
+    "hold": 1,
+    "sever": 3,
+    "split": 1
+   }
   },
   "bloom-1": {
    "k": "bloom",
@@ -1924,10 +1943,16 @@
   "dslash-5": {
    "k": "dslash",
    "L": 5,
-   "len": 9.53,
+   "len": 12.2,
    "seed": 1,
-   "bytes": 1256184,
-   "note": ""
+   "bytes": 1198241,
+   "note": "The tear yawns open along the whole line, and when it seals it snaps shut on everything inside it.",
+   "ev": {
+    "cast": 1,
+    "hold": 1,
+    "split": 1,
+    "seal": 1
+   }
   },
   "bloom-2": {
    "k": "bloom",
@@ -2373,7 +2398,7 @@
    "len": 7.4,
    "seed": 1,
    "bytes": 2045491,
-   "note": "The folding beams set the foes ringing like bells: the lance\u2019s power runs through them into the foes beside them.",
+   "note": "The folding beams set the foes ringing like bells: the lance’s power runs through them into the foes beside them.",
    "ev": {
     "cast": 1,
     "lock": 1,
@@ -2482,7 +2507,7 @@
    "L": 0,
    "len": 4.03,
    "seed": 1,
-   "bytes": 734362,
+   "bytes": 684380,
    "note": ""
   },
   "voidfall-4": {
@@ -2505,10 +2530,14 @@
   "judgment-1": {
    "k": "judgment",
    "L": 1,
-   "len": 4.1,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 726331,
-   "note": ""
+   "bytes": 729919,
+   "note": "The circle snaps back to a point and fires a second line through the foes the first one missed.",
+   "ev": {
+    "cast": 1,
+    "line": 2
+   }
   },
   "voidfall-5": {
    "k": "voidfall",
@@ -2531,34 +2560,51 @@
   "judgment-2": {
    "k": "judgment",
    "L": 2,
-   "len": 8.07,
+   "len": 4.3,
    "seed": 1,
-   "bytes": 1242993,
-   "note": "A Light Bolt follows: light scrolls hit the Condemned foes harder."
+   "bytes": 729809,
+   "note": "Every line strikes harder, pierces wider and burns brighter.",
+   "ev": {
+    "cast": 1,
+    "line": 2
+   }
   },
   "judgment-4": {
    "k": "judgment",
    "L": 4,
-   "len": 7.13,
+   "len": 4.73,
    "seed": 1,
-   "bytes": 1130015,
-   "note": "Three foes are under a quarter of their health: the line hits them harder and they fall."
+   "bytes": 834675,
+   "note": "Three foes are worn down: the line leaves them under a quarter of their health, and finishes them off.",
+   "ev": {
+    "cast": 1,
+    "exec": 2,
+    "line": 5
+   }
   },
   "judgment-3": {
    "k": "judgment",
    "L": 3,
-   "len": 7.13,
+   "len": 4.73,
    "seed": 1,
-   "bytes": 1160249,
-   "note": "The ram is the strongest foe in reach: the second line goes for it."
+   "bytes": 834574,
+   "note": "Three more circles open in a fan behind the hand and fire one after another.",
+   "ev": {
+    "cast": 1,
+    "line": 5
+   }
   },
   "judgment-5": {
    "k": "judgment",
    "L": 5,
-   "len": 7.13,
+   "len": 6.37,
    "seed": 1,
-   "bytes": 1123466,
-   "note": "A pillar of light falls on the strongest foe it pierced, the ram."
+   "bytes": 1074831,
+   "note": "Ten circles fill the air behind the hero and fire in turn: fifteen lines in one cast.",
+   "ev": {
+    "cast": 1,
+    "line": 15
+   }
   },
   "cataclysm-0": {
    "k": "cataclysm",
@@ -2579,7 +2625,7 @@
    "len": 7.17,
    "seed": 1,
    "bytes": 2948603,
-   "note": "Seven standing stones rise in a ring at the rune\u2019s edge: the foes walking through are fenced in until the sky falls.",
+   "note": "Seven standing stones rise in a ring at the rune’s edge: the foes walking through are fenced in until the sky falls.",
    "ev": {
     "cast": 1,
     "stone": 7,
@@ -2810,7 +2856,7 @@
    "len": 6.8,
    "seed": 1,
    "bytes": 1683339,
-   "note": "A Frost Spire\u2019s ice shatters the fractured foes.",
+   "note": "A Frost Spire’s ice shatters the fractured foes.",
    "ev": {
     "comet": 1,
     "eye": 12,

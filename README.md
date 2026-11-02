@@ -1826,3 +1826,13 @@ Like a sword being sharpened, not swapped: the same draw, the same black line, t
 - A bug found on the way: the stillness's grey is a filter on the game's canvas, and the browser writes `grayscale(.62)` back as `grayscale(0.62)`, so the first version never cleared it; it now does (the test checks the colour comes back).
 - Numbers: the rift is most of the cast's damage where foes stay in it, and 8s at 70% took Mastery 2 to 1.75 times Mastery 0 (target 1.23), so it is 7.5s at 50%. On the Legendary scroll's ladder (4 runs) the hidden factors `SMG.dslash` = 1.065 / 0.915 / 0.942 / 1.111 / 0.989 bring it to 1.09 / 1.28 / 1.38 / 1.53 / 1.72, against 1.094 / 1.234 / 1.35 / 1.522 / 1.742 (within the ladder's noise); Severance counts for little there (its foes do not drop under 20%).
 - Tests: `tests/dsm-test.js` (26 rows): the wider cut takes the foes beside the road; the rift's ticks, length and slow; the hold, the later split, the grey that comes and goes, 1500%; severance at 20% (not at 30%, not a boss); 2250% and the seal's 300% on the foes inside; nothing left behind; Mastery 0 and other casters unchanged, checked against the cut's own line.
+
+### Previews (v447, v448)
+
+All twelve clips (Piercing Judgment and Dimensional Slash, Mastery 0 to 5) are recorded again for the new masteries. The clips are drawn from the game's canvas, so the grey of Dimensional Slash's stillness (a filter on the page) is not in them.
+
+| Clip | What the recorder needed |
+|---|---|
+| Dimensional Slash, every mastery | A least length (`minLen`): in the stilled moment the world runs at a twelfth of its speed, the count of effects can fall to where it was before the cast, and that ended the clip there. Each clip now runs to the seal. |
+| Dimensional Slash 5 | Foes with 70 health, so some are still inside the rift when it snaps shut; the hero and the pack held in view (`trackHero`), because between the cast and the cut almost nothing moves and a single mote off the blade had steered the view down the field. |
+| Piercing Judgment 5 | A wide view (zoom 1 to 1.1) set half a tile toward the hero. The camera frames the foes the lines hit, and the arc of circles behind the hero is more than 2.5 tiles from all of them, so it counted them as a sideshow and they drifted off the right edge. |
