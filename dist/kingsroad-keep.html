@@ -6379,12 +6379,17 @@ function castScrollNow2(k,t,s,list,P,o){const e=list[0];
   else if(k==='emberbolt')castEmberBolt(t,e,P*1.1,o);else if(k==='gravebind')castGravebind(t,e,P,o);else if(k==='riftfang')castRiftfang(t,e,P,o);
   else if(k==='deflect'){castDeflect(t,densest(list),P,o);}else if(k==='loop'){castLoop(t,list,P,o);}else if(k==='compress'){castCompress(t,densest(list),P,o);}else if(k==='citadel'){castCitadel(t,densest(list),P,o);}else if(k==='shatter'){castShatter(t,densest(list),P,o);}else if(k==='stormcloud'){const f=list[0],st=list.reduce((a,b)=>b.hp>a.hp?b:a,f);castStormCloud(t,f,P,o);castStormCloud(t,st!==f?st:densest(list),P,o);}else if(k==='stormcaller')castStormcaller(t,P,o);else if(k==='cataclysm')castCataclysm(t,densest(list),P,o);else if(k==='voidfall')castVoidfall(t,densest(list),P,o);else if(k==='eclipse')castEclipse(t,P,o);else if(k==='singularity')castSingularity(t,P,o);else if(k==='pulsar')castPulsar(t,P,o);else if(k==='expanse')castExpanse(t,P,o);else if(k==='purgatory')castPurgatory(t,P,o);else if(k==='grasp')castGrasp(t,densest(list),P,o);else if(k==='lantern')castLantern(t,densest(list),P,o);else if(k==='graveburst')castGraveburst(t,densest(list),P,o);}
 function roadNear(x,z){let bd=1e9,b=null;for(let r=0;r<H;r++)for(let c=0;c<W;c++){if(grid[r][c]!==1)continue;const p=tw(c,r),d=(p.x-x)**2+(p.z-z)**2;if(d<bd){bd=d;b=p;}}return b;}
-function fireScroll(t,k,s,list){const S=SPELLS_S[k],ri=RB[S.r].i,lv=meta.spells[k].lvl||1,P=(s.spellP||s.dmg)*(1+.05*(lv-1))*tsd(t,k)*smP(k),o={src:t,bane:s.bane,el:SPELL_EL[k],anc:S.r==='ancient'||S.r==='unique',spell:k};
+/* v450: a scroll's power as it is cast: the hero's spell power, the scroll's level (+5% a level), the Aevorian's time-and-space bonus
+   and the mastery's own factor (smP: its hidden factor SMG, or its ladder). Epic and greater scrolls are cast a moment later and work
+   their power out again then (the hero may have changed); that second sum left out smP, so in play no Epic, Legendary, Mythic, Ancient or
+   Secret mastery ever got its factor (the tests and ladders call castScrollNow with it). Both now come from here. */
+function scrollPow(t,k,s,lv){return (s.spellP||s.dmg)*(1+.05*(lv-1))*tsd(t,k)*smP(k);}
+function fireScroll(t,k,s,list){const S=SPELLS_S[k],ri=RB[S.r].i,lv=meta.spells[k].lvl||1,P=scrollPow(t,k,s,lv),o={src:t,bane:s.bane,el:SPELL_EL[k],anc:S.r==='ancient'||S.r==='unique',spell:k};
   t.scd[k]=Math.max(S.minCd||0,S.cd*Math.pow(.95,lv-1)*MM.spell*tsc(t,k));t.gcd=.5;t.anim={k,t:0,d:ANIM_D[k]||.8};
   if(t===heroU){const tg=list.length?densest(list):roadNear(t.x,t.z);if(tg){t.faceA=Math.atan2(tg.x-t.x,tg.z-t.z);t.faceLock=ri>=4?Math.min((ANIM_D[k]||1)+.3,11):castLock(k)+.25;}}
   if(ri>=3){if(ri>=4)cineBanner(k,'cast',t.hero);cineLock=Math.max(cineLock,1.3);const hid=t.hero,d0=list.length?densest(list):null,aim=d0?{x:d0.x,z:d0.z}:null;
     addFx(new THREE.Group(),ri>=4?1:.05,null,()=>{if(t.hero!==hid||!(t===heroU||towers.includes(t))||t.ko>0)return;const s2=tStats(t),l2=sortTargets(t,inRange(t,s2)),al=enemies.filter(e=>!e.dead);
-      let use=l2.length?l2:(S.global?al:[]);if(!use.length&&aim){const near=al.filter(e=>(e.x-aim.x)**2+(e.z-aim.z)**2<4);use=near.length?near:[aim];}if(!use.length)use=[{x:t.x,z:t.z}];castScrollNow(k,t,s2,use,(s2.spellP||s2.dmg)*(1+.05*(lv-1))*tsd(t,k),o);});}
+      let use=l2.length?l2:(S.global?al:[]);if(!use.length&&aim){const near=al.filter(e=>(e.x-aim.x)**2+(e.z-aim.z)**2<4);use=near.length?near:[aim];}if(!use.length)use=[{x:t.x,z:t.z}];castScrollNow(k,t,s2,use,scrollPow(t,k,s2,lv),o);});}
   else castScrollNow(k,t,s,list,P,o);}
 const TSP=new Set(['citadel','chronostasis','deflect','loop','compress','shatter','singularity']);
 const tsd=(t,k)=>t&&t.hero==='aevorian'&&TSP.has(k)?1.15:1,tsc=(t,k)=>t&&t.hero==='aevorian'&&TSP.has(k)?.9:1;
@@ -14173,6 +14178,8 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
+    'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'The lands round the board',d:'2 Nov',v:'v449',li:[
     'Every land is a place now, not an empty plain round the board: woods and glades, meadows of wild flowers and long grass, bushes, stones, fallen logs, snowdrifts, ice spires, heather and bracken, each land its own. The ground darkens under the trees and the roads leaving the gates go on into the land as worn tracks. Plants sway in the wind.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[

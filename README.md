@@ -1851,3 +1851,18 @@ Simon: "visually improve and perfect all arena backgrounds when youre playing, n
 - **Where not:** never on the board or within 0.3 of it, on the lead roads, in the tundra's sea, or on what the land already put there (`arsOcc` rasterises the land's own props); trees stay off the first tile and are smaller near the board, so the board stays clear and readable. The plains' and snow's old outer forest (three meshes a tree at random) is hidden for the woods.
 - **Cost:** one draw call a kind (about 6 to 11 a land, twice with shadows); 100 to 330k triangles a land after keeping the pieces low-poly (one-triangle grass blades, simple leaf blobs); building a board takes about 0.1 to 0.2 s longer.
 - Tests: `tests/ars-test.js` (15, in run-all as 'ars'): in all six lands every kind is placed, at least 1500 props, none on the board, the lead roads or the sea, instanced in the terrain, and the ground reads the map; the old outer trees and pebble heather are hidden; the same board dresses the same way and nothing piles up; the ground darkens under the trees; one draw call a kind; the wind ticks; every land renders. `tests/perf-test.js` accepts the outer forest hidden (v449) as well as batched.
+
+## Masteries count in play for every scroll (v450)
+
+A fix. A scroll's power is spell power x (1 + 5% a scroll level) x the Aevorian's time-and-space bonus x the mastery's own factor (`smP`: its hidden factor `SMG`, or its ladder). Epic and greater scrolls are cast a moment after the button (a banner, a cinematic beat), and work their power out again then, in case the hero changed; that second sum left `smP` out. So in play no Epic, Legendary, Mythic, Ancient or Secret mastery ever got its factor, while every ladder and test (which call `castScrollNow` with `100*smP(k)`) measured it with the factor. Common to Rare scrolls are cast at once and always had it.
+
+| Scroll | Mastery | Factor | Power in play before | Now |
+|---|---|---|---|---|
+| Piercing Judgment (Epic) | 3 | 0.944 | 12.21 | 11.53 |
+| Piercing Judgment (Epic), scroll level 3 | 4 | 1.099 | 13.43 | 14.76 |
+| Dimensional Slash (Legendary) | 5 | 0.989 | 12.21 | 12.08 |
+| Spatial Shatter (Mythic) | 2 | 1.16 | 12.21 | 14.16 |
+
+- How: one function, `scrollPow(t,k,s,lv)`, works the power out for both paths, so they cannot drift apart again. The factor is applied once (artifact recasts such as Sun Disc reuse the power they are given).
+- Masteries above Rare are still developer mode only: outside it the factor is 1, as before.
+- Tests: `tests/smpow-test.js` (9 rows, in run-all) fires real casts through `fireScroll` with `castScrollNow` swapped for a recorder: a Common scroll at once with its factor once; delayed Epic, Legendary and Mythic casts with theirs; Mastery 0 and non-developer play unchanged; and the page's own `fireScroll` uses `scrollPow` on both paths.
