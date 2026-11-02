@@ -5351,7 +5351,7 @@ function castCompress(t,c,P,o){
 }
 const SDV=new THREE.Vector3();
 
-/* ================= ANCIENT: SPATIAL SHATTER =================
+/* ================= MYTHIC: SPATIAL SHATTER (an Ancient once; the header said so until v457) =================
    A tall 3D spatial card is conjured, turns 180 degrees on its tall axis (speed curve 0>1>8>10>7>1>0) while an ornate rune builds on both
    faces and its layers counter-rotate on the same curve. The ground region around it then twists (world-space warp, same curve), freezes,
    a crack opens at the centre and races through a Voronoi breakup of the region (cracks = real cell edges), the sheet of space shatters
@@ -5359,6 +5359,11 @@ const SDV=new THREE.Vector3();
 const SH_SV=[0,1,7,10,10,10,10,7,1,0],SH_TK=SH_SV.map((v,i)=>i/(SH_SV.length-1));
 const SH_CUM=(()=>{const N=240,cum=[0];let tot=0;for(let i=1;i<=N;i++){const t=i/N;let j=0;while(j<SH_TK.length-2&&t>SH_TK[j+1])j++;const k=(t-SH_TK[j])/(SH_TK[j+1]-SH_TK[j]);tot+=(SH_SV[j]+(SH_SV[j+1]-SH_SV[j])*k)/N;cum.push(tot);}return cum.map(c=>c/tot);})();
 const shAng=t=>{t=Math.min(1,Math.max(0,t));const f=t*240,i=Math.min(239,Math.floor(f)),k=f-i;return SH_CUM[i]+(SH_CUM[i+1]-SH_CUM[i])*k;};
+/* (v457) the twist's speed at p (0..1 of its turn), 0..1: the speed curve SH_SV itself, of which shAng is the integral */
+const shSpd=p=>{if(!(p>0&&p<1))return 0;const f=p*(SH_SV.length-1),i=Math.min(SH_SV.length-2,Math.floor(f));return (SH_SV[i]+(SH_SV[i+1]-SH_SV[i])*(f-i))/10;};
+/* (v457) is the point (x,z) under the polygon P, or within m of its outline? */
+function shUnder(P,x,z,m){let ins=false,d2=1e9;for(let i=0,j=P.length-1;i<P.length;j=i++){const a=P[i],b=P[j];if((a[1]>z)!==(b[1]>z)&&x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])ins=!ins;
+  const ex=b[0]-a[0],ez=b[1]-a[1],l2=ex*ex+ez*ez||1,u=Math.max(0,Math.min(1,((x-a[0])*ex+(z-a[1])*ez)/l2)),qx=a[0]+ex*u-x,qz=a[1]+ez*u-z;d2=Math.min(d2,qx*qx+qz*qz);}return ins||d2<m*m;}
 const SH_MAXSP=(()=>{let m=0;for(let i=0;i<200;i++)m=Math.max(m,(shAng((i+1)/200)-shAng(i/200))*200);return m;})();
 function shSound(){const c=sfxCtx();if(!c)return null;const t0=c.currentTime,out=c.createGain();out.gain.value=1;out.connect(SFX.master);const nodes=[];let dead=false;
   const osc=(type,f)=>{const o=c.createOscillator();o.type=type;o.frequency.value=f;nodes.push(o);return o;};
@@ -5415,12 +5420,21 @@ function shCardTex(){const W=768,H=1208,c=document.createElement('canvas');c.wid
   /* little stars and corner pips */
   for(let k=0;k<14;k++){const x=120+R()*(W-240),y=(R()<.5?170+R()*40:H-210+R()*40);g.beginPath();g.arc(x,y,2+R()*2,0,6.2832);g.fill();}
   return new THREE.CanvasTexture(c);}
-function castShatter(t,c0,P,o){
+/* v457: XO (optional, Spatial Shatter's masteries): this cast's own numbers over SHD (K: the break's strike; hold/holdB: how long foes and
+   bosses stay held after it, through stunE so Resolve applies; slow: the twist's slow at its fastest, following its speed curve; twist: how
+   much further it turns; exec: non-boss foes the break leaves under this share of their health break apart with it; rain: each large
+   shard (at least rainA in area) that lands strikes the foes under it, once each) and its looks (thick/thickR: the shards' thickness;
+   chroma/rim: their coloured edges and rim light; hang: the shards hang this long at the top of their flight; rise/out: how high the sheet bursts up and how far out the shards fly; lift: how see-through a piece is at its highest; flashN/dust/thud: the landings' flashes a frame, dust
+   and shake; cleanN/cleanR: the burst of a foe that breaks apart; fx: the masteries' own accents, drawn in the space pass over the shards and the warp: fx.swirl(K) (motes
+   swirling with the twist; it returns a function run each frame of the twist), fx.clean(x,y,z), fx.land(s,m) for a large shard that lands,
+   fx.strike(e) for a foe it strikes), and log(d) for the tests. Without XO: exactly as before. */
+const SHD={K:8,hold:0,holdB:0,slow:0,twist:0,exec:0,rain:0,rainA:1.7,thick:.05,thickR:.09,chroma:0,rim:0,hang:0,rise:1,out:1,flashN:3,dust:1,thud:.04,cleanN:12,cleanR:.45,lift:0,fx:null,log:null};
+function castShatter(t,c0,P,o,XO){const D=XO?Object.assign({},SHD,XO):SHD,lg=D.log;
   sdpInit();const geos=[],mats=[],root=new THREE.Group();scene.add(root);cineLock=Math.max(cineLock,8.5);
   /* the card is laid on the ground under the enemies; the distortion is centred a little further up the screen (away from the camera) and covers most of the view */
   let fx=c0.x-camera.position.x,fz=c0.z-camera.position.z;const fl=Math.hypot(fx,fz)||1;fx/=fl;fz/=fl;
   const c={x:c0.x+fx*2.6,z:c0.z+fz*2.6};
-  const rl=(a,b,x)=>a+(b-a)*x,th0=rnd()*Math.PI,ex=Math.cos(th0),ez=Math.sin(th0),e2x=-ez,e2z=ex,A=13+rnd()*2,B=10.5+rnd()*1.8,seed=rnd()*6.28,dir=rnd()<.5?1:-1,swDir=rnd()<.5?1:-1,maxAng=5.6+rnd()*1.6;
+  const rl=(a,b,x)=>a+(b-a)*x,th0=rnd()*Math.PI,ex=Math.cos(th0),ez=Math.sin(th0),e2x=-ez,e2z=ex,A=13+rnd()*2,B=10.5+rnd()*1.8,seed=rnd()*6.28,dir=rnd()<.5?1:-1,swDir=rnd()<.5?1:-1,maxAng=5.6+rnd()*1.6+D.twist;
   const Rr=an=>1+.2*Math.sin(an*3+seed)+.13*Math.sin(an*5-seed*1.6)+.08*Math.sin(an*2+seed*.7);
   const loc=(x,z)=>{const qx=x-c.x,qz=z-c.z,X=(qx*ex+qz*ez)/A,Y=(-qx*ez+qz*ex)/B,r=Math.hypot(X,Y);return r/Rr(Math.atan2(Y,X));};
   const T_SUM=.8,T_R0=1.35,ROT=.85,T_R1=2.2,T_FADE=.45,T_SW0=2.95,SW=2.7,T_SW1=5.65,T_FZ1=5.89,T_C1=6.07,T_SH=6.45,END=T_SH+3.6;
@@ -5462,17 +5476,23 @@ function castShatter(t,c0,P,o){
   const shVS='attribute float aE;uniform mat4 uRest;varying vec3 vN;varying vec3 vV;varying float vE;varying vec3 vR;void main(){vE=aE;vR=(uRest*vec4(position,1.)).xyz;vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.);vV=-mv.xyz;gl_Position=projectionMatrix*mv;}';
   const shFS='uniform sampler2D uFroz;uniform mat4 uVPf;uniform float uA;varying vec3 vN;varying vec3 vV;varying float vE;varying vec3 vR;void main(){vec4 cl=uVPf*vec4(vR,1.);vec2 uv=cl.xy/cl.w*.5+.5;vec3 n=normalize(vN);float fr=pow(1.-abs(dot(n,normalize(vV))),3.);vec2 o=vec2(0.);'
     +'vec3 col=vec3(texture2D(uFroz,uv+o).r,texture2D(uFroz,uv).g,texture2D(uFroz,uv-o).b);col*=1.-.1*fr*0.;gl_FragColor=vec4(col,uA);}';
-  const mkShard=poly=>{const cx=poly.reduce((s,p)=>s+p[0],0)/poly.length,cz=poly.reduce((s,p)=>s+p[1],0)/poly.length,th=.05+rnd()*.09,n=poly.length,pos=[],aE=[];
+  /* (Heavier Space: the same shader with its chromatic split and Fresnel rim switched on: each piece bends the frozen field with coloured
+     edges, strongest on its rims, side faces and as it tumbles, and its rims catch a cold light) */
+  const shFSx=D.chroma||D.rim?'uniform sampler2D uFroz;uniform mat4 uVPf;uniform float uA;varying vec3 vN;varying vec3 vV;varying float vE;varying vec3 vR;void main(){vec4 cl=uVPf*vec4(vR,1.);vec2 uv=cl.xy/cl.w*.5+.5;vec3 n=normalize(vN);float fr=pow(1.-abs(dot(n,normalize(vV))),3.);'
+    +'float eg=pow(vE,6.),sd=smoothstep(.985,1.,vE);vec2 o=(n.xy*.5+vec2(.7,.4)*eg)*'+(+D.chroma).toFixed(4)+'*(.4+fr*2.+eg*1.2);'
+    +'vec3 col=vec3(texture2D(uFroz,uv+o).r,texture2D(uFroz,uv).g,texture2D(uFroz,uv-o).b);col*=1.-.1*fr;col=mix(col,col*.78,sd*'+(+D.rim).toFixed(4)+');col+=vec3(.75,.88,1.)*(fr*.4+sd*.06)*'+(+D.rim).toFixed(4)+';gl_FragColor=vec4(col,uA);}':shFS;
+  const mkShard=poly=>{const cx=poly.reduce((s,p)=>s+p[0],0)/poly.length,cz=poly.reduce((s,p)=>s+p[1],0)/poly.length,th=D.thick+rnd()*D.thickR,n=poly.length,pos=[],aE=[];
     const V=(x,y,z,e)=>{pos.push(x,y,z);aE.push(e);};for(let i=0;i<n;i++){const a=poly[i],b=poly[(i+1)%n],ax=a[0]-cx,az=a[1]-cz,bx=b[0]-cx,bz=b[1]-cz;
       V(0,th/2,0,0);V(bx,th/2,bz,1);V(ax,th/2,az,1);V(0,-th/2,0,0);V(ax,-th/2,az,1);V(bx,-th/2,bz,1);V(ax,th/2,az,1);V(bx,th/2,bz,1);V(bx,-th/2,bz,1);V(ax,th/2,az,1);V(bx,-th/2,bz,1);V(ax,-th/2,az,1);}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('aE',new THREE.Float32BufferAttribute(aE,1));g.computeVertexNormals();geos.push(g);
-    const rest=new THREE.Matrix4().makeTranslation(cx,SY,cz),uA={value:1},m=new THREE.Mesh(g,new THREE.ShaderMaterial({uniforms:{uFroz:SHF.u,uVPf:SHF.uvp,uRest:{value:rest},uA},transparent:true,depthWrite:true,side:THREE.DoubleSide,vertexShader:shVS,fragmentShader:shFS}));mats.push(m.material);
+    const rest=new THREE.Matrix4().makeTranslation(cx,SY,cz),uA={value:1},m=new THREE.Mesh(g,new THREE.ShaderMaterial({uniforms:{uFroz:SHF.u,uVPf:SHF.uvp,uRest:{value:rest},uA},transparent:true,depthWrite:true,side:THREE.DoubleSide,vertexShader:shVS,fragmentShader:shFSx}));mats.push(m.material);
     m.position.set(cx,SY,cz);m.visible=false;m.layers.set(1);root.add(m);const dc=Math.hypot(cx-c.x,cz-c.z),ar=area(poly);
-    return{m,uA,cx,cz,big:ar>1.7,ar,delay:dc*.032+rnd()*.14,vx:(cx-c.x)*.28+(rnd()-.5)*1.2,vz:(cz-c.z)*.28+(rnd()-.5)*1.2,vy:.3+rnd()*1.6,wx:(rnd()-.5)*4.2,wy:(rnd()-.5)*3,wz:(rnd()-.5)*4.2,landed:false,rest:0};};
+    return{m,uA,cx,cz,poly,big:ar>1.7,ar,delay:dc*.032+rnd()*.14,vx:((cx-c.x)*.28+(rnd()-.5)*1.2)*D.out,vz:((cz-c.z)*.28+(rnd()-.5)*1.2)*D.out,vy:(.3+rnd()*1.6)*D.rise,wx:(rnd()-.5)*4.2,wy:(rnd()-.5)*3,wz:(rnd()-.5)*4.2,landed:false,rest:0,hang:D.hang};};
   const shards=[];let shI=0;const shardStep=()=>{const end=Math.min(cells.length,shI+30);for(;shI<end;shI++)shards.push(mkShard(cells[shI]));return shI>=cells.length;};
   let bStage=0;const buildStep=()=>{if(bStage===0){if(cellStep())bStage=1;}else if(bStage===1){crackStep();bStage=2;}else if(bStage===2){if(shardStep())bStage=3;}};
-  SGL.n++;let sglDone=false;
+  SGL.n++;let sglDone=false;if(lg)lg({ev:'cast',loc,c,maxAng,D,root});
   const snd=shSound();const S={x:c.x,z:c.z,ex,ez,a:A,b:B,ang:0,seed,lobe:0};let T=0,swOn=false,humOn=false,rotSnd=0,lockDone=false,shatterDone=false,lastCrack=0,frz=false,unfold=0,ended=false,capReq=false;const hit=new Set();
+  const tw0=new Map(),rained=new Set(),lv=new THREE.Vector3();let twPk=0;const swl=D.fx&&D.fx.swirl?D.fx.swirl({c,ex,ez,A,B,swDir,root,geos,mats,T0:T_SW0,T1:T_SW1,TS:T_SH}):null;
   const finish=()=>{if(ended)return;ended=true;if(swOn&&SDP.sw===S){SDP.sw=null;SDP.n=Math.max(0,SDP.n-1);}if(!sglDone){sglDone=true;SGL.n=Math.max(0,SGL.n-1);}if(SHF.tex){SHF.tex.dispose();SHF.tex=null;SHF.u.value=null;}SHF.want=false;SHF.have=false;FXL.intensity=0;if(snd)snd.stop();SG_ACTIVE.delete(finish);};SG_ACTIVE.add(finish);
   addFx(root,END,(f,dt)=>{if(ended){f.life=0;return;}T+=dt;if(bStage<3)buildStep();if(T>=T_FZ1-.3)while(bStage<3)buildStep();
     /* the card appears on the ground, turns flat 180 degrees on the speed curve, then fades away */
@@ -5491,6 +5511,10 @@ function castShatter(t,c0,P,o){
     if(swOn){const sa=shAng((T-T_SW0)/SW);{const xx=Math.max(0,Math.min(T,T_SH)-T_SW1);S.ang=swDir*(maxAng*sa+.45*(xx-.3*(1-Math.exp(-xx/.3))));}S.lobe=SMS(T,T_SW0,T_SW1);
       if(shatterDone){unfold=Math.min(1,(T-T_SH)/.3);const k=1-SMS(unfold,0,1);S.ang*=k;S.lobe*=k;if(unfold>=1&&SDP.sw===S){SDP.sw=null;SDP.n=Math.max(0,SDP.n-1);swOn=false;}}
       if(snd&&!frz&&T<T_SW1){const v=Math.min(1,(shAng((T-T_SW0)/SW+.012)-shAng((T-T_SW0)/SW))/.012/SH_MAXSP);snd.warp(v);}
+      /* Torsion: foes inside are slowed as the twist turns, D.slow at its fastest, following its speed curve (the freeze takes over at T_SW1) */
+      if(D.slow&&!frz&&T<T_SW1){const v=D.slow*shSpd((T-T_SW0)/SW);for(const e of enemies){if(e.dead||loc(e.x,e.z)>=1.05)continue;const q=tw0.get(e);let b=q?q.b:(e.slowT>0?e.slow:0);if(q&&e.slow>q.v+1e-9)b=e.slow;
+        e.slow=Math.max(b,v);e.slowT=Math.max(e.slowT||0,.15);tw0.set(e,{b,v});}if(lg&&v>twPk){twPk=v;lg({ev:'twist',v,n:tw0.size});}}
+      if(swl)swl(T,dt,shSpd((T-T_SW0)/SW));
       if(!shatterDone&&T<T_SW1&&rnd()<dt*18){const an=rnd()*6.28,r=(.2+rnd()*.8)*A*.8,x=c.x+ex*Math.cos(an)*r+e2x*Math.sin(an)*r*.85,z=c.z+ez*Math.cos(an)*r+e2z*Math.sin(an)*r*.85,sp=2.2+S.ang*swDir*.05;emit(1,{x,y:.2+rnd()*.8,z,vx:-Math.sin(an)*sp*swDir,vy:.1,vz:Math.cos(an)*sp*swDir,s:.045,s2:0,c:0xe6f4ff,c2:0x8a9aff,life:.5});}}
     FXL.intensity=shatterDone?Math.max(0,2.2*(1-(T-T_SH)/.45)):(.3*SMS(T,0,T_R0)*fadeOut)*(sum>0?1:0);
     /* freeze: the frame is captured (the reality the shards will carry), foes inside are held, the soundscape drops out */
@@ -5500,15 +5524,35 @@ function castShatter(t,c0,P,o){
       if(snd&&T-lastCrack>(T<T_C1?.12:.035)){lastCrack=T;snd.crack(Math.min(1,(T-T_FZ1)/(T_SH-T_FZ1)));}if(T>T_C1)camShake=Math.max(camShake,.06+.12*SMS(T,T_C1,T_SH));}
     /* THE SHATTER */
     if(T>=T_SH&&!shatterDone){shatterDone=true;crU.uRev.value=1.5;flashA=Math.max(flashA,.7);flashCol='#f2f7ff';flashDecay=8;camShake=Math.max(camShake,.7);if(snd)snd.shatter();
-      for(const e of enemies){if(e.dead||hit.has(e))continue;const u=loc(e.x,e.z);if(u>1.0)continue;hit.add(e);hurt(e,P*8,'magic',o);if(!e.dead){const dx=e.x-c.x,dz=e.z-c.z,dl=Math.hypot(dx,dz)||1;e.ox=(e.ox||0)+dx/dl*.5;e.oz=(e.oz||0)+dz/dl*.5;e.stunT=Math.max(e.stunT||0,.25);}burst(e.x,(e.y||0)+e.hitY*.5,e.z,0xdff0ff,12);flash(e.x,(e.y||0)+e.hitY*.5,e.z,0xeaf6ff,.45,.14);}
+      for(const e of enemies){if(e.dead||hit.has(e))continue;const u=loc(e.x,e.z);if(u>1.0)continue;hit.add(e);hurt(e,P*D.K,'magic',o);
+        /* Clean Break: a non-boss foe the break leaves under D.exec of its health breaks apart with the region, its burst flaring bigger */
+        const cb=D.exec&&!e.dead&&!e.boss&&e.hp<e.maxHp*D.exec;if(cb){e.hp=0;kill(e,o&&o.src);if(lg)lg({ev:'clean',e});}
+        if(!e.dead){const dx=e.x-c.x,dz=e.z-c.z,dl=Math.hypot(dx,dz)||1;e.ox=(e.ox||0)+dx/dl*.5;e.oz=(e.oz||0)+dz/dl*.5;e.stunT=Math.max(e.stunT||0,.25);
+          /* Absolute Stillness: held D.hold after the break (a boss D.holdB), through stunE: Resolve applies */
+          if(D.hold){const h=stunE(e,e.boss?D.holdB:D.hold);if(lg)lg({ev:'hold',e,add:h,stunT:e.stunT});}}
+        const by=(e.y||0)+e.hitY*.5;burst(e.x,by,e.z,0xdff0ff,cb?D.cleanN:12);flash(e.x,by,e.z,0xeaf6ff,cb?D.cleanR:.45,cb?.22:.14);
+        if(cb&&D.fx)D.fx.clean(e.x,by,e.z);
+        if(cb)for(let i=0;i<D.cleanN;i++){const a=rnd()*6.2832,sp=.8+rnd()*1.6;emit(1,{x:e.x,y:by,z:e.z,vx:Math.cos(a)*sp,vy:1.2+rnd()*2.4,vz:Math.sin(a)*sp,s:.07,s2:0,c:0xf4fbff,c2:0x7fd8ff,life:.5+rnd()*.4,g:4});}}
+      if(lg)lg({ev:'break',H:[...hit],K:D.K,P,S:shards});
       shards.forEach(s=>s.m.visible=true);}
     if(shatterDone){const ts=T-T_SH;crU.uA.value=Math.max(0,1-ts/.3)*SPACE_K;if(ts>.35)crack.visible=false;const fadeAll=1-SMS(ts,2.2,3.0);let flashes=0;
       for(const s of shards){const tt=ts-s.delay,m=s.m;if(tt<0){continue;}
-        if(!s.landed){s.vy-=19*dt;m.position.x+=s.vx*dt;m.position.z+=s.vz*dt;m.position.y+=s.vy*dt;m.rotation.x+=s.wx*dt;m.rotation.y+=s.wy*dt;m.rotation.z+=s.wz*dt;
-          if(m.position.y<=.1){m.position.y=.1;s.landed=true;s.rest=0;m.rotation.x*=.2;m.rotation.z*=.2;if(s.big){if(flashes++<3&&rnd()<.5)flash(m.position.x,.15,m.position.z,0xcfe6ff,.4,.1);if(snd&&rnd()<.4)snd.tink();camShake=Math.max(camShake,.04);}
-            for(let q=0;q<(s.big?9:3);q++)emit(0,{x:m.position.x+(rnd()-.5)*.8,y:.06,z:m.position.z+(rnd()-.5)*.8,vx:(rnd()-.5)*2,vy:.3+rnd()*.6,vz:(rnd()-.5)*2,s:.08,s2:.3,c:0x8a826e,c2:0x4a4438,a:.5,life:.6+rnd()*.4});}}
+        /* Absolute Stillness: a shard hangs s.hang at the top of its flight, perfectly still, before it falls */
+        if(!s.landed&&s.hang>0&&s.vy-19*dt<=0){s.hang-=dt;if(s.hang<=0)s.vy=0;}
+        else if(!s.landed){s.vy-=19*dt;m.position.x+=s.vx*dt;m.position.z+=s.vz*dt;m.position.y+=s.vy*dt;m.rotation.x+=s.wx*dt;m.rotation.y+=s.wy*dt;m.rotation.z+=s.wz*dt;
+          if(m.position.y<=.1){m.position.y=.1;s.landed=true;s.rest=0;m.rotation.x*=.2;m.rotation.z*=.2;if(s.big){if(flashes++<D.flashN&&rnd()<.5)flash(m.position.x,.15,m.position.z,0xcfe6ff,.4,.1);if(snd&&rnd()<.4)snd.tink();camShake=Math.max(camShake,D.thud);}
+            if(D.fx&&D.rain&&s.ar>=D.rainA)D.fx.land(s,m);
+            for(let q=0;q<(s.big?9:3)*D.dust;q++)emit(0,{x:m.position.x+(rnd()-.5)*.8,y:.06,z:m.position.z+(rnd()-.5)*.8,vx:(rnd()-.5)*2,vy:.3+rnd()*.6,vz:(rnd()-.5)*2,s:.08,s2:.3,c:0x8a826e,c2:0x4a4438,a:.5,life:.6+rnd()*.4});
+            /* The World Falls: a large shard that lands strikes the foes under it (its own outline where it lies, seen from straight above, and
+               a foe's half-width round it), once each */
+            if(D.rain&&s.ar>=D.rainA){const H=[],Q=s.poly.map(p=>{lv.set(p[0]-s.cx,0,p[1]-s.cz).applyQuaternion(m.quaternion);return [m.position.x+lv.x,m.position.z+lv.z];});
+              for(const e of enemies){if(e.dead||rained.has(e))continue;if(!shUnder(Q,e.x,e.z,.28))continue;
+                rained.add(e);H.push(e);hurt(e,P*D.rain,'magic',o);if(D.fx)D.fx.strike(e);}
+              if(lg)lg({ev:'land',s,x:m.position.x,z:m.position.z,H});}}}
         else{s.rest+=dt;}
-        const small=s.ar<.55,fall=small?Math.max(0,1-Math.max(0,tt-.3)/.3):1,lin=s.big?fadeAll:Math.min(fadeAll,1-SMS(s.rest,.3,1.1));s.uA.value=lin*fall*SPACE_K;m.visible=lin*fall*SPACE_K>.02;}}
+        const small=s.ar<.55,fall=small?Math.max(0,1-Math.max(0,tt-.3)/.3):1,lin=s.big?fadeAll:Math.min(fadeAll,1-SMS(s.rest,.3,1.1));
+        /* (The World Falls: a piece lifted above the sheet lets the live field show through it, D.lift at its highest, so the lifted world does not bury the foes) */
+        const lf=D.lift?1-D.lift*SMS(m.position.y,SY+.15,SY+1.1):1;s.uA.value=lin*fall*lf*SPACE_K;m.visible=lin*fall*lf*SPACE_K>.02;}}
   },()=>{finish();scene.remove(root);},{mats,geos});
 }
 
@@ -14180,6 +14224,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Spatial Shatter: the world falls',d:'2 Nov',v:'v457',li:[
+    'Spatial Shatter (Mythic) has five new masteries, for now in developer mode. Still one card, one twist, one freeze and one break: each mastery makes a part the spell already has stronger and draws that part richer.',
+    'Heavier Space: the break strikes 940% (800% before), and its shards are cut thicker, with coloured edges and a rim of light, each piece bending the frozen picture. Absolute Stillness: foes stay held 1.2s after the break (bosses 0.5s; Resolve applies), and the shards hang perfectly still a moment at the top of their flight before they fall.',
+    'Torsion: the twist turns a quarter turn further, with more swirling motes, and drags at the foes inside it: up to 50% slower as it turns fastest. Clean Break: foes the break leaves under 25% of their health break apart with the region (not bosses), in a bigger burst.',
+    'The World Falls: the sheet of shards bursts up to twice its height and rains back down; each large shard that lands strikes the foes under it for 250% (once each), and the landings are heavier, with more dust, more flashes and a shake.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -31967,6 +32016,118 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
   dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
+/* ================= Spatial Shatter's masteries (v457), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: a tarot card of space lands and turns, the world twists and freezes, a crack races through, and the whole region breaks into
+   shards that carry the frozen picture: 800% to every foe inside, once. Simon, for every Mythic, Ancient and Secret scroll: "lets do the same
+   way all the mythics ancients and secrets where their identity is preserved but their visuals barely change and change only to better",
+   and "new stuff CAN appear ... but just nothing that over shines the spell". So there is still one card, one twist, one freeze and one
+   break: each mastery makes a part the spell already has stronger and draws that same part richer. No second shatter, no ice look (that
+   is Eternal Winter), no grey stillness (Dimensional Slash).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Heavier Space | what if the break struck harder? | the break | stronger strike |
+   | 2 | Absolute Stillness | what if the freeze held on? | the freeze | stronger hold |
+   | 3 | Torsion | what if the twist dragged at them? | the twist | new control |
+   | 4 | Clean Break | what if the weak broke with it? | the break | finisher |
+   | 5 | The World Falls | what if the shards fell on them? | the shards | signature payoff |
+   - M1 Heavier Space: the break strikes SHM.K (940%; 800% before). The shards are cut thicker (0.09-0.2 tiles, 0.05-0.14 before) and the
+     shard shader's own chromatic split and Fresnel rim (both zeroed before) are switched on: each piece bends the frozen field with
+     coloured edges, its side faces show as a darker band with a faint cold light, and its rims catch the light as it tumbles.
+   - M2 Absolute Stillness: foes stay held SHM.hold s after the break (bosses SHM.holdB s), through stunE, so Resolve applies (the base
+     0.25 s and what is left of the freeze count toward it). Every shard hangs a quarter second, perfectly still, at the top of its flight.
+   - M3 Torsion: foes inside are slowed while the twist turns, up to SHM.slow at its fastest, following its speed curve SH_SV (shSpd);
+     it did nothing to them before. A stronger slow from elsewhere is kept. The twist turns a quarter turn further (SHM.twist rad more,
+     5.6-7.2 before), and swirling motes show it turning. The base cast's motes have never been seen: they are drawn into the world
+     before the twist's own warp, which smears such small dots away (and there are about nine alive over the whole region). Torsion's
+     are drawn after it, in the space pass (shmFx.swirl): 150 motes orbiting the twist's centre on its speed curve, fastest near the
+     middle as the twist itself is, that freeze with the world and vanish at the break.
+   - M4 Clean Break: non-boss foes the break leaves under SHM.exec of their health break apart with the region; their burst flares
+     bigger (30 pieces, 12 before; a flash twice as large; a spray of light), and since the sheet still covers them at the break, a flare
+     and chips of the frozen picture are thrown up over it (shmFx: the shards' own pass, see below).
+   - M5 The World Falls: the sheet of shards bursts up to twice its height (the highest pieces climb to about 3 tiles, from a sheet 1.5
+     tiles up; they barely rose before, 0.1 tile at most) and rains back down over the region (they fly out half as fast, so they land
+     about where they did); a lifted piece fades to half at its highest (lift), so the raised world does not bury the foes; every large shard that lands strikes the foes under it (its outline where it lies, seen from above, and a
+     foe's half-width round it), SHM.rain, once each. The landings are heavier: twice the dust, up to 8 flashes a frame (3) and a shake
+     (0.12, 0.04 before); a large one pushes dust out from under its outline and a heavy one glints, and every foe it strikes breaks a
+     few chips of the picture out over it. It stays inside the old timeline (every shard lands within 2 s of the break; the cast still ends 3.6 s after it).
+   Percentages are of the scroll's power. Every mastered Spatial Shatter cast runs castShatter with its XO (shmOpts); Mastery 0, echoes
+   and other casters are exactly as before. SHM.dbg (an array) logs the events for the tests. The cast still ends at 10.05 s, after its
+   cineLock (8.5 s), but it holds SGL.n until then, which the mastery preview already waits on (SMPV_BUSY), so nothing is added there.
+   Numbers changed from the approved table (they were starting points): the break is 940%, not 880%. The hold, the slow and the finish
+   count for nothing on the ladder (its foes stand still with huge health), so Masteries 1-4 all measure as the break alone, and the
+   hidden factor has to climb 1.21 times from Mastery 1 to 4 whatever the break is; at 880% that put Mastery 4's factor at 1.18 (0.98 to
+   1.18 in all), and 940% centres it (0.92 to 1.11). "Large" for the falling shards is every shard that lands as a piece (0.55 tiles and
+   up, the base cast's own line between chips that dissolve in the air and pieces), not only the heaviest (over 1.7, which flash): the
+   breakup is finest at its centre, where the densest foes stand (cells there are 0.5-1.2), so the heaviest alone would almost never fall
+   on them. "Twice as high" is read as twice the sheet's height: twice the old rise (a tenth of a tile) could not be seen.
+   On the Mythic ladder (half steps; the standing pack and the lone foe, SMW .6 / .4; ladder.js shatter 3 4 13.5) with the factors below,
+   Masteries 1-4 measure 1.078 / 1.162 / 1.226 / 1.302 exactly (they are the break alone: 1.175 without the factors) against 1.078 / 1.162 /
+   1.226 / 1.302. At Mastery 5 a falling shard strikes 96% of the pack and 97% of lone foes (pooled over 38 casts each; one cast can
+   be anywhere from half to all of them), so it measures about 1.476 without its factor; with it the confirming run gave 1.337 (the
+   run before, rescaled to this factor, 1.358: about 0.02 either way from run to run), against 1.35. */
+const SHM={dbg:null,K:9.4,hold:1.2,holdB:.5,slow:.5,twist:Math.PI/2,exec:.25,rain:2.5,rainA:.55,rise:4,out:.5};
+const shmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='shatter'&&c.L?c:null;};
+const shmLog=d=>{if(SHM.dbg){d.t=time;SHM.dbg.push(d);}};
+SM_D.shatter=[
+  {n:'Heavier Space',d:'The break strikes {940}% (800% before). The shards are cut thicker, with coloured edges and a rim of light, each piece bending the frozen picture.'},
+  {n:'Absolute Stillness',d:'Foes stay held 1.2s after the break (bosses 0.5s; Resolve applies). The shards hang still a moment at the top of their flight before they fall.'},
+  {n:'Torsion',d:'The twist turns a quarter further and drags at the foes inside: up to 50% slower as it turns fastest.'},
+  {n:'Clean Break',d:'Foes the break leaves under 25% of their health break apart with the region (not bosses), in a bigger burst.'},
+  {n:'The World Falls',d:'The sheet of shards bursts up to twice its height and rains back down: each large shard that lands strikes the foes under it for {250}% (once each). Heavier landings.'}];
+SMF.shatter={m:1};
+SMA.shatter=[1,1,1,1,1];
+SMG.shatter=[.9174,.9889,1.0434,1.1081,.915];
+/* the masteries' own accents (castShatter's fx). The shards are drawn in the space pass (layer 1, after the scene, over it), so a burst at
+   a foe under the sheet, or under a slab that has just landed, cannot be seen: these are drawn in that pass too, over the shards. A flare
+   (the game's flash shell, brief) and glass chips thrown up in arcs; additive, so few flares at once (a dense pack breaking apart must
+   not stack into a white blob), and faded by SPACE_K like the shards. */
+const SHM_FX={t:[]};
+function shmGlow(x,y,z,r,dur,a,top){const now=time;SHM_FX.t=SHM_FX.t.filter(t=>t>now);if(SHM_FX.t.length>=4)return;SHM_FX.t.push(now+dur);
+  const mat=new THREE.ShaderMaterial({uniforms:{uC:{value:new THREE.Color(0xdff4ff)},uO:{value:0}},vertexShader:FLASH_VS,fragmentShader:FLASH_FS,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:!top});
+  const m=new THREE.Mesh(ico(1,2),mat);m.position.set(x,y,z);m.layers.set(1);m.renderOrder=72;m.frustumCulled=false;scene.add(m);const ax=.8+rnd()*.4,ay=.8+rnd()*.4;
+  addFx(m,dur,e=>{const k=Math.min(1,1-e.life/e.max),v=r*(.3+.7*k);m.scale.set(v*ax,v*ay,v);mat.uniforms.uO.value=a*(1-k)*SPACE_K;},null,{mat});}
+/* chips of the frozen picture: each one samples the frame the shards carry (SHF) round the point it broke from, and as it spins the picture
+   slides across its facets like light through glass; normal blending (they are pieces, not light), a faint rim. One material for a spray,
+   carried and faded by its first chip; every chip of it lives as long. */
+const SHM_CVS='uniform vec3 uC;varying vec3 vR,vN,vV;void main(){vR=uC+mat3(modelMatrix)*position*6.;vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.);vV=-mv.xyz;gl_Position=projectionMatrix*mv;}',
+  SHM_CFS='uniform sampler2D uFroz;uniform mat4 uVPf;uniform float uA;varying vec3 vR,vN,vV;void main(){vec4 cl=uVPf*vec4(vR,1.);vec2 uv=clamp(cl.xy/cl.w*.5+.5,.001,.999);float f=1.-abs(dot(normalize(vN),normalize(vV)));vec3 col=texture2D(uFroz,uv).rgb*(.8+.35*f)+vec3(.75,.88,1.)*f*f*.45;gl_FragColor=vec4(col,uA);}';
+function shmChips(x,y,z,n,sp,sz,life){if(fx.length>=300)return;const mat=new THREE.ShaderMaterial({uniforms:{uFroz:SHF.u,uVPf:SHF.uvp,uC:{value:new THREE.Vector3(x,y,z)},uA:{value:SPACE_K}},vertexShader:SHM_CVS,fragmentShader:SHM_CFS,transparent:true,depthWrite:false,depthTest:false});
+  for(let i=0;i<n;i++){const m=new THREE.Mesh(tet(.05),mat);m.position.set(x+(rnd()-.5)*.2,y+(rnd()-.5)*.2,z+(rnd()-.5)*.2);m.rotation.set(rnd()*6,rnd()*6,0);const k=sz*(.7+rnd()*.7)/.05;m.scale.set(k,k*.5,k);m.layers.set(1);m.renderOrder=71;m.frustumCulled=false;scene.add(m);
+    const a=rnd()*6.2832,h=sp*(.4+rnd()*.6),v=new THREE.Vector3(Math.cos(a)*h,sp*(.5+rnd()*.7),Math.sin(a)*h),w=(rnd()-.5)*12,lead=!i;
+    addFx(m,life,(e,dt)=>{v.y-=7*dt;m.position.addScaledVector(v,dt);if(m.position.y<.05){m.position.y=.05;v.set(v.x*.4,0,v.z*.4);}m.rotation.x+=w*dt;m.rotation.y+=w*.7*dt;if(lead)mat.uniforms.uA.value=Math.min(1,e.life/e.max*2.2)*SPACE_K;},null,lead?{mat}:null);}}
+const shmFx={
+  /* M3: motes swirling with the twist, drawn in the space pass (after the warp, which smears anything small drawn before it). One point
+     cloud in the cast's root, freed with it. K: the region (centre c, axes ex/ez, half-axes A/B, the twist's sense swDir), the cast's
+     root, geos and mats, and the twist's times (T0 start, T1 freeze, TS the break). Returns the frame step (T, dt, the twist's speed 0..1). */
+  swirl(K){const N=150,P=new Float32Array(N*3),Sz=new Float32Array(N),Ph=new Float32Array(N),M=[];
+    for(let i=0;i<N;i++){const r=.12+Math.pow(rnd(),.8)*.78;M.push({r,a:rnd()*6.2832,y:.25+rnd()*1.1,w:.7+rnd()*.6});Sz[i]=.07+rnd()*.07;Ph[i]=rnd()*6.28;}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(P,3));g.setAttribute('aS',new THREE.BufferAttribute(Sz,1));g.setAttribute('aP',new THREE.BufferAttribute(Ph,1));
+    const u={uA:{value:0},uT:{value:0},uH:{value:innerHeight*.5}},mat=new THREE.ShaderMaterial({uniforms:u,transparent:true,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending,
+      vertexShader:'uniform float uT,uH;attribute float aS,aP;varying float vK;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vK=.6+.4*sin(uT*7.+aP);gl_PointSize=aS*uH*projectionMatrix[1][1]/-mv.z*2.;gl_Position=projectionMatrix*mv;}',
+      fragmentShader:'uniform float uA;varying float vK;void main(){vec2 q=gl_PointCoord-.5;float d=dot(q,q)*4.;if(d>1.)discard;float k=exp(-d*3.2);gl_FragColor=vec4(mix(vec3(.45,.5,1.),vec3(.66,.95,1.),k),uA*vK*k);}'});
+    K.geos.push(g);K.mats.push(mat);const pts=new THREE.Points(g,mat);pts.layers.set(1);pts.renderOrder=58;pts.frustumCulled=false;pts.visible=false;K.root.add(pts);
+    const e2x=-K.ez,e2z=K.ex;
+    return (T,dt,k)=>{const a=SMS(T,K.T0,K.T0+.5)*(1-SMS(T,K.TS-.12,K.TS));pts.visible=a>.003;if(!pts.visible)return;u.uA.value=.85*a*SPACE_K;u.uT.value=T;u.uH.value=renderer.domElement.height*.5;
+      for(let i=0;i<N;i++){const q=M[i];q.a+=K.swDir*2.6*k*q.w*Math.pow(1-q.r,1.4)*dt*(1.6-q.r);const x=Math.cos(q.a)*q.r*K.A*.92,z=Math.sin(q.a)*q.r*K.B*.92;
+        P[i*3]=K.c.x+K.ex*x+e2x*z;P[i*3+1]=q.y+.15*Math.sin(T*2+i);P[i*3+2]=K.c.z+K.ez*x+e2z*z;}g.attributes.position.needsUpdate=true;};},
+  /* M4: a foe breaking apart with the region: a flare over the sheet and a spray of glass chips */
+  clean(x,y,z){shmGlow(x,y,z,.6,.2,.6,true);shmChips(x,y,z,9,2.4,.13,.6);},
+  /* M5: a large shard lands: dust pushed out from under its outline (it is seen past the slab's edge), a glint on it if it is a heavy one */
+  land(s,m){const n=s.poly.length,v=new THREE.Vector3(),k=s.big?2:1;
+    for(let i=0;i<n*k;i++){const p=s.poly[i%n],q=s.poly[(i+1)%n],u=rnd();v.set(p[0]+(q[0]-p[0])*u-s.cx,0,p[1]+(q[1]-p[1])*u-s.cz).applyQuaternion(m.quaternion);const l=Math.hypot(v.x,v.z)||1,sp=1.2+rnd()*1.6;
+      emit(0,{x:m.position.x+v.x,y:.08,z:m.position.z+v.z,vx:v.x/l*sp,vy:.25+rnd()*.5,vz:v.z/l*sp,s:.09,s2:.36,c:0x948c76,c2:0x58523f,a:.55,life:.6+rnd()*.5,drag:2.4,turb:.4});}
+    if(s.big)shmGlow(m.position.x,.16,m.position.z,.5,.16,.55,false);},
+  /* M5: the slab strikes a foe under it: a smaller flare and chips over the slab */
+  strike(e){const y=(e.y||0)+e.hitY*.5;shmGlow(e.x,y,e.z,.4,.16,.45,true);shmChips(e.x,y,e.z,5,1.7,.1,.5);}};
+/* this cast's numbers and looks (castShatter's XO), cumulative: Mastery L has masteries 1..L */
+function shmOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.K=SHM.K*a[0];X.thick=.09;X.thickR=.11;X.chroma=.008;X.rim=1;}
+  if(L>=2){X.hold=SHM.hold;X.holdB=SHM.holdB;X.hang=.25;}
+  if(L>=3){X.slow=SHM.slow;X.twist=SHM.twist;X.fx=shmFx;}
+  if(L>=4){X.exec=SHM.exec;X.cleanN=30;X.cleanR=.9;}
+  if(L>=5){X.rain=SHM.rain*a[4];X.rainA=SHM.rainA;X.rise=SHM.rise;X.out=SHM.out;X.lift=.5;X.flashN=8;X.dust=2;X.thud=.12;}
+  X.log=shmLog;shmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+const SHM_OLD=castShatter;
+castShatter=function(t,c0,P,o,X){const c=!X?shmC(o):null;return SHM_OLD(t,c0,P,o,c?shmOpts(c):X);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
