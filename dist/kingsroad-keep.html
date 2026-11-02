@@ -20031,13 +20031,18 @@ function smPvStart(k,L){if(!SPELLS_S[k])return false;SMPV.on=false;
   try{if(typeof showOverlay==='function')showOverlay(null);}catch(e){}return true;}
 function smPvStop(){SMPV.on=false;paused=true;for(const e of enemies.slice())removeEnemy(e);enemies=[];}
 /* foes walk in from 3.2 tiles up the road, past the hero, and leave 3 tiles beyond; they die after a few casts so on-death masteries show */
+/* the mastery preview casts again only once the last cast is over: a long spell cast on top of itself fights over its own world
+   state (one sky, one light, one domain). Each test answers whether something is still running; a scroll's mastery module can add
+   its own (SMPV_BUSY.push(()=>...)). */
+const SMPV_BUSY=[()=>cineLock>0,()=>typeof ANC!=='undefined'&&ANC.on,()=>PURG.on,()=>CIT.on,()=>CURSE.on,()=>!!VAEL.on,()=>DOM.on,()=>SGL.n>0];
+function smPvBusy(){for(const f of SMPV_BUSY){try{if(f())return true;}catch(err){}}return false;}
 function smPvTick(dt){const H=heroU;if(!H)return;H.cd=1e9;lives=1e9;spawners.length=0;
   const P=(tStats(H).spellP||tStats(H).dmg||100),live=enemies.filter(e=>!e.dead&&e.smpv);
   for(const e of live)if(e.dist>SMPV.d+3){removeEnemy(e);}
   SMPV.spawnT-=dt;if(SMPV.spawnT<=0&&live.filter(e=>!e.dead&&e.dist<=SMPV.d+3).length<7){SMPV.spawnT=.42;
     const n=SM.pvN=(SM.pvN||0)+1;spawnEnemy({type:n%5===0?'knight':'soldier',v:0},20);const e=enemies[enemies.length-1];e.route=SMPV.rt;e.dist=Math.max(.1,SMPV.d-3.2);e.off=((n*37)%7/7-.5)*.5;
     e.spd=.55;e.maxHp=e.hp=P*(n%5===0?9:5);e.armor=0;e.res={};e.shield=0;e.smpv=1;e.gold=0;moveEnemy(e,0);}
-  SMPV.next-=dt;if(SMPV.next>0||(typeof ANC!=='undefined'&&ANC.on))return;
+  SMPV.next-=dt;if(SMPV.next>0||smPvBusy())return;
   const S=SPELLS_S[SMPV.k],R=(tStats(H).range||3)+.5,list=enemies.filter(e=>!e.dead&&!e.fake&&(e.x-H.x)**2+(e.z-H.z)**2<R*R);if(!list.length)return;
   H.scd={};H.gcd=0;try{fireScroll(H,SMPV.k,tStats(H),list);}catch(err){console.error(err);}SMPV.next=Math.max(2.2,Math.min(7,S.cd));}
 {const u0=update;update=function(dt){const r=u0.apply(this,arguments);if(SMPV.on&&dt>0)try{smPvTick(dt);}catch(err){console.error(err);}return r;};}
