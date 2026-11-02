@@ -13,7 +13,8 @@ const crowd=(n,hp,o)=>{o=o||{};const R=ROUTES[0];let bd=1e9,bdist=0;spawnEnemy({
   const L=[];for(let i=0;i<n;i++){spawnEnemy({type:o.type||(i%3?'soldier':'knight'),v:0},20);const e=enemies[enemies.length-1];e.route=R;e.dist=bdist+(o.sp||.18)*(i-(n-1)/2);e.off=0;e.spd=.0001;e.maxHp=e.hp=hp||1e7;e.armor=0;e.res={};e.shield=0;moveEnemy(e,0);L.push(e);}return L;};
 const SO=k=>({src:heroU,el:'nature',spell:k||'thornwhip',bane:0});
 const NS=['thornwhip','bramble','roots','treant','bloom','gaia'],NA=['oakleaf','briarband','seedpouch','druidtorc','verdantchalice','wildheart'];
-const cast=(k,L)=>{meta.spells[k]=meta.spells[k]||{lvl:1,hero:null};heroU.scd={};heroU.gcd=0;castScrollNow(k,heroU,tStats(heroU),L.slice(),100,{src:heroU,el:'nature',spell:k,bane:0});};
+/* v455: these are the scrolls' own casts: Wrath of Gaia has masteries now, so its mastery is pinned to none (an account with mastery XP would mend 3) */
+const cast=(k,L)=>{meta.spells[k]=meta.spells[k]||{lvl:1,hero:null};if(meta.smast)delete meta.smast.gaia;heroU.scd={};heroU.gcd=0;castScrollNow(k,heroU,tStats(heroU),L.slice(),100,{src:heroU,el:'nature',spell:k,bane:0});};
 let errs=0;const ce=console.error;console.error=function(){errs++;return ce.apply(console,arguments);};
 try{
   /* ---- the element ---- */

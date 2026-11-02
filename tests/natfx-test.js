@@ -11,7 +11,8 @@ const equip=ids=>{meta.arts=meta.arts||{own:{},eq:{},pend:[]};for(const id of id
 const crowd=(n,hp)=>{const R=ROUTES[0];let bd=1e9,bdist=0;spawnEnemy({type:'soldier',v:0},20);const e0=enemies[enemies.length-1];
   for(let d=0;d<R.len;d+=.1){e0.route=R;e0.dist=d;moveEnemy(e0,0);const q=Math.hypot(e0.x-heroU.x,e0.z-heroU.z);if(q<bd&&q>1){bd=q;bdist=d;}}removeEnemy(e0);enemies=enemies.filter(e=>!e.dead);
   const L=[];for(let i=0;i<n;i++){spawnEnemy({type:i%3?'soldier':'knight',v:0},20);const e=enemies[enemies.length-1];e.route=R;e.dist=bdist+.18*(i-(n-1)/2);e.off=0;e.spd=.0001;e.maxHp=e.hp=hp||1e7;e.armor=0;e.res={};e.shield=0;moveEnemy(e,0);L.push(e);}return L;};
-const cast=(k,L)=>{meta.spells[k]=meta.spells[k]||{lvl:1,hero:null};heroU.scd={};heroU.gcd=0;castScrollNow(k,heroU,tStats(heroU),L.slice(),100,{src:heroU,el:'nature',spell:k,bane:0});};
+/* v455: the scrolls' own looks: Wrath of Gaia has masteries now, so its mastery is pinned to none */
+const cast=(k,L)=>{meta.spells[k]=meta.spells[k]||{lvl:1,hero:null};if(meta.smast)delete meta.smast.gaia;heroU.scd={};heroU.gcd=0;castScrollNow(k,heroU,tStats(heroU),L.slice(),100,{src:heroU,el:'nature',spell:k,bane:0});};
 /* foes grow their own status rings on first use, so their models are left out of the count */
 const meshes=()=>{const skip=new Set(enemies.map(e=>e.g));let n=0;const walk=o=>{if(skip.has(o))return;if(o.isInstancedMesh)n+=o.count;else if(o.isMesh||o.isPoints||o.isSprite)n++;for(const c of o.children)walk(c);};walk(scene);return n;};
 const vcMeshes=()=>{const L=[];scene.traverse(o=>{if(o.isMesh&&o.visible&&o.geometry&&o.geometry.attributes.color&&o.material&&o.material.vertexColors)L.push(o);});return L;};
