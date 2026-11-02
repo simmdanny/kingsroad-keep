@@ -3,7 +3,8 @@
    Run on the dev page: __kk.ev(await (await fetch('/tests/ancient-test.js')).text()) returns [name, ok, detail] rows. Puts the account back afterwards. */
 const out=[],ok=(n,c,d)=>out.push([n,!!c,d===undefined?'':String(d)]);const m0=JSON.stringify(meta),r0=lsGet(KR),K=['abyss','aeon','firsttree'];
 /* the spell checks run on board 777 at board version 5 (two roads), the layout they were written for; v333 gives the Kingsroad one road */
-const go=a=>{lsSet(KR,null);meta.arena=a||'plains';state='menu';clearWorld();{const gv=MAP_GV;MAP_GV=5;try{buildMap(777);}finally{MAP_GV=gv;}}MAP.fresh=true;newGame(1);auto=0;lives=1e9;const q=heroTileNear(meta.equipped,innerWidth/2,innerHeight*.45);spawnHero(q.c,q.r);
+/* (the Aeon Dial's checks are of the dial itself: no mastery, v454, whatever the dev account has earned) */
+const go=a=>{lsSet(KR,null);meta.arena=a||'plains';meta.smast=meta.smast||{};delete meta.smast.aeon;state='menu';clearWorld();{const gv=MAP_GV;MAP_GV=5;try{buildMap(777);}finally{MAP_GV=gv;}}MAP.fresh=true;newGame(1);auto=0;lives=1e9;const q=heroTileNear(meta.equipped,innerWidth/2,innerHeight*.45);spawnHero(q.c,q.r);
   state='playing';paused=false;speed=0;window.__fz=true;worldSlow=1;slowT=0;};
 const foes=(n,hp,boss)=>{for(const e of enemies.slice())removeEnemy(e);enemies=[];const L=[];for(let i=0;i<n;i++){spawnEnemy({type:i%2?'knight':'soldier',v:0},60);const e=enemies[enemies.length-1];e.route=ROUTES[i%ROUTES.length];e.dist=4+i*.9;e.off=0;
   e.hp=e.maxHp=hp||1e6;e.armor=0;e.res={};e.spd=.5;moveEnemy(e,0);L.push(e);}return L;};
