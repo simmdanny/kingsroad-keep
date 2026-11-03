@@ -151,5 +151,55 @@
    "impact": 1,
    "lance": 9
   }
+ },
+ "shatter-0": {
+  "k": "shatter",
+  "L": 0,
+  "len": 11.93,
+  "seed": 1,
+  "bytes": 1657635,
+  "note": ""
+ },
+ "shatter-1": {
+  "k": "shatter",
+  "L": 1,
+  "len": 12.43,
+  "seed": 1,
+  "bytes": 1733229,
+  "note": "The break strikes harder; thicker shards with coloured edges.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "break": 1
+  }
+ },
+ "shatter-3": {
+  "k": "shatter",
+  "L": 3,
+  "len": 12.63,
+  "seed": 1,
+  "bytes": 1783909,
+  "note": "The twist turns further and drags at the foes inside.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "twist": 28,
+   "hold": 6,
+   "break": 1
+  }
+ },
+ "shatter-2": {
+  "k": "shatter",
+  "L": 2,
+  "len": 12.9,
+  "seed": 1,
+  "bytes": 1504675,
+  "note": "Foes stay held 1.2s after the break; the shards hang still at the top of their flight.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "hold": 6,
+   "break": 1
+  }
  }
 }
