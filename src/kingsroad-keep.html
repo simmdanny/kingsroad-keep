@@ -4819,16 +4819,28 @@ function psSound(){const c=sfxCtx();if(!c)return null;const t0=c.currentTime,out
     hush(){if(dead)return;const t=c.currentTime;out.gain.cancelScheduledValues(t);out.gain.setValueAtTime(out.gain.value,t);out.gain.linearRampToValueAtTime(0,t+.3);},
     blast(){dead=true;if(typeof sfxBoom==='function')sfxBoom(1,true);const t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(2400,t);o.frequency.exponentialRampToValueAtTime(180,t+1.2);g.gain.setValueAtTime(.12,t);g.gain.exponentialRampToValueAtTime(.001,t+1.3);o.connect(g);g.connect(SFX.master);o.start(t);o.stop(t+1.4);setTimeout(()=>S.stop(),400);},
     stop(){dead=true;nodes.forEach(s=>{try{s.stop();}catch(e){}});try{out.disconnect();}catch(e){}}};return S;}
-function castPulsar(t,P,o){
-  const geos=[],mats=[],root=new THREE.Group();scene.add(root);const DUR=15,IMP=.35,END=DUR+IMP+8;cineLock=Math.max(cineLock,16.5);
+/* v471: XO (optional, Pulsar's masteries): this cast's own numbers over PSD (hit/rad: a beam hit's fire and light, each, and how much further off
+   its path it sears; ph/spin: when the phases come (their times x ph; the convergence stays at 14-15s) and how fast the star spins (x spin; a beam's
+   strikes on a foe come as much sooner, 0.22s / spin apart, so the faster passes strike as often);
+   b2/hit2/b2w: Both Poles, the second beam tipped down to sweep its own ring at b2 x the first one's radius, half a turn behind, its hit and its
+   burn's width (x b2w) (b2 0: it points at the sky as before); BN: the burn ribbon's pool of quads; sear/searIv/searAge/searCk: Scorched Ring, the fire a foe standing on ground
+   burnt in the last searAge s takes, at most every searIv s, checked every searCk s; IMP/blast/blastR: the implosion's length, the blast's fire
+   and light, each, and its reach) and its looks (lw/core: the beams' layers wider, a whiter core; emb: hotter, longer embers on fresh burns;
+   pull: the implosion draws both burnt rings in; nova: the blast's shells, rings and waves wider). pc: a placement (for the tests); log(d)
+   receives the events for the tests. sub: the longest step of the beams' sweep (every cast, v471: see the beams). Without XO: exactly as
+   before (but for sub). PSR.n counts the casts running (the mastery preview waits for them: one star, one shared light FXL). */
+const PSD={hit:.9,rad:0,ph:1,spin:1,b2:0,hit2:.45,b2w:1,BN:900,sear:0,searIv:.5,searAge:2,searCk:.25,IMP:.35,blast:5,blastR:6.5,lw:1,core:0,emb:0,pull:0,nova:1,sub:.02,pc:null,log:null};
+const PSR={n:0};
+function castPulsar(t,P,o,XO){const D=XO?Object.assign({},PSD,XO):PSD,lg=D.log;
+  const geos=[],mats=[],root=new THREE.Group();scene.add(root);const DUR=15,IMP=D.IMP,END=DUR+IMP+8;cineLock=Math.max(cineLock,16.5+(IMP-.35));PSR.n++;
   const L0=enemies.filter(e=>!e.dead),dc=L0.length?densest(L0):viewCenter(),vc=viewCenter();
   const onRoad=(x,z)=>{const c=Math.round(x/TS+OX),r=Math.round(z/TS+OZ);return c>=0&&c<W&&r>=0&&r<H&&grid[r][c]===1;};
-  const PC=(()=>{const al=enemies.filter(e=>!e.dead).sort((a,b)=>(b.hp+(b.shield||0))-(a.hp+(a.shield||0)));const tg=al.length?al[Math.floor(rnd()*Math.min(3,al.length))]:null,E=tg?{x:tg.x,z:tg.z}:{x:dc.x,z:dc.z};const scr=new THREE.Vector3();
+  const PC=D.pc||(()=>{const al=enemies.filter(e=>!e.dead).sort((a,b)=>(b.hp+(b.shield||0))-(a.hp+(a.shield||0)));const tg=al.length?al[Math.floor(rnd()*Math.min(3,al.length))]:null,E=tg?{x:tg.x,z:tg.z}:{x:dc.x,z:dc.z};const scr=new THREE.Vector3();
     const cross=(cx,cz,R)=>{let n=0,prev=null,first=null;for(let i=0;i<96;i++){const a=i/96*6.2832,o=onRoad(cx+Math.cos(a)*R,cz+Math.sin(a)*R);if(prev!==null&&o!==prev)n++;if(first===null)first=o;prev=o;}if(prev!==first)n++;return n/2;};
     let best=null,bs=-1e9;for(let k=0;k<60;k++){const R=1.8+rnd()*2.6,th=rnd()*6.2832,cx=E.x+Math.cos(th)*R,cz=E.z+Math.sin(th)*R,x=cross(cx,cz,R);if(x<2)continue;
       scr.set(cx,3.3,cz).project(camera);let sc=x*.5-Math.hypot(cx-vc.x,cz-vc.z)*.1;if(Math.abs(scr.x)>.82||scr.y>.78||scr.y<-.75)sc-=50;if(sc>bs){bs=sc;best={x:cx,z:cz,radii:[R]};}}
     return best||{x:E.x+2.4,z:E.z,radii:[2.4]};})();
-  const S0=new THREE.Vector3(PC.x,3.3,PC.z);const oF=Object.assign({},o,{el:'fire'}),oL=Object.assign({},o,{el:'light'});
+  const S0=new THREE.Vector3(PC.x,3.3,PC.z);const oF=Object.assign({},o,{el:'fire'}),oL=Object.assign({},o,{el:'light'});const ST={};
   const tmp=new THREE.Vector3(),tmp2=new THREE.Vector3(),Y=new THREE.Vector3(0,1,0),q=new THREE.Quaternion();
   /* ---- the star: spinning banded surface, white-hot spots, limb glow; cracks of light before collapse ---- */
   const spin=new THREE.Group();spin.position.copy(S0);root.add(spin);
@@ -4863,35 +4875,48 @@ function castPulsar(t,P,o){
   const mkLayer=(col,a)=>{const m=new THREE.ShaderMaterial({uniforms:{uC:{value:new THREE.Color(col)},uA:{value:0},uT:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
       vertexShader:'varying vec3 vN;varying vec3 vV;varying float vY;void main(){vY=position.y;vec4 mv=modelViewMatrix*vec4(position,1.);vV=-mv.xyz;vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*mv;}',
       fragmentShader:'uniform vec3 uC;uniform float uA,uT;varying vec3 vN;varying vec3 vV;varying float vY;void main(){float f=abs(dot(normalize(vN),normalize(vV)));float flow=.75+.25*sin(vY*70.-uT*90.);float a=pow(f,1.6)*(1.-vY*.55)*smoothstep(0.,.03,vY)*flow*uA;gl_FragColor=vec4(uC*a,1.);}'});mats.push(m);m.userData.a=a;return m;};
-  const LAY=[[0xffffff,1,.045],[0x6fd8ff,.75,.16],[0x2a6aff,.35,.5]];
+  const LAY=D.core?[[0xffffff,1.3,.07],[0xa6e8ff,.85,.17],[0x2a6aff,.35,.5]]:[[0xffffff,1,.045],[0x6fd8ff,.75,.16],[0x2a6aff,.35,.5]];
   const beams=[0,1].map(b=>{const groups=[];for(let g=0;g<3;g++){const grp=new THREE.Group();grp.position.copy(S0);root.add(grp);const layers=LAY.map(([c,a,w])=>{const m=mkLayer(c,a*(g?(g===1?.35:.16):1));const me=new THREE.Mesh(coneG,m);me.userData.w=w;me.frustumCulled=false;me.renderOrder=40;grp.add(me);return me;});groups.push({grp,layers});}
     const gm=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0x8ad4ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(gm);const glow=new THREE.Mesh(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),gm);glow.position.y=.05;glow.renderOrder=39;root.add(glow);geos.push(glow.geometry);
     return{groups,hist:[],last:null,glow,gm,hitCD:new Map(),onGround:false};});
   /* ---- radiation burn ribbon on the ground (pooled quads, shader ages them) ---- */
-  const BN=900,bPos=new Float32Array(BN*12),bB=new Float32Array(BN*4).fill(-99),bU=new Float32Array(BN*8),bK=new Float32Array(BN*4),bI=[];for(let i=0;i<BN;i++){const v=i*4;bI.push(v,v+1,v+2,v+2,v+1,v+3);}
+  const BN=D.BN,bPos=new Float32Array(BN*12),bB=new Float32Array(BN*4).fill(-99),bU=new Float32Array(BN*8),bK=new Float32Array(BN*4),bI=[];for(let i=0;i<BN;i++){const v=i*4;bI.push(v,v+1,v+2,v+2,v+1,v+3);}
   const bG=new THREE.BufferGeometry();bG.setAttribute('position',new THREE.BufferAttribute(bPos,3));bG.setAttribute('aB',new THREE.BufferAttribute(bB,1));bG.setAttribute('aU',new THREE.BufferAttribute(bU,2));bG.setAttribute('aK',new THREE.BufferAttribute(bK,1));bG.setIndex(bI);geos.push(bG);
-  const bM=new THREE.ShaderMaterial({uniforms:{uT:{value:0}},transparent:true,depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-3,
+  const bM=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uP:{value:0}},transparent:true,depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-3,
     vertexShader:'attribute float aB;attribute vec2 aU;attribute float aK;varying float vB;varying vec2 vU;varying vec3 vW;varying float vK;void main(){vB=aB;vU=aU;vK=aK;vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
-    fragmentShader:`${PS_NZ}uniform float uT;varying float vB;varying vec2 vU;varying vec3 vW;varying float vK;void main(){float age=uT-vB;if(age<0.||age>10.)discard;
+    fragmentShader:`${PS_NZ}uniform float uT${D.pull?',uP':''};varying float vB;varying vec2 vU;varying vec3 vW;varying float vK;void main(){float age=uT-vB;if(age<0.||age>10.)discard;
       float n=pn3(vec3(vW.xz*3.2,1.)),n2=pn3(vec3(vW.xz*9.,4.));float e=1.-abs(vU.y)-(n-.5)*.75-(n2-.5)*.25;if(e<=0.)discard;float core=smoothstep(.25,.75,e);
-      vec3 col;float a;float fade=1.-smoothstep(6.,10.,age);
-      if(vK>.5){/* road: sooty dirt, crack network, grey ash, few embers */
+      vec3 col;float a;${D.b2?'float k2=step(1.5,vK),kd=vK-2.*k2;float fade=1.-smoothstep(6.-2.*k2,10.-2.*k2,age);':'float fade=1.-smoothstep(6.,10.,age);'}
+      if(${D.b2?'kd':'vK'}>.5){/* road: sooty dirt, crack network, grey ash, few embers */
         float c1=1.-smoothstep(0.,.06,abs(pn3(vec3(vW.xz*4.5,2.))-.5)),c2=1.-smoothstep(0.,.05,abs(pn3(vec3(vW.xz*11.,7.))-.5));
         col=mix(vec3(.2,.15,.1),vec3(.07,.06,.05),core);col*=1.-.55*max(c1,c2*.7)*core;col=mix(col,vec3(.36,.35,.34),smoothstep(.72,.9,n2)*.55);
-        float emb=smoothstep(.8,.9,n2)*core*exp(-age*1.1);col+=vec3(1.,.45,.1)*emb*1.3;a=smoothstep(0.,.2,e)*(.5+.35*core)*fade+emb*.3;}
+        float emb=${D.emb?'smoothstep(.79,.9,n2)*core*exp(-age*.75)'+(D.pull?'*(1.-uP)':'')+';col+=vec3(1.,.5,.12)*emb*1.45':'smoothstep(.8,.9,n2)*core*exp(-age*1.1);col+=vec3(1.,.45,.1)*emb*1.3'};a=smoothstep(0.,.2,e)*(.5+.35*core)*fade+emb*.3;}
       else{/* grass: charcoal core, soot-black blades, brown singed rim, glowing ember speckles */
         float bl=pn3(vec3(vW.x*22.,vW.z*6.,3.));col=mix(vec3(.26,.16,.07),vec3(.03,.025,.02),core);col*=.75+.35*bl;col=mix(col,vec3(.24,.23,.22),smoothstep(4.,8.,age)*core*.5);
-        float emb=smoothstep(.62,.75,n2)*core*exp(-age*.7);vec3 ec=mix(vec3(1.,.55,.15),vec3(.6,.1,.02),smoothstep(.5,2.5,age));col+=ec*emb*1.6;
+        float emb=${D.emb?'smoothstep(.61,.745,n2)*core*exp(-age*.5)'+(D.pull?'*(1.-uP)':'')+';vec3 ec=mix(vec3(1.,.58,.18),vec3(.65,.11,.02),smoothstep(.8,3.2,age));col+=ec*emb*1.55':'smoothstep(.62,.75,n2)*core*exp(-age*.7);vec3 ec=mix(vec3(1.,.55,.15),vec3(.6,.1,.02),smoothstep(.5,2.5,age));col+=ec*emb*1.6'};
         a=smoothstep(0.,.18,e)*(.55+.4*core)*fade+emb*.4;}
-      gl_FragColor=vec4(col,min(1.,a));}`});mats.push(bM);
+      ${D.emb?'float hot=core*(1.-smoothstep('+(D.searAge*.5).toFixed(2)+','+D.searAge.toFixed(2)+',age));col+=vec3(.85,.26,.04)*hot*(.1+.16*n2)'+(D.pull?'*(1.-uP)':'')+';':''}${D.b2?'a*=1.-.25*k2;':''}gl_FragColor=vec4(col,min(1.,a));}`});mats.push(bM);
   const burn=new THREE.Mesh(bG,bM);burn.frustumCulled=false;burn.renderOrder=1;root.add(burn);let bHead=0;
+  /* (v471, D.sear, Scorched Ring) the burnt ground remembers, a quarter tile at a time, when it was last burnt (a cell whose centre lies within
+     the burn's half width of a burn stroke); every D.searCk s each foe standing on a cell burnt in the last D.searAge s takes D.sear fire, at
+     most every D.searIv s (bosses: the cells round theirs too; not flyers). It runs while there is such ground, the blast's burns too. */
+  const SG=D.sear?new Map():null,sgK=(cx,cz)=>(cx+32768)*65536+cz+32768,searCD=new Map();let searT=0,lastB=-99;
+  function sgMark(a,b,w,now){lastB=now;const x0=Math.floor((Math.min(a.x,b.x)-w)*4),x1=Math.floor((Math.max(a.x,b.x)+w)*4),z0=Math.floor((Math.min(a.z,b.z)-w)*4),z1=Math.floor((Math.max(a.z,b.z)+w)*4);
+    for(let cx=x0;cx<=x1;cx++)for(let cz=z0;cz<=z1;cz++)if(segD((cx+.5)/4,0,(cz+.5)/4,a.x,0,a.z,b.x,0,b.z)<=w)SG.set(sgK(cx,cz),now);}
+  function searStep(now,dt){searT-=dt;if(searT>0)return;searT+=D.searCk;if(now-lastB>D.searAge)return;const H=lg?[]:null;
+    for(const e of enemies){if(e.dead||e.fly||now-(searCD.get(e)||-9)<D.searIv-1e-6)continue;const cx=Math.floor(e.x*4),cz=Math.floor(e.z*4),r=e.boss?1:0;let on=false;
+      for(let i=-r;i<=r&&!on;i++)for(let j=-r;j<=r;j++){const b=SG.get(sgK(cx+i,cz+j));if(b!==undefined&&now-b<=D.searAge){on=true;break;}}
+      if(!on)continue;searCD.set(e,now);if(H)H.push(e);hurt(e,P*D.sear,'magic',oF);
+      /* embers kicked up from the burnt ground round its feet */
+      for(let i=0;i<3;i++)emit(1,{x:e.x+(rnd()-.5)*.3,y:(e.y||0)+.06,z:e.z+(rnd()-.5)*.3,vx:(rnd()-.5)*.3,vy:.5+rnd()*.7,vz:(rnd()-.5)*.3,s:.05,s2:0,c:0xffb050,c2:0x7a1800,life:.6});}
+    if(H&&H.length)lg({ev:'sear',H,T:now});}
   const onMap=(x,z)=>{const c=Math.round(x/TS+OX),r=Math.round(z/TS+OZ);return c>=-1&&c<=W&&r>=-1&&r<=H;};
-  function addBurn(a,b,w,now){const dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz);if(l<.03||!onMap(a.x,a.z)||!onMap(b.x,b.z))return;const ux=dx/l,uz=dz/l,px=-uz*w,pz=ux*w,ex=ux*w*.5,ez=uz*w*.5,i=bHead;bHead=(bHead+1)%BN;const y=.024+(i%7)*.0006,o=i*12;
+  function addBurn(a,b,w,now,k2){const dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz);if(l<.03||!onMap(a.x,a.z)||!onMap(b.x,b.z))return;const ux=dx/l,uz=dz/l,px=-uz*w,pz=ux*w,ex=ux*w*.5,ez=uz*w*.5,i=bHead;bHead=(bHead+1)%BN;const y=.024+(i%7)*.0006,o=i*12;
     const P4=[[a.x-ex+px,a.z-ez+pz],[a.x-ex-px,a.z-ez-pz],[b.x+ex+px,b.z+ez+pz],[b.x+ex-px,b.z+ez-pz]];
     /* open world: the burn only marks bare ground. It is skipped wherever a road, path, square, building, wall or prop occupies the cell, so it never lies over another surface, and it follows the terrain height */
     if(OW.on){const cellOcc=(x,z)=>{const c=owCell(x,z);return !grid[c.r]||grid[c.r][c.c]!==0;};if(cellOcc((a.x+b.x)/2,(a.z+b.z)/2)||P4.some(q=>cellOcc(q[0],q[1]))){bHead=i;return;}}
     for(let k=0;k<4;k++){bPos[o+k*3]=P4[k][0];bPos[o+k*3+1]=OW.on?owH(P4[k][0],P4[k][1])+.06+(i%7)*.0006:y;bPos[o+k*3+2]=P4[k][1];bB[i*4+k]=now;}
-    const u=i*8;bU.set([0,1,0,-1,1,1,1,-1],u);const kd=onRoad((a.x+b.x)/2,(a.z+b.z)/2)?1:0;bK.fill(kd,i*4,i*4+4);bG.attributes.position.needsUpdate=bG.attributes.aB.needsUpdate=bG.attributes.aU.needsUpdate=bG.attributes.aK.needsUpdate=true;}
+    const u=i*8;bU.set([0,1,0,-1,1,1,1,-1],u);const kd=onRoad((a.x+b.x)/2,(a.z+b.z)/2)?1:0;bK.fill(kd+(k2?2:0),i*4,i*4+4);bG.attributes.position.needsUpdate=bG.attributes.aB.needsUpdate=bG.attributes.aU.needsUpdate=bG.attributes.aK.needsUpdate=true;if(SG)sgMark(a,b,w,now);}
   /* ---- conifers in the field scorch and recover ---- */
   const trees=Object.values(TREEM||{}).filter(g=>g&&g.parent),burnt=new Map();
   function scorchTree(g,now){if(burnt.has(g))return;const sev=.55+rnd()*.45,list=[];g.traverse(m=>{if(!m.isMesh||!m.material||Array.isArray(m.material)||!m.material.color)return;const orig=m.material,c=orig.clone();m.material=c;list.push({m,orig,c,col:orig.color.clone()});});
@@ -4905,20 +4930,30 @@ function castPulsar(t,P,o){
   const snd=psSound();
   /* ---- spin dynamics: precessing, jerking axis; surging spin; tilted magnetic poles ---- */
   const A=new THREE.Vector3(Math.cos(rnd()*6.28),.25,Math.sin(rnd()*6.28)).normalize(),Atg=A.clone(),U1=new THREE.Vector3(),U2=new THREE.Vector3(),M=new THREE.Vector3();
-  const Ax=new THREE.Vector3(0,-1,0);let radT=2.5,Rc=PC.radii[Math.floor(PC.radii.length/2)],Rt=Rc;M.set(0,-1,0);let T=0,phi=0,om=1.5,omT=3,alpha=1.15,alT=1.15,nextJ=.8,flashP=0,imploded=false,blasted=false,surge=1,surgeT=0;
-  const cleanup=()=>{for(const [g,b] of burnt){b.list.forEach(e=>{e.m.material=e.orig;e.c.dispose();});}burnt.clear();if(snd)snd.stop();darkTarget=0;if(!blasted)FXL.intensity=0;};SG_ACTIVE.add(cleanup);
+  const Ax=new THREE.Vector3(0,-1,0);let radT=2.5,Rc=PC.radii[Math.floor(PC.radii.length/2)],Rt=Rc;M.set(0,-1,0);let al=0,al2=0,T=0,phi=0,om=1.5,omT=3,alpha=1.15,alT=1.15,nextJ=.8,flashP=0,imploded=false,blasted=false,surge=1,surgeT=0;
+  let psDone=false;const cleanup=()=>{if(!psDone){psDone=true;PSR.n=Math.max(0,PSR.n-1);}for(const [g,b] of burnt){b.list.forEach(e=>{e.m.material=e.orig;e.c.dispose();});}burnt.clear();if(snd)snd.stop();darkTarget=0;if(!blasted)FXL.intensity=0;};SG_ACTIVE.add(cleanup);
   const segD=(px,py,pz,ax,ay,az,bx,by,bz)=>{const vx=bx-ax,vy=by-ay,vz=bz-az,wx=px-ax,wy=py-ay,wz=pz-az,l2=vx*vx+vy*vy+vz*vz,k=Math.max(0,Math.min(1,(wx*vx+wy*vy+wz*vz)/l2));const dx=wx-vx*k,dy=wy-vy*k,dz=wz-vz*k;return Math.sqrt(dx*dx+dy*dy+dz*dz);};
-  addFx(root,END,(f,dt)=>{T+=dt;const now=T;bM.uniforms.uT.value=now;treeStep(now,dt);
+  /* (v471) a beam's direction at spin angle ph, tipped by a from the down axis; the second beam points the other way, at the sky, unless Both
+     Poles (D.b2) tips it down to sweep its own ring, half a turn behind */
+  const dirAt=(ph,a,out)=>out.copy(Ax).multiplyScalar(Math.cos(a)).addScaledVector(U1,Math.sin(a)*Math.cos(ph)).addScaledVector(U2,Math.sin(a)*Math.sin(ph)).normalize();
+  const bDir=(bi,ph,out)=>!bi?dirAt(ph,al,out):D.b2?dirAt(ph+Math.PI,al2,out):dirAt(ph,al,out).multiplyScalar(-1);
+  const DJ=[],cand=[];
+  /* (v471, D.pull, Supernova) the implosion draws both burnt rings in: light rises off them and streams into the star */
+  function psPull(){const rs=D.b2?[PC.radii[0],PC.radii[0]*D.b2]:[PC.radii[0]];for(const r of rs){const n=Math.round(r*18);for(let i=0;i<n;i++){const a=(i+rnd()*.6)/n*6.2832,rr=r+(rnd()-.5)*.3,x0=S0.x+Math.cos(a)*rr,z0=S0.z+Math.sin(a)*rr,y0=.05+rnd()*.1,c=rnd(),vx=(S0.x-x0)/IMP,vy=(S0.y-y0)/IMP,vz=(S0.z-z0)/IMP;
+      /* a short stream of three motes, lit until they reach the star */
+      for(let j=0;j<3;j++){const f=j*.09;emit(1,{x:x0+vx*IMP*f,y:y0+vy*IMP*f,z:z0+vz*IMP*f,vx,vy,vz,s:.21-j*.045,s2:.05,c:c<.35?0xffb060:c<.7?0xdff4ff:0x8fd4ff,c2:0x5a8aff,a:.95,a2:.55,life:IMP*(1-f)});}}}}
+  if(lg)lg({ev:'open',PC,S0:S0.clone(),D,ST,beams,BN,bB,bK,bM,SG,root,wArcs,fldM,star,LAY,Ax,U1,U2});
+  addFx(root,END,(f,dt)=>{T+=dt;const now=T;bM.uniforms.uT.value=now;treeStep(now,dt);if(SG)searStep(now,dt);
     if(T<DUR){
       /* phase intensity */
-      const ign=SMS(T,0,2),act=SMS(T,2,5),fr=SMS(T,5,10),crit=SMS(T,10,14),conv=SMS(T,14,DUR);
-      omT=(3+4*ign+9*act+6*fr+10*crit)*(1-.75*conv);surgeT-=dt;if(surgeT<=0){surgeT=.4+rnd()*1.1;surge=.85+rnd()*.3;}om+=(omT*surge-om)*Math.min(1,dt*3);phi+=om*dt;
+      const ph=D.ph,ign=SMS(T,0,2*ph),act=SMS(T,2*ph,5*ph),fr=SMS(T,5*ph,10*ph),crit=SMS(T,10*ph,14*ph),conv=SMS(T,14,DUR);
+      omT=(3+4*ign+9*act+6*fr+10*crit)*(1-.75*conv)*D.spin;surgeT-=dt;if(surgeT<=0){surgeT=.4+rnd()*1.1;surge=.85+rnd()*.3;}om+=(omT*surge-om)*Math.min(1,dt*3);const phi0=phi;phi+=om*dt;
       nextJ-=dt;if(nextJ<=0){nextJ=(.7+rnd()*1.4)*(1-.4*crit);const a=rnd()*6.28;Atg.set(Math.cos(a),-.25+rnd()*.85,Math.sin(a)).normalize();alT=.85+rnd()*.55;}
       A.lerp(Atg,Math.min(1,dt*(2.5+3*fr))).normalize();A.applyAxisAngle(Y,dt*(.4+.8*fr)*Math.sin(T*.7));alpha+=((alT*(1-conv)+.25*conv)-alpha)*Math.min(1,dt*3);
       U1.copy(Math.abs(A.y)<.9?Y:tmp.set(1,0,0)).cross(A).normalize();U2.crossVectors(A,U1);const wob=.12*fr*Math.sin(T*9.3)+.18*crit*Math.sin(T*13.7);
       Rc=PC.radii[0]*(1+.06*Math.sin(T*1.3));
-      const al=Math.atan(Rc/S0.y)*(1-.6*conv);Ax.set(.07*fr*Math.sin(T*.9)+wob*.1,-1,.07*fr*Math.cos(T*.7)).normalize();A.copy(Ax);
-      U1.set(1,0,0).addScaledVector(Ax,-Ax.x).normalize();U2.crossVectors(Ax,U1);M.copy(Ax).multiplyScalar(Math.cos(al)).addScaledVector(U1,Math.sin(al)*Math.cos(phi)).addScaledVector(U2,Math.sin(al)*Math.sin(phi)).normalize();
+      al=Math.atan(Rc/S0.y)*(1-.6*conv);al2=Math.atan(D.b2*Rc/S0.y)*(1-.6*conv);Ax.set(.07*fr*Math.sin(T*.9)+wob*.1,-1,.07*fr*Math.cos(T*.7)).normalize();A.copy(Ax);
+      U1.set(1,0,0).addScaledVector(Ax,-Ax.x).normalize();U2.crossVectors(Ax,U1);dirAt(phi,al,M);if(lg)Object.assign(ST,{T,om,omT,ign,act,fr,crit,conv,phi,al,al2,Rc});
       /* star + magnetic frame orientation */
       q.setFromAxisAngle(A,phi);spin.quaternion.copy(q);mag.quaternion.setFromUnitVectors(Y,M);const sz=.2*(.4+.6*ign)*(1+.15*crit);star.scale.setScalar(sz);
       starM.uniforms.uT.value=T;starM.uniforms.uCrack.value=conv;starM.uniforms.uHot.value=1+.6*crit+1.2*conv;corM.uniforms.uA.value=.9*ign*(1+crit*.6);
@@ -4933,44 +4968,60 @@ function castPulsar(t,P,o){
       if(rnd()<dt*(10+30*crit))emit(1,{x:S0.x+(rnd()-.5)*.8,y:S0.y+(rnd()-.5)*.8,z:S0.z+(rnd()-.5)*.8,vx:(rnd()-.5)*1.2,vy:(rnd()-.5)*1.2,vz:(rnd()-.5)*1.2,s:.035,s2:0,c:0xcfeaff,c2:0x2a5aff,life:.5});
       /* beams */
       const reach=(3+27*SMS(T,.4,2.2))*(1-.55*conv),thick=(1+.6*crit)*(1-.5*conv),bA=SMS(T,.4,1.4);
-      beams.forEach((B,bi)=>{const d=tmp2.copy(M).multiplyScalar(bi?-1:1);B.hist.unshift(d.clone());if(B.hist.length>6)B.hist.pop();
+      /* the burn's half width, and how far off the beam's ground spot (rh) and its line (rb) it sears (D.rad further: Hard Radiation) */
+      const w=(.24+.1*crit)*thick,rh=(.32+.12*crit)*thick+.12+D.rad,rb=(.32+.12*crit)*thick+D.rad,mg=Math.max(rh,rb)+.3;
+      /* a beam strikes each foe at most every 0.22s (D.spin: a star spinning faster passes, and strikes, sooner again: 0.22s / D.spin) */
+      const cdH=.22/D.spin;
+      /* (v471) each frame's sweep is flown in steps of at most D.sub s along the spin, so the ground spot follows its ring at any frame rate and
+         game speed: before, a long frame swept one chord across the ring (at 2x speed, at the top of the spin, a chord passed up to half a tile
+         inside the ring and the foes on it were skipped; past half a turn it swept backwards). A frame of D.sub s or less is one step, as before. */
+      const ns=D.sub&&dt>D.sub?Math.min(60,Math.ceil(dt/D.sub)):1;
+      beams.forEach((B,bi)=>{const d=bDir(bi,phi,tmp2);B.hist.unshift(d.clone());if(B.hist.length>6)B.hist.pop();const hp=bi&&D.b2?D.hit2:D.hit;
         let len=reach,g=null;if(d.y<-.04){const tt=S0.y/-d.y;if(tt<reach){len=tt;g=new THREE.Vector3(S0.x+d.x*tt,0,S0.z+d.z*tt);}}
-        if(B.pd){const ang=B.pd.angleTo(d),n=Math.min(40,Math.ceil(ang/.02));const w=(.24+.1*crit)*thick,rh=(.32+.12*crit)*thick+.12;for(let si=1;si<=n;si++){const dd=tmp.copy(B.pd).lerp(d,si/n).normalize();let gp=null;if(dd.y<-.04){const t2=S0.y/-dd.y;if(t2<reach)gp={x:S0.x+dd.x*t2,z:S0.z+dd.z*t2};}
-            if(!gp){B.ba=null;continue;}if(!B.ba||Math.hypot(gp.x-B.ba.x,gp.z-B.ba.z)>6)B.ba=gp;else if(Math.hypot(gp.x-B.ba.x,gp.z-B.ba.z)>=.3){addBurn(B.ba,gp,w,now);B.ba=gp;}
-            for(const e of enemies){if(e.dead)continue;if(now-(B.hitCD.get(e)||-9)<.22)continue;if(Math.hypot(e.x-gp.x,e.z-gp.z)>rh+(e.boss?.3:0))continue;B.hitCD.set(e,now);const ey2=(e.y||0)+e.hitY*.5;hurt(e,P*.9,'magic',oF);if(!e.dead)hurt(e,P*.9,'magic',oL);burst(e.x,ey2,e.z,0xe8f8ff,7);}}}
-        B.pd=(B.pd||new THREE.Vector3()).copy(d);
+        const nj=B.pd?ns:1;while(DJ.length<nj)DJ.push(new THREE.Vector3());for(let j=1;j<=nj;j++){if(j===nj)DJ[j-1].copy(d);else bDir(bi,phi0+(phi-phi0)*j/nj,DJ[j-1]);}
+        /* the foes this sweep can reach: those in the box round the star and the beam's ground spots (a sweep between two directions that point
+           down lands on the straight line between their spots); a beam at or above the horizon reaches anywhere within its reach */
+        let x0=S0.x,x1=S0.x,z0=S0.z,z1=S0.z,sky=false;
+        for(let j=B.pd?-1:0;j<nj;j++){const v=j<0?B.pd:DJ[j];if(v.y>=-.04){sky=true;break;}const tt=S0.y/-v.y,x=S0.x+v.x*tt,z=S0.z+v.z*tt;if(x<x0)x0=x;if(x>x1)x1=x;if(z<z0)z0=z;if(z>z1)z1=z;}
+        if(sky){x0=S0.x-reach;x1=S0.x+reach;z0=S0.z-reach;z1=S0.z+reach;}
+        cand.length=0;for(const e of enemies)if(!e.dead&&e.x>=x0-mg&&e.x<=x1+mg&&e.z>=z0-mg&&e.z<=z1+mg)cand.push(e);
+        for(let j=0;j<nj;j++){const dj=DJ[j],tj=now-dt*(nj-1-j)/nj;
+          if(B.pd){const ang=B.pd.angleTo(dj),n=Math.min(40,Math.ceil(ang/.02));for(let si=1;si<=n;si++){const dd=tmp.copy(B.pd).lerp(dj,si/n).normalize();let gp=null;if(dd.y<-.04){const t2=S0.y/-dd.y;if(t2<reach)gp={x:S0.x+dd.x*t2,z:S0.z+dd.z*t2};}
+              if(!gp){B.ba=null;continue;}if(!B.ba||Math.hypot(gp.x-B.ba.x,gp.z-B.ba.z)>6)B.ba=gp;else if(Math.hypot(gp.x-B.ba.x,gp.z-B.ba.z)>=.3){if(!(bi&&D.b2&&conv>.02))addBurn(B.ba,gp,bi&&D.b2?w*D.b2w:w,tj,bi&&D.b2);B.ba=gp;}
+              for(const e of cand){if(e.dead)continue;if(tj-(B.hitCD.get(e)||-9)<cdH)continue;if(Math.hypot(e.x-gp.x,e.z-gp.z)>rh+(e.boss?.3:0))continue;B.hitCD.set(e,tj);const ey2=(e.y||0)+e.hitY*.5;hurt(e,P*hp,'magic',oF);if(!e.dead)hurt(e,P*hp,'magic',oL);burst(e.x,ey2,e.z,0xe8f8ff,7);if(lg)lg({ev:'hit',b:bi,e,T:tj,on:'ground',x:gp.x,z:gp.z,r:rh});}}}
+          /* damage + reactions along the beam */
+          let l=reach;if(dj.y<-.04){const tt=S0.y/-dj.y;if(tt<reach)l=tt;}const ex=S0.x+dj.x*l,ey=S0.y+dj.y*l,ez=S0.z+dj.z*l;
+          for(const e of cand){if(e.dead)continue;const lt=B.hitCD.get(e)||-9;if(tj-lt<cdH)continue;const ey2=(e.y||0)+e.hitY*.5;if(segD(e.x,ey2,e.z,S0.x,S0.y,S0.z,ex,ey,ez)>rb+(e.boss?.3:0))continue;
+            B.hitCD.set(e,tj);hurt(e,P*hp,'magic',oF);if(!e.dead)hurt(e,P*hp,'magic',oL);burst(e.x,ey2,e.z,0xe8f8ff,7);for(let i=0;i<4;i++)emit(1,{x:e.x+(rnd()-.5)*.2,y:ey2+(rnd()-.5)*.2,z:e.z+(rnd()-.5)*.2,vx:(rnd()-.5)*.8,vy:.4+rnd()*.8,vz:(rnd()-.5)*.8,s:.05,s2:0,c:rnd()<.5?0xffffff:0x7ad8ff,c2:0xff7020,life:.6});if(lg)lg({ev:'hit',b:bi,e,T:tj,on:'beam',r:rb});}
+          B.pd=(B.pd||new THREE.Vector3()).copy(dj);}
         B.groups.forEach((G,gi)=>{const hd=B.hist[Math.min(B.hist.length-1,gi*2)];G.grp.quaternion.setFromUnitVectors(Y,hd);let gl=len;if(gi&&hd.y<-.04)gl=Math.min(reach,S0.y/-hd.y);
-          G.layers.forEach(me=>{const w=me.userData.w*thick;me.scale.set(w*gl*.09+w*.3,gl,w*gl*.09+w*.3);me.material.uniforms.uA.value=me.material.userData.a*bA*(gi?(gi===1?.45:.2):1);me.material.uniforms.uT.value=T;});});
+          G.layers.forEach(me=>{const w=me.userData.w*thick*D.lw;me.scale.set(w*gl*.09+w*.3,gl,w*gl*.09+w*.3);me.material.uniforms.uA.value=me.material.userData.a*bA*(gi?(gi===1?.45:.2):1);me.material.uniforms.uT.value=T;});});
         if(g){B.glow.visible=true;B.glow.position.set(g.x,.05,g.z);B.glow.scale.setScalar(2.2*thick);B.gm.opacity=.75*bA;
           if(B.last){const st=B.last.distanceTo(g);if(rnd()<.8)emit(1,{x:g.x,y:.08,z:g.z,vx:(rnd()-.5)*.4,vy:.5+rnd()*.6,vz:(rnd()-.5)*.4,s:.05,s2:0,c:0xbfe8ff,c2:0x2a4aff,life:.6});
             if(rnd()<.35)sprayP(0,g.x,.05,g.z,2,{c:0x3a3026,c2:0x14100c,sp:.6,up:.6,s:.04,s2:.1,a:.6,life:.6});if(snd&&st>.2&&rnd()<.25)snd.zap();}
           if(!B.onGround){flashP=Math.max(flashP,.7);B.onGround=true;}B.last=g;}else{B.glow.visible=false;B.last=null;B.onGround=false;}
-        /* damage + reactions along the beam */
-        const ex=S0.x+d.x*len,ey=S0.y+d.y*len,ez=S0.z+d.z*len,rb=(.32+.12*crit)*thick;
-        for(const e of enemies){if(e.dead)continue;const lt=B.hitCD.get(e)||-9;if(now-lt<.22)continue;const ey2=(e.y||0)+e.hitY*.5;if(segD(e.x,ey2,e.z,S0.x,S0.y,S0.z,ex,ey,ez)>rb+(e.boss?.3:0))continue;
-          B.hitCD.set(e,now);hurt(e,P*.9,'magic',oF);if(!e.dead)hurt(e,P*.9,'magic',oL);burst(e.x,ey2,e.z,0xe8f8ff,7);for(let i=0;i<4;i++)emit(1,{x:e.x+(rnd()-.5)*.2,y:ey2+(rnd()-.5)*.2,z:e.z+(rnd()-.5)*.2,vx:(rnd()-.5)*.8,vy:.4+rnd()*.8,vz:(rnd()-.5)*.8,s:.05,s2:0,c:rnd()<.5?0xffffff:0x7ad8ff,c2:0xff7020,life:.6});}
-        if(g)for(const tg of trees){if(burnt.has(tg))continue;tg.getWorldPosition(tmp);if(segD(tmp.x,.55,tmp.z,S0.x,S0.y,S0.z,ex,ey,ez)<.5)scorchTree(tg,now);}});
+        if(g){const ex=S0.x+d.x*len,ey=S0.y+d.y*len,ez=S0.z+d.z*len;for(const tg of trees){if(burnt.has(tg))continue;tg.getWorldPosition(tmp);if(segD(tmp.x,.55,tmp.z,S0.x,S0.y,S0.z,ex,ey,ez)<.5)scorchTree(tg,now);}}});
       if(flashP>0){flashA=Math.max(flashA,.16*flashP);flashCol='#bfe6ff';flashDecay=5;flashP=Math.max(0,flashP-dt*3);}
       if(snd)snd.set(Math.min(1,.15+.35*act+.25*fr+.3*crit),om);
     }else{
       /* ---- implosion: the star crushes inward, light and particles are pulled in, a beat of darkness, then the blast ---- */
-      const k=Math.min(1,(T-DUR)/IMP);
+      const k=Math.min(1,(T-DUR)/IMP);if(D.pull)bM.uniforms.uP.value=blasted?Math.max(0,1-(T-DUR-IMP)/2):k;
       if(!imploded){imploded=true;if(snd)snd.hush();beams.forEach(B=>{B.groups.forEach(G=>G.grp.visible=false);B.glow.visible=false;});fldM.opacity=0;
-        for(let i=0;i<140;i++){const a=rnd()*6.28,b=(rnd()-.5)*3,r=2.5+rnd()*3.5,px=S0.x+Math.cos(a)*Math.cos(b)*r,py=Math.max(.1,S0.y+Math.sin(b)*r),pz=S0.z+Math.sin(a)*Math.cos(b)*r;emit(1,{x:px,y:py,z:pz,vx:(S0.x-px)/IMP,vy:(S0.y-py)/IMP,vz:(S0.z-pz)/IMP,s:.06,s2:.01,c:0xcfeaff,c2:0x2a5aff,life:IMP});}}
+        for(let i=0;i<140;i++){const a=rnd()*6.28,b=(rnd()-.5)*3,r=2.5+rnd()*3.5,px=S0.x+Math.cos(a)*Math.cos(b)*r,py=Math.max(.1,S0.y+Math.sin(b)*r),pz=S0.z+Math.sin(a)*Math.cos(b)*r;emit(1,{x:px,y:py,z:pz,vx:(S0.x-px)/IMP,vy:(S0.y-py)/IMP,vz:(S0.z-pz)/IMP,s:.06,s2:.01,c:0xcfeaff,c2:0x2a5aff,life:IMP});}if(D.pull)psPull();if(lg)lg({ev:'imp',T,IMP});}
       if(!blasted){FXL.intensity=2.4*(1-k);wind.scale.setScalar(Math.max(.01,1.15*(1-k)*(1-k)));wArcs.forEach(w=>{w.m.rotation.z+=dt*w.sp*30;});star.scale.setScalar(.24*(1-k)*(1-k)+.002);gl1.scale.setScalar(3*(1-k)+.1);gl2.scale.setScalar(5*(1-k));corM.uniforms.uA.value=1-k;starM.uniforms.uHot.value=3;if(k>.6)darkTarget=Math.max(darkTarget,.55);}
       if(!blasted&&k>=1){blasted=true;darkTarget=0;spin.visible=cor.visible=gl1.visible=gl2.visible=wind.visible=false;if(snd)snd.blast();
         flashA=1;flashCol='#e8f6ff';flashHold=.08;flashDecay=2.2;camShake=Math.max(camShake,.85);FXL.intensity=6;FXL.distance=26;{let lt=0;addFx(new THREE.Group(),1.2,(f3,d3)=>{lt+=d3;FXL.intensity=6*Math.max(0,1-lt/1.1);},()=>{FXL.intensity=0;});}
-        const R0=6.5;for(const e of enemies){if(e.dead)continue;if(Math.hypot(e.x-S0.x,e.z-S0.z)>R0+(e.boss?1:0))continue;hurt(e,P*5,'magic',oF);if(!e.dead)hurt(e,P*5,'magic',oL);}
+        const R0=D.blastR,NV=D.nova,BH=lg?[]:null;for(const e of enemies){if(e.dead)continue;if(Math.hypot(e.x-S0.x,e.z-S0.z)>R0+(e.boss?1:0))continue;if(BH)BH.push(e);hurt(e,P*D.blast,'magic',oF);if(!e.dead)hurt(e,P*D.blast,'magic',oL);}if(lg)lg({ev:'blast',H:BH,R0,T});
         const sg=new THREE.SphereGeometry(1,28,18),bm=[0xffffff,0x7ad8ff,0x2a5aff].map(c=>new THREE.MeshBasicMaterial({color:c,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
         const shells=bm.map(m=>{const s=new THREE.Mesh(sg,m);s.position.copy(S0);scene.add(s);return s;});
         const rg=new THREE.RingGeometry(.92,1,96),rings=[0,1,2,3].map(i=>{const m=new THREE.MeshBasicMaterial({color:i%2?0x9fe0ff:0xffffff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});const r=new THREE.Mesh(rg,m);r.position.copy(S0);r.rotation.set(rnd()*3,rnd()*3,rnd()*3);if(i===0)r.rotation.set(-Math.PI/2,0,0);scene.add(r);return r;});
         let bt=0;addFx(new THREE.Group(),1.6,(f2,d2)=>{bt+=d2;const e1=1-Math.pow(1-Math.min(1,bt/.4),3);
-          shells[0].scale.setScalar(.3+3*e1);bm[0].opacity=Math.max(0,1-bt/.45);shells[1].scale.setScalar(.5+5.5*Math.min(1,bt/.6));bm[1].opacity=Math.max(0,.7-bt/.85);shells[2].scale.setScalar(.8+8*Math.min(1,bt/.9));bm[2].opacity=Math.max(0,.45-bt/1.3);
-          rings.forEach((r,i)=>{r.scale.setScalar(.5+(i?9:12)*Math.min(1,bt/(.7+i*.15)));r.material.opacity=Math.max(0,1-bt/(.9+i*.15));});},
+          shells[0].scale.setScalar((.3+3*e1)*NV);bm[0].opacity=Math.max(0,1-bt/.45);shells[1].scale.setScalar((.5+5.5*Math.min(1,bt/.6))*NV);bm[1].opacity=Math.max(0,.7-bt/.85);shells[2].scale.setScalar((.8+8*Math.min(1,bt/.9))*NV);bm[2].opacity=Math.max(0,.45-bt/1.3);
+          rings.forEach((r,i)=>{r.scale.setScalar((.5+(i?9:12)*Math.min(1,bt/(.7+i*.15)))*NV);r.material.opacity=Math.max(0,1-bt/(.9+i*.15));});},
           ()=>{shells.forEach(s=>scene.remove(s));rings.forEach(r=>{scene.remove(r);r.material.dispose();});bm.forEach(m=>m.dispose());sg.dispose();rg.dispose();});
-        shockwave(S0.x,S0.z,7.5,0x9fd8ff,.9,0x050a1a);if(typeof vfWave==='function'){vfWave(S0.x,S0.z,10,1.1,1.1,[[.75,.9,1],[.02,.04,.1],[1,1,1],[.3,.6,1]]);addFx(new THREE.Group(),.16,null,()=>vfWave(S0.x,S0.z,15,1.5,1.4,[[.5,.8,1],[.02,.03,.08],[.9,.97,1],[.2,.4,1]]));}
-        for(let i=0;i<220;i++){const a=rnd()*6.28,b=(rnd()-.5)*3.1,sp=5+rnd()*12;emit(1,{x:S0.x,y:S0.y,z:S0.z,vx:Math.cos(a)*Math.cos(b)*sp,vy:Math.sin(b)*sp,vz:Math.sin(a)*Math.cos(b)*sp,s:.06+rnd()*.07,s2:0,c:rnd()<.5?0xffffff:0x8adcff,c2:0x2a3aff,life:.5+rnd()*.6,drag:1});}
-        for(let i=0;i<40;i++){const a=rnd()*6.28,r=rnd()*6;const x=S0.x+Math.cos(a)*r,z=S0.z+Math.sin(a)*r;addBurn({x,z},{x:x+(rnd()-.5)*.8,z:z+(rnd()-.5)*.8},.3,now);}}
+        shockwave(S0.x,S0.z,7.5*(R0/6.5),0x9fd8ff,.9,0x050a1a);if(typeof vfWave==='function'){vfWave(S0.x,S0.z,10*(1+(NV-1)*.45),1.1,1.1,[[.75,.9,1],[.02,.04,.1],[1,1,1],[.3,.6,1]]);addFx(new THREE.Group(),.16,null,()=>vfWave(S0.x,S0.z,15*(1+(NV-1)*.45),1.5,1.4,[[.5,.8,1],[.02,.03,.08],[.9,.97,1],[.2,.4,1]]));}
+        for(let i=0;i<220;i++){const a=rnd()*6.28,b=(rnd()-.5)*3.1,sp=(5+rnd()*12)*NV;emit(1,{x:S0.x,y:S0.y,z:S0.z,vx:Math.cos(a)*Math.cos(b)*sp,vy:Math.sin(b)*sp,vz:Math.sin(a)*Math.cos(b)*sp,s:.06+rnd()*.07,s2:0,c:rnd()<.5?0xffffff:0x8adcff,c2:0x2a3aff,life:.5+rnd()*.6,drag:1});}
+        for(let i=0;i<40;i++){const a=rnd()*6.28,r=rnd()*6*NV;const x=S0.x+Math.cos(a)*r,z=S0.z+Math.sin(a)*r;addBurn({x,z},{x:x+(rnd()-.5)*.8,z:z+(rnd()-.5)*.8},.3,now);}}
     }
   },()=>{SG_ACTIVE.delete(cleanup);cleanup();},{mats,geos});
 }
@@ -14728,6 +14779,12 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Pulsar: the star spins up',d:'3 Nov',v:'v471',li:[
+    'Pulsar (Secret) has five new masteries, for now in developer mode. Still one neutron star over the road, its beam sweeping a ring of ground for 15s and burning it, then one stellar blast: each mastery makes a part the spell already has stronger and draws that part richer.',
+    'Hard Radiation: every beam hit strikes 95% fire + 95% light (90% + 90% before) and sears a little further off its path; the beams burn a fifth thicker, with a whiter core. Spin-Up: every phase of the star comes 10% sooner and it spins 5% faster, so its beams pass, and strike, 5% more often.',
+    'Both Poles: the second beam, which pointed at the sky, tips down and sweeps a second ring at 60% of the radius, half a turn behind: 20% fire + 20% light a hit. Scorched Ring: ground the beams burnt in the last 2s sears every foe standing on it, 15% fire every 0.5s; fresh embers glow hotter and longer.',
+    'Supernova: a longer implosion (0.6s) draws the burnt rings into the star, and the blast strikes 650% fire + 650% light out to 8.5 tiles (500% + 500% within 6.5 before).',
+    'A fix for every Pulsar cast: at high game speed or a low frame rate its beam swept a short cut across its ring and missed most of the foes on it. It now follows the ring at any speed.']},
   {t:'Constellation: a brighter sky, and it falls twice',d:'3 Nov',v:'v470',li:[
     'Constellation (Secret) has five new masteries, for now in developer mode. Still one figure of stars over the strongest foes, joined by lines of light, that falls as lances and burns its lines into the ground: each mastery makes a part of it stronger, and draws it a little richer.',
     'Brighter Stars: the stars burn a quarter larger and whiter, with longer flares, and fall as thicker lances: 1100% to the foe (1000% before) and 60% to the foes within 0.8 tiles of it (0.6 before). Each lands in a short column of light rising off the ground, inside a low wall of light, where a flat ring was. A Larger Figure: 8 stars (7 before), reaching foes within 10 tiles (9 before).',
@@ -34610,6 +34667,76 @@ function bcmOpts(c){const L=c.L,a=c.a,X={};
   X.log=BCM.dbg?bcmLog:null;bcmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
 const BCM_OLD=castBloodCurse;
 castBloodCurse=function(t,P,o,XO){const c=!XO?bcmC(o):null;return BCM_OLD(t,P,o,c?bcmOpts(c):XO);};
+/* ================= Pulsar's masteries (v471), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: a tiny, impossibly bright neutron star hangs over the road and spins itself into a frenzy; its beam sweeps a ring of ground like a
+   lighthouse for 15s, burning it, then the star implodes into one stellar blast. One star, a fixed sweeping ring (aimed beams belong to Basic
+   Beam and Soul Lantern), burnt ground, one blast. Simon, for every Mythic, Ancient and Secret scroll: "lets do the same way all the mythics
+   ancients and secrets where their identity is preserved but their visuals barely change and change only to better", and "new stuff CAN
+   appear ... but just nothing that over shines the spell". So each mastery strengthens one part the spell already has and draws it richer.
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Hard Radiation | what if the beam burned harder? | the beam | a stronger, wider hit |
+   | 2 | Spin-Up | what if the star spun up sooner and faster? | the spin | timing, more passes |
+   | 3 | Both Poles | what if the second pole's beam reached the ground? | the second beam | a second ring |
+   | 4 | Scorched Ring | what if the burnt ground stayed dangerous? | the burnt ground | a lingering hazard |
+   | 5 | Supernova | what if the collapse drew it all in and burst wider? | the implosion and blast | signature payoff |
+   - M1 Hard Radiation: every beam hit PSM.hit fire + PSM.hit light (90% + 90% before), searing PSM.rad tiles further off its path (round its
+     ground spot and along the beam). Its layers a fifth thicker, a wider, brighter white core (0.07 wide at 1.3; 0.045 at 1 before) and a
+     whiter inner layer (0xa6e8ff, 0x6fd8ff before).
+   - M2 Spin-Up: every phase's ramp PSM.ph times as soon (ignition 0-1.8s, active 1.8-4.5s, frenzy 4.5-9s, critical 9-12.6s; the convergence
+     still 14-15s) and the star spins PSM.spin times as fast. A beam may strike a foe again 0.22s / PSM.spin on, so the faster passes strike as
+     often: before, a faster star could not strike more, since at the top of the spin a pass comes every 0.17-0.2s and a foe can be struck only
+     every 0.22s (every other pass). The wind arcs whirl faster and the field loops brighten sooner, with the spin and the phases.
+   - M3 Both Poles: the second beam pointed at the sky and struck nothing (the card promised two beams); it tips down and sweeps its own ring at
+     PSM.b2 times the radius, half a turn behind the first: PSM.hit2 fire + PSM.hit2 light a hit. The same beam with its ground glow and burn;
+     its burn ribbon PSM.b2w times as wide and a quarter lighter, fading 2s sooner, and none in the convergence (where its spiral filled the
+     disc between the rings with soot). The burn pool is raised to PSM.BN quads (900): one beam already wraps 900 at the top of the spin.
+   - M4 Scorched Ring: every 0.25s each foe standing on ground the beams burnt in the last 2s (a quarter-tile cell whose centre lies within the
+     burn's half width of a burn stroke) takes PSM.sear fire, at most every 0.5s (not flyers; bosses: the cells round theirs too); embers kick
+     up round its feet. It runs while there is such ground, the blast's scorch too. Fresh burns glow a dull red, their embers brighter and longer.
+   - M5 Supernova: the implosion lasts PSM.IMP s (0.35s before): light streams up off both burnt rings into the star (three motes a stream),
+     and the rings' embers fade into it, coming back over 2s after the blast. The blast strikes PSM.blast fire + PSM.blast light within
+     PSM.blastR tiles (+1 bosses; 500% + 500% within 6.5 before); its shells and rings a third wider, its ground shockwave out to the new
+     reach, its screen waves 15% wider, its sparks and scorch a third further. cineLock 16.75s (16.5s).
+   Every cast (v471, Mastery 0 too): each frame's sweep is flown in steps of at most PSD.sub (0.02s) along the spin. One long frame used to
+   sweep a straight chord across the ring, inside it: at a 0.1s step (2x speed at 20 fps) a foe on the ring took 6-11 strikes where it takes
+   about 32 at 60 fps (26-28 at the ladder's 0.05s). Now it takes about 30 at any step. A frame of 0.02s or less is one step, as before. The hit
+   checks look only at foes inside the box round the star and the frame's ground spots (a sweep between two downward directions lands on
+   the straight line between their spots).
+   Percentages are of the scroll's power. Every mastered cast runs castPulsar with its XO (psmOpts); Mastery 0, echoes and other casters cast
+   exactly as before (but for the sweep's steps). Numbers trimmed from the approved table, which measured 1.186 / 1.402 / 1.72 / 1.797 /
+   1.895 before any factor (the second ring alone added two fifths on a pack): Hard Radiation 95% (100%) and 0.04 tiles (0.06); Spin-Up 10%
+   sooner (25%) and 5% faster (25%), its strikes following the spin (added); Both Poles 20% + 20% (45% + 45%); Supernova 650% + 650% (750%).
+   Ladder (Secret, half steps; pack .6 / one .4, 3 casts 24.5s apart), calibrated on fresh foes: every foe is put back before every cast (the
+   cooldown is 150s), and each cast's random placement, recorded at Mastery 0, is used again at every mastery. The star's ring always crosses
+   its target foe and the road, so the foes stand where it can cross them: the kit's pack (12 foes 0.3 tiles apart) and the same pack spread
+   0.9 apart along the road (a wave walking it); the factors are set from the mean of the two. 32 runs each, with the factors below:
+   pack 1.084 / 1.186 / 1.249 / 1.330 / 1.375, spread 1.074 / 1.153 / 1.228 / 1.304 / 1.356, mean 1.079 / 1.170 / 1.239 / 1.317 / 1.366;
+   the kit's standard ladder (foes reused, 12 runs) 1.088 / 1.188 / 1.214 / 1.303 / 1.344; targets 1.078 / 1.162 / 1.226 / 1.302 / 1.35.
+   PSM.dbg (an array) logs the events. */
+const PSM={dbg:null,hit:.95,rad:.04,ph:.9,spin:1.05,b2:.6,hit2:.2,b2w:.7,BN:1500,sear:.15,IMP:.6,blast:6.5,blastR:8.5,nova:4/3};
+const psmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='pulsar'&&c.L?c:null;};
+const psmLog=d=>{if(PSM.dbg){d.t=time;PSM.dbg.push(d);}};
+SM_D.pulsar=[
+  {n:'Hard Radiation',d:'Every beam hit strikes {95}% fire + {95}% light (90% + 90% before) and sears a little further off its path. The beams burn a fifth thicker, with a whiter core.'},
+  {n:'Spin-Up',d:'Every phase of the star comes 10% sooner and it spins 5% faster, so its beams pass, and strike, 5% more often.'},
+  {n:'Both Poles',d:'The second beam, which pointed at the sky, tips down and sweeps a second ring at 60% of the radius, half a turn behind: {20}% fire + {20}% light a hit.'},
+  {n:'Scorched Ring',d:'Ground the beams burnt in the last 2s sears every foe standing on it: {15}% fire every 0.5s. Fresh embers glow hotter and longer.'},
+  {n:'Supernova',d:'A longer implosion (0.6s) draws the burnt rings into the star, and the blast strikes {650}% fire + {650}% light out to 8.5 tiles (500% + 500% within 6.5 before).'}];
+SMF.pulsar={m:1};
+SMA.pulsar=[1,1,1,1,1];
+SMG.pulsar=[.988,.978,.962,.977,.965];
+/* this cast's numbers and looks (castPulsar's XO) */
+function psmOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.hit=PSD.hit+(PSM.hit-PSD.hit)*a[0];X.rad=PSM.rad;X.lw=1.2;X.core=1;}
+  if(L>=2){X.ph=PSM.ph;X.spin=PSM.spin;}
+  if(L>=3){X.b2=PSM.b2;X.hit2=PSM.hit2*a[2];X.b2w=PSM.b2w;X.BN=PSM.BN;}
+  if(L>=4){X.sear=PSM.sear*a[3];X.emb=1;}
+  if(L>=5){X.IMP=PSM.IMP;X.blast=PSD.blast+(PSM.blast-PSD.blast)*a[4];X.blastR=PSM.blastR;X.nova=PSM.nova;X.pull=1;}
+  if(PSM.dbg)X.log=psmLog;psmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
+const PSM_OLD=castPulsar;
+castPulsar=function(t,P,o,XO){const c=!XO?psmC(o):null;return PSM_OLD(t,P,o,c?psmOpts(c):XO);};
+/* the mastery preview casts again only once the star is gone (it lasts 23.35s, past its cineLock, and uses the one shared light FXL) */
+SMPV_BUSY.push(()=>PSR.n>0);
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
