@@ -14272,6 +14272,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Wormhole: a hungrier mouth, and the last crossing',d:'3 Nov',v:'v473',li:[
+    'Wormhole (Secret) has five new masteries, for now in developer mode. Still twin wormholes on one road, one just ahead of the enemy and one far back up it, tearing whatever walks into the first through the stars and out of the second: each mastery makes a part of it stronger, and draws it a little richer.',
+    'Hungry Mouth: the first wormhole yawns 30% wider and draws in every foe within 1.6 tiles of it, on any road (before, only foes walking into it on its own road). A foe from another road comes out on the far wormhole\u2019s road, and only if that sets it back. Held Open: the wormholes stay open 10.5s (9.2s before), so more foes walk in; their columns of light rise taller.',
+    'Torn Through the Stars: every foe that goes through takes 450% (400% before) and is thrown 16 tiles back (13 before); a comet of light runs across the stars with each, and a wall of light rises at the exit. No Weight Too Great: bosses go through too (before, they were only slowed), once a cast: each comes out 5 tiles back, still slowed 50% for 2s, where a small far wormhole flickers open. The mouth shudders.',
+    'The Last Crossing: as the wormholes close, the first swallows every foe within 2.4 tiles of it that has not gone through yet, in a rush of streaks across the stars, and throws it out of the far one; then both collapse for 350% within 2.4 tiles (300% within 1.6 before).']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -32060,7 +32065,47 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
 /* ================= Wormhole's masteries (v473), designed with the framework (MASTERY_DESIGN.md) ================= */
-/* (header: filled in after the ladder) */
+/* Identity: space folds into twin wormholes on one road, one just ahead of the enemy's front and one 13 tiles back; whatever walks into the
+   first is torn through the stars (400%) and thrown out of the second, until both collapse (300% round each). Simon, for every Mythic,
+   Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is preserved but their visuals
+   barely change and change only to better"; and "new stuff CAN appear, for example the abyss having 3rd leviathan or something but just
+   nothing that over shines the spell". So each mastery strengthens a part the wormholes already have and draws it a little richer; the one
+   new piece (a small far mouth where a boss comes out) is a wormhole too. Spatial Loop owns sending foes back over and over, turning them
+   round and marking them: here each foe goes through once a cast, walking on the way it faced, and nothing is marked.
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Hungry Mouth | what if the mouth reached for its prey? | the first mouth | reach (any road) |
+   | 2 | Held Open | what if space stayed folded longer? | how long it stays open | duration |
+   | 3 | Torn Through the Stars | what if the crossing tore harder? | the crossing | damage and setback |
+   | 4 | No Weight Too Great | what if nothing could resist it? | the boss rule | boss control |
+   | 5 | The Last Crossing | what if it swallowed all it could as it closed? | the collapse | signature payoff |
+   - M1 Hungry Mouth: the first mouth also draws in every foe whose way since the last frame came within WHM.catchR (1.6) tiles of it, on any
+     road (sub-stepped along its road, at most 0.15 tiles a step, so a long frame at a high game speed cannot carry a foe past its reach):
+     the crossing's strike, and out of the far mouth. A foe from another road comes out on the far mouth's road (its route, its place, its
+     block cleared), and only if that sets it back: never one whose own road has more of it left than the far mouth's, nor one on a road to
+     somewhere else. The mouth 30% wider, its swirl twice as thick and drawn from further out, motes drawn in from where each foe stood.
+   - M2 Held Open: open WHM.LIFE (10.5s, 9.2 before; the cast then lasts 10.9s); the Calm space setting covers it (11.8s, from the cast). The
+     columns of light half again as tall, as bright as before up to their old height and fading out above it, motes rising up them.
+   - M3 Torn Through the Stars: WHM.hit (450%, 400 before) a crossing, thrown WHM.back (16, 13 before) tiles back. A comet of light (a thin
+     core in a soft halo) runs the arc with each crossing, more stars on the arc, and a wall of light rises at each exit (the explosion rule).
+   - M4 No Weight Too Great: bosses go through too (once a cast, Resolve ignored as for every setback of this spell), coming out only
+     WHM.bossBack (5) tiles behind the first mouth and still slowed 50% for 2s (before, only slowed). The first mouth shudders, a small far
+     mouth flickers open where the boss comes out, and its comet runs a shorter, lower arc.
+   - M5 The Last Crossing: as the mouths close, the first swallows every foe within WHM.lastR (2.4) tiles of it that has not gone through,
+     with the same rules, and throws it out of the far one (no strike of its own: the far mouth's collapse strikes it); then both collapse
+     for WHM.col (350%, 300 before) within WHM.colR (2.4, 1.6 before). In its last half second the swirl pulls from all the way out to 2.4;
+     a rush of streaks fans across the stars (one for each foe swallowed, five more on arcs to either side); the collapse half again as
+     large (its shockwave 2.7, a wall of light racing out to 2.4 at each mouth), its flash a little larger (1.2, 1 before).
+   Numbers changed from the approved table, all for the ladder (built as approved: 1.04 / 1.22 / 1.66 / 1.66 / 2.21 against 1.078 / 1.162 /
+   1.226 / 1.302 / 1.35, factors down to 0.61): Held Open 10.5s (12 approved), Torn Through the Stars 450% (550), The Last Crossing's
+   collapse 350% (600), and its swallowed foes take no crossing strike (they take the far mouth's collapse). The rest as approved.
+   Percentages are of the scroll's power. Every mastered Wormhole cast runs castWormhole with its XO (whmOpts); Mastery 0, echoes and other
+   casters cast exactly as before. The standard ladder's foes stand still, so at Mastery 0 nothing walks in and its ratios mean nothing
+   (3.0 to 7.3). Wormhole's ladder is a walking one: foes walk the road into the first mouth at 1 tile/s and stand back where they started
+   before every cast (the cooldown is 95s); a column of 20, 0.72 tiles apart (a wave's spawn gap), and a lone foe, .6 / .4, 3 casts each, 3
+   times, the marsh off. With the factors below the damage measures 1.079 / 1.162 / 1.225 / 1.302 / 1.351 (1.082 / 1.117 / 1.207 / 1.283 /
+   1.413 with the marsh on). Its setback (road lost a foe, column / lone foe; Mastery 0: 5.84 / 12.94 tiles) measures 1.01 / 1.12 / 1.43 /
+   1.43 / 1.50 the same way; SMG is set on the damage alone, and the setback was weighed in the trims (see the README). WHM.dbg (an array)
+   logs the events. */
 const WHM={dbg:null,catchR:1.6,LIFE:10.5,hit:4.5,back:16,bossBack:5,col:3.5,colR:2.4,lastR:2.4};
 const whmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='wormhole'&&c.L?c:null;};
 const whmLog=d=>{if(WHM.dbg){d.t=time;WHM.dbg.push(d);}};
@@ -32072,7 +32117,7 @@ SM_D.wormhole=[
   {n:'The Last Crossing',d:'As the wormholes close, the first swallows every foe within 2.4 tiles of it that has not gone through yet and throws it out of the far one; then both collapse for {350}% within 2.4 tiles (300% within 1.6 before).'}];
 SMF.wormhole={m:1};
 SMA.wormhole=[1,1,1,1,1];
-SMG.wormhole=[1,1,1,1,1];
+SMG.wormhole=[1.038,1.029,.971,1.032,.939];
 /* this cast's numbers and looks (castWormhole's XO), cumulative: Mastery L has masteries 1..L; every mastered cast checks each foe's way
    since the last frame (sweep) */
 function whmOpts(c){const L=c.L,a=c.a,X={sweep:1};
@@ -32084,7 +32129,7 @@ function whmOpts(c){const L=c.L,a=c.a,X={sweep:1};
   X.log=WHM.dbg?whmLog:null;whmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
 const WHM_OLD=castWormhole;
 castWormhole=function(t,list,P,o,XO){const c=!XO?whmC(o):null;return WHM_OLD(t,list,P,o,c?whmOpts(c):XO);};
-/* (every Wormhole cast stays open past its cineLock, 9.6s, 12.4s from Held Open: the mastery preview waits for it) */
+/* (every Wormhole cast stays open past its cineLock (3s): 9.6s, 10.9s from Held Open; the mastery preview waits for it) */
 SMPV_BUSY.push(()=>fx.some(f=>f.whCast));
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
