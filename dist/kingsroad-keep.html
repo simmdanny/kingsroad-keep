@@ -2955,7 +2955,7 @@ function spawnEnemy(e,w){
   }
   en.wv=w;
   const swapM=m2=>{en.g.remove(en.b);en.g.add(m2.b);en.b=m2.b;en.limbs=m2.limbs;en.flame=m2.flame;en.variant=m2.variant;en.gemMesh=m2.gem;if(m2.wings)en.wings=m2.wings;};
-  if(!d.boss&&(forceGem||rnd()<.02)){en.gem=pick(GEM_COLS);en.spd*=1.15;en.maxHp*=1.2;en.lives*=1.1;en.spT=0;
+  if(!d.boss&&(forceGem||(!forceScroll&&rnd()<.02))){en.gem=pick(GEM_COLS);en.spd*=1.15;en.maxHp*=1.2;en.lives*=1.1;en.spT=0;
     const gi=specialIdx(e.type,'gem');if(gi>=0)swapM(e.type==='peasant'?peasantModel(6,en.gem):unitModel(e.type,gi,en.gem));else en.b.add(gemWeapon(e.type,en.gem));
     const gr=new THREE.Mesh(new THREE.RingGeometry(.22,.32,14),haloMat(en.gem));gr.rotation.x=-Math.PI/2;gr.position.y=.035;gr.scale.setScalar(sc);en.g.add(gr);en.gemRing=gr;}
   if((!d.boss||w>=100)&&!en.gem&&(forceScroll||rnd()<.00075)){en.scroll=true;en.spT=0;const sfB=!forceScrollR&&!bmActive()&&sfActive(),rr=forceScrollR?RB[forceScrollR]:(bmActive()||sfB?RB.unique:rollRarity());en.scrollR=rr.id;en.sfScroll=sfB;en.scrollCol=rr.hex;if(state==='playing'){scrollBearerAnn(rr);if(rr.i>=5)scrollBearerEvent(en,rr);}{const si=specialIdx(e.type,'scroll');if(si>=0){const m2=e.type==='peasant'?peasantModel(7,rr.hex):unitModel(e.type,si,rr.hex,rr.i);swapM(m2);if(e.type==='peasant'&&rr.i>=4){const pm=new THREE.Mesh(new THREE.CylinderGeometry(.03,.07,3.2,8,1,true),haloMat(rr.hex));pm.position.set(0,1.95,.12);m2.b.add(pm);}}else en.b.add(scrollProp(e.type,rr.hex,rr.i));}
