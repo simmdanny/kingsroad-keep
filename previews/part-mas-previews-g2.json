@@ -6,5 +6,62 @@
   "seed": 1,
   "bytes": 979829,
   "note": ""
+ },
+ "gaia-1": {
+  "k": "gaia",
+  "L": 1,
+  "len": 9.7,
+  "seed": 1,
+  "bytes": 1010128,
+  "note": "Each tree tears up harder and reaches further.",
+  "ev": {
+   "opts": 1,
+   "strike": 6,
+   "shed": 1,
+   "fin": 1
+  }
+ },
+ "gaia-4": {
+  "k": "gaia",
+  "L": 4,
+  "len": 9.7,
+  "seed": 1,
+  "bytes": 1077343,
+  "note": "The keep mends 3 lives; a green column rises at the keep.",
+  "ev": {
+   "opts": 1,
+   "strike": 6,
+   "shed": 1,
+   "fin": 1
+  }
+ },
+ "gaia-3": {
+  "k": "gaia",
+  "L": 3,
+  "len": 9.7,
+  "seed": 1,
+  "bytes": 1183402,
+  "note": "Foes behind the pack walk into the standing trees and are struck and pinned too.",
+  "ev": {
+   "opts": 1,
+   "strike": 8,
+   "stand": 1,
+   "shed": 1,
+   "fin": 1
+  }
+ },
+ "gaia-2": {
+  "k": "gaia",
+  "L": 2,
+  "len": 9.87,
+  "seed": 1,
+  "bytes": 1000570,
+  "note": "Foes a tree strikes are pinned longer, roots splaying from every trunk.",
+  "ev": {
+   "opts": 1,
+   "strike": 6,
+   "shed": 1,
+   "fin": 1
+  }
  }
 }
