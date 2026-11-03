@@ -14224,6 +14224,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'The Eldritch Tree: the world in bloom',d:'2 Nov',v:'v462',li:[
+    'The Eldritch Tree (Ancient) has five new masteries, for now in developer mode. Still one trunk older than the stars, roots bursting up under the thickest knots of foes, and one bloom over the whole field: each mastery makes a part the Tree already has stronger and draws that part richer.',
+    'Long Roots: each eruption reaches 1.65 tiles (1.35 before), with 8 root spikes (6 before) a fifth taller round a wider ring. Thirst: the roots drink 2% of each foe\u2019s max health (1% before; bosses 0.7%, 0.4% before); twice the motes of life fly to the trunk, and its sap veins flash as each draught reaches it.',
+    'Restless Roots: the roots burst every 0.45s (0.6s before), about 31 times instead of 24, and may strike the same foe again after 3s (4s before). They hold a foe only while its Resolve allows the whole hold, so they never make it Unstoppable and the bloom still holds it (before, the extra eruptions would have left every foe Unstoppable when the Tree bloomed). Swallowed: a foe (not a boss) the roots leave under 20% of its health is dragged under the earth as the spikes clench round it and sink.',
+    'The World in Bloom: the bloom strikes 1100% (900% before), and 3% more for every foe the roots drank from (up to 45% more); the veins glow brighter as the Tree drinks, and as it blooms a blazing surge of sap climbs the trunk. Twice the blossoms, now real five-petalled blossoms, and a thicker wave of pollen. Still 3 lives.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -32024,7 +32029,34 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
    | 3 | Restless Roots | what if they burst more often? | how often they burst | more eruptions |
    | 4 | Swallowed | what if the roots took what they had drunk dry? | the roots | an execute |
    | 5 | The World in Bloom | what if all they drank came back as the bloom? | the bloom | signature payoff |
-   (the table of numbers and the ladder follow when calibrated) */
+   - M1 Long Roots: each eruption strikes every foe within ETM.reach tiles of the knot it bursts under (1.35 before); 8 root spikes (6 before),
+     a fifth taller, set out wider round a wider ring.
+   - M2 Thirst: the roots drink ETM.drink of each foe's max health (1% before; bosses ETM.drinkB, 0.4% before). Twice the motes of life fly
+     to the trunk (12 a foe), and as each draught reaches it the sap veins flash and a bright bead of sap climbs them; the veins are drawn a
+     little bolder (0.06, 0.045 before) so the flashes read at the game's zoom.
+   - M3 Restless Roots: an eruption every ETM.gap s (0.6 before), about 31 instead of 24 when fresh foes are at hand, and a foe may be struck
+     again after ETM.lock s (4 before). One rule added: the roots hold a foe only while its Resolve can take the whole hold (spare). Built as
+     written, the extra eruptions spent every foe's Resolve, so the foes were Unstoppable when the bloom came and its hold did nothing (0.8s
+     at Mastery 0, 0 from Mastery 3, measured on 16 foes); now the roots never make a foe Unstoppable and the bloom holds every foe its full
+     1.5s, while the time held under the roots stays the same (about 4s a foe) and the player's other holds keep working on them.
+   - M4 Swallowed: a foe (not a boss) the roots leave under ETM.swallow of its health is dragged under: the eruption's spikes clench round it
+     (their own curl, closing) and sink, taking it down over 0.4s while it is held, its health bar hidden and towers passing it over (e.burrow);
+     under the earth it dies, with a puff of soil and its last life flying to the trunk.
+   - M5 The World in Bloom: the bloom strikes ETM.bloom (900% before) and ETM.bloomPer more for every foe the roots drank from this cast, up to
+     ETM.bloomMax more. The veins glow brighter as the Tree drinks (up to 1.8 times at 15 foes), and as it blooms a blazing surge of sap climbs
+     the trunk with sap motes streaming up it. Twice the blossoms (20 a root), each now a blossom of five cupped petals round a gold heart in the
+     old three pinks, all in one instanced draw (the old cast draws about 130 meshes); a thicker, taller wave of pollen. Still 3 lives.
+   Percentages are of the scroll's power, except the drink (a share of max health, as before not scaled by the mastery's factor). Every
+   mastered Eldritch Tree cast runs castFirstTree with its XO (etmOpts); Mastery 0, echoes and other casters cast exactly as before. A recast
+   while the Tree stands extends it, as before: the standing Tree keeps its own masteries. Wrath of Gaia's World Root still reads
+   ANC.live.firsttree. ETM.dbg (an array) logs the events.
+   Numbers: the approved design (a 1350% bloom) measured 1.525 at Mastery 5 against 1.35, which needs a factor of 0.872; so the bloom is
+   1100% (the 3% a foe, up to 45%, kept) and every other number is as approved. Long Roots (the lockout keeps each foe to one strike every
+   4s however far the roots reach) and Swallowed (an execute) count for nothing on the ladder (its foes stand still with huge health), so
+   their factors carry them. Ancient ladder (pack .6 / one .4, 3 casts 26s apart, 3 runs), the foes put back where they stood and at full
+   health before every cast (the cooldown in play is 150s, so every cast meets fresh foes): 1.078 / 1.162 / 1.226 / 1.302 / 1.35 against
+   1.078 / 1.162 / 1.226 / 1.302 / 1.35; the standard ladder reads the same (the Tree pushes and throws no foe, and the ladder's foes never
+   fall under 20%). */
 const ETM={dbg:null,reach:1.65,drink:.02,drinkB:.007,gap:.45,lock:3,swallow:.2,bloom:11,bloomPer:.03,bloomMax:.45};
 const etmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='firsttree'&&c.L?c:null;};
 const etmLog=d=>{if(ETM.dbg){d.t=time;ETM.dbg.push(d);}};
