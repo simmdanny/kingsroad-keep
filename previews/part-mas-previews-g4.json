@@ -188,5 +188,63 @@
    "cut": 73,
    "stare": 2
   }
+ },
+ "purgatory-2": {
+  "k": "purgatory",
+  "L": 2,
+  "len": 10.5,
+  "seed": 1,
+  "bytes": 2758305,
+  "note": "The last stage begins at 13s and cuts faster (the clip joins it there).",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cut": 169,
+   "stare": 4
+  }
+ },
+ "purgatory-3": {
+  "k": "purgatory",
+  "L": 3,
+  "len": 12,
+  "seed": 1,
+  "bytes": 2955113,
+  "note": "The six eyes stare: foes where they look are cut as if they stood close to the hero.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cut": 164,
+   "stare": 3
+  }
+ },
+ "purgatory-4": {
+  "k": "purgatory",
+  "L": 4,
+  "len": 7,
+  "seed": 1,
+  "bytes": 1796982,
+  "note": "Three foes are worn down: a cut that leaves them under 8% cuts them down.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cut": 98,
+   "stare": 3,
+   "exec": 3
+  }
+ },
+ "purgatory-5": {
+  "k": "purgatory",
+  "L": 5,
+  "len": 6.5,
+  "seed": 1,
+  "bytes": 1251349,
+  "note": "The silence holds, then every foe takes one last cut (the clip joins it there).",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cut": 167,
+   "stare": 4,
+   "last": 1
+  }
  }
 }
