@@ -5,6 +5,8 @@ if(typeof castNever!=='function')return [['Never-Never Land is not in this build
    refresh and a mid-cast reset, and its power next to the other ancients. Run on the dev page: __kk.ev(await (await fetch('/tests/never-test.js')).text())
    returns [name, ok, detail] rows. Puts the account back afterwards. */
 const out=[],ok=(n,c,d)=>out.push([n,!!c,d===undefined?'':String(d)]);const m0=JSON.stringify(meta),r0=lsGet(KR),K=NVR;
+/* (Abyssal Genesis is checked as the sea itself: no mastery, v459, whatever the dev account has earned; the account is put back afterwards) */
+meta.smast=meta.smast||{};delete meta.smast.abyss;
 const go=()=>{lsSet(KR,null);meta.arena='plains';state='menu';clearWorld();{const gv=MAP_GV;MAP_GV=5;try{buildMap(777);}finally{MAP_GV=gv;}}MAP.fresh=true;newGame(1);auto=0;lives=1e9;
   const q=heroTileNear(meta.equipped,innerWidth/2,innerHeight*.45);spawnHero(q.c,q.r);state='playing';paused=false;speed=0;window.__fz=true;worldSlow=1;slowT=0;};
 const foes=(n,o)=>{o=o||{};for(const e of enemies.slice())removeEnemy(e);enemies=[];const L=[];for(let i=0;i<n;i++){spawnEnemy({type:o.boss&&!i?'golem':(i%2?'knight':'soldier'),v:0},60);const e=enemies[enemies.length-1];

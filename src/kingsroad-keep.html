@@ -13758,11 +13758,11 @@ function ancView(){const c=ancGround(0,0),t=ancGround(0,.78),b=ancGround(0,-.72)
 function ancFree(x,z,rad){const R2=rad*rad;for(let r=Math.floor(z+OZ-rad);r<=Math.ceil(z+OZ+rad);r++)for(let c=Math.floor(x+OX-rad);c<=Math.ceil(x+OX+rad);c++){if(r<0||r>=H||c<0||c>=W||grid[r][c]!==1)continue;const p=tw(c,r);if((p.x-x)**2+(p.z-z)**2<R2+.25)return false;}
   return !towers.some(q=>q.x!=null&&(q.x-x)**2+(q.z-z)**2<R2+.5);}
 /* ---------- a particle pool (ring buffer, one draw call) ---------- */
-function ancPool(root,N,reg,regM,ro){const PP=new Float32Array(N*3),PV=new Float32Array(N*3),PC=new Float32Array(N*3),PA=new Float32Array(N),PS=new Float32Array(N),PL=new Float32Array(N),PM=new Float32Array(N),PD=new Float32Array(N),PG=new Float32Array(N);let head=0;const col=new THREE.Color();
+function ancPool(root,N,reg,regM,ro,fs){const PP=new Float32Array(N*3),PV=new Float32Array(N*3),PC=new Float32Array(N*3),PA=new Float32Array(N),PS=new Float32Array(N),PL=new Float32Array(N),PM=new Float32Array(N),PD=new Float32Array(N),PG=new Float32Array(N);let head=0;const col=new THREE.Color();
   const g=reg(new THREE.BufferGeometry()),pos=new Float32Array(N*3),pc=new Float32Array(N*4),ps=new Float32Array(N);g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('aC',new THREE.BufferAttribute(pc,4));g.setAttribute('aS',new THREE.BufferAttribute(ps,1));g.setDrawRange(0,0);
   const m=regM(new THREE.ShaderMaterial({uniforms:{uScale:{value:uScaleNow()}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
     vertexShader:'attribute vec4 aC;attribute float aS;uniform float uScale;varying vec4 vC;void main(){vC=aC;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=max(1.,aS*uScale/-mv.z);gl_Position=projectionMatrix*mv;}',
-    fragmentShader:'varying vec4 vC;void main(){vec2 d=gl_PointCoord-.5;float r=length(d)*2.;if(r>1.)discard;float k=1.-r;gl_FragColor=vec4(vC.rgb*(.4+k*k),vC.a*k);}'}));
+    fragmentShader:fs||'varying vec4 vC;void main(){vec2 d=gl_PointCoord-.5;float r=length(d)*2.;if(r>1.)discard;float k=1.-r;gl_FragColor=vec4(vC.rgb*(.4+k*k),vC.a*k);}'}));
   const pts=new THREE.Points(g,m);pts.frustumCulled=false;pts.renderOrder=ro||40;root.add(pts);
   return{sp(x,y,z,vx,vy,vz,c,a,s,life,drag,grav){const i=head;head=(head+1)%N;const j=i*3;PP[j]=x;PP[j+1]=y;PP[j+2]=z;PV[j]=vx;PV[j+1]=vy;PV[j+2]=vz;col.setHex(c);PC[j]=col.r;PC[j+1]=col.g;PC[j+2]=col.b;PA[i]=a;PS[i]=s;PL[i]=PM[i]=life;PD[i]=drag||0;PG[i]=grav||0;},
     step(dt){m.uniforms.uScale.value=uScaleNow();let n=0;for(let i=0;i<N;i++){if(PL[i]<=0)continue;PL[i]-=dt;if(PL[i]<=0)continue;const j=i*3;if(PD[i]){const f=Math.max(0,1-PD[i]*dt);PV[j]*=f;PV[j+1]*=f;PV[j+2]*=f;}PV[j+1]-=PG[i]*dt;
@@ -13777,21 +13777,32 @@ function ancRun(C,LIFE,frame,end,refreshT){let T=0,killed=false,done=false;const
   addFx(C.root,LIFE,(f,dtR)=>{if(killed){f.life=0;return;}f.life=Math.max(f.life,LIFE-T);const run=state==='playing'&&!paused,dt=run?dtR:0;T+=dt;try{frame(T,dt,dtR);}catch(e){console.error(e);}},()=>{SG_ACTIVE.delete(cleanup);finish();},{mats:C.mats,geos:C.geos});
   return live;}
 /* ================= ANCIENT: Abyssal Genesis, the sea that covered the world before the world began (ancient again since v302, with the anchor) ================= */
-function castAbyss(t,PW,o){
+/* v459: XO (optional, Abyssal Genesis's masteries): this sea's own numbers over ABYD (drown/drownB: the share of max health a foe/a boss
+   drowns every 0.5s; slow: how much slower the sea makes every foe; gap/bite/reach2: a lunge every gap s, biting bite x the power within
+   sqrt(reach2); blood/bloodT/bloodK: a bitten foe drowns bloodK times as fast for bloodT s; elder: the eldest leviathan rises at the first
+   lunge after elderT and takes every other lunge from then on, biting elderBite, then rides the backwash; wave/band: the backwash strikes
+   wave x the power within band of its crest) and its looks (surf: the height of the sea; deep: deeper light; cauK/rayK: caustics and light shafts; snow: marine snow; levS/spotS/
+   spray: the two leviathans' size, their spots, their spray; elderS: the eldest's size; crestR/foam: the crest and its foam; pool: particles;
+   fx: the masteries' own pieces, abmFx). log(d) receives the events for the tests. A recast while the sea is up only extends it: the first
+   cast's options rule. Without XO: exactly as before. */
+const ABYD={drown:.006,drownB:.002,slow:.6,surf:2.2,deep:0,cauK:1,rayK:1,snow:1,gap:2.6,bite:6,reach2:1.6,levS:1,spotS:1,spray:1,
+  blood:0,bloodT:4,bloodK:2,elder:0,elderT:12,elderBite:9,elderS:1.32,wave:10,crestR:1.3,band:1.1,foam:1,pool:1600,fx:null,log:null};
+function castAbyss(t,PW,o,XO){const D=XO?Object.assign({},ABYD,XO):ABYD,lg=D.log;
   if(ANC.live.abyss&&ANC.live.abyss.refresh()){toast('The first sea rises again','lvl');return;}
-  const C=ancBegin('abyss'),{root,reg,regM}=C,L=C.L;const RISE=4,END=20,LIFE=24,SURF=2.2,TAU=Math.PI*2;
+  const C=ancBegin('abyss'),{root,reg,regM}=C,L=C.L;const RISE=4,END=20,LIFE=24,SURF=D.surf,TAU=Math.PI*2;
   ancIntro('abyss','#8ff0ff');
   const zT=tw(0,0).z-.6,zB=tw(0,H-1).z+.6,BW=W+1.2,tmp=new THREE.Vector3(),tmp2=new THREE.Vector3();
   /* the camera is steep: the seabed life and the leviathans gather where the player is looking */
   const V=ancView(),VC=V.c,inV=(f,rad)=>{for(let k=0;k<30;k++){const q=f();if(Math.abs(q[0])<W/2-.5&&ancFree(q[0],q[1],rad))return q;}return null;};
   L.hc.setHex(0x6ac8e0);L.hg.setHex(0x0a2a34);L.sc.setHex(0x9fe4ff);L.bg.setHex(0x03222c);L.hemi=.42;L.sun=.3;
-  const pool=ancPool(root,1600,reg,regM,44);
+  if(D.deep){L.hc.setHex(0x3ab6d2);L.hg.setHex(0x053844);L.sc.setHex(0x74dcf2);L.bg.setHex(0x012430);L.hemi=.4;}
+  const pool=ancPool(root,D.pool,reg,regM,44);
   const alive=()=>enemies.filter(e=>!e.dead);
   /* ---- the surface of the sea above the field, its light on the seabed, shafts of light from above ---- */
   const CAU='float cz(vec2 p,float t){return abs(sin(p.x+sin(p.y*1.3+t*.7))*sin(p.y+sin(p.x*1.1-t*.6)));}';
-  const surfM=regM(new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:0}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
+  const surfM=regM(new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:0},uD:{value:D.deep}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
     vertexShader:'varying vec2 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xz;gl_Position=projectionMatrix*viewMatrix*w;}',
-    fragmentShader:'uniform float uT,uA;varying vec2 vW;'+CAU+'void main(){vec2 p=vW*.5;float k=cz(p,uT)+cz(p*2.3+3.,uT*1.3)*.5;float l=pow(1.-clamp(k,0.,1.),6.);vec3 c=mix(vec3(.02,.2,.28),vec3(.45,.95,1.),l);gl_FragColor=vec4(c,uA*(.16+l*.3));}'}));
+    fragmentShader:'uniform float uT,uA,uD;varying vec2 vW;'+CAU+'void main(){vec2 p=vW*.5;float k=cz(p,uT)+cz(p*2.3+3.,uT*1.3)*.5;float l=pow(1.-clamp(k,0.,1.),6.);vec3 c=mix(vec3(.02,.2,.28)*(1.-.3*uD),vec3(.45,.95,1.),l);gl_FragColor=vec4(c,uA*(.16+.07*uD+l*.3));}'}));
   const surf=new THREE.Mesh(reg(new THREE.PlaneGeometry(110,120)),surfM);surf.rotation.x=-Math.PI/2;surf.renderOrder=62;root.add(surf);
   const cauM=regM(new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
     vertexShader:'varying vec2 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xz;gl_Position=projectionMatrix*viewMatrix*w;}',
@@ -13866,54 +13877,69 @@ function castAbyss(t,PW,o){
   /* ---- the leviathans: older than the mountains, they hunt the roads ---- */
   const segG=reg(new THREE.IcosahedronGeometry(1,1)),spotG=reg(new THREE.IcosahedronGeometry(.11,0)),finG=reg(new THREE.ConeGeometry(.55,1.3,3));
   const glowM=regM(new THREE.MeshBasicMaterial({color:0x8ffcff}));const LEV=[];
-  function leviathan(ph,col,belly){const skin=regM(new THREE.MeshPhongMaterial({color:col,flatShading:true,shininess:40,emissive:0x021418,emissiveIntensity:.5})),bel=regM(new THREE.MeshPhongMaterial({color:belly,flatShading:true}));
-    const N=24,segs=[];for(let i=0;i<N;i++){const r=i<2?.62+i*.06:Math.max(.13,.74*(1-(i-2)/(N-2))+.14);const s=new THREE.Group();root.add(s);const b=new THREE.Mesh(segG,skin);b.scale.set(r,r*.8,r*1.25);b.castShadow=true;s.add(b);
+  /* the masteries' own pieces (bubble streams, the glow round the leviathans' eyes and spots, the eldest's scars, the rise, the crest's foam), built and freed with the sea */
+  const blood=D.blood?new Map():null,FX=D.fx?D.fx({root,reg,regM,pool,D,TAU,V,VC,LEV,blood,alive,BW}):null;
+  /* X (the eldest): s its size, glow its spots' material, old(s,i,r) its scars, half: only every other segment casts a shadow */
+  function leviathan(ph,col,belly,X){X=X||{};const SC=.58*(X.s||D.levS),gM=X.glow||glowM,SP=[];
+    const skin=regM(new THREE.MeshPhongMaterial({color:col,flatShading:true,shininess:40,emissive:0x021418,emissiveIntensity:.5})),bel=regM(new THREE.MeshPhongMaterial({color:belly,flatShading:true}));
+    const N=24,segs=[];for(let i=0;i<N;i++){const r=i<2?.62+i*.06:Math.max(.13,.74*(1-(i-2)/(N-2))+.14);const s=new THREE.Group();root.add(s);const b=new THREE.Mesh(segG,skin);b.scale.set(r,r*.8,r*1.25);b.castShadow=!X.half||i%2===0;s.add(b);
       const u=new THREE.Mesh(segG,bel);u.scale.set(r*.85,r*.45,r*1.1);u.position.y=-r*.32;s.add(u);
-      if(i>2&&i%2===1)for(const sd of[-1,1]){const d=new THREE.Mesh(spotG,glowM);d.position.set(sd*r*.88,r*.12,0);s.add(d);}
+      if(i>2&&i%2===1)for(const sd of[-1,1]){const d=new THREE.Mesh(spotG,gM);d.position.set(sd*r*.88,r*.12,0);if(D.spotS!==1)d.scale.setScalar(D.spotS);s.add(d);SP.push([s,d,0]);}
+      if(X.old)X.old(s,i,r);
       if(i===5||i===9||i===13){const f=new THREE.Mesh(finG,skin);f.scale.set(r*.5,r*1.1,r*.08);f.position.set(0,r*.95,0);f.rotation.x=-.5;s.add(f);}
       if(i===3)for(const sd of[-1,1]){const f=new THREE.Mesh(finG,skin);f.scale.set(r*1.2,r*1.4,r*.07);f.position.set(sd*r*1.3,-.1,-.1);f.rotation.set(-1.2,0,sd*1.2);s.add(f);}
-      s.scale.setScalar(.58);s.userData.r=r*.58;segs.push(s);}
-    const hd=segs[0];for(const sd of[-1,1]){const e=new THREE.Mesh(spotG,glowM);e.scale.setScalar(1.6);e.position.set(sd*.42,.25,.5);hd.add(e);const h=new THREE.Mesh(finG,regM(new THREE.MeshPhongMaterial({color:0xd8e8e0,flatShading:true})));h.scale.set(.12,.7,.12);h.position.set(sd*.3,.5,.1);h.rotation.x=-1.1;hd.add(h);}
+      s.scale.setScalar(SC);s.userData.r=r*SC;segs.push(s);}
+    const hd=segs[0];for(const sd of[-1,1]){const e=new THREE.Mesh(spotG,gM);e.scale.setScalar(1.6);e.position.set(sd*.42,.25,.5);hd.add(e);SP.push([hd,e,1]);const h=new THREE.Mesh(finG,regM(new THREE.MeshPhongMaterial({color:0xd8e8e0,flatShading:true})));h.scale.set(.12,.7,.12);h.position.set(sd*.3,.5,.1);h.rotation.x=-1.1;hd.add(h);}
     const jaw=new THREE.Mesh(segG,bel);jaw.scale.set(.5,.16,.66);jaw.position.set(0,-.36,.32);hd.add(jaw);
-    const lev={segs,ph,jaw,lunge:null,hit:new Set(),pos:new THREE.Vector3(0,-6,0)};segs.forEach((s,i)=>s.position.set(0,-6-i*.1,0));LEV.push(lev);return lev;}
+    const lev={segs,ph,jaw,lunge:null,hit:new Set(),pos:new THREE.Vector3(0,-6,0),SP,eld:!!X.eld};segs.forEach((s,i)=>s.position.set(0,-6-i*.1,0));LEV.push(lev);return lev;}
   leviathan(0,0x1e4a5e,0x9ad8d0);leviathan(2.4,0x2a3a6a,0xb0c8e8);
+  /* M5: the eldest, larger and older, waits unseen in the deep until halfway (then every other lunge is its, and it rides the backwash) */
+  const ELD=D.elder&&FX?leviathan(4.2,0x2b4548,0xaab6a6,FX.elder()):null;if(ELD){for(const q of ELD.segs)q.visible=false;if(lg)lg({ev:'elder',lev:ELD});}let eldTurn=1,rideX=0;
   const levTarget=(L2,T2)=>tmp.set(VC.x+Math.sin(T2*.21+L2.ph)*V.hw*.85,1.45+.3*Math.sin(T2*.7+L2.ph),VC.z+Math.sin(T2*.13+L2.ph*1.7)*V.hh*.8);
   function bez(a,b,c,d,s,out){const u=1-s;return out.set(a.x*u*u*u+3*b.x*u*u*s+3*c.x*u*s*s+d.x*s*s*s,a.y*u*u*u+3*b.y*u*u*s+3*c.y*u*s*s+d.y*s*s*s,a.z*u*u*u+3*b.z*u*u*s+3*c.z*u*s*s+d.z*s*s*s);}
   function startLunge(L2){const A=alive();if(!A.length)return false;const e=densest(A)||A[0];const tg=A.find(q=>q===e)||A.reduce((b,q)=>((q.x-e.x)**2+(q.z-e.z)**2<(b.x-e.x)**2+(b.z-e.z)**2?q:b));
     const rt=(tg.route||ROUTES[0]);const p0=posAt(Math.max(0,(tg.dist||0)-2.5),rt),p1=posAt((tg.dist||0)+3,rt);const dx=p1[0]-p0[0],dz=p1[1]-p0[1],l=Math.hypot(dx,dz)||1;
     L2.lunge={s:0,a:L2.pos.clone(),b:new THREE.Vector3(p0[0]-dx/l*3,1.2,p0[1]-dz/l*3),c:new THREE.Vector3(p0[0],.35,p0[1]),d:new THREE.Vector3(p1[0]+dx/l*4,1.7,p1[1]+dz/l*4)};L2.hit.clear();
+    if(L2.deep){L2.deep=0;const a=L2.lunge.a.set(p0[0]-dx/l*4.2,-3.2,p0[1]-dz/l*4.2);L2.pos.copy(a);L2.segs.forEach((s,i)=>{s.position.set(a.x-dx/l*i*.3,a.y-i*.12,a.z-dz/l*i*.3);s.visible=true;});}
+    if(lg)lg({ev:'lunge',i:LEV.indexOf(L2),eld:!!L2.eld});
     if(!C.told){C.told=1;}camShake=Math.max(camShake,.12*SPACE_K+.05);if(typeof sfxRumble==='function')sfxRumble(.9,.22);return true;}
   /* ---- the backwash: one titanic wave from the keep to the gates ---- */
   const crestM=regM(new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:0}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
     vertexShader:'varying vec2 vU;varying vec3 vN;void main(){vU=uv;vN=normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
     fragmentShader:'uniform float uA,uT;varying vec2 vU;void main(){float top=smoothstep(.35,.5,vU.x)*(1.-smoothstep(.5,.66,vU.x));float fo=.5+.5*sin(vU.y*80.+uT*9.);vec3 c=mix(vec3(.05,.42,.55),vec3(.85,1.,1.),top*(.6+.4*fo));gl_FragColor=vec4(c,uA*(.55+top*.4));}'}));
-  const crest=new THREE.Mesh(reg(new THREE.CylinderGeometry(1.3,1.3,BW+10,18,1,true,0,Math.PI)),crestM);crest.rotation.z=Math.PI/2;crest.rotation.y=0;crest.visible=false;crest.renderOrder=55;root.add(crest);
+  const crest=new THREE.Mesh(reg(new THREE.CylinderGeometry(D.crestR,D.crestR,BW+10,Math.max(18,Math.round(D.crestR*12)),1,true,0,Math.PI)),crestM);crest.rotation.z=Math.PI/2;crest.rotation.y=0;crest.visible=false;crest.renderOrder=55;root.add(crest);
   const waveHit=new Set();let waveZ=null;
   /* ---- the frame ---- */
   let drownT=0,lungeT=1.2,lungeI=0,seepT=0;
   return ancRun(C,LIFE,(T,dt,dtR)=>{const tt=time;
     const rise=SMS(T,.9,RISE),fall=SMS(T,END+.4,END+3),lvl=-.3+(SURF+.3)*rise-(SURF+.9)*fall,A=rise*(1-fall);
     L.k=SMS(T,.6,3.2)*(1-SMS(T,END+.8,END+3.4));darkTarget=Math.max(darkTarget,.25*L.k);vigTarget=Math.max(vigTarget,.4*L.k);
-    surf.position.set(0,lvl,(zT+zB)/2);surfM.uniforms.uT.value=tt;surfM.uniforms.uA.value=A;cauM.uniforms.uT.value=tt;cauM.uniforms.uA.value=A;rayM.uniforms.uT.value=tt;rayM.uniforms.uA.value=A;
+    surf.position.set(0,lvl,(zT+zB)/2);surfM.uniforms.uT.value=tt;surfM.uniforms.uA.value=A;cauM.uniforms.uT.value=tt;cauM.uniforms.uA.value=A*D.cauK;rayM.uniforms.uT.value=tt;rayM.uniforms.uA.value=A*D.rayK;
     for(const R of RAYS){R.m.position.y=lvl-3.4;R.m.rotation.z=Math.sin(tt*.3+R.ph)*.12;}
     for(const K of KELP){K.g.rotation.z=Math.sin(tt*1.1+K.ph)*.25*A;K.g.scale.set(1,Math.max(.001,A),1);}for(const g of SHELL)g.scale.setScalar(Math.max(.001,.7*A));
     MON.forEach((g,i)=>{g.position.y=-1.6+1.62*SMS(T,.3+i*.12,1.8+i*.12)-1.7*SMS(T,END+1,END+2.6);});
-    ANC.fs.abyss=1-.6*SMS(T,2.4,RISE)*(1-SMS(T,END,END+.5));
+    ANC.fs.abyss=1-D.slow*SMS(T,2.4,RISE)*(1-SMS(T,END,END+.5));
     /* the water seeps up through the ground, then marine snow and bubbles */
     if(T<RISE+.5){seepT-=dtR;while(seepT<=0){seepT=.012;pool.sp((rnd()-.5)*BW,.03,zT+rnd()*(zB-zT),(rnd()-.5)*.1,.3+rnd()*.6,(rnd()-.5)*.1,rnd()<.6?0x9ff4ff:0x3ab8d0,.8,.05+rnd()*.05,1+rnd(),.6);}}
-    if(A>.2)for(let i=0;i<3;i++)if(rnd()<dtR*30){const v=viewCenter();pool.sp(v.x+(rnd()-.5)*16,rnd()*lvl,v.z+(rnd()-.5)*22,(rnd()-.5)*.08,.05+rnd()*.12,(rnd()-.5)*.08,rnd()<.5?0xc8f8ff:0x7ad8e8,.55,.03+rnd()*.03,4+rnd()*3);}
+    if(A>.2)for(let i=0;i<3*D.snow;i++)if(rnd()<dtR*30){const v=viewCenter();pool.sp(v.x+(rnd()-.5)*16,rnd()*lvl,v.z+(rnd()-.5)*22,(rnd()-.5)*.08,.05+rnd()*.12,(rnd()-.5)*.08,rnd()<.5?0xc8f8ff:0x7ad8e8,.55,.03+rnd()*.03,4+rnd()*3);}
     /* the leviathans swim, and lunge along the roads */
-    if(T>RISE-.5&&T<END+.5){lungeT-=dt;if(lungeT<=0&&T<END-1){const L2=LEV[lungeI%2];if(!L2.lunge&&startLunge(L2)){lungeI++;lungeT=2.6;}else lungeT=.6;}}
-    for(const L2 of LEV){const sink=T<RISE-.6?1-SMS(T,1.5,RISE-.6):SMS(T,END+.3,END+2.4);let tg;
+    /* (M5: from halfway the eldest takes every other lunge, the first one bursting up out of the deep) */
+    if(T>RISE-.5&&T<END+.5){lungeT-=dt;if(lungeT<=0&&T<END-1){const eT=ELD&&eldTurn&&T>=D.elderT&&T<END-1.8&&!ELD.lunge,L2=eT?ELD:LEV[lungeI%2];if(eT&&!ELD.up)ELD.deep=1;
+        if(!L2.lunge&&startLunge(L2)){if(eT)eldTurn=0;else{lungeI++;eldTurn=1;}lungeT=D.gap;}else lungeT=.6;}}
+    for(const L2 of LEV){if(L2.eld&&!L2.up&&!L2.lunge)continue;const ride=L2.eld&&T>=END-1.4&&!L2.lunge;
+      const sink=L2.eld?(ride?0:SMS(T,END+.3,END+2.4)):T<RISE-.6?1-SMS(T,1.5,RISE-.6):SMS(T,END+.3,END+2.4);let tg;
       if(L2.lunge){const q=L2.lunge;q.s+=dt/1.5;if(q.s>=1){L2.lunge=null;tg=levTarget(L2,T);}else{tg=bez(q.a,q.b,q.c,q.d,q.s,tmp);
-          if(tg.y<1.1)for(const e of alive()){if(L2.hit.has(e))continue;if((e.x-tg.x)**2+(e.z-tg.z)**2<1.6){L2.hit.add(e);hurt(e,PW*6,'magic',o);if(!e.dead){pushE(e,e.boss?.3:.9);e.slow=Math.max(e.slow||0,.5);e.slowT=Math.max(e.slowT||0,1);}
-              for(let i=0;i<10;i++)pool.sp(e.x,e.y+.3,e.z,(rnd()-.5)*2.4,rnd()*2,(rnd()-.5)*2.4,rnd()<.6?0xffffff:0x7ff4ff,.9,.05+rnd()*.04,.6+rnd()*.4,2,1.5);}}
-          if(rnd()<dtR*40)pool.sp(tg.x+(rnd()-.5)*.6,tg.y,tg.z+(rnd()-.5)*.6,(rnd()-.5)*.5,.4+rnd()*.6,(rnd()-.5)*.5,0xdffcff,.8,.06+rnd()*.05,1+rnd(),1);}}
+          if(L2.eld&&!L2.up&&tg.y>-.35){L2.up=1;if(FX)FX.rise(tg.x,tg.z);if(lg)lg({ev:'rise',x:tg.x,z:tg.z});}
+          if(tg.y<1.1)for(const e of alive()){if(L2.hit.has(e))continue;const r2=(e.x-tg.x)**2+(e.z-tg.z)**2;if(r2<D.reach2){L2.hit.add(e);const bk=L2.eld?D.elderBite:D.bite;hurt(e,PW*bk,'magic',o);if(!e.dead){pushE(e,e.boss?.3:.9);e.slow=Math.max(e.slow||0,.5);e.slowT=Math.max(e.slowT||0,1);}
+              if(blood&&!e.dead){blood.set(e,T+D.bloodT);if(FX)FX.bite(e);}if(lg)lg({ev:'bite',e,eld:!!L2.eld,k:bk,i:LEV.indexOf(L2),r2});
+              for(let i=0;i<10*D.spray;i++)pool.sp(e.x,e.y+.3,e.z,(rnd()-.5)*2.4,rnd()*2,(rnd()-.5)*2.4,rnd()<.6?0xffffff:0x7ff4ff,.9,.05+rnd()*.04,.6+rnd()*.4,2,1.5);}}
+          for(let j=0;j<D.spray;j++)if(rnd()<dtR*40)pool.sp(tg.x+(rnd()-.5)*.6,tg.y,tg.z+(rnd()-.5)*.6,(rnd()-.5)*.5,.4+rnd()*.6,(rnd()-.5)*.5,0xdffcff,.8,.06+rnd()*.05,1+rnd(),1);}}
+      else if(ride){if(!L2.rx){L2.rx=1;rideX=clamp(VC.x+(L2.pos.x-VC.x)*.35,-W/2+2,W/2-2);}tg=FX.ride(L2,T,waveZ,crest.visible,rideX,zB,tmp);}
       else tg=levTarget(L2,T);
-      L2.pos.lerp(tmp2.copy(tg).setY(tg.y-6*sink),Math.min(1,dt*(L2.lunge?14:2.2)+(dt>0?0:0)));
+      L2.pos.lerp(tmp2.copy(tg).setY(tg.y-6*sink),Math.min(1,dt*(L2.lunge?14:ride?(waveZ!=null?16:3.2):2.2)+(dt>0?0:0)));
       const S=L2.segs;S[0].position.copy(L2.pos);for(let i=1;i<S.length;i++){const a=S[i-1].position,b=S[i].position,gap=(S[i-1].userData.r+S[i].userData.r)*.55;tmp.subVectors(b,a);const d=tmp.length()||1;b.copy(a).addScaledVector(tmp,gap/d);
         b.x+=Math.sin(tt*2.2-i*.45+L2.ph)*.012*i/S.length;}
-      if(T>END)for(const q of S){q.position.y-=SMS(T,END+.3,END+1.5)*dt*4;q.visible=T<END+3.2;}
+      if(T>END&&!L2.eld)for(const q of S){q.position.y-=SMS(T,END+.3,END+1.5)*dt*4;q.visible=T<END+3.2;}else if(L2.eld&&T>END+3.2)for(const q of S)q.visible=false;
       for(let i=0;i<S.length;i++){const s=S[i],nx=i?S[i-1].position:tmp2.copy(s.position).add(tmp.subVectors(S[0].position,S[1].position));s.lookAt(nx);}
       L2.jaw.rotation.x=L2.lunge?.4:.1+Math.sin(tt*1.3+L2.ph)*.08;}
     /* the anchor falls on its chain, bites into the earth, holds the hero, and is hauled back up at the end */
@@ -13941,15 +13967,16 @@ function castAbyss(t,PW,o){
     if(T>W0&&T<W1){const u=(T-W0)/(W1-W0);wG.visible=true;wG.position.set(VC.x+wDX*wSpan*(u*2-1)-wDZ*wOff,lvl-.22,VC.z+wDZ*wSpan*(u*2-1)+wDX*wOff);wG.rotation.y=wHead+Math.sin(tt*.7)*.05;whaleM.opacity=.45*A*SMS(T,W0,W0+1.5)*(1-SMS(T,W1-1.5,W1));
       if(!C.whale){C.whale=1;if(typeof sfxRumble==='function')sfxRumble(4,.26);}}else wG.visible=false;
     /* every foe slowly drowns */
-    if(T>RISE&&T<END){drownT-=dt;if(drownT<=0){drownT=.5;for(const e of alive()){hurt(e,e.maxHp*(e.boss?.002:.006),'magic',{src:o.src,dot:true});if(!e.dead&&rnd()<.6)pool.sp(e.x+(rnd()-.5)*.2,e.y+e.hitY*.8,e.z+(rnd()-.5)*.2,(rnd()-.5)*.05,.5+rnd()*.4,(rnd()-.5)*.05,0xdffcff,.85,.05+rnd()*.04,1.4,.3);}}}
+    if(T>RISE&&T<END){drownT-=dt;if(drownT<=0){drownT=.5;for(const e of alive()){const bl=blood&&blood.get(e)>T;hurt(e,e.maxHp*(e.boss?D.drownB:D.drown)*(bl?D.bloodK:1),'magic',{src:o.src,dot:true});if(lg)lg({ev:'drown',e,bl:!!bl});if(FX)continue;if(!e.dead&&rnd()<.6)pool.sp(e.x+(rnd()-.5)*.2,e.y+e.hitY*.8,e.z+(rnd()-.5)*.2,(rnd()-.5)*.05,.5+rnd()*.4,(rnd()-.5)*.05,0xdffcff,.85,.05+rnd()*.04,1.4,.3);}}}
     /* the backwash */
     if(T>=END&&waveZ==null){waveZ=zB+2.5;crest.visible=true;flashA=Math.max(flashA,.35*SPACE_K+.1);flashCol='#bff6ff';flashDecay=2.5;camShake=Math.max(camShake,.4*SPACE_K+.1);if(typeof sfxRumble==='function')sfxRumble(2,.4);}
     if(waveZ!=null&&crest.visible){waveZ-=dt*(zB-zT+5)/1.8;crest.position.set(0,-.35,waveZ);crestM.uniforms.uA.value=SMS(T,END,END+.25)*(1-SMS(T,END+1.6,END+2));crestM.uniforms.uT.value=tt;
-      for(let i=0;i<8;i++)pool.sp((rnd()-.5)*BW,.9+rnd()*.5,waveZ+(rnd()-.5)*.6,(rnd()-.5)*.6,.6+rnd()*.8,-2-rnd()*2,0xffffff,.85,.06+rnd()*.06,.7+rnd()*.4,1.2,2);
-      for(const e of alive()){if(waveHit.has(e))continue;if(Math.abs(e.z-waveZ)<1.1){waveHit.add(e);hurt(e,PW*10,'magic',o);if(!e.dead){pushE(e,e.boss?1:3);e.slow=Math.max(e.slow||0,.5);e.slowT=Math.max(e.slowT||0,1.2);moveEnemy(e,0);}}}
+      for(let i=0;i<8;i++)pool.sp((rnd()-.5)*BW,.9+(D.crestR-1.3)+rnd()*.5,waveZ+(rnd()-.5)*.6,(rnd()-.5)*.6,.6+rnd()*.8,-2-rnd()*2,0xffffff,.85,.06+rnd()*.06,.7+rnd()*.4,1.2,2);if(FX)FX.crest(waveZ,dt,dtR);
+      for(const e of alive()){if(waveHit.has(e))continue;if(Math.abs(e.z-waveZ)<D.band){waveHit.add(e);hurt(e,PW*D.wave,'magic',o);if(lg)lg({ev:'wave',e,k:D.wave});if(!e.dead){pushE(e,e.boss?1:3);e.slow=Math.max(e.slow||0,.5);e.slowT=Math.max(e.slowT||0,1.2);moveEnemy(e,0);}}}
       if(waveZ<zT-3)crest.visible=false;}
+    if(FX)FX.frame(T,dt,dtR,lvl,A);
     pool.step(dtR);
-  },()=>{delete ANC.fs.abyss;if(ANC.seat===SEAT)ANC.seat=null;},END);}
+  },()=>{delete ANC.fs.abyss;if(ANC.seat===SEAT)ANC.seat=null;if(blood)blood.clear();},END);}
 /* the seated hero: it stays on the anchor's stock (sitting, facing the field), keeps casting and cannot be moved until it jumps down */
 {const hu=heroUpdate;heroUpdate=function(dt){const S=ANC.seat,H=heroU,on=S&&H&&S.H===H&&H.g;if(on)H.dest=null;const r=hu.apply(this,arguments);
   if(on&&ANC.seat===S){const k=S.k,g0=gy(H.x,H.z),sy=S.y+(S.legs?-.058:.1);H.g.position.set(H.x,g0+(sy-g0)*k+(k>0&&k<1?Math.sin(Math.PI*k)*.9:0),H.z);H.sitA=Math.max(H.sitA||0,k);H.faceA=S.yaw;H.faceLock=Math.max(H.faceLock||0,.25);
@@ -14180,6 +14207,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Abyssal Genesis: the eldest wakes',d:'2 Nov',v:'v459',li:[
+    'Abyssal Genesis (Ancient) has five new masteries, for now in developer mode. Still the first sea, with the hero on its anchor: each mastery makes a part the sea already has stronger and draws that part a little richer.',
+    'Drowning Depths: foes drown 1.6% of their max health a second (1.2% before; bosses 0.5%, 0.4% before), and streams of bubbles rise off every foe through thicker marine snow. The Weight of the Sea: foes move 70% slower (60% before); the sea stands higher, its light a deeper teal, its caustics and shafts of light brighter.',
+    'Leviathan\u2019s Hunger: the leviathans lunge every 2.2s (2.6s before), 7 times instead of 6, biting 650% (600% before) and reaching 1.35 tiles (1.26). They grow 15% larger, their eyes and spots burning, with twice the spray. Blood in the Water: a foe a leviathan bites drowns 50% faster for 4s, and a heavy column of bubbles rises from it.',
+    'The Third Leviathan: halfway through, the eldest leviathan bursts up out of the seabed, larger and older, scarred and crusted with barnacles, its spots a pale glow. It joins the hunt, taking every other lunge and biting 900%, and at the end it rides the backwash up the field: the backwash strikes 1300% (1000% before), its crest standing twice as tall, foam pouring off it.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -31967,6 +31999,136 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
   dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
+/* ================= Abyssal Genesis's masteries (v459), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: the hero sits on the anchor of the first sea while it floods the battlefield, crushing and slowly drowning every foe as
+   leviathans hunt the roads; then one backwash throws the army back. There is exactly one sea and exactly one backwash. Simon, for every
+   Mythic, Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is preserved but their
+   visuals barely change and change only to better", and "new stuff CAN appear, for example the abyss having 3rd leviathan or something but
+   just nothing that over shines the spell". So each mastery strengthens one part the sea already has and draws that same part richer; the
+   only new piece is his own example, a third leviathan: the eldest of the spell's own leviathans, larger and older, not a new creature.
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Drowning Depths | what if the deep drowned them faster? | the drowning | stronger damage over time |
+   | 2 | The Weight of the Sea | what if the sea pressed heavier? | the sea's slow | stronger control |
+   | 3 | Leviathan's Hunger | what if the leviathans hunted harder? | the lunges | more, harder bites |
+   | 4 | Blood in the Water | what if a bite made the drowning worse? | the lunges and the drowning | an interaction |
+   | 5 | The Third Leviathan | what if the eldest woke? | the hunt and the backwash | signature payoff |
+   - M1 Drowning Depths: foes drown ABM.drown of their max health every 0.5s, 1.6% a second (1.2% before; bosses ABM.drownB, 0.5% a
+     second, 0.4% before). A stream of bubbles (real bubbles, with a bright rim and a glint, in their own pool) rises off every foe instead
+     of a bubble now and then, and the marine snow falls twice as thick.
+   - M2 The Weight of the Sea: foes move ABM.slow slower (60% before). The surface rises higher (ABM.surf tiles, 2.2 before; the seated
+     hero still rides above it), the light turns a deeper teal, the water over the field a little deeper, and the caustics (1.5x) and the
+     shafts of light (1.35x) burn brighter.
+   - M3 Leviathan's Hunger: a lunge every ABM.gap s (2.6 before): 7 lunges instead of 6, biting ABM.bite (600% before) within ABM.reach
+     tiles (1.26 before). Both leviathans 15% larger, their spots 30% larger, every eye and spot burning with a glow (one draw for all of
+     them), twice the spray.
+   - M4 Blood in the Water: a foe a leviathan bites drowns ABM.bloodK times as fast for ABM.bloodT s; a heavy column of bubbles spirals up
+     off it while it does, and a burst of bubbles flies out of it at the bite.
+   - M5 The Third Leviathan: at the first lunge after ABM.elderT s (halfway) the eldest bursts up out of the seabed beside its prey's road
+     (a column of great bubbles, silt and stones thrown up, a low cloud of silt, a deep rumble) and from then on takes every other lunge,
+     biting ABM.elderBite. It is larger (ABM.elderS times the first two at Mastery 0) and older: weathered grey, scarred with claw marks,
+     crusted with barnacles like the anchor (merged into one draw per segment), its spots a pale glow, a shadow from every other segment.
+     At the end it swims back to the keep and rides the backwash up the field on the crest's lip, then dives. The backwash strikes
+     ABM.wave (1000% before), its crest standing taller (radius 2.4, 1.3 before; its strike 1.4 either side, 1.1 before), foam pouring off
+     its lip and churning at its foot. Its push is unchanged (Resolve already caps it).
+   Percentages are of the scroll's power, except the drowning (a share of max health, as before not scaled by the mastery's factor). Every
+   mastered Abyssal Genesis cast runs castAbyss with its XO (abmOpts); Mastery 0, echoes and other casters cast exactly as before. A recast
+   while the sea is up extends it, as before: the running sea keeps its own masteries. ABM.dbg (an array) logs the events.
+   Numbers: the approved design (1.6% drowning; a lunge every 2s, 700%, reach 1.45; twice as fast for 4s; a third leviathan with its own
+   lunges at 900%; a 1500% backwash) measured 1.05 / 1.05 / 1.51 / 1.69 / 2.26 on the ladder against 1.078 / 1.162 / 1.226 / 1.302 / 1.35,
+   so every mechanic is kept and the numbers trimmed: a lunge every 2.2s at 650% within 1.35, 50% faster drowning for 4s, the eldest taking
+   every other lunge instead of adding its own, a 1300% backwash. The Weight of the Sea (a slow) counts for nothing on the ladder (its foes
+   stand still), so its factor carries it. On the Ancient ladder (pack .6 / one .4, 3 casts 27s apart, 2 runs) with the factors below:
+   1.078 / 1.162 / 1.226 / 1.302 / 1.349 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35. With the factor at Mastery 5 (0.945) the bites still
+   land 614%, the eldest's 851% and the backwash 1229%: nothing in a mastered sea hits weaker than at Mastery 0. */
+const ABM={dbg:null,drown:.008,drownB:.0025,slow:.7,surf:2.7,gap:2.2,bite:6.5,reach:1.35,bloodT:4,bloodK:1.5,elderT:12,elderBite:9,elderS:1.32,wave:13};
+const abmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='abyss'&&c.L?c:null;};
+const abmLog=d=>{if(ABM.dbg){d.t=time;ABM.dbg.push(d);}};
+SM_D.abyss=[
+  {n:'Drowning Depths',d:'Foes drown 1.6% of their max health a second (1.2% before; bosses 0.5%, 0.4% before). Streams of bubbles rise off every foe, and the marine snow falls thicker.'},
+  {n:'The Weight of the Sea',d:'Foes move 70% slower (60% before). The sea rises higher over the field, its light a deeper teal, its caustics and shafts of light brighter.'},
+  {n:'Leviathan\'s Hunger',d:'The leviathans lunge every 2.2s (2.6s before), 7 times instead of 6, biting {650}% (600% before) and reaching 1.35 tiles (1.26 before). They grow 15% larger, their eyes and spots burning brighter.'},
+  {n:'Blood in the Water',d:'A foe a leviathan bites drowns 50% faster for 4s, and a heavy column of bubbles rises from it.'},
+  {n:'The Third Leviathan',d:'Halfway through, the eldest leviathan, larger and scarred, bursts up out of the deep and joins the hunt, taking every other lunge and biting {900}%. At the end it rides the backwash, which strikes {1300}% (1000% before), its crest standing twice as tall.'}];
+SMF.abyss={m:1};
+SMA.abyss=[1,1,1,1,1];
+SMG.abyss=[1.03,1.132,1.018,1.01,.945];
+/* this sea's numbers and looks (castAbyss's XO), cumulative: Mastery L has masteries 1..L */
+function abmOpts(c){const L=c.L,a=c.a,X={fx:abmFx,pool:2200};
+  if(L>=1){X.drown=ABM.drown;X.drownB=ABM.drownB;X.snow=2;}
+  if(L>=2){X.slow=ABM.slow;X.surf=ABM.surf;X.deep=1;X.cauK=1.5;X.rayK=1.35;}
+  if(L>=3){X.gap=ABM.gap;X.bite=ABM.bite*a[2];X.reach2=ABM.reach*ABM.reach;X.levS=1.15;X.spotS=1.3;X.spray=2;}
+  if(L>=4){X.blood=1;X.bloodT=ABM.bloodT;X.bloodK=ABM.bloodK;}
+  if(L>=5){X.elder=1;X.elderT=ABM.elderT;X.elderBite=ABM.elderBite*a[4];X.elderS=ABM.elderS;X.wave=ABM.wave*a[4];X.crestR=2.4;X.band=1.4;X.foam=2;X.pool=3400;}
+  X.log=abmLog;abmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+/* bubbles: a thin bright rim, a faint body and a glint at the top left (in ancPool, additive) */
+const ABM_BUB='varying vec4 vC;void main(){vec2 d=gl_PointCoord-.5;float r=length(d)*2.;if(r>1.)discard;float rim=smoothstep(.62,.9,r)*(1.-smoothstep(.9,1.,r));vec2 h=d-vec2(-.16,-.18);float gl=exp(-dot(h,h)*110.);'+
+  'float k=.1+rim*1.05+gl*1.3;gl_FragColor=vec4(vC.rgb*k,vC.a*min(1.,k));}';
+/* a few shapes baked into one geometry (each [geometry, matrix]), so the eldest's scars and barnacles on a segment are one draw */
+function abmMerge(parts){let n=0;for(const[g]of parts)n+=g.attributes.position.count;const P=new Float32Array(n*3),N=new Float32Array(n*3);let at=0;
+  for(const[g,m]of parts){const q=g.clone().applyMatrix4(m);P.set(q.attributes.position.array,at*3);N.set(q.attributes.normal.array,at*3);at+=q.attributes.position.count;q.dispose();}
+  const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.BufferAttribute(P,3));G.setAttribute('normal',new THREE.BufferAttribute(N,3));return G;}
+/* the masteries' own pieces of the sea (castAbyss's fx): built in its root, freed with it. K: the root, reg/regM, the sea's particle pool,
+   its options D, the view's centre VC, the leviathans (LEV, filled after this is built), the bitten foes (blood: foe -> until when),
+   alive(), the board's width BW. */
+function abmFx(K){const{root,reg,regM,pool,D,TAU,VC,LEV,blood,alive,BW}=K,RISE=4,END=20,tmpV=new THREE.Vector3(),tmpW=new THREE.Vector3();
+  /* the bubbles: their own pool and shader, so they read as bubbles and do not crowd the sea's other particles */
+  const bub=ancPool(root,D.blood?3200:1800,reg,regM,46,ABM_BUB);
+  const bubble=(x,y,z,vx,vy,vz,s,lvl,acc,c)=>{const h=Math.max(.15,lvl-.08-y),life=(-vy+Math.sqrt(vy*vy+2*acc*h))/acc;bub.sp(x,y,z,vx,vy,vz,c||(rnd()<.65?0xe8fdff:0xa8f0ff),.85,s,Math.min(4,life),0,-acc);};
+  /* M3: the glow round the leviathans' eyes and spots (one draw for all of them) */
+  let halo=null;const HN=110;
+  if(D.spotS>1){const g=reg(new THREE.BufferGeometry()),pos=new Float32Array(HN*3),col=new Float32Array(HN*4),sz=new Float32Array(HN);
+    g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('aC',new THREE.BufferAttribute(col,4));g.setAttribute('aS',new THREE.BufferAttribute(sz,1));g.setDrawRange(0,0);
+    const m=regM(new THREE.ShaderMaterial({uniforms:{uScale:{value:uScaleNow()}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+      vertexShader:'attribute vec4 aC;attribute float aS;uniform float uScale;varying vec4 vC;void main(){vC=aC;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=max(1.,aS*uScale/-mv.z);gl_Position=projectionMatrix*mv;}',
+      fragmentShader:'varying vec4 vC;void main(){vec2 d=gl_PointCoord-.5;float r2=dot(d,d)*4.;if(r2>1.)discard;float k=exp(-r2*4.5)*(1.-r2);gl_FragColor=vec4(vC.rgb*(.6+.8*exp(-r2*18.)),vC.a*k);}'}));
+    const p=new THREE.Points(g,m);p.frustumCulled=false;p.renderOrder=57;root.add(p);halo={g,m,pos,col,sz};}
+  const cHalo=new THREE.Color(0x9ffcff),cPale=new THREE.Color(0xeafff4);let lit=false;
+  /* M5: the eldest's look: pale glowing spots, claw scars and barnacles (merged per segment), shadows from every other segment */
+  const paleM=D.elder?regM(new THREE.MeshBasicMaterial({color:0xeafff6})):null,oldM=D.elder?regM(new THREE.MeshPhongMaterial({color:0xc9cbb6,flatShading:true,shininess:20,emissive:0x101a16})):null;
+  const boxG=D.elder?reg(new THREE.BoxGeometry(1,1,1).toNonIndexed()):null,conG=D.elder?reg(new THREE.ConeGeometry(.5,1,5).toNonIndexed()):null;
+  const SCAR={4:1,6:1,7:1,10:1,13:1},BARN={1:7,2:6,5:5,9:4},Q=new THREE.Quaternion(),E=new THREE.Euler(),S3=new THREE.Vector3(),P3=new THREE.Vector3();
+  const mat=(px,py,pz,rx,ry,rz,sx,sy,sz)=>new THREE.Matrix4().compose(P3.set(px,py,pz),Q.setFromEuler(E.set(rx,ry,rz)),S3.set(sx,sy,sz));
+  let ride=null;
+  return{
+    elder(){return{s:D.elderS,glow:paleM,half:1,eld:1,old(s,i,r){const parts=[];
+      /* three parallel claw marks raked across its back */
+      if(SCAR[i]){const ry=(i%2?1:-1)*(.5+.13*(i%3)),z0=(i%3-1)*r*.2;for(let j=-1;j<=1;j++){const ln=r*(.62+.12*((i+j*2+3)%3)),tw=(j*.07+(i%2?.05:-.05));
+          parts.push([boxG,mat(Math.sin(ry)*j*r*.19+Math.cos(ry)*j*r*.05,r*.785-Math.abs(j)*r*.035,z0+Math.cos(ry)*j*r*.19,0,ry+tw,0,ln,r*.1,r*.055*(1-Math.abs(j)*.25))]);}}
+      /* barnacles crusting its head and neck, like the anchor's */
+      if(BARN[i])for(let j=0;j<BARN[i];j++){const a=(j/BARN[i]-.5)*1.5+(i%2)*.2,h=(.12+.06*((j*7+i)%3))*r/.6,z=(((j*5+i)%4)/3-.5)*r*1.1,f=Math.sqrt(Math.max(.2,1-(z/(1.25*r))**2));
+        parts.push([conG,mat(Math.sin(a)*r*f*.98,Math.cos(a)*r*.8*f*.98,z,0,0,-a,h*1.2,h,h*1.2)]);}
+      if(parts.length){const m=new THREE.Mesh(reg(abmMerge(parts)),oldM);s.add(m);}}};},
+    /* M5: the eldest bursts up out of the seabed: a column of great bubbles, silt and stones thrown up, a deep rumble */
+    rise(x,z){camShake=Math.max(camShake,.24*SPACE_K+.06);if(typeof sfxRumble==='function')sfxRumble(1.8,.34);if(typeof sfxBoom==='function')sfxBoom(.3,true);
+      const lvl=D.surf;for(let i=0;i<70;i++){const a=rnd()*TAU,r=rnd()*.7;bubble(x+Math.cos(a)*r,.05+rnd()*.4,z+Math.sin(a)*r,Math.cos(a)*.25,.6+rnd()*1.2,Math.sin(a)*.25,.07+rnd()*rnd()*.12,lvl,.9);}
+      for(let i=0;i<46;i++){const a=rnd()*TAU,r=.2+rnd()*.6,v=1.2+rnd()*2.2;pool.sp(x+Math.cos(a)*r,.08,z+Math.sin(a)*r,Math.cos(a)*v,1.4+rnd()*2.6,Math.sin(a)*v,rnd()<.6?0x8a7c66:0x9fb0a4,.75,.08+rnd()*.07,.8+rnd()*.5,1.1,4.5);}
+      for(let i=0;i<40;i++){const a=rnd()*TAU,v=1+rnd()*1.6;pool.sp(x+Math.cos(a)*.4,.1+rnd()*.25,z+Math.sin(a)*.4,Math.cos(a)*v,.15+rnd()*.5,Math.sin(a)*v,rnd()<.5?0x6a6252:0x587068,.45,.14+rnd()*.1,1.4+rnd()*.6,1.8,0);}
+      for(let i=0;i<24;i++){const a=rnd()*TAU;pool.sp(x,.3,z,Math.cos(a)*(.4+rnd()),1+rnd()*1.6,Math.sin(a)*(.4+rnd()),0xbff8ff,.8,.06+rnd()*.04,.9+rnd()*.5,1.4,.6);}},
+    /* M4: the bite sends a burst of bubbles out of the foe */
+    bite(e){const y=e.y+e.hitY*.5;for(let i=0;i<22;i++){const a=rnd()*TAU,v=.3+rnd()*.7;bubble(e.x,y,e.z,Math.cos(a)*v,.2+rnd()*.8,Math.sin(a)*v,.05+rnd()*rnd()*.1,D.surf,1);}},
+    /* M5: the eldest rides the backwash: first it swims back towards the keep, then it rides the crest's lip, then it dives */
+    ride(L2,T,waveZ,on,rideX,zB,out){ride=L2;if(waveZ==null)return out.set(rideX,.9,zB-1.2);
+      if(on)return out.set(rideX,D.crestR-.25,waveZ-D.crestR*.45-.95);ride=null;return out.set(L2.pos.x,-5,L2.pos.z-2);},
+    /* M5: foam pours off the taller crest's lip and churns at its foot */
+    crest(waveZ,dt,dtR){if(D.foam<=1)return;const R=D.crestR,top=R-.35;
+      for(let i=0;i<dtR*800*(D.foam-1);i++)pool.sp((rnd()-.5)*BW,top-.1+rnd()*.25,waveZ-R*.2+(rnd()-.5)*.5,(rnd()-.5)*.5,.4+rnd()*1.2,-3-rnd()*3,rnd()<.7?0xffffff:0xc8f8ff,.8,.05+rnd()*.07,.6+rnd()*.4,.8,3.2);
+      for(let i=0;i<dtR*400*(D.foam-1);i++)pool.sp((rnd()-.5)*BW,.08+rnd()*.3,waveZ-R*.92+(rnd()-.5)*.4,(rnd()-.5)*.8,.3+rnd()*.7,-1.5-rnd()*2,0xeafcff,.75,.06+rnd()*.07,.45+rnd()*.3,1.5,1.5);
+      if(ride){const h=ride.pos;for(let i=0;i<dtR*70;i++)pool.sp(h.x+(rnd()-.5)*.8,h.y+(rnd()-.2)*.4,h.z+(rnd()-.5)*.6,(rnd()-.5)*2,.8+rnd()*1.6,-1-rnd()*2.5,rnd()<.6?0xffffff:0x9ff4ff,.85,.06+rnd()*.06,.6+rnd()*.4,1,2.4);}},
+    frame(T,dt,dtR,lvl,A){
+      /* M1: a stream of bubbles off every drowning foe (fewer each when the field is crowded); M4: a heavy column off every bitten one */
+      if(T>RISE&&T<END&&dt>0){const L=alive(),n=L.length,r1=Math.min(12,800/Math.max(1,n));let nb=0;if(blood)for(const e of L)if(blood.get(e)>T)nb++;const r2=Math.min(34,1100/Math.max(1,nb));
+        for(const e of L){if(e.fake)continue;if(rnd()<dtR*r1)bubble(e.x+(rnd()-.5)*.16,e.y+e.hitY*(.6+rnd()*.3),e.z+(rnd()-.5)*.16,(rnd()-.5)*.08,.25+rnd()*.3,(rnd()-.5)*.08,.045+rnd()*rnd()*.07,lvl,.55);
+          if(nb&&blood.get(e)>T)for(let k=0;k<3;k++)if(rnd()<dtR*r2/3){const a=rnd()*TAU,rr=.1+rnd()*.16;bubble(e.x+Math.cos(a)*rr,e.y+.05+rnd()*e.hitY*.6,e.z+Math.sin(a)*rr,-Math.sin(a)*.14-Math.cos(a)*.03,.5+rnd()*.5,Math.cos(a)*.14-Math.sin(a)*.03,.06+rnd()*rnd()*.11,lvl,.85);}}}
+      /* M3: the glow round every eye and spot, pulsing; the eldest's pale */
+      if(halo){if(!lit){lit=true;for(const L2 of LEV)if(!L2.eld&&L2.SP[0])L2.SP[0][1].material.color.setHex(0xb4feff);}
+        const{pos,col,sz}=halo;let n=0;const tt=time;
+        for(const L2 of LEV){const sc=L2.segs[0].scale.x/.58;for(const[s,d,eye]of L2.SP){if(n>=HN||!s.visible)continue;s.updateMatrix();tmpV.copy(d.position).applyMatrix4(s.matrix);
+          tmpW.copy(tmpV).sub(s.position).setY(0).normalize().multiplyScalar((eye?.05:.09)*sc);tmpV.add(tmpW);tmpV.y+=(eye?.1:.06)*sc;
+          const k=SMS(tmpV.y,-.5,.15)*A*(.75+.25*Math.sin(tt*3+n*.7)),c=L2.eld?cPale:cHalo;pos[n*3]=tmpV.x;pos[n*3+1]=tmpV.y;pos[n*3+2]=tmpV.z;col[n*4]=c.r;col[n*4+1]=c.g;col[n*4+2]=c.b;col[n*4+3]=k*(eye?.9:.55);sz[n]=(eye?.62:.34)*sc;n++;}}
+        halo.m.uniforms.uScale.value=uScaleNow();halo.g.setDrawRange(0,n);halo.g.attributes.position.needsUpdate=true;halo.g.attributes.aC.needsUpdate=true;halo.g.attributes.aS.needsUpdate=true;}
+      bub.step(dtR);}};}
+const ABM_OLD=castAbyss;
+castAbyss=function(t,PW,o,X){const c=!X?abmC(o):null;return ABM_OLD(t,PW,o,c?abmOpts(c):X);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
