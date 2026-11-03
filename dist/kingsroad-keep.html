@@ -32023,14 +32023,14 @@ const IVM={dbg:null,enK:.88,enH:.022,enHB:.011,grK:.66,grR:.5,foc0:4.4,focN:.33,
 const ivmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='expanse'&&c.L?c:null;};
 const ivmLog=d=>{if(IVM.dbg){d.t=time;IVM.dbg.push(d);}};
 SM_D.expanse=[
-  {n:'Blinding Edge',d:'Every cut strikes harder: {90}% + 2.25% of its max health on a foe (81% + 2.03% before; bosses 1.12%, 1.01% before), and the ground cuts {66}% (60%) within half a tile (0.42). The strokes are a fifth wider, with whiter cores.'},
-  {n:'Ceaseless Cuts',d:'About 30% more cuts a second: the stream aimed at foes brings 5 a second and 0.4 more for each foe, up to 13 (4 and 0.3, up to 10, before).'},
+  {n:'Blinding Edge',d:'Every cut strikes harder: 88% + 2.2% of its max health on a foe (81% + 2.03% before; bosses 1.1%, 1.01% before), and the ground cuts 66% (60%) within half a tile (0.42). The strokes are a fifth wider, with whiter cores.'},
+  {n:'Ceaseless Cuts',d:'A tenth more cuts a second: the stream aimed at foes brings 4.4 a second and 0.33 more for each foe, up to 11 (4 and 0.3, up to 10, before).'},
   {n:'Denser Space',d:'Space grows denser still: every foe crawls at 15% of its speed (a fifth before), and the motes of dense space round them are thicker and brighter.'},
   {n:'Erasure',d:'A foe a cut leaves under 15% of its health is erased (not bosses): its cross of strokes doubles and it dissolves behind the same white-rimmed edge the world did.'},
-  {n:'Reality Returns',d:'In the last 3 seconds great screen-wide cuts come every 0.8s, and as reality returns one last cut strikes every foe for {300}%, bosses too. A longer pinch before the snap, a stronger ripple.'}];
+  {n:'Reality Returns',d:'In the last 3 seconds a great screen-wide cut comes every 0.8s, each bringing three cuts, and as reality returns one last cut strikes every foe for 300%, bosses too. A longer pinch before the snap, a stronger ripple.'}];
 SMF.expanse={m:1};
 SMA.expanse=[1,1,1,1,1];
-SMG.expanse=[1,1,1.04,1.1,.985];
+SMG.expanse=[1,1,1.04,1.105,.99];
 SMW.expanse={pack:.6,one:.4};
 /* this domain's numbers and looks (castExpanse's XO), cumulative: Mastery L has masteries 1..L */
 function ivmOpts(c){const L=c.L,a=c.a,X={},g=(SMG.expanse&&SMG.expanse[L-1])||1;   /* g: the max-health shares carry the mastery's factor too */
