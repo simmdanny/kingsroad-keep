@@ -14211,6 +14211,12 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Singularity: a heavier hole',d:'3 Nov',v:'v472',li:[
+    'Singularity (Secret) has five masteries, for now in developer mode. Still one black hole, one grip on every foe on the map, one drain and one collapse: each mastery makes a part of it stronger and draws that part richer.',
+    'Greater Mass: the hole takes hold at 3.2s (4s before), so every foe is pinned and drained for 8.3s (7.5s); it is drawn 15% larger, with a wider disk and a brighter ring of light. Tidal Drain: the drain takes 5.8% of a foe\u2019s max health a second (5% before), 3.5% of a boss\u2019s (3%), and twice as many gold sparks rise off the pinned.',
+    'Accretion: every foe that dies while pinned feeds the hole, and the drain grows 2.5% stronger for each, up to 45%; its disk burns hotter and brighter as it feeds. Torn Earth: a rock with glowing broken edges tears up from beneath every pinned foe once a second and strikes it as it rises, for 40%.',
+    'Last Light: the collapse strikes every foe on the map for 500%; the hole draws in a moment longer before it breaks, and its flare, rays and ground waves reach 30% further.',
+    'A fix: Singularity\u2019s card said foes are drained for 11.5 seconds. The pin and the drain last 7.5 seconds, and the card says so now.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -31999,7 +32005,50 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
 /* ================= Singularity's masteries (v472), designed with the framework (MASTERY_DESIGN.md) ================= */
-/* (header: filled in below) */
+/* Identity: the hero raises a hand and births a black hole above the field. Light dies, the ground tears upward, every foe on the map is
+   pinned and drained until the hole draws in and collapses in a blinding release. Simon, for every Mythic, Ancient and Secret scroll: "lets
+   do the same way all the mythics ancients and secrets where their identity is preserved but their visuals barely change and change only to
+   better", and "new stuff CAN appear ... but just nothing that over shines the spell". So there is still one hole, one grip, one drain and
+   one collapse: each mastery makes one part stronger and draws that same part richer (Simon approved the table). No pull to a point and
+   implosion (Voidfall's Gravity Well / Event Horizon, Spatial Compression's Implosion / Pressed Star): the collapse stays map-wide.
+   | # | Mastery | Strengthens | What changes | How it looks |
+   | 1 | Greater Mass | the grip | it takes hold at 3.2s (4s): pinned and drained 8.3s (7.5s) | the hole 15% larger, a wider disk, a brighter ring of light |
+   | 2 | Tidal Drain | the drain | 5.8% of max health a second (5%), bosses 3.5% (3%) | twice as many gold sparks off the pinned |
+   | 3 | Accretion | the disk | each foe that dies while pinned makes the drain 2.5% stronger, up to 45% | the disk heats and brightens with each |
+   | 4 | Torn Earth | the ground tearing up | a rock tears up from beneath each pinned foe every second and strikes it as it rises: 40% | rocks with glowing broken edges |
+   | 5 | Last Light | the collapse | the collapse strikes every foe on the map: 500% | a longer contraction (+0.15s); flare, rays and ground waves 30% larger |
+   - M1 Greater Mass: castSingularity's GRIP is SGM.grip (the pin and the drain begin then and end at the collapse, 11.5s, as before). The
+     hole's horizon radius is SGM.size larger (the shadow, the disk and the photon ring with it), its disk reaches SGM.rout horizon radii
+     (10.3 before) and the ring is SGM.ring brighter. Its frame cost is kept honest: the ray-traced lensing sphere (170 steps a pixel) keeps
+     the world size it had (14 horizon radii of the old hole: SGX.RB / SGM.size of the new), so the hole grows inside the same lensed halo;
+     replaying the shader's march, that costs 6.8% more steps (the larger hole inside), where a sphere grown with it would draw 32% more pixels.
+   - M2 Tidal Drain: the share of max health a second is SGM.mhp (SGM.mhpb for bosses); the gold sparks rising off each pinned foe come
+     SGM.spark a second (10 before).
+   - M3 Accretion: every foe pinned that dies, to the drain or to anything else, feeds the hole once: from the next frame the drain (both
+     its 300%/s and its share of max health) is 1 + SGM.acc x the foes fed, up to 1 + SGM.accMax. Each dying foe throws a stream of gold
+     into the hole (as the drained always did), and the disk burns hotter (the shader's uHeat raises its temperature) and brighter with
+     the share of the cap it has reached, with a pulse at each.
+   - M4 Torn Earth: every pinned foe (flyers too: the rock rises to it) has a rock torn up from beneath it every SGM.rockIv s (the first at
+     a random moment in the first second): it shakes loose for 0.12s, rises through the foe and strikes it (SGM.rock x100%) 0.16s later,
+     then falls into the hole with the rest of the debris. Strikes due after the collapse are dropped. The rocks are a pool of their own
+     (sgEdgeGeo / sgEdgeMat: some of their rims glow orange, hot as they tear up and cooling to plain rock within 1.7s), drawn in front of
+     the hole or lensed behind it like the others.
+   - M5 Last Light: at the collapse, every foe on the map is struck once (SGM.coll x100%) and throws off a burst of sparks; the hole draws
+     in SGM.con s longer first (its contraction from 11s, 11.15s before); the horizon-wide flare, the god rays, the shockwave and both
+     ground waves are SGM.collK larger. The collapse's full flash is the old one.
+   Percentages are of the scroll's power. Every mastered cast runs castSingularity with its XO (sgmOpts); Mastery 0, echoes and other casters
+   (the developer cast map) cast exactly as before. SGM.dbg (an array) logs the events. The mastery preview waits for the hole to close
+   (SMPV_BUSY: SGL.n, and SGM.busy): two at once would grade the scene's lights twice and leave them tinted.
+   A fix on the way: the scroll's card said the foes are drained for 11.5s; the pin and the drain last 7.5s (4s to 11.5s): it says so now.
+   Numbers, on the Secret ladder (pack .6 / one .4, 3 runs of 3 casts 17s apart), with foes that have REAL health and can die, put back
+   before every cast (in play the cooldown is 110s: every cast meets fresh foes; the drain takes a share of max health and Accretion needs
+   deaths, so the ladder's 1e9 keep foes cannot measure it): the pack is 8 light foes that die during the pin, spread over it as a bot game
+   to wave 60 shows (8-21 deaths a cast, through the whole pin), and 4 tough ones that live (8000-14000 at power 100); the lone foe has 9000.
+   With SMG.singularity = 0.968 / 0.949 / 0.949 / 1.02 / 0.97: 1.078 / 1.163 / 1.226 / 1.301 / 1.347 against 1.078 / 1.162 / 1.226 / 1.302 /
+   1.35. The standard ladder (keep foes, never dying; the same with them put back) reads 1.086 / 1.144 / 1.144 / 1.277 / 1.371: Accretion
+   counts for nothing there. Numbers trimmed from the approved table, which measured 1.089 / 1.234 / 1.251 / ... before its factors (factors
+   down to 0.85): Tidal Drain 5.8% / 3.5% (6.5% / 3.75% approved), Accretion 2.5% a foe (3%; the cap is 45% as approved). The approved fifth
+   name, Collapse, is Spatial Loop's: Last Light. Torn Earth's one rock a second is this build's (the table gave 40% a rock). */
 const SGM={dbg:null,grip:3.2,size:1.15,rout:10.8,ring:1.35,mhp:.058,mhpb:.035,spark:20,acc:.025,accMax:.45,rock:.4,rockIv:1,coll:5,con:.15,collK:1.3,busy:0};
 const sgmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='singularity'&&c.L?c:null;};
 const sgmLog=d=>{if(SGM.dbg){d.t=time;SGM.dbg.push(d);}};
