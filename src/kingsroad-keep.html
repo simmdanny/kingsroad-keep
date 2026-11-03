@@ -14219,10 +14219,10 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
   {t:'Curse of the Blood Moon: the price of blood',d:'3 Nov',v:'v469',li:[
-    'Curse of the Blood Moon (Secret) has five new masteries, for now in developer mode. Still the same ritual round the hero: an opening blast of fire and darkness, a vast spiked blood seal with a crest of blades overhead, crimson eruptions under the enemy escalating in four stages to one enormous final eruption, and the price: the hero’s greater magic sealed while it burns. Each mastery makes a part the curse already has stronger and draws that part richer; none adds eruptions, they only grow.',
-    'Wider Seal: the opening blast reaches 5 tiles (4.4 before) and strikes 650% fire and 650% dark (600% each); a wider dome and wave, the seal’s 24 blade spikes 15% longer. Hotter Blood: every eruption strikes 10% harder; its fire columns rise a tenth taller with hotter cores and the red lightning inside burns brighter.',
-    'Rising Fury: each stage of the escalation grows the eruptions 18% (12% before), so the last stage’s are half again as large; the seal’s rings spin faster and the crest’s star pulses harder each stage. Blood Price: each greater scroll the curse seals on the hero feeds it, every eruption 4% harder for each, up to 3; the crest’s blades lengthen and its star brightens for each.',
-    'The Great Eruption: the final eruption is half again as large and as hard (it reaches 4.9 tiles), and the blast after it strikes 1500% within 4.2 tiles (1000% within 2.8); the crest’s star plunges down a shaft of light into it as it bursts, over a wider web of cracks.']},
+    'Curse of the Blood Moon (Secret) has five new masteries, for now in developer mode. Still the same ritual round the hero: an opening blast of fire and darkness, a vast spiked blood seal with a crest of blades overhead, crimson eruptions under the enemy escalating in four stages to one enormous final eruption, and the price: the hero\u2019s greater magic sealed while it burns. Each mastery makes a part the curse already has stronger and draws that part richer; none adds eruptions, they only grow.',
+    'Wider Seal: the opening blast reaches 5 tiles (4.4 before) and strikes 650% fire and 650% dark (600% each); a wider dome and wave, the seal\u2019s 24 blade spikes 15% longer. Hotter Blood: every eruption strikes 10% harder; its fire columns rise a tenth taller with hotter cores and the red lightning inside burns brighter.',
+    'Rising Fury: each stage of the escalation grows the eruptions 18% (12% before), so the last stage\u2019s are half again as large; the seal\u2019s rings spin faster and the crest\u2019s star pulses harder each stage. Blood Price: each greater scroll the curse seals on the hero feeds it, every eruption 4% harder for each, up to 3; the crest\u2019s blades lengthen and its star brightens for each.',
+    'The Great Eruption: the final eruption is half again as large and as hard (it reaches 4.9 tiles), and the blast after it strikes 1500% within 4.2 tiles (1000% within 2.8); the crest\u2019s star plunges down a shaft of light into it as it bursts, over a wider web of cracks.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -32011,18 +32011,62 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
 /* ================= Curse of the Blood Moon's masteries (v469), designed with the framework (MASTERY_DESIGN.md) ================= */
-/* HEADER */
+/* Identity: the hero is the centre of a 13-second ritual. An opening blast of fire and darkness, a vast spiked blood seal with a crest of
+   blades round a red star overhead, crimson eruptions under the enemy escalating in four stages, one enormous final eruption, and the price:
+   the hero's own greater magic sealed while it burns. Simon, for every Mythic, Ancient and Secret scroll: "lets do the same way all the
+   mythics ancients and secrets where their identity is preserved but their visuals barely change and change only to better", and "new stuff
+   CAN appear ... but just nothing that over shines the spell". So each mastery strengthens one part the ritual already has and draws that
+   same part richer. About 160 eruptions a cast, each its own meshes and materials: the masteries make them larger, never more (no new
+   pattern, no domain: Crimson Purgatory, Eclipse and Pulsar keep theirs), and an eruption counts its shards, bolts and boom at the size it
+   would have without them.
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Wider Seal | what if the opening blast reached further? | the opening blast | reach and strike |
+   | 2 | Hotter Blood | what if the blood burned hotter? | the eruptions | strike |
+   | 3 | Rising Fury | what if the escalation climbed harder? | the four stages | scaling |
+   | 4 | Blood Price | what if the price fed the curse? | the seal on the hero's greater magic | a cost made to pay |
+   | 5 | The Great Eruption | what if the finale were greater still? | the final eruption | signature payoff |
+   - M1 Wider Seal: the opening blast reaches BCM.blR = 5 tiles (4.4) and strikes 650% fire + 650% dark (600% + 600%); its push back along
+     the road, 0.6 x (1 - d / 5), and its 0.5s hold reach as far (both direct, as before). Its dome, waves and rings are drawn 5/4.4 as wide,
+     the seal's 24 blade spikes 15% longer.
+   - M2 Hotter Blood: every eruption strikes 10% harder (its red lightning, 40% of it, too), the finale's as well. Its three fire columns rise
+     a tenth taller and burn hotter (uHot 0.15 / 0.9 / 1.45, 0 / 0.55 / 1 before: the cores towards white-gold); the red lightning inside is
+     drawn brighter (bmBolt's glow ribbon 1.35 and its core 1.175 times as wide, from the same three materials).
+   - M3 Rising Fury: each stage grows the eruptions BCM.esc = 18% (12%): the last stage's are 1.54 times their size (1.36), and strike with
+     it (damage and reach go with the size, as before). The seal's rings and swirls spin 1 + stage (1 + 0.6 x stage before) times their
+     speed, the crest's star pulses 0.15 + 0.1 x stage (0.15) and faster.
+   - M4 Blood Price: each greater scroll (Rare and up, cursedSeal's rule: not the Curse or the Needles) the curse seals on its caster when it
+     is cast feeds it: every eruption BCM.pr = 4% harder for each, up to 3 (12%). The crest's 20 blades lengthen 8% and its star grows and
+     brightens 10% for each. Calibrated at the middle of the price (1.5 sealed): with none Mastery 4 and 5 sit about 5% under their targets
+     (still above the mastery before), with three about 5% over.
+   - M5 The Great Eruption: the final eruption is half again as large (3.4 x 1.54 x 1.5 = 7.85: it reaches 4.9 tiles) and so half again as
+     hard; it is drawn only 1.12 times its stage's size (5.86, bmErupt's rk carries the reach) so it does not swallow the view. The blast after
+     it strikes 1500% within 4.2 tiles (1000% within 2.8), its rings 1.5 times as wide. As it is called the crest's star leaves the crest and
+     dives down a shaft of light (the crest's own star and shaft materials) into it, landing as it bursts; a wider web of cracks (2.1 tiles,
+     14 branches; 1.4 and 9).
+   Percentages are of the scroll's power. Every mastered Curse cast runs castBloodCurse with its XO (bcmOpts); Mastery 0, a cast that is not
+   a mastered scroll cast and other casters cast exactly as before. The blast's push and the eruptions' stagger mean nothing on the ladder
+   (its foes stand still), nor does Blood Price there (the ladder hero carries no scrolls).
+   Numbers changed from the approved table: Blood Price 4% a sealed scroll (8% approved; at 8% the gap between a hero with none sealed and
+   one with three, about 20%, was too wide to calibrate without one of them falling below Mastery 3). All else as approved.
+   Calibrated on fresh foes (pack .6 / one .4, the foes put back before every cast; in play the cooldown is 200s, so every cast meets fresh
+   foes). The eruptions land at random, so the factors (SMG.bloodcurse) come from one set of sampled casts worked out at every level: the
+   masteries never move an eruption or change a pattern, only its strike, its size and the finale, so each level's damage is the same
+   eruptions' (276 casts; it reproduces the cast's own damage to 0.01%). Raw power 1.008 / 1.091 / 1.248 / 1.248 (1.378 with three sealed) /
+   1.331 (1.468), with the factors below: 1.078 / 1.162 / 1.226 / 1.302 (1.5 sealed) / 1.35, against the same targets.
+   Measured directly on the fresh ladder (16 runs): 1.075 / 1.151 / 1.215 / 1.223 (1.377 with three sealed, 1.300 between) / 1.259 (1.398,
+   1.329). The standard ladder (the kit's, its foes reused, 4 runs, none sealed): 1.129 / 1.206 / 1.24 / 1.249 / 1.297.
+   BCM.dbg (an array) logs the events. */
 const BCM={dbg:null,blR:5,bl:6.5,hot:.1,esc:.18,pr:.04,prN:3,finK:1.5,finV:1.12,finB:15,finR:4.2};
 const bcmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='bloodcurse'&&c.L?c:null;};
 const bcmLog=d=>{if(BCM.dbg){d.t=time;BCM.dbg.push(d);}};
 /* the greater scrolls the curse seals on its caster (cursedSeal's rule: Rare and up, but not the Curse or the Needles), at most n */
 const bcmSealed=(t,n)=>t&&t.hero&&HB[t.hero]?Math.min(n,heroSpells(t.hero).filter(k=>k!=='bloodcurse'&&k!=='bloodneedles'&&SPELLS_S[k]&&RB[SPELLS_S[k].r].i>=2).length):0;
 SM_D.bloodcurse=[
-  {n:'Wider Seal',d:'The opening blast reaches 5 tiles (4.4 before) and strikes {650}% fire and {650}% dark (600% each before). A wider dome and wave; the seal’s 24 blade spikes are 15% longer.'},
+  {n:'Wider Seal',d:'The opening blast reaches 5 tiles (4.4 before) and strikes {650}% fire and {650}% dark (600% each before). A wider dome and wave; the seal\u2019s 24 blade spikes are 15% longer.'},
   {n:'Hotter Blood',d:'Every eruption strikes {10}% harder. Its fire columns rise a tenth taller with hotter cores, and the red lightning inside burns brighter.'},
-  {n:'Rising Fury',d:'Each stage of the escalation grows the eruptions 18% (12% before): the last stage’s are half again as large. The seal’s rings spin faster and the crest’s star pulses harder each stage.'},
-  {n:'Blood Price',d:'Each greater scroll the curse seals on the hero feeds it: every eruption strikes {4}% harder for each, up to 3. The crest’s blades lengthen and its star brightens for each.'},
-  {n:'The Great Eruption',d:'The final eruption is half again as large and half again as hard: the blast after it strikes {1500}% within 4.2 tiles (1000% within 2.8). The crest’s star plunges down its shaft into it; a wider web of cracks.'}];
+  {n:'Rising Fury',d:'Each stage of the escalation grows the eruptions 18% (12% before): the last stage\u2019s are half again as large. The seal\u2019s rings spin faster and the crest\u2019s star pulses harder each stage.'},
+  {n:'Blood Price',d:'Each greater scroll the curse seals on the hero feeds it: every eruption strikes {4}% harder for each, up to 3. The crest\u2019s blades lengthen and its star brightens for each.'},
+  {n:'The Great Eruption',d:'The final eruption is half again as large and half again as hard: the blast after it strikes {1500}% within 4.2 tiles (1000% within 2.8). The crest\u2019s star plunges down its shaft into it; a wider web of cracks.'}];
 SMF.bloodcurse={m:1};
 SMA.bloodcurse=[1,1,1,1,1];
 SMG.bloodcurse=[1.07,1.065,.982,.992,.965];
