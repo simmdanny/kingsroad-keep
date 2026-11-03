@@ -45,5 +45,69 @@
    "open": 1,
    "hit": 218
   }
+ },
+ "pulsar-5": {
+  "k": "pulsar",
+  "L": 5,
+  "len": 6.5,
+  "seed": 1,
+  "bytes": 1373442,
+  "note": "Supernova: the implosion draws the rings in, and the blast reaches 8.5 tiles (the clip joins it there).",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "hit": 258,
+   "sear": 50,
+   "imp": 1,
+   "blast": 1
+  }
+ },
+ "pulsar-4": {
+  "k": "pulsar",
+  "L": 4,
+  "len": 11.33,
+  "seed": 1,
+  "bytes": 2984187,
+  "note": "The pack walks on over the burnt ground: it sears them.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "hit": 162,
+   "sear": 21
+  }
+ },
+ "singularity-1": {
+  "k": "singularity",
+  "L": 1,
+  "len": 15.8,
+  "seed": 1,
+  "bytes": 3147364,
+  "note": "The hole takes hold sooner and holds longer, drawn larger.",
+  "ev": {
+   "cast": 1,
+   "grip": 1,
+   "end": 1
+  }
+ },
+ "singularity-0": {
+  "k": "singularity",
+  "L": 0,
+  "len": 16.13,
+  "seed": 1,
+  "bytes": 3134025,
+  "note": ""
+ },
+ "singularity-3": {
+  "k": "singularity",
+  "L": 3,
+  "len": 8.37,
+  "seed": 1,
+  "bytes": 1551779,
+  "note": "Three foes are low on health: each that dies while pinned feeds the hole.",
+  "ev": {
+   "cast": 1,
+   "grip": 1,
+   "feed": 3
+  }
  }
 }
