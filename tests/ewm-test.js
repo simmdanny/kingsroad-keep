@@ -105,8 +105,10 @@ try{
   /* ---- the rest ---- */
   {setL(5);const T=trial(0,{plain:true,visAt:[6.7,6.95]});
     ok('casts that are not a mastered scroll cast are the old cast (Mastery 5 on the account)',!EWM.dbg.length&&T.S.F.every(e=>T.hits(e,200).length===1&&T.hits(e,1200).length===1)&&near(T.H.get(T.S.B).hold,1.2)&&near(T.cine,5.8));}
-  {const c0=cineLock,v0=MY_FROST.visible;cineLock=0;MY_FROST.visible=true;const a=smPvBusy();MY_FROST.visible=false;const b=smPvBusy();MY_FROST.visible=v0;cineLock=c0;
-    ok('the mastery preview waits for the cast to end, its fade too (the floor is shared)',a&&!b,a+' '+b);}
+  /* only this scroll's own wait is checked: other scrolls' waits (another suite's last cast in the same page) may still be on */
+  {const c0=cineLock,v0=MY_FROST.visible;cineLock=0;MY_FROST.visible=true;const a=smPvBusy();
+    const own=SMPV_BUSY.filter(f=>{try{MY_FROST.visible=true;const x=!!f();MY_FROST.visible=false;const y=!!f();return x&&!y;}catch(e){return false;}});MY_FROST.visible=v0;cineLock=c0;
+    ok('the mastery preview waits for the cast to end, its fade too (the floor is shared)',a&&own.length===1,a+' '+own.length);}
   {const e0=errs;for(let L=1;L<=5;L++){const S=stage();S.F.forEach((e,i)=>{e.maxHp=e.hp=i%2?2000:300;});heroU.scd={};heroU.gcd=0;setL(L);meta.spells.eternalwinter=meta.spells.eternalwinter||{lvl:1,hero:null};fireScroll(heroU,'eternalwinter',heroStats(),S.F.slice());run(13);}setL(0);
     ok('the real cast path at every mastery (with deaths) runs without errors and tidies up',errs===e0&&!MY_FROST.visible,(errs-e0)+' errors');}
   ok('no console errors',errs===0,errs);
