@@ -11982,9 +11982,9 @@ function bmTowerTint(){const on=CURSE.st>0&&CURSE.cr>0;
    faster each stage spins the seal's rings; starP: how much harder each stage pulses the crest's star; seal: the greater scrolls the curse
    seals on the caster (counted by the masteries), each making every eruption pr harder, the crest's blades prL longer and its star prS
    brighter; finK: the final eruption's size (its reach and strike); finV: the size it is drawn at, over the stage's (0: as finK), so a
-   larger finale does not swallow the view; finB/finR: the blast after it (x the power) and its reach; plunge: the crest's star dives down a shaft of light into the final eruption; crK: its web of cracks wider and
-   denser; ex: the eruptions' looks (bmErupt's X: columns' height, hotter cores, brighter bolts). log(d) receives the events for the tests.
-   Without XO: exactly as before. */
+   larger finale does not swallow the view; finB/finR: the blast after it (x the power) and its reach; plunge: the crest's star dives down
+   a shaft of light into the final eruption; crK: its web of cracks wider and denser; ex: the eruptions' looks (bmErupt's X: columns'
+   height, hotter cores, brighter bolts). log(d) receives the events for the tests. Without XO: exactly as before. */
 const BCD={blR:4.4,blF:6,blD:6,blK:1,spk:1,eK:1,esc:.12,spinS:.6,starP:0,seal:0,pr:0,prL:0,prS:0,finK:1,finV:0,finB:10,finR:2.8,plunge:0,crK:1,ex:null,log:null};
 function castBloodCurse(t,P,o,XO){const D=XO?Object.assign({},BCD,XO):BCD,lg=D.log,eK=D.eK*(1+D.pr*D.seal),bladeK=1+D.prL*D.seal,starK=1+D.prS*D.seal;
   const oF=Object.assign({},o,{el:'fire'}),oD=Object.assign({},o,{el:'dark'});CURSE.on=true;cineLock=Math.max(cineLock,14);
@@ -32029,7 +32029,7 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
      the road, 0.6 x (1 - d / 5), and its 0.5s hold reach as far (both direct, as before). Its dome, waves and rings are drawn 5/4.4 as wide,
      the seal's 24 blade spikes 15% longer.
    - M2 Hotter Blood: every eruption strikes 10% harder (its red lightning, 40% of it, too), the finale's as well. Its three fire columns rise
-     a tenth taller and burn hotter (uHot 0.15 / 0.9 / 1.45, 0 / 0.55 / 1 before: the cores towards white-gold); the red lightning inside is
+     a tenth taller and burn hotter (uHot 0.15 / 0.9 / 1.45, 0 / 0.55 / 1 before: the cores towards a hot orange-white); the red lightning inside is
      drawn brighter (bmBolt's glow ribbon 1.35 and its core 1.175 times as wide, from the same three materials).
    - M3 Rising Fury: each stage grows the eruptions BCM.esc = 18% (12%): the last stage's are 1.54 times their size (1.36), and strike with
      it (damage and reach go with the size, as before). The seal's rings and swirls spin 1 + stage (1 + 0.6 x stage before) times their
