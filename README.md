@@ -2461,3 +2461,22 @@ Space folds into twin wormholes on one road, one just ahead of the enemy's front
   - No Weight Too Great: the boss through once (Unstoppable or not) to 5 tiles back, still slowed, not taken again when it walks back in; the mouth shudders and a small far mouth flickers where it lands.
   - The Last Crossing: the foes within 2.4 not yet sent swallowed and thrown with no strike; a foe sent before not taken again; 350% within 2.4 foe by foe, the swallowed among them; the rush of streaks and both walls; nothing left behind.
   - Echoes cast the old spell; the real `fireScroll` path at every mastery, with its factor in each crossing; the mastery preview waits for the cast.
+
+## Six elemental heroes (v474)
+Simon: "add more heros that have some sort of a specialization to a certain element, so a hero thats better with fire damage, another with nature, another with dark etc etc please so it would be 6 new heros please, price them similarily but no the same, based on their power but similar". A block before the boot line (search `Elemental specialists`) adds six 4-star spellcasters (`cl:'mage'`, they cast scrolls, 6 scroll slots), one for each element (`h.elem`):
+
+| Hero | Element | Price | Power | Talent | Aura |
+|---|---|---|---|---|---|
+| Sylvara Thornwood, Grove Druid | nature | 2,600 | x2.5 | thorn bolts root a foe (20% chance, 0.6s, Resolve applies) | nearby towers +10% range |
+| Isolde Rimeheart, Frost Sorceress | ice | 2,800 | x2.7 | bolts chill 30% slower for 1.5s | Frost Spires slow 10% more, towers +8% damage |
+| Ignatia Emberveil, Pyromancer | fire | 3,000 | x2.9 | bolts set foes burning (25% of the hit a second for 2.5s) | Cannons and Wizard Towers +15% damage |
+| Corvin Ashveil, Shadowcaller | dark | 3,100 | x3.0 | bolts wither (30% a second for 3s) | foes inside +8% damage taken, towers +6% damage |
+| Vesper Stormborn, Storm Mage | lightning | 3,200 | x3.1 | bolts chain to 2 more foes (keeping 85% a jump) | Wizard Towers +1 chain jump and +10% attack speed |
+| Seraphine Dawnveil, Lightbringer | light | 3,400 | x3.3 | every 6th bolt flares: 100% within 0.9 | towers +10% attack speed and +8% damage |
+
+- **Pricing:** between Elowen (2,500, x2.4) and Thaddeus (3,500, x3.8), rising with power and all different, as Simon asked.
+- **Element Mastery:** scrolls of their own element deal +30% and recharge 10% faster. It lives in `tsd`/`tsc` (the scroll damage and recharge factors, beside Aevorian's Temporal Sovereignty), so the cooldown bar follows (`ehMastery`).
+- **Their attack:** a `heroFire` wrapper gives them `ehFire`: the mage's bolt and chain, but an orb of their element (`PJ.eh_<element>`: a glowing core, a halo and a tail, shared meshes) that hits as that element (`o.el`, so element reactions fire), a small 3D burst where it lands (`cfmBoom` in the fire, ice or void palette for fire, ice and dark; leaves for nature; sparks for lightning and light) and the touch of their element above. A rooted foe gets a ring of thorny vines (`ehRoot`). The light flare is a pale 3D blast.
+- **Their looks:** `heroModel` hands its helpers to `ehModel` for them: Ignatia in red and char with a crown of flame, a burning hem and a flame-tipped staff; Isolde in white and ice blue with a crown and shoulders of ice crystals and a crystal staff; Vesper a white-bearded storm mage in a tall navy hat with lightning stitched on his robe and a forked staff; Sylvara in moss green with antlers, leaves and a staff wound in vines; Corvin in a deep horned hood with violet eyes and a skull staff; Seraphine in ivory and gold with a halo, small wings of light and a sun-disc staff. Each has motes of their element floating round them. Their cards carry a coloured element chip (`ehChip`) and border, and `heroCol` gives their element's colour.
+- **Patch notes:** a "Six elemental heroes" section at the top of `NOTES_HTML`; `NOTES_V` is left as it is for whoever publishes the update.
+- Tests: `tests/ehr-test.js` (25, in run-all as 'ehr'): six heroes, one per element; 4-star spellcasters with 6 slots; priced by power, all different, between Elowen and Thaddeus; aura, talent, thumbnail and a model of their own; the chip and colour; other heroes unchanged; Element Mastery +30% and 10% faster on their element only (and Ignatia's Catch Flame's cooldown); each shoots an orb of its element that hits as it; burning, chill, two extra chain jumps, wither, roots about one bolt in five, a flare every 6th light bolt; Elowen still shoots her violet bolt; each fights in the real loop without errors.
