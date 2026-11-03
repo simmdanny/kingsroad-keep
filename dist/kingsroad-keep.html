@@ -32016,10 +32016,12 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
      CIM.finPush tiles back (0.55; not bosses). The pillars rise into a brighter column of light (x1.5). Still one fracture.
    Percentages are of the scroll's power. Every mastered Citadel cast runs castCitadel with its XO (cimOpts); Mastery 0, echoes and other
    casters cast exactly as before. Time Crawls (a slow) and Edict (targeting and throws) count for nothing on the ladder (its foes stand still
-   with huge health), so their factors carry them; Edict even measures below Mastery 3 there, as a lone foe it holds at the domain's edge is
-   thrown out of it by the fracture and never walks back for the next cast. On the Ancient ladder (pack .6 / one .4, 3 casts 20 s apart,
-   4 runs) with the factors below: 1.077 / 1.15 / 1.233 / 1.305 / 1.354 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35 (1.055 / 1.211 /
-   1.203 / 1.09 / 1.192 without them). CIM.dbg (an array) logs the events. */
+   with huge health), so their factors carry them. Calibrated with the foes put back where they stood before every cast (pack .6 / one .4,
+   3 casts 20 s apart, 3 runs): in play the cooldown is 150 s, so every cast meets fresh foes. The standard ladder casts again at foes that
+   never walk, and its lone foe is skewed by the throws: the Edict holds it at the domain's edge, the fracture throws it out, and it is not
+   there for the next cast (while a wider domain keeps a foe the old cast would lose). With the factors below: put back 1.076 / 1.164 /
+   1.232 / 1.299 / 1.353, the standard ladder (4 runs) 1.145 / 1.227 / 1.292 / 1.25 / 1.277, against 1.078 / 1.162 / 1.226 / 1.302 / 1.35.
+   CIM.dbg (an array) logs the events. */
 const CIM={dbg:null,R:6,cut:2.4,wake:1.2,crawl:.4,crawlEnd:.05,actSl:4,push:.6,fin:12,fin2:6,finL:2.2,finPush:1};
 const cimC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='citadel'&&c.L?c:null;};
 const cimLog=d=>{if(CIM.dbg){d.t=time;CIM.dbg.push(d);}};
@@ -32031,7 +32033,7 @@ SM_D.citadel=[
   {n:'The Final Order',d:'The final fracture strikes {1200}% near its main crack and {600}% elsewhere (800% and 400% before), tears further across the domain and throws foes 1 tile back (0.55 before).'}];
 SMF.citadel={m:1};
 SMA.citadel=[1,1,1,1,1];
-SMG.citadel=[1.022,.96,1.019,1.195,1.133];
+SMG.citadel=[1.081,1.029,1.085,1.152,1.077];
 /* Keener Orders: the cut's seam, shown (the base cast makes it with every cut and never shows it), with a white-hot core and a cold glow
    round it (the old shader, CIT_STRIP_FS, is a thin pale line) */
 const CIM_STRIP_FS='varying vec2 vUv;uniform float uA;void main(){float tp=sin(3.14159*vUv.x);float d=abs(vUv.y-.5)*2.;float core=smoothstep(tp*.16+.012,0.,d),hot=smoothstep(tp*.07+.006,0.,d),glow=exp(-d*d*5.)*tp*tp*.3;float a=(core*.85+hot*.6+glow)*uA;if(a<.003)discard;gl_FragColor=vec4(mix(vec3(.58,.86,1.),vec3(1.),clamp(hot+core*.45,0.,1.)),min(1.,a));}';
