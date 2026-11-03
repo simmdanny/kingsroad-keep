@@ -3189,6 +3189,45 @@
     "shatter": 6,
     "shard": 6
    }
+  },
+  "eternalwinter-4": {
+   "k": "eternalwinter",
+   "L": 4,
+   "len": 9.3,
+   "seed": 1,
+   "bytes": 1418467,
+   "note": "The boss (an Ogre) stays frozen until the wave reaches it.",
+   "ev": {
+    "cast": 1,
+    "frost": 6,
+    "aim": 1,
+    "shatter": 6,
+    "shard": 6
+   }
+  },
+  "eternalwinter-5": {
+   "k": "eternalwinter",
+   "L": 5,
+   "len": 9.83,
+   "seed": 1,
+   "bytes": 1506552,
+   "note": "The shatter wave strikes 1500%: the ice sheet bursts up as it breaks.",
+   "ev": {
+    "cast": 1,
+    "frost": 6,
+    "aim": 1,
+    "plates": 1,
+    "shatter": 6,
+    "shard": 6
+   }
+  },
+  "aeon-0": {
+   "k": "aeon",
+   "L": 0,
+   "len": 12.03,
+   "seed": 1,
+   "bytes": 3161238,
+   "note": "The dial forms and its great hand starts to turn (the first 12 seconds of the cast)."
   }
  },
  "made": "2026-10-29"
