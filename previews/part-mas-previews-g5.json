@@ -1,0 +1,55 @@
+{
+ "bloodeye-0": {
+  "k": "bloodeye",
+  "L": 0,
+  "len": 10.3,
+  "seed": 1,
+  "bytes": 1244812,
+  "note": ""
+ },
+ "bloodeye-2": {
+  "k": "bloodeye",
+  "L": 2,
+  "len": 13.53,
+  "seed": 1,
+  "bytes": 1808330,
+  "note": "Branded foes take 40% more from everything, for 10s.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "marks": 1,
+   "brand": 1,
+   "lash": 6
+  }
+ },
+ "bloodeye-3": {
+  "k": "bloodeye",
+  "L": 3,
+  "len": 13.53,
+  "seed": 1,
+  "bytes": 1825806,
+  "note": "The blood lightning lashes every brand 7 times.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "marks": 1,
+   "brand": 1,
+   "lash": 7
+  }
+ },
+ "bloodeye-1": {
+  "k": "bloodeye",
+  "L": 1,
+  "len": 12.6,
+  "seed": 1,
+  "bytes": 1826484,
+  "note": "Eleven foes: the eye brands 7 within 10 tiles.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "marks": 1,
+   "brand": 1,
+   "lash": 6
+  }
+ }
+}
