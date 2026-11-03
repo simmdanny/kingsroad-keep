@@ -3140,6 +3140,27 @@
     "geyser": 30,
     "end": 1
    }
+  },
+  "eternalwinter-0": {
+   "k": "eternalwinter",
+   "L": 0,
+   "len": 8.7,
+   "seed": 1,
+   "bytes": 1345098,
+   "note": ""
+  },
+  "eternalwinter-1": {
+   "k": "eternalwinter",
+   "L": 1,
+   "len": 8.7,
+   "seed": 1,
+   "bytes": 1359372,
+   "note": "The frost strikes harder as it reaches each foe, and leaves larger ice.",
+   "ev": {
+    "cast": 1,
+    "frost": 6,
+    "shatter": 6
+   }
   }
  },
  "made": "2026-10-29"
