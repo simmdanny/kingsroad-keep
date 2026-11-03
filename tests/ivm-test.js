@@ -77,7 +77,9 @@ try{
   const W0=watch(0,stage(14,{low:4,boss:1}));const h0=HL.slice();
   {const pw=amounts('pw'),hp=amounts('hp'),low=W0.F.filter(e=>e.maxHp===2000&&!e.boss);
     ok('Mastery 0: no mastery events; every cut strikes 81% (60% on the ground) and 2.03% of max health (1%; bosses 1.01% and 0.5%)',!IVM.dbg.length&&pw.length>150&&pw.every(h=>near(h.amt,81)||near(h.amt,60))&&hp.every(h=>near(h.amt/h.max,h.boss?.0101:.0203)||near(h.amt/h.max,h.boss?.005:.01)),pw.length+' cuts, '+pw.filter(h=>near(h.amt,60)).length+' on the ground');
-    ok('Mastery 0: nobody is erased (no kill blows) and the snap back strikes nothing',!amounts('kill').length&&!h0.some(h=>h.t>END-.4&&h.t<END+1.6),h0.filter(h=>h.t>END-.4).length);
+    /* the snap back is from the collapse (END) on: cuts are planned until END-0.45, but a burst queues up to 7 cuts 0.7s ahead and they land until
+       the collapse clears the queue, so the last 0.45s may still be cut (rarely); from one frame after END nothing may strike */
+    ok('Mastery 0: nobody is erased (no kill blows) and the snap back strikes nothing',!amounts('kill').length&&!h0.some(h=>h.t>END+.025&&h.t<END+1.6),h0.filter(h=>h.t>END+.025).length+' after the collapse, '+h0.filter(h=>h.t>END-.45&&h.t<=END+.025).length+' queued cuts landing in the last 0.45s');
     ok('Mastery 0: foes crawl at a fifth of their speed, at full speed again after; the strokes as before (core 6, widths 0.13 on foes)',near(W0.f,.2)&&W0.fEnd===1&&W0.uco.size===1&&W0.uco.has(6)&&W0.wid.has(.13)&&!W0.wid.has(.156),[W0.f,W0.fEnd,[...W0.uco].join(),[...W0.wid].sort().slice(0,8).join()].join(' / '));
     ok('Mastery 0: the pinch starts 0.35s before the snap; nothing is left behind and the domain is over',W0.pinch.filter(q=>q[0]<END-.36&&q[0]>END-.9).every(q=>q[1]===0)&&W0.pinch.some(q=>q[0]>END-.34&&q[1]>0)&&W0.left===0&&!W0.on,W0.left);}
   /* ---- M1 Blinding Edge ---- */
