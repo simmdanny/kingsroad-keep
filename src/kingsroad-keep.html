@@ -14207,6 +14207,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Eye of the Blood Moon: the gaze that marks',d:'3 Nov',v:'v467',li:[
+    'Eye of the Blood Moon (Secret) has five new masteries, for now in developer mode. Still one eye in the sky, its gaze branding the strongest foes and blood lightning lashing down at them: each mastery makes a part the spell already has stronger and draws that part richer.',
+    'Wider Gaze: the eye opens a tenth larger and brands 7 foes (6 before) within 10 tiles (8 before). Bloodshot Brand: branded foes take 40% more damage from everything (35% before) for 10s (8s before); the brands glow bigger and deeper red, and stay lit for as long as they last.',
+    'Lashing Storm: the lightning lashes every 0.34s, 7 times (6 before), 140% each (150% before), in thicker bolts with more branches. The Gaze Moves On: when a branded foe dies while the eye is open, the gaze swings to the strongest unbranded foe in reach and brands it (up to 6 more).',
+    'The Last Look: before the lids close, the iris flares and one great lash, twice as thick, runs from every brand up to the eye: 200%, renewing each brand. Still one eye and one gaze.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -31995,7 +32000,43 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
 /* ================= Eye of the Blood Moon's masteries (v467), designed with the framework (MASTERY_DESIGN.md) ================= */
-/* (header: filled in after calibration) */
+/* Identity: a vast eye tears open in the sky; its gaze settles on the strongest foes and brands them (they take more from everything for a
+   while), and blood lightning lashes down from the eye at its brands. One eye, one gaze, brands, lightning from the eye. Simon, for every
+   Mythic, Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is preserved but their
+   visuals barely change and change only to better", and "new stuff CAN appear ... but just nothing that over shines the spell". So each
+   mastery strengthens one part the spell already has and draws that same part richer: no lances (Seraph Lance), no stars over the strongest
+   (Constellation), no more eyes (Crimson Purgatory).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Wider Gaze | what if the eye saw more of the field? | the gaze | more targets, wider reach |
+   | 2 | Bloodshot Brand | what if its mark cut deeper? | the brand | a stronger, longer debuff |
+   | 3 | Lashing Storm | what if the lightning never let up? | the lightning | more strikes |
+   | 4 | The Gaze Moves On | what if a fallen brand passed the gaze on? | the brands | retargeting |
+   | 5 | The Last Look | what if the eye struck once more before it closed? | the lightning's end | signature payoff |
+   - M1 Wider Gaze: it brands BEY.N foes (6 before) within BEY.R tiles of where it looks (8 before); the eye a tenth larger (1.32), its
+     first sweep over the field 1.3 times wider, a larger rune (1.85, 1.6 before).
+   - M2 Bloodshot Brand: branded foes take BEY.mul from everything (x1.35 before) for BEY.dur s (8 before); the hurt wrapper reads the
+     foe's own brand (e.eyeM). The brands are drawn a fifth larger, in deeper reds (a brighter core, a deeper red halo whose light pulses,
+     a see-through dark red glow round them) and pulse harder (45%, 25% before).
+   - M3 Lashing Storm: a lash every BEY.iv s, BEY.n of them (every 0.4s, 6 before), BEY.lash each (150% before), in thicker bolts (width
+     1.6, 1.3 before) with three branches (two).
+   - M4 The Gaze Moves On: while the eye is open (until its lids begin to close at 4.1s), a branded foe that dies passes the gaze to the
+     strongest unbranded foe within reach, which is branded like the first ones and lashed by the lashes still to come (up to BEY.moveN more).
+     The gaze beam swings from the fallen brand to the new one over 0.3s, the eye turns to it, and its brand lights as the beam arrives.
+   - M5 The Last Look: at 4s, after the last lash and before the lids close, the iris flares (its light 0.5 to 1.6) and one great lash runs
+     from every brand up to the eye, the same blood lightning twice as thick: BEY.last each, renewing each brand (BEY.dur s from then).
+   - Seen, not hidden: the old cast ends at 8.4s, so its brand marks vanished 1.2s before the brands (9.6s). Mastered casts (hold) keep the
+     marks for as long as the brands last; the eye, its rune and the darkness still end at 8.4s. Mastery 0 is unchanged.
+   Percentages are of the scroll's power. Every mastered cast runs castBloodEye with its XO (beyOpts); Mastery 0, echoes and other casters
+   cast exactly as before. Numbers trimmed from the approved table, which measured 1.10 / 1.18 / 1.38 / 1.38 / 1.71 on the ladder (factors
+   down to 0.79): the brand +40% (+45% approved), each lash at Lashing Storm 140% (150%), The Last Look 200% (250%).
+   The brand: the ladder sees only the Eye's own lightning, but the brand lifts everything that strikes a branded foe. Two good towers on
+   the brands around wave 25 deal about 2.2 times the scroll's power a second, so at Mastery 0 the brand adds about 8.5% to the cast's own
+   damage (a bot game to wave 40 measured 7.5-9.4%); 40% for 10s makes that 1.43 times as much (45% would have been 1.61), and The Last
+   Look's renewal 1.77 times. So the brand stays at the low end, and the factors leave the ladder 0.01-0.02 under each target from Mastery 2
+   up: with one or two towers on the brands the whole cast lands within 0.02 of every target. Not counted: The Gaze Moves On (its foes must
+   die), the longer brand. On the ladder (pack .6 / one .4, 6 casts 12s apart, 2 runs; the same with the foes put back before every cast:
+   the Eye moves no foe) with the factors below: 1.078 / 1.144 / 1.212 / 1.292 / 1.336 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35.
+   BEY.dbg (an array) logs the events. */
 const BEY={dbg:null,R:10,N:7,mul:1.4,dur:10,iv:.34,n:7,lash:1.4,moveN:6,last:2};
 const beyC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='bloodeye'&&c.L?c:null;};
 const beyLog=d=>{if(BEY.dbg){d.t=time;BEY.dbg.push(d);}};
