@@ -109,5 +109,55 @@
    "grip": 1,
    "feed": 3
   }
+ },
+ "singularity-2": {
+  "k": "singularity",
+  "L": 2,
+  "len": 16.3,
+  "seed": 1,
+  "bytes": 3367204,
+  "note": "The drain tears harder at the pinned foes.",
+  "ev": {
+   "cast": 1,
+   "grip": 1,
+   "end": 1
+  }
+ },
+ "singularity-4": {
+  "k": "singularity",
+  "L": 4,
+  "len": 16.27,
+  "seed": 1,
+  "bytes": 3431688,
+  "note": "Rocks tear up from beneath every pinned foe, one a second.",
+  "ev": {
+   "cast": 1,
+   "grip": 1,
+   "rock": 48,
+   "end": 1
+  }
+ },
+ "singularity-5": {
+  "k": "singularity",
+  "L": 5,
+  "len": 16.53,
+  "seed": 1,
+  "bytes": 3785380,
+  "note": "The collapse strikes every foe on the map for 500%.",
+  "ev": {
+   "cast": 1,
+   "grip": 1,
+   "rock": 72,
+   "collapse": 1,
+   "end": 1
+  }
+ },
+ "wormhole-0": {
+  "k": "wormhole",
+  "L": 0,
+  "len": 12.7,
+  "seed": 1,
+  "bytes": 1512310,
+  "note": ""
  }
 }
