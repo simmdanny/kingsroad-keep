@@ -5535,8 +5535,17 @@ function domPostInit(){if(DOM.post)return DOM.post;
   P.free=()=>{P.on=false;P.cutK.fill(0);if(P.rt){P.rt.dispose();P.rt=null;}};
   DOM.post=P;return P;}
 
-function castExpanse(t,PW,o){
+/* v461: XO (optional, Infinite Void's masteries): this cast's own numbers over EXD. enK/enH/enHB: a cut on a foe strikes enK of the power +
+   enH of its max health (bosses enHB); grK/grR: a ground cut strikes grK within grR tiles; slW/slCo: every stroke's width and its core
+   exponent (lower is a wider, whiter core); foc0/focN/focM: the focused stream is foc0+min(focM, focN x foes) cuts a second; domF: how fast
+   foes crawl; moteK: the dense space motes on foes, that much thicker and brighter; erase: non-boss foes a cut leaves under that share of
+   their health are erased (their cross of strokes eraseX as large, dissolving behind the white-rimmed edge); finK: the last cut as reality
+   returns strikes every foe for finK, finLead s before the snap; finGap/finWin: great cuts every finGap s in the last finWin s; pinch: the
+   pinch before the snap; colK: the snap's ripple, colour split, shake and burst. log(d) receives the events. Without XO: exactly as before. */
+const EXD={enK:.81,enH:.0203,enHB:.0101,grK:.6,grR:.42,slW:1,slCo:6,foc0:4,focN:.3,focM:6,domF:.2,moteK:1,erase:0,eraseX:2,finK:0,finLead:.12,finGap:0,finWin:3,pinch:.35,colK:1,log:null};
+function castExpanse(t,PW,o,XO){
   if(DOM.live&&DOM.live.refresh()){toast('The domain is renewed for another 20 seconds','lvl');return;}
+  const D=XO?Object.assign({},EXD,XO):EXD,LG=D.log;
   const post=domPostInit();
   const geos=[],mats=[],root=new THREE.Group();scene.add(root);
   const ACT=4,DUR=20,END=ACT+DUR,LIFE=END+1.6;cineLock=Math.max(cineLock,5);
@@ -5718,20 +5727,27 @@ function castExpanse(t,PW,o){
   /* ---------- 8. white slashes ---------- */
   const slashes=[];const camF=new THREE.Vector3(),camR=new THREE.Vector3(),camU=new THREE.Vector3();
   const slV='attribute float aU;attribute float aV;varying float vU,vV;void main(){vU=aU;vV=aV;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
-  const slF='uniform float uHead,uTail,uA;varying float vU,vV;void main(){if(vU>uHead||vU<uTail)discard;float av=abs(vV);float core=pow(1.-av,6.);float glow=pow(1.-av,2.2);float hd=smoothstep(.14,0.,uHead-vU);vec3 c=mix(vec3(.55,.72,1.),vec3(1.),core);gl_FragColor=vec4(c,(core*1.4+glow*.45+hd*glow*.9)*uA);}';
+  const slF='uniform float uHead,uTail,uA,uCo;varying float vU,vV;void main(){if(vU>uHead||vU<uTail)discard;float av=abs(vV);float core=pow(1.-av,uCo);float glow=pow(1.-av,2.2);float hd=smoothstep(.14,0.,uHead-vU);vec3 c=mix(vec3(.55,.72,1.),vec3(1.),core);gl_FragColor=vec4(c,(core*1.4+glow*.45+hd*glow*.9)*uA);}';
   function jag(a,b,segs,amp,side){if(rnd()<.6){amp*=.12;segs=Math.min(segs,3);}const P=[a.clone()];for(let i=1;i<segs;i++){const k=i/segs+(rnd()-.5)*.35/segs;P.push(new THREE.Vector3().lerpVectors(a,b,k).addScaledVector(side,(rnd()-.5)*amp*2*Math.sin(Math.PI*k)));}P.push(b.clone());return P;}
-  function mkSlash(P,width,mode,life,op){op=op||{};const n=P.length,pos=new Float32Array(n*6),aU=new Float32Array(n*2),aV=new Float32Array(n*2),idx=[];let L=0;const acc=[0];for(let i=1;i<n;i++){L+=P[i].distanceTo(P[i-1]);acc.push(L);}
+  /* v461: strokes are pooled (one of the same length and layer is reused: nothing is allocated once the pool has warmed up) */
+  const slPool=[];
+  function mkSlash(P,width,mode,life,op){op=op||{};const n=P.length,top=!!op.top;width*=D.slW;let L=0;const acc=[0];for(let i=1;i<n;i++){L+=P[i].distanceTo(P[i-1]);acc.push(L);}
+    let q=null;for(let i=slPool.length-1;i>=0;i--)if(slPool[i].n===n&&slPool[i].top===top){q=slPool[i];slPool.splice(i,1);break;}
+    if(!q){const g=new THREE.BufferGeometry(),idx=[];for(let i=0;i<n-1;i++){const b0=i*2;idx.push(b0,b0+1,b0+2,b0+1,b0+3,b0+2);}
+      g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*6),3));g.setAttribute('aU',new THREE.BufferAttribute(new Float32Array(n*2),1));g.setAttribute('aV',new THREE.BufferAttribute(new Float32Array(n*2),1));g.setIndex(idx);
+      const m=new THREE.ShaderMaterial({uniforms:{uHead:{value:0},uTail:{value:0},uA:{value:1},uCo:{value:6}},vertexShader:slV,fragmentShader:slF,transparent:true,depthWrite:false,depthTest:!top,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
+      const mesh=new THREE.Mesh(g,m);mesh.frustumCulled=false;mesh.renderOrder=top?70:36;q={n,top,mesh,g,m};}
+    const pos=q.g.attributes.position.array,aU=q.g.attributes.aU.array,aV=q.g.attributes.aV.array;
     for(let i=0;i<n;i++){const u=acc[i]/L,a=P[Math.max(0,i-1)],b=P[Math.min(n-1,i+1)];tmp.subVectors(b,a).normalize();
       if(mode==='ground')tmp2.set(-tmp.z,0,tmp.x);else tmp2.crossVectors(tmp,camF).normalize();
       const w=width*(.08+.92*Math.pow(Math.sin(Math.PI*Math.min(1,Math.max(0,u*1.12-.02))),.65));
-      for(let s=0;s<2;s++){const q=(i*2+s)*3,sg=s?1:-1;pos[q]=P[i].x+tmp2.x*w*sg;pos[q+1]=P[i].y+tmp2.y*w*sg;pos[q+2]=P[i].z+tmp2.z*w*sg;aU[i*2+s]=u;aV[i*2+s]=sg;}
-      if(i<n-1){const b0=i*2;idx.push(b0,b0+1,b0+2,b0+1,b0+3,b0+2);}}
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('aU',new THREE.BufferAttribute(aU,1));g.setAttribute('aV',new THREE.BufferAttribute(aV,1));g.setIndex(idx);
-    const m=new THREE.ShaderMaterial({uniforms:{uHead:{value:0},uTail:{value:0},uA:{value:1}},vertexShader:slV,fragmentShader:slF,transparent:true,depthWrite:false,depthTest:!op.top,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
-    const mesh=new THREE.Mesh(g,m);mesh.frustumCulled=false;mesh.renderOrder=op.top?70:36;root.add(mesh);DOM.nSl=(DOM.nSl||0)+1;slashes.push({mesh,g,m,t:0,life,draw:op.draw||.045,scar:!!op.scar});}
+      for(let s=0;s<2;s++){const j=(i*2+s)*3,sg=s?1:-1;pos[j]=P[i].x+tmp2.x*w*sg;pos[j+1]=P[i].y+tmp2.y*w*sg;pos[j+2]=P[i].z+tmp2.z*w*sg;aU[i*2+s]=u;aV[i*2+s]=sg;}}
+    for(const k of ['position','aU','aV'])q.g.attributes[k].needsUpdate=true;
+    const u=q.m.uniforms;u.uHead.value=0;u.uTail.value=0;u.uA.value=1;u.uCo.value=D.slCo;q.mesh.position.set(0,0,0);q.mesh.scale.setScalar(1);
+    root.add(q.mesh);DOM.nSl=(DOM.nSl||0)+1;const S={mesh:q.mesh,g:q.g,m:q.m,q,t:0,life,draw:op.draw||.045,scar:!!op.scar};slashes.push(S);return S;}
   function stepSlashes(dt){for(let i=slashes.length-1;i>=0;i--){const s=slashes[i];s.t+=dt;const u=s.m.uniforms;u.uHead.value=Math.min(1.001,s.t/s.draw);const tk=clamp((s.t-s.draw)/(s.life-s.draw),0,1);
       if(s.scar){u.uTail.value=0;u.uA.value=s.t<s.draw+.08?1.1:.42*(1-tk)*(1-tk);}else{u.uTail.value=Math.pow(tk,.75);u.uA.value=1.35*(1-tk*.5);}
-      if(s.t>=s.life){root.remove(s.mesh);s.g.dispose();s.m.dispose();slashes.splice(i,1);}}}
+      if(s.t>=s.life){root.remove(s.mesh);slPool.push(s.q);slashes.splice(i,1);}}}
   const LIT={fl:0,sil:0};const light=v=>{LIT.fl=Math.min(1.7,LIT.fl+v);};
   function groundAt(nx,ny){tmp.set(nx,ny,.5).unproject(camera).sub(camera.position).normalize();const k=-camera.position.y/Math.min(-.05,tmp.y);return new THREE.Vector3().copy(camera.position).addScaledVector(tmp,k);}
   const viewPt=()=>groundAt((rnd()*2-1)*.92,(rnd()*2-1)*.92);
@@ -5742,31 +5758,63 @@ function castExpanse(t,PW,o){
   function sparks(a,b,n,c){for(let i=0;i<n;i++){tmp3.lerpVectors(a,b,rnd());sp(tmp3.x,tmp3.y,tmp3.z,(rnd()-.5)*2.4,(rnd()-.3)*2,(rnd()-.5)*2.4,c||(rnd()<.6?0xffffff:0xb8d0ff),1,.04+rnd()*.05,.25+rnd()*.35,3);}}
   function toScreen(v){tmp3.copy(v).project(camera);return[(tmp3.x+1)/2,(tmp3.y+1)/2];}
   function screenCut(a,b,k){const A=toScreen(a),B=toScreen(b);post.cut(A[0],A[1],B[0],B[1],k);}
-  function cutHit(a,b,rad,dmg){for(const e of alive()){const ax=b.x-a.x,az=b.z-a.z,L2=ax*ax+az*az||1;let u=((e.x-a.x)*ax+(e.z-a.z)*az)/L2;u=clamp(u,0,1);const dx=a.x+ax*u-e.x,dz=a.z+az*u-e.z;if(dx*dx+dz*dz<rad*rad){hurt(e,dmg,'magic',o);if(!e.dead)hurt(e,e.maxHp*(e.boss?.005:.01),'magic',{src:o.src});if(!e.dead)for(let i=0;i<5;i++)sp(e.x,e.y+e.hitY*.5,e.z,(rnd()-.5)*2,rnd()*1.6,(rnd()-.5)*2,0xffffff,1,.05,.3,2);}}}
+  function cutHit(a,b,rad,dmg){for(const e of alive()){const ax=b.x-a.x,az=b.z-a.z,L2=ax*ax+az*az||1;let u=((e.x-a.x)*ax+(e.z-a.z)*az)/L2;u=clamp(u,0,1);const dx=a.x+ax*u-e.x,dz=a.z+az*u-e.z;if(dx*dx+dz*dz<rad*rad){hurt(e,dmg,'magic',o);if(!e.dead)hurt(e,e.maxHp*(e.boss?.005:.01),'magic',{src:o.src});if(LG)LG({ev:'cut',k:'ground',e,dmg,rad});if(D.erase&&eraseCut(e,null))continue;if(!e.dead)for(let i=0;i<5;i++)sp(e.x,e.y+e.hitY*.5,e.z,(rnd()-.5)*2,rnd()*1.6,(rnd()-.5)*2,0xffffff,1,.05,.3,2);}}}
   function slashSky(sc){const c=viewPt();c.y+=1.2+rnd()*4.5;const L=(3+rnd()*6)*sc,d=sdir(ANG()),side=tmp.crossVectors(d,camF).normalize().clone();const a=c.clone().addScaledVector(d,-L/2),b=c.clone().addScaledVector(d,L/2);
     mkSlash(jag(a,b,5+Math.floor(rnd()*4),L*.05,side),.2*sc+.07,'cam',.2+rnd()*.12);sparks(a,b,Math.round(6*sc));light(.32*sc);
     if(rnd()<.5){const m=new THREE.Vector3().lerpVectors(a,b,.3+rnd()*.4),d2=sdir(ANG()+.9),L2=L*(.2+rnd()*.25);mkSlash(jag(m,m.clone().addScaledVector(d2,L2),3,L2*.1,side),.08*sc+.04,'cam',.16);}}
   function slashGround(){const c=rnd()<.6?pathPt():viewPt();const a0=rnd()*6.28,L=2+rnd()*3.5,d=new THREE.Vector3(Math.cos(a0),0,Math.sin(a0)),side=new THREE.Vector3(-d.z,0,d.x);
     const a=c.clone().addScaledVector(d,-L/2),b=c.clone().addScaledVector(d,L/2);a.y=b.y=.04;const P=jag(a,b,6,L*.045,side);P.forEach(q=>q.y=.04);
-    mkSlash(P,.24,'ground',.26);mkSlash(P,.07,'ground',1.5,{scar:1});sparks(a,b,10);light(.3);cutHit(a,b,.42,PW*.6);
+    mkSlash(P,.24,'ground',.26);mkSlash(P,.07,'ground',1.5,{scar:1});sparks(a,b,10);light(.3);cutHit(a,b,D.grR,PW*D.grK);
     for(let i=0;i<8;i++){tmp3.lerpVectors(a,b,rnd());sp(tmp3.x,.05,tmp3.z,(rnd()-.5)*.4,.6+rnd()*.9,(rnd()-.5)*.4,0xdfe8ff,.9,.05,.6+rnd()*.4,1.5);}}
-  function slashEnemy(){const L0=alive();if(!L0.length){slashSky(.7);return;}const e=pick(L0),c=new THREE.Vector3(e.x,e.y+e.hitY*.55,e.z),a0=ANG();
-    for(let k=0;k<2;k++){const d=sdir(a0+k*(Math.PI/2+(rnd()-.5)*.5)),L=.9+rnd()*.7,side=tmp.crossVectors(d,camF).normalize().clone();const a=c.clone().addScaledVector(d,-L/2),b=c.clone().addScaledVector(d,L/2);mkSlash(jag(a,b,3,L*.08,side),.13,'cam',.17+k*.03,{draw:.035});}
-    hurt(e,PW*.81,'magic',o);if(!e.dead)hurt(e,e.maxHp*(e.boss?.0101:.0203),'magic',{src:o.src});for(let i=0;i<12;i++)sp(c.x,c.y,c.z,(rnd()-.5)*3,(rnd()-.3)*2.5,(rnd()-.5)*3,i<8?0xffffff:0x9fc0ff,1,.04+rnd()*.04,.3+rnd()*.3,3);light(.24);}
+  function slashEnemy(){const L0=alive();if(!L0.length){slashSky(.7);return;}const e=pick(L0),c=new THREE.Vector3(e.x,e.y+e.hitY*.55,e.z),X=cross(c);
+    hurt(e,PW*D.enK,'magic',o);if(!e.dead)hurt(e,e.maxHp*(e.boss?D.enHB:D.enH),'magic',{src:o.src});if(LG)LG({ev:'cut',k:'enemy',e,dmg:PW*D.enK});if(D.erase&&eraseCut(e,X))return;for(let i=0;i<12;i++)sp(c.x,c.y,c.z,(rnd()-.5)*3,(rnd()-.3)*2.5,(rnd()-.5)*3,i<8?0xffffff:0x9fc0ff,1,.04+rnd()*.04,.3+rnd()*.3,3);light(.24);}
+  function cross(c){const a0=ANG(),X=[];for(let k=0;k<2;k++){const d=sdir(a0+k*(Math.PI/2+(rnd()-.5)*.5)),L=.9+rnd()*.7,side=tmp.crossVectors(d,camF).normalize().clone();const a=c.clone().addScaledVector(d,-L/2),b=c.clone().addScaledVector(d,L/2);X.push(mkSlash(jag(a,b,3,L*.08,side),.13,'cam',.17+k*.03,{draw:.035}));}return X;}
+  /* v461 (Erasure): a non-boss foe a cut leaves under D.erase of its health is erased. Its cross of strokes is drawn D.eraseX as large and it
+     dissolves behind the same white-rimmed edge the world dissolved behind: its own meshes, kept a moment, wear clones of their materials
+     (one per material, made once a cast) that discard behind a front racing out from the cut, its rim white-hot. Up to 8 at once. */
+  const ER=[];for(let i=0;i<8;i++)ER.push(new THREE.Vector4(0,0,0,-1));const erU={value:ER},erMap=new Map(),GH=[];
+  const erOk=m=>!!m&&!Array.isArray(m)&&!m.transparent&&(m.isMeshLambertMaterial||m.isMeshStandardMaterial||m.isMeshPhongMaterial||m.isMeshBasicMaterial||m.isMeshToonMaterial);
+  function erMat(m){let c=erMap.get(m);if(c)return c;c=asOffRun(()=>m.clone());c.customProgramCacheKey=()=>'kkErase';
+    c.onBeforeCompile=sh=>{sh.uniforms.uEr=erU;
+      sh.vertexShader='varying vec3 vEW;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvec4 ewp=vec4(transformed,1.);\n#ifdef USE_INSTANCING\newp=instanceMatrix*ewp;\n#endif\nvEW=(modelMatrix*ewp).xyz;');
+      sh.fragmentShader='uniform vec4 uEr[8];varying vec3 vEW;float eHash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}\n'+sh.fragmentShader
+        .replace('void main() {','void main() {\n float eb=1e9,eR=-1.;for(int i=0;i<8;i++){vec4 q=uEr[i];float d=distance(vEW,q.xyz);if(q.w>=0.&&d<eb){eb=d;eR=q.w;}}\n float ed=eb+eHash(floor(vEW*14.))*.08+eHash(floor(vEW*4.5)+7.)*.13-eR;if(eR>=0.&&ed<0.)discard;\n')
+        .replace('#include <dithering_fragment>','#include <dithering_fragment>\n if(eR>=0.)gl_FragColor.rgb=mix(gl_FragColor.rgb,vec3(.8,.93,1.)*2.4,1.-smoothstep(0.,.07,ed));');};
+    erMap.set(m,c);mats.push(c);return c;}
+  function eraseCut(e,X){if(e.dead||e.boss||e.fake||!(e.hp<e.maxHp*D.erase))return false;const g=e.g,c=new THREE.Vector3(e.x,e.y+e.hitY*.55,e.z),hy=e.hitY,hp=e.hp,mx=e.maxHp;
+    hurt(e,e.hp*10+1e7,'magic',Object.assign({},o,{noReact:true}));if(!e.dead)return false;
+    for(const s of X||cross(c)){s.mesh.scale.setScalar(D.eraseX);s.mesh.position.copy(c).multiplyScalar(1-D.eraseX);}
+    ghost(g,c,hy,e.y);light(.3);for(let i=0;i<16;i++)sp(c.x,c.y,c.z,(rnd()-.5)*3.4,(rnd()-.3)*2.8,(rnd()-.5)*3.4,i<11?0xffffff:0x9fc0ff,1,.045+rnd()*.04,.35+rnd()*.3,3);
+    if(LG)LG({ev:'erase',e,hp,max:mx});return true;}
+  function ghost(g,c,hy,y0){let si=-1;for(let i=0;i<ER.length;i++)if(ER[i].w<0){si=i;break;}if(si<0||!g)return;   /* every slot busy: it is simply gone */
+    const sw=[];g.traverse(q=>{if(!q.isMesh&&!q.isLine&&!q.isPoints&&!q.isSprite)return;sw.push({q,m:q.material,v:q.visible});if(q.isMesh&&!q.isInstancedMesh&&erOk(q.material))q.material=erMat(q.material);else q.visible=false;});
+    root.add(g);ER[si].set(c.x,c.y,c.z,0);GH.push({g,sw,si,t:0,c,R:hy+.45,y0,hy});}
+  function endGhost(G){root.remove(G.g);for(const s of G.sw){s.q.material=s.m;s.q.visible=s.v;}ER[G.si].w=-1;}
+  function stepGhosts(dt){for(let i=GH.length-1;i>=0;i--){const G=GH[i];G.t+=dt;const k=Math.min(1,G.t/.42),r=G.R*SMS(k,0,1);ER[G.si].w=r;
+      if(k>=1){endGhost(G);GH.splice(i,1);continue;}
+      /* white motes lift off the body where the front is passing (a point of the body's box near the front) */
+      for(let n=Math.floor(dt*160+rnd());n>0;n--)for(let tr=0;tr<5;tr++){const x=G.c.x+(rnd()-.5)*.4,y=G.y0+rnd()*G.hy*1.1,z=G.c.z+(rnd()-.5)*.4,d=Math.hypot(x-G.c.x,y-G.c.y,z-G.c.z);if(Math.abs(d-(r-.1))>.12)continue;
+        const ux=(x-G.c.x)/(d||1),uz=(z-G.c.z)/(d||1);sp(x,y,z,ux*.5,.5+rnd()*.7,uz*.5,rnd()<.7?0xdfeaff:0x7ab0ff,1,.04+rnd()*.035,.45+rnd()*.35,1.4);break;}}}
   function slashBehind(){const L0=alive();if(!L0.length){slashDistant();return;}const e=pick(L0),c=new THREE.Vector3(e.x,e.y+e.hitY*.5,e.z).addScaledVector(camF,2+rnd()*3),L=2.5+rnd()*3,d=sdir(ANG()),side=tmp.crossVectors(d,camF).normalize().clone();
     const a=c.clone().addScaledVector(d,-L/2),b=c.clone().addScaledVector(d,L/2);mkSlash(jag(a,b,5,L*.06,side),.22,'cam',.22);light(.2);}
   function slashDistant(){const c=groundAt((rnd()*2-1)*.95,(rnd()*2-1)*.95).addScaledVector(camF,14+rnd()*45),L=6+rnd()*14,d=sdir(ANG()),side=tmp.crossVectors(d,camF).normalize().clone();
     const a=c.clone().addScaledVector(d,-L/2),b=c.clone().addScaledVector(d,L/2);mkSlash(jag(a,b,6,L*.05,side),.6+rnd()*.5,'cam',.24+rnd()*.1);light(.07);}
-  function slashBig(){if(meta.spaceCalm){slashDistant();for(let k=0;k<3;k++)setTimeout(()=>{if(DOM.on)slashEnemy();},60+k*50);return;}   /* calm: drawn far away, same hits */
+  /* v461: gt=1 brings its three cuts on game time (the domain's own clock, so they also land in stepped tests), gt=2 only draws it */
+  const bigHits=gt=>{for(let k=0;k<3;k++){if(gt===1)at(.06+k*.05,slashEnemy);else if(!gt)setTimeout(()=>{if(DOM.on)slashEnemy();},60+k*50);}};
+  function slashBig(gt){if(meta.spaceCalm){slashDistant();bigHits(gt);return;}   /* calm: drawn far away, same hits */
     const dist=9,vh=2*dist*Math.tan(camera.fov*Math.PI/360),vw=vh*camera.aspect,a0=ANG(),d=sdir(a0),L=Math.hypot(vw,vh)*1.25;
     const c=camera.position.clone().addScaledVector(camF,dist).addScaledVector(camR,(rnd()-.5)*vw*.4).addScaledVector(camU,(rnd()-.5)*vh*.4),side=tmp.crossVectors(d,camF).normalize().clone();
     const a=c.clone().addScaledVector(d,-L/2),b=c.clone().addScaledVector(d,L/2);mkSlash(jag(a,b,9,L*.03,side),.17,'cam',.34,{top:1,draw:.06});
     const off=side.clone().multiplyScalar(.12);mkSlash(jag(a.clone().add(off),b.clone().add(off),7,L*.02,side),.05,'cam',.3,{top:1,draw:.07});
     LIT.sil=.075;camShake=Math.max(camShake,.32);screenCut(a,b,1);flashA=Math.max(flashA,.28);flashCol='#eef4ff';flashDecay=5;
-    for(let k=0;k<3;k++)setTimeout(()=>{if(DOM.on)slashEnemy();},60+k*50);}
+    bigHits(gt);}
+  /* v461 (Reality Returns): as reality returns, one last cut (the same screen-wide stroke) strikes every foe for D.finK, bosses too */
+  function slashFinal(){slashBig(2);let n=0;for(const e of alive()){const my=e.y+e.hitY*.55;hurt(e,PW*D.finK,'magic',o);n++;if(D.erase&&eraseCut(e,null))continue;
+      if(!e.dead&&n<=48)for(let i=0;i<10;i++)sp(e.x,my,e.z,(rnd()-.5)*3,(rnd()-.3)*2.5,(rnd()-.5)*3,i<7?0xffffff:0x9fc0ff,1,.045+rnd()*.04,.35+rnd()*.3,3);}
+    light(.6);if(LG)LG({ev:'final',T,n,dmg:PW*D.finK});}
   DOM.dbg={big:slashBig,sky:slashSky,ground:slashGround,enemy:slashEnemy,behind:slashBehind,distant:slashDistant,step:dt=>{stepSlashes(dt);}};
   /* randomized rhythm: flash, flash, double, pause, distant cluster, huge cut, rapid small... */
-  const evq=[];let nextPlan=ACT+.15,bigCd=0,focAcc=0;
+  const evq=[];let nextPlan=ACT+.15,bigCd=0,focAcc=0,finT=0,finDone=false,ripK=1;
   const at=(dt2,f)=>evq.push({t:T+dt2,f});
   function plan(){const r=rnd();let gap;
     if(bigCd<=0&&r<.16){at(0,slashBig);bigCd=2.4+rnd()*2.2;gap=.45+rnd()*.3;}
@@ -5804,30 +5852,33 @@ function castExpanse(t,PW,o){
       if(T>.7&&T<2.2&&rnd()<dtR*7){const a=rnd()*6.28,r0=.4+rnd()*.5,L=.8+rnd()*1.6,d=new THREE.Vector3(Math.cos(a),0,Math.sin(a)),a1=new THREE.Vector3(hx,.04,hz).addScaledVector(d,r0),b1=a1.clone().addScaledVector(d,L);const P=jag(a1,b1,4,.12,new THREE.Vector3(-d.z,0,d.x));P.forEach(q=>q.y=.04);mkSlash(P,.12,'ground',.3,{draw:.1});mkSlash(P,.045,'ground',2.2,{scar:1,draw:.1});light(.12);}
       if(T>2&&!rip1){rip1=true;post.ripT=0;post.ripBig=false;}}
     /* ripples */
-    {const u=post.mat.uniforms;tmp.set(hx,.3,hz).project(camera);u.uC.value.set((tmp.x+1)/2,(tmp.y+1)/2);if(post.ripT!=null){post.ripT+=at2;u.uRipR.value=post.ripT*1.3;u.uRip.value=Math.max(0,1-post.ripT/1.1)*(post.ripBig?1.6:1);if(post.ripT>1.1){post.ripT=null;u.uRip.value=0;}}}
+    {const u=post.mat.uniforms;tmp.set(hx,.3,hz).project(camera);u.uC.value.set((tmp.x+1)/2,(tmp.y+1)/2);if(post.ripT!=null){post.ripT+=at2;u.uRipR.value=post.ripT*1.3;u.uRip.value=Math.max(0,1-post.ripT/1.1)*(post.ripBig?1.6*ripK:1);if(post.ripT>1.1){post.ripT=null;u.uRip.value=0;}}}
     /* phase 3: the domain snaps into place */
-    if(!active&&T>=ACT){active=true;DOM.f=.2;flashA=.9;flashCol='#eaf2ff';flashHold=.05;flashDecay=2.4;camShake=Math.max(camShake,.5);post.ripT=0;post.ripBig=true;post.mat.uniforms.uRip.value=1;post.mat.uniforms.uCA.value=1.6;slashBig();
+    if(!active&&T>=ACT){active=true;DOM.f=D.domF;ripK=1;if(LG)LG({ev:'snap',T,f:DOM.f});flashA=.9;flashCol='#eaf2ff';flashHold=.05;flashDecay=2.4;camShake=Math.max(camShake,.5);post.ripT=0;post.ripBig=true;post.mat.uniforms.uRip.value=1;post.mat.uniforms.uCA.value=1.6;slashBig();
       for(const e of alive())for(let i=0;i<14;i++)sp(e.x,e.y+e.hitY*.5,e.z,(rnd()-.5)*2.4,rnd()*2,(rnd()-.5)*2.4,i<9?0xffffff:0x7ab0ff,1,.05,.6+rnd()*.5,2);}
     /* phase 4: slashes */
     if(active&&!collapsed){bigCd-=dt;while(T>=nextPlan&&T<END-.45)plan();
       /* focused stream: extra cuts aimed straight at foes, on top of the random rhythm */
-      if(T<END-.45){focAcc+=dt*(4+Math.min(6,alive().length*.3));while(focAcc>=1){focAcc--;slashEnemy();}}
+      if(T<END-.45){focAcc+=dt*(D.foc0+Math.min(D.focM,alive().length*D.focN));while(focAcc>=1){focAcc--;slashEnemy();}}
+      /* v461 (Reality Returns): great screen-wide cuts every D.finGap s in the last D.finWin s */
+      if(D.finGap&&T>=END-D.finWin&&T<END-.45){finT-=dt;if(finT<=0){finT=D.finGap*(.85+rnd()*.3);slashBig(1);if(LG)LG({ev:'great',T});}}
       for(let i=evq.length-1;i>=0;i--)if(T>=evq[i].t){const ev=evq[i];evq.splice(i,1);ev.f();}
       darkTarget=Math.max(darkTarget,.9);vigTarget=Math.max(vigTarget,.42);post.mat.uniforms.uCA.value=Math.max(0,post.mat.uniforms.uCA.value-at2*2.5);
       /* enemies: trapped in impossibly dense space */
-      const L0=alive(),q=Math.min(1,30/Math.max(1,L0.length));
+      const L0=alive(),q=Math.min(1,30/Math.max(1,L0.length)),mk=D.moteK,ms=.5+.5*mk;   /* v461: moteK, the motes thicker and brighter */
       for(const e of L0){const my=e.y+e.hitY*.5;
-        if(rnd()<dt*13*q){const a=rnd()*6.28,r=.2+rnd()*.3;sp(e.x+Math.cos(a)*r,e.y+rnd()*e.hitY*1.1,e.z+Math.sin(a)*r,(rnd()-.5)*.12,(rnd()-.5)*.1,(rnd()-.5)*.12,rnd()<.7?0xffffff:0xcfe0ff,.95,.028+rnd()*.025,.8+rnd()*.6);}
-        if(rnd()<dt*6*q){const a=rnd()*6.28,dx=Math.cos(a),dz=Math.sin(a);sp(e.x+dx*.9,my+(rnd()-.5)*.3,e.z+dz*.9,-dx*1.7,0,-dz*1.7,0xbcd4ff,.8,.025,1.05);}
-        if(rnd()<dt*4.5*q)sp(e.x+(rnd()-.5)*.35,my+(rnd()-.5)*.35,e.z+(rnd()-.5)*.35,0,0,0,0xffffff,1,.1+rnd()*.06,.1+rnd()*.08);
-        if(rnd()<dt*8*q){const a=rnd()*6.28,b=(rnd()-.5)*2,r=.55;const px=Math.cos(a)*Math.cos(b)*r,py=Math.sin(b)*r,pz=Math.sin(a)*Math.cos(b)*r;sp(e.x+px,my+py,e.z+pz,-px*1.6,-py*1.6,-pz*1.6,rnd()<.5?0x3a5cff:0x40e0c0,.9,.04,.55);}}
+        if(rnd()<dt*13*q*mk){const a=rnd()*6.28,r=.2+rnd()*.3;sp(e.x+Math.cos(a)*r,e.y+rnd()*e.hitY*1.1,e.z+Math.sin(a)*r,(rnd()-.5)*.12,(rnd()-.5)*.1,(rnd()-.5)*.12,rnd()<.7?0xffffff:0xcfe0ff,.95*mk,(.028+rnd()*.025)*ms,.8+rnd()*.6);}
+        if(rnd()<dt*6*q*mk){const a=rnd()*6.28,dx=Math.cos(a),dz=Math.sin(a);sp(e.x+dx*.9,my+(rnd()-.5)*.3,e.z+dz*.9,-dx*1.7,0,-dz*1.7,0xbcd4ff,.8*mk,.025*ms,1.05);}
+        if(rnd()<dt*4.5*q*mk)sp(e.x+(rnd()-.5)*.35,my+(rnd()-.5)*.35,e.z+(rnd()-.5)*.35,0,0,0,0xffffff,mk,(.1+rnd()*.06)*ms,.1+rnd()*.08);
+        if(rnd()<dt*8*q*mk){const a=rnd()*6.28,b=(rnd()-.5)*2,r=.55;const px=Math.cos(a)*Math.cos(b)*r,py=Math.sin(b)*r,pz=Math.sin(a)*Math.cos(b)*r;sp(e.x+px,my+py,e.z+pz,-px*1.6,-py*1.6,-pz*1.6,rnd()<.5?0x3a5cff:0x40e0c0,.9*mk,.04*ms,.55);}}
       /* energy flowing along the floating path, light dripping off its edges */
       if(ROUTES.length)for(let i=0;i<3;i++){if(rnd()>dt*40/3)continue;const rt=pick(ROUTES),d0=rnd()*rt.len,a=posAt(d0,rt),b=posAt(Math.min(rt.len,d0+.3),rt),dx=b[0]-a[0],dz=b[1]-a[1],l=Math.hypot(dx,dz)||1;sp(a[0]+(rnd()-.5)*.6,.08+rnd()*.2,a[1]+(rnd()-.5)*.6,dx/l*.4,.02,dz/l*.4,rnd()<.7?0xcfe4ff:0x8affd8,.8,.03+rnd()*.03,1.6+rnd());}
       if(edges.length)for(let i=0;i<4;i++){if(rnd()>dt*60/4)continue;const E=pick(edges);tmp.lerpVectors(E[0],E[1],rnd());sp(tmp.x+E[2]*.03,-.02,tmp.z+E[3]*.03,E[2]*.05,-.35-rnd()*.5,E[3]*.05,rnd()<.6?0x9fc0ff:0xffffff,.8,.03+rnd()*.02,2+rnd());}}
     /* phase 5: collapse, pulled back into reality */
-    if(active&&!collapsed&&T>=END-.35)post.mat.uniforms.uPinch.value=SMS(T,END-.35,END);
-    if(active&&!collapsed&&T>=END){collapsed=true;DOM.f=1;post.mat.uniforms.uPinch.value=0;flashA=1;flashCol='#ffffff';flashHold=.08;flashDecay=2.2;camShake=Math.max(camShake,.6);post.ripT=0;post.ripBig=true;post.mat.uniforms.uRip.value=1.6;post.mat.uniforms.uCA.value=3;
-      evq.length=0;darkTarget=0;vigTarget=0;for(let i=0;i<90;i++){const a=rnd()*6.28,b=(rnd()-.2)*1.4,v=3+rnd()*6;sp(hx,.6,hz,Math.cos(a)*Math.cos(b)*v,Math.sin(b)*v,Math.sin(a)*Math.cos(b)*v,rnd()<.6?0xffffff:0x9fc0ff,1,.05+rnd()*.05,.5+rnd()*.5,2.5);}}
+    if(active&&!collapsed&&T>=END-D.pinch)post.mat.uniforms.uPinch.value=SMS(T,END-D.pinch,END);
+    if(D.finK&&active&&!collapsed){if(T<END-D.finLead-.5)finDone=false;else if(!finDone&&T>=END-D.finLead){finDone=true;slashFinal();}}   /* (a renewed domain cuts again) */
+    if(active&&!collapsed&&T>=END){collapsed=true;DOM.f=1;post.mat.uniforms.uPinch.value=0;flashA=1;flashCol='#ffffff';flashHold=.08;flashDecay=2.2;camShake=Math.max(camShake,.6*D.colK);post.ripT=0;post.ripBig=true;ripK=D.colK;post.mat.uniforms.uRip.value=1.6*ripK;post.mat.uniforms.uCA.value=3*D.colK;if(LG)LG({ev:'collapse',T,rip:1.6*ripK,ca:3*D.colK});
+      evq.length=0;darkTarget=0;vigTarget=0;for(let i=0;i<Math.round(90*D.colK);i++){const a=rnd()*6.28,b=(rnd()-.2)*1.4,v=(3+rnd()*6)*(.5+.5*D.colK);sp(hx,.6,hz,Math.cos(a)*Math.cos(b)*v,Math.sin(b)*v,Math.sin(a)*Math.cos(b)*v,rnd()<.6?0xffffff:0x9fc0ff,1,.05+rnd()*.05,.5+rnd()*.5,2.5);}}
     if(collapsed){post.mat.uniforms.uCA.value=Math.max(0,post.mat.uniforms.uCA.value-at2*4);}
     /* lighting: cold starlight, white flashes, silhouettes */
     LIT.fl*=Math.exp(-at2*9);if(LIT.sil>0){LIT.sil-=at2;if(LIT.sil<=0)light(.85);}
@@ -5854,8 +5905,8 @@ function castExpanse(t,PW,o){
     fragM.opacity=.85*bgA;updFrags(at2,bgA);
     post.cutK.forEach((v,i)=>{post.cutK[i]=v*Math.exp(-at2*16);if(post.cutK[i]<.01)post.cutK[i]=0;});
     {const u=post.mat.uniforms;post.on=!restored&&(u.uShim.value>.01||u.uRip.value>.01||u.uCA.value>.02||u.uPinch.value>.001||post.cutK.some(v=>v>0));}
-    stepSlashes(at2);stepP(at2,Math.min(1,fl));
-  },()=>{SG_ACTIVE.delete(cleanup);cleanup();slashes.forEach(s=>{s.g.dispose();s.m.dispose();});darkTarget=0;vigTarget=0;},{mats,geos});
+    stepSlashes(at2);stepGhosts(dt);stepP(at2,Math.min(1,fl));
+  },()=>{SG_ACTIVE.delete(cleanup);cleanup();slashes.concat(slPool).forEach(s=>{s.g.dispose();s.m.dispose();});GH.forEach(endGhost);GH.length=0;darkTarget=0;vigTarget=0;},{mats,geos});
 }
 
 /* ================= ANCIENT: Crimson Purgatory ================= */
@@ -31965,6 +32016,31 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
   dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
+/* ================= Infinite Void's masteries (v461), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* IVM_HEADER */
+const IVM={dbg:null,enK:.9,enH:.0225,enHB:.0112,grK:.66,grR:.5,foc0:5,focN:.4,focM:8,domF:.15,erase:.15,finK:3,finGap:.8};
+const ivmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='expanse'&&c.L?c:null;};
+const ivmLog=d=>{if(IVM.dbg){d.t=time;IVM.dbg.push(d);}};
+SM_D.expanse=[
+  {n:'Blinding Edge',d:'Every cut strikes harder: {90}% + 2.25% of its max health on a foe (81% + 2.03% before; bosses 1.12%, 1.01% before), and the ground cuts {66}% (60%) within half a tile (0.42). The strokes are a fifth wider, with whiter cores.'},
+  {n:'Ceaseless Cuts',d:'About 30% more cuts a second: the stream aimed at foes brings 5 a second and 0.4 more for each foe, up to 13 (4 and 0.3, up to 10, before).'},
+  {n:'Denser Space',d:'Space grows denser still: every foe crawls at 15% of its speed (a fifth before), and the motes of dense space round them are thicker and brighter.'},
+  {n:'Erasure',d:'A foe a cut leaves under 15% of its health is erased (not bosses): its cross of strokes doubles and it dissolves behind the same white-rimmed edge the world did.'},
+  {n:'Reality Returns',d:'In the last 3 seconds great screen-wide cuts come every 0.8s, and as reality returns one last cut strikes every foe for {300}%, bosses too. A longer pinch before the snap, a stronger ripple.'}];
+SMF.expanse={m:1};
+SMA.expanse=[1,1,1,1,1];
+SMG.expanse=[1,1,1,1,1];
+SMW.expanse={pack:.6,one:.4};
+/* this domain's numbers and looks (castExpanse's XO), cumulative: Mastery L has masteries 1..L */
+function ivmOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.enK=IVM.enK*a[0];X.enH=IVM.enH;X.enHB=IVM.enHB;X.grK=IVM.grK*a[0];X.grR=IVM.grR;X.slW=1.2;X.slCo=4;}
+  if(L>=2){X.foc0=IVM.foc0;X.focN=IVM.focN;X.focM=IVM.focM;}
+  if(L>=3){X.domF=IVM.domF;X.moteK=1.5;}
+  if(L>=4){X.erase=IVM.erase;X.eraseX=2;}
+  if(L>=5){X.finK=IVM.finK*a[4];X.finGap=IVM.finGap;X.finWin=3;X.pinch=.6;X.colK=1.3;}
+  X.log=ivmLog;ivmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+const IVM_OLD=castExpanse;
+castExpanse=function(t,PW,o,X){const c=!X?ivmC(o):null;return IVM_OLD(t,PW,o,c?ivmOpts(c):X);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
