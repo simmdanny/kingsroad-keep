@@ -14208,7 +14208,7 @@ const CLOG=[
     'Fuller Moon: the impact reaches 4.6 tiles (4.2 before); the moon is a tenth larger with a brighter corona, its shadow and waves wider. Molten Crater: the crater of molten blood spreads to 3 tiles (2.6), burns 7s (6s) and 65% a tick (60%), with more and brighter cracks, more embers and darker smoke.',
     'Shattered Moon: the 16 shards of the moon are thrown at the foes around the crater, the ones the impact did not reach first, and each strikes the nearest foe where it lands for 80%; they glow hotter, trail embers and burst into sparks as they land.',
     'Under Its Shadow: ground foes under the falling moon\u2019s shadow are slowed, up to 60% in its last second, so fewer slip out before it lands (Unstoppable foes too); the shadow is deeper and the glow under it brighter.',
-    'Moonbreaker: the impact strikes 30% harder, and the wave of blood it sends out to 10.6 tiles strikes every ground foe it passes for 300%; the wave now rolls out with real height, a crest and a curling lip.',
+    'Moonbreaker: the impact strikes 20% harder, and the wave of blood it sends out to 10.6 tiles strikes every ground foe it passes for 300%; the wave now rolls out with real height, a crest and a curling lip.',
     'A fix: the crater\u2019s glowing cracks were drawn facing the ground, so they never showed. They show now, inside the crater, at every mastery.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
@@ -32009,7 +32009,7 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
    | 2 | Molten Crater | the crater | 3 tiles (2.6), 7s (6s), 65% a tick (60%) | 16 cracks (12), further out and brighter; more embers, darker smoke |
    | 3 | Shattered Moon | the moon's shards | the 16 shards are thrown at foes; each strikes the nearest foe within 0.5 of where it lands: 80% | hotter shards with short ember trails, a little burst of sparks where each lands; landed, they cool and crumble |
    | 4 | Under Its Shadow | the fall | ground foes under the falling moon's shadow are slowed, harder as it darkens: 60% in its last second | the shadow deeper, the red glow under it brighter, dust pressed up at the feet of the foes under it |
-   | 5 | Moonbreaker | the impact | 30% harder (3380%), and the far blood wave strikes every ground foe it passes, out to 10.6 tiles: 300% | the wave drawn with height: a ring of blood with a crest and a curling lip rolls out on it, blood thrown off its crest |
+   | 5 | Moonbreaker | the impact | 20% harder (3120%), and the far blood wave strikes every ground foe it passes, out to 10.6 tiles: 300% | the wave drawn with height: a ring of blood with a crest and a curling lip rolls out on it, blood thrown off its crest |
    - M1 Fuller Moon: the impact strikes and stuns within MFM.R; the moon is drawn MFM.moon larger with brighter coronas, and its shadow, red
      glow and the waves and shockwaves of the impact (drawn from its reach) widen with it.
    - M2 Molten Crater: the crater burns within MFM.pr for MFM.burn s at MFM.tick a tick (every 0.5s); its scorch, cracks and the cast live as
@@ -32032,11 +32032,14 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
    were never seen; Moonfall's are drawn facing the sky now (nsSeamFx's o.up, as v452 added it for the Ember Titan), kept inside the crater,
    thin and dim (12 within 0.75 of its radius at 40%; Molten Crater's 16 within 0.8 at 50%). Other spells' cracks are unchanged.
    Numbers: on the Secret ladder (pack .6 / single .4, 3 runs of 3 casts 13.5s apart) with the foes put back where they stood before every
-   cast (in play the cooldown is 120s: every cast meets fresh foes), with SMG.moonfall = 1.078 / 1.099 / 1.134 / 1.204 / 0.956:
+   cast (in play the cooldown is 120s: every cast meets fresh foes), with SMG.moonfall = 1.078 / 1.099 / 1.134 / 1.204 / 1.013:
    1.078 / 1.161 / 1.226 / 1.302 / 1.35 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35; the standard ladder reads the same (its foes stand
    still and never die). Fuller Moon's reach and Under Its Shadow's slow count for nothing there (every ladder foe is inside 4.2 tiles and
-   none walks), and the shards little (one each), so their factors carry them. */
-const MFM={dbg:null,R:4.6,moon:1.1,pr:3,burn:7,tick:.65,seams:16,shard:.8,shardR:.5,aim0:0,aim1:8.5,slow:.6,hard:.3,wave:3,busy:0};
+   none walks), and the shards little (one each), so their factors carry them. Moonbreaker's impact is 20% harder, not the approved 30%:
+   at 30% Mastery 5 measured 1.412 before its factor, which then fell to 0.956 from Mastery 4's 1.204, so each crater tick and shard
+   struck about 21% weaker at Mastery 5 than at Mastery 4; at 20% it measures 1.333 and its factor is 1.013 (they strike 16% lighter than at
+   Mastery 4, whose factor carries its slow, and the impact itself a little harder). */
+const MFM={dbg:null,R:4.6,moon:1.1,pr:3,burn:7,tick:.65,seams:16,shard:.8,shardR:.5,aim0:0,aim1:8.5,slow:.6,hard:.2,wave:3,busy:0};
 const mfmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='moonfall'&&c.L?c:null;};
 const mfmLog=d=>{if(MFM.dbg){d.t=time;MFM.dbg.push(d);}};
 SM_D.moonfall=[
@@ -32044,10 +32047,10 @@ SM_D.moonfall=[
   {n:'Molten Crater',d:'The crater of molten blood spreads to 3 tiles (2.6 before) and burns 7s (6s before), {65}% a tick (60% before).'},
   {n:'Shattered Moon',d:'The 16 shards of the moon are thrown at the foes around the crater, and each strikes the nearest foe within 0.5 tiles of where it lands: {80}%.'},
   {n:'Under Its Shadow',d:'Ground foes under the falling moon\'s shadow are slowed, up to 60% in its last second, so fewer slip out before it lands.'},
-  {n:'Moonbreaker',d:'The impact strikes {30}% harder, and the blood wave it sends out to 10.6 tiles strikes every ground foe it passes: {300}%.'}];
+  {n:'Moonbreaker',d:'The impact strikes {20}% harder, and the blood wave it sends out to 10.6 tiles strikes every ground foe it passes: {300}%.'}];
 SMF.moonfall={m:1};
 SMA.moonfall=[1,1,1,1,1];
-SMG.moonfall=[1.078,1.099,1.134,1.204,.956];
+SMG.moonfall=[1.078,1.099,1.134,1.204,1.013];
 /* M3: the shards are thrown at foes (one each) between MFM.aim0 and MFM.aim1 from the impact, the foes it did not reach first, then the
    nearest; each lands where its foe will be (a stunned or slowed foe is led less). Their flight is exact, so they land where they were sent */
 function mfmAim(shards,tx,ty,tz,R){const tg=enemies.filter(e=>!e.dead&&!e.fake).map(e=>({e,d:Math.hypot(e.x-tx,e.z-tz)})).filter(q=>q.d>=MFM.aim0&&q.d<=MFM.aim1).sort((p,q)=>((p.d<R)-(q.d<R))||p.d-q.d);

@@ -32,7 +32,7 @@ const trial=(L,s,x)=>{x=x||{};const S=stage(x);MFM.dbg=[];log=[];wrapHurt();cons
   nsSeamFx=function(){sea.push([...arguments]);return SF0.apply(this,arguments);};const added=track(),t0=time,slows={},bn=new Set(NS_OWN);let stun=null,ti=null,moon=null;
   if(x.walk)x.walk(S);
   try{cast(L);moon=[...NS_OWN].find(o=>!bn.has(o)&&o.isGroup);const n=Math.round((s||12)/.05);for(let i=0;i<n;i++){run(.05);const tt=time-t0;
-      if(!stun&&log.some(h=>!h.dot&&(near(h.amt,2600)||near(h.amt,3380)))){stun=S.F.map(e=>e.stunT||0);ti=time;}
+      if(!stun&&log.some(h=>!h.dot&&(near(h.amt,2600)||near(h.amt,3120)))){stun=S.F.map(e=>e.stunT||0);ti=time;}
       for(const at of x.slowAt||[])if(!slows[at]&&tt>=at-1e-6)slows[at]=S.F.map(e=>e.slowT>0?e.slow:0);
       if(x.each)x.each(S,tt);}}
   finally{hurt=H0;scene.add=S0;nsDecal=ND0;nsSeamFx=SF0;setL(0);}
@@ -45,8 +45,8 @@ try{
   /* ---- the card ---- */
   ok('the five masteries: Fuller Moon, Molten Crater, Shattered Moon, Under Its Shadow, Moonbreaker (v468)',SM_D.moonfall.map(x=>x.n).join('|')==='Fuller Moon|Molten Crater|Shattered Moon|Under Its Shadow|Moonbreaker',SM_D.moonfall.map(x=>x.n).join('|'));
   const dsc=[0,1,2,3,4].map(i=>smDesc('moonfall',i));
-  ok('the numbers on the card are the ones in the code (4.6; 3 / 7s / 65%; 16 / 0.5 / 80%; 60%; 30% / 10.6 / 300%)',/4\.6 tiles/.test(dsc[0])&&/3 tiles/.test(dsc[1])&&/7s/.test(dsc[1])&&/65%/.test(dsc[1])&&/16 shards/.test(dsc[2])&&/0\.5 tiles/.test(dsc[2])&&/80%/.test(dsc[2])&&/60%/.test(dsc[3])&&/30%/.test(dsc[4])&&/10\.6 tiles/.test(dsc[4])&&/300%/.test(dsc[4])
-    &&MFM.R===4.6&&MFM.pr===3&&MFM.burn===7&&MFM.tick===.65&&MFM.seams===16&&MFM.shard===.8&&MFM.shardR===.5&&MFM.slow===.6&&MFM.hard===.3&&MFM.wave===3&&near(MFM.R*MFL.WAVE_R,10.58,.001),dsc.join(' / '));
+  ok('the numbers on the card are the ones in the code (4.6; 3 / 7s / 65%; 16 / 0.5 / 80%; 60%; 20% / 10.6 / 300%)',/4\.6 tiles/.test(dsc[0])&&/3 tiles/.test(dsc[1])&&/7s/.test(dsc[1])&&/65%/.test(dsc[1])&&/16 shards/.test(dsc[2])&&/0\.5 tiles/.test(dsc[2])&&/80%/.test(dsc[2])&&/60%/.test(dsc[3])&&/20%/.test(dsc[4])&&/10\.6 tiles/.test(dsc[4])&&/300%/.test(dsc[4])
+    &&MFM.R===4.6&&MFM.pr===3&&MFM.burn===7&&MFM.tick===.65&&MFM.seams===16&&MFM.shard===.8&&MFM.shardR===.5&&MFM.slow===.6&&MFM.hard===.2&&MFM.wave===3&&near(MFM.R*MFL.WAVE_R,10.58,.001),dsc.join(' / '));
   ok('no hit hooks; calibrated with hidden factors',!SMF.moonfall.hit&&!SMF.moonfall.cast&&SMA.moonfall.every(x=>x===1)&&SMG.moonfall.length===5&&SMG.moonfall.every(x=>x>=.9&&x<1.25),SMG.moonfall.join());
   /* ---- Mastery 0 ---- */
   {const S=trial(0,10,{special:true}),F=S.F,c=S.c,G=F.filter(e=>!e.fly);const imp=F.filter(e=>dOf(e,c)<4.2),cr=F.filter(e=>dOf(e,c)<2.6),sure=(e,R)=>Math.abs(dOf(e,c)-R)>.02;
@@ -56,7 +56,7 @@ try{
     /* (a tick every 0.5s while it burns: 12 in play; stepped 0.05s at a time, the timer lands a step late, 11) */
     const tk=e=>amt(S,e,60,true).length,n0=tk(cr[0]),bt=S.log.filter(h=>h.dot).map(h=>h.t-S.ti),last=Math.max(...bt);
     ok('Mastery 0: the crater burns the foes within 2.6, flyers too, 60% a tick, a tick each 0.5s for 6s',cr.length>=8&&cr.includes(S.Fl)&&n0>=11&&n0<=12&&F.filter(e=>sure(e,2.6)).every(e=>tk(e)===(cr.includes(e)?n0:0))&&last>5.4&&last<6,n0+' ticks each, the last '+last.toFixed(2)+'s after the impact');
-    ok('Mastery 0: no mastery events, nothing else (no 80%, 300%, 65%, 3380%)',!MFM.dbg.length&&!S.log.some(h=>near(h.amt,80)||near(h.amt,300)||near(h.amt,65)||near(h.amt,3380))&&S.log.every(h=>near(h.amt,2600)||near(h.amt,60)));
+    ok('Mastery 0: no mastery events, nothing else (no 80%, 300%, 65%, 3120%)',!MFM.dbg.length&&!S.log.some(h=>near(h.amt,80)||near(h.amt,300)||near(h.amt,65)||near(h.amt,3120))&&S.log.every(h=>near(h.amt,2600)||near(h.amt,60)));
     ok('Mastery 0: nobody is slowed (the slow is Mastery 4\'s)',!Object.keys(S.slows).length&&G.every(e=>!(e.slow>0)));
     ok('Mastery 0: the crater\'s 12 cracks are drawn facing the sky (they were drawn facing the ground and never seen), within three quarters of the crater\'s radius',S.sea.length===1&&S.sea[0][3]===12&&near(S.sea[0][2],2.6*.75)&&S.sea[0][8]&&S.sea[0][8].up===true,S.sea.length&&S.sea[0].slice(2,4).join(','));
     ok('Mastery 0: nothing is left behind',left(S.added)===0,leftL(S.added).map(o=>o.type+':'+(o.geometry&&o.geometry.type)).slice(0,6).join(' '));}
@@ -102,13 +102,13 @@ try{
     ok('M4: a walking foe under the shadow covers 40% of the ground it would in its last second (one outside: all of it)',r[0]<3.9&&r[1]>4.5&&free[0]>.5&&near(k0,.4,.02)&&near(k1,1,.02),k0.toFixed(3)+' / '+k1.toFixed(3));}
   /* ---- M5 Moonbreaker ---- */
   {const S=trial(5,6,{special:true}),F=S.F,c=S.c,WR=4.6*2.3,G=F.filter(e=>!e.fly),wv=ev('wave'),w=e=>amt(S,e,300).length,sure=e=>Math.abs(dOf(e,c)-WR)>.02;
-    ok('M5: the impact strikes 30% harder: 3380% within 4.6',F.filter(e=>Math.abs(dOf(e,c)-4.6)>.02).every(e=>amt(S,e,3380).length===(dOf(e,c)<4.6?1:0))&&!S.log.some(h=>near(h.amt,2600)));
+    ok('M5: the impact strikes 20% harder: 3120% within 4.6',F.filter(e=>Math.abs(dOf(e,c)-4.6)>.02).every(e=>amt(S,e,3120).length===(dOf(e,c)<4.6?1:0))&&!S.log.some(h=>near(h.amt,2600)));
     ok('M5: the blood wave strikes every ground foe it passes, out to 10.6 tiles, once each, 300%; not flyers',G.filter(e=>dOf(e,c)<WR).length>=35&&G.filter(sure).every(e=>w(e)===(dOf(e,c)<WR?1:0))&&w(S.Fl)===0&&G.some(e=>dOf(e,c)>9.7&&dOf(e,c)<WR&&w(e)===1),G.filter(e=>w(e)).length+' struck, the furthest '+Math.max(...G.filter(e=>w(e)).map(e=>dOf(e,c))).toFixed(2));
     const T=wv.map(d=>({d:d.d,t:d.t-S.ti})).sort((a,b)=>a.d-b.d);let mono=true;for(let i=1;i<T.length;i++)if(T[i].t<T[i-1].t-1e-9)mono=false;
     ok('M5: as it passes them: the further a foe, the later it is struck, all within its 1.9s',mono&&T.length&&T[T.length-1].t<=1.9+1e-6&&T[T.length-1].t>T[0].t+.5,T.length&&T.map(x=>x.d.toFixed(1)+'@'+x.t.toFixed(2)).filter((x,i)=>i%6===0).join(' '));
     ok('M5: Masteries 1-4 ride it (the crater 65%, 80% shards)',S.log.some(h=>h.dot&&near(h.amt,65))&&S.log.some(h=>near(h.amt,80))&&ev('cast')[0].X.SLOW===.6);}
   {const S=trial(5,11);ok('M5: nothing is left behind (the wave of blood is gone with it)',left(S.added)===0,leftL(S.added).map(o=>o.type+':'+(o.geometry&&o.geometry.type)).slice(0,6).join(' '));}
-  {const S=trial(4,6);ok('M5 needs Mastery 5 (at 4: no wave, 2600%)',!ev('wave').length&&S.log.some(h=>near(h.amt,2600))&&!S.log.some(h=>near(h.amt,300)||near(h.amt,3380)));}
+  {const S=trial(4,6);ok('M5 needs Mastery 5 (at 4: no wave, 2600%)',!ev('wave').length&&S.log.some(h=>near(h.amt,2600))&&!S.log.some(h=>near(h.amt,300)||near(h.amt,3120)));}
   /* ---- the rest ---- */
   {const S=stage();MFM.dbg=[];log=[];setL(5);wrapHurt();const dec=[];nsDecal=function(px,pz){dec.push({x:px,z:pz});return ND0.apply(this,arguments);};
     try{NSP.moonfall(heroU,heroStats(),enemies.filter(e=>!e.dead),100,{src:heroU,el:'fire',spell:'moonfall'});}finally{nsDecal=ND0;}try{run(9);}finally{hurt=H0;setL(0);}
