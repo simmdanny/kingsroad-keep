@@ -12324,56 +12324,100 @@ function castBloodCurse(t,P,o){
     cgM.opacity=Math.min(cgM.opacity,.9)*(T>1.6?Math.max(.25,1-(T-1.6)):1)*(collapse?endK:1);
   },()=>{CURSE.on=false;CURSE.k=0;CURSE.st=0;},{mats,geos});}
 /* while the curse burns, greater magic is sealed */
-/* ---- Unique spell: BLOOD NEEDLES. Eight dark needles orbit the hero over a blood rune, then hunt foes for 4s (32 guided needles, 50% of the hero's attack each) ---- */
+/* ---- Unique spell: BLOOD NEEDLES. Eight dark needles orbit the hero over a blood rune, then hunt foes for 4s (32 guided needles, 125% of the hero's attack each) ---- */
 const BN_GEO=(()=>{const g=new THREE.ConeGeometry(.032,.44,4);g.rotateX(Math.PI/2);return g;})(),BN_GEO2=(()=>{const g=new THREE.ConeGeometry(.042,.48,4);g.rotateX(Math.PI/2);return g;})();
 const BN_FLY=(()=>{const f=new THREE.ConeGeometry(.02,.46,6);f.rotateX(Math.PI/2);f.translate(0,0,.23);const b=new THREE.ConeGeometry(.02,.14,6);b.rotateX(-Math.PI/2);b.translate(0,0,-.07);return[f,b];})(),BN_FLYS=(()=>{const f=new THREE.ConeGeometry(.032,.5,6);f.rotateX(Math.PI/2);f.translate(0,0,.22);return f;})();
-/* flying needle: a long, thin, double-ended spine with a dark body, a faint red sheath and a bright blood-red tip */
-function bnFlyNeedle(bodyM,sheenM){const p=new THREE.Group();const [f,b]=BN_FLY;p.add(new THREE.Mesh(BN_FLYS,sheenM),new THREE.Mesh(f,bodyM),new THREE.Mesh(b,bodyM));const tip=new THREE.Mesh(ico(.012,0),GLOW(0xff3040));tip.position.z=.44;p.add(tip);return p;}
+/* flying needle: a long, thin, double-ended spine with a dark body, a faint red sheath and a bright blood-red tip (tipK, v466: the tip's size) */
+function bnFlyNeedle(bodyM,sheenM,tipK){const p=new THREE.Group();const [f,b]=BN_FLY;p.add(new THREE.Mesh(BN_FLYS,sheenM),new THREE.Mesh(f,bodyM),new THREE.Mesh(b,bodyM));const tip=new THREE.Mesh(ico(.012,0),GLOW(0xff3040));tip.position.z=.44;if(tipK)tip.scale.setScalar(tipK);p.add(tip);return p;}
 const BN_V=new THREE.Vector3(),BN_D=new THREE.Vector3(),BN_S=new THREE.Vector3(),BN_C=new THREE.Vector3();
-/* a fading ribbon that follows a moving point */
+/* a fading ribbon that follows a moving point (v466: the oldest point is reused for the newest instead of a new one each frame) */
 function bnTrail(len,w){const N=len,pos=new Float32Array(N*2*3),col=new Float32Array(N*2*3),idx=[];for(let i=0;i<N-1;i++){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setIndex(idx);
   const m=new THREE.MeshBasicMaterial({color:0xb01020,transparent:true,opacity:.55,depthWrite:false,side:THREE.DoubleSide});const mesh=new THREE.Mesh(g,m);mesh.frustumCulled=false;
-  const H=[];return{mesh,g,m,push(p){H.unshift(p.clone());if(H.length>N)H.pop();
+  const H=[];return{mesh,g,m,push(p){if(H.length>=N)H.unshift(H.pop().copy(p));else H.unshift(p.clone());
     for(let i=0;i<N;i++){const q=H[Math.min(i,H.length-1)],q2=H[Math.min(i+1,H.length-1)];BN_D.subVectors(q,q2);if(BN_D.lengthSq()<1e-8)BN_D.set(0,0,1);BN_C.subVectors(camera.position,q);BN_S.crossVectors(BN_D,BN_C).normalize().multiplyScalar(w*(1-i/N));
       pos.set([q.x+BN_S.x,q.y+BN_S.y,q.z+BN_S.z,q.x-BN_S.x,q.y-BN_S.y,q.z-BN_S.z],i*6);const k=(1-i/N)*(H.length>1?1:0);col.set([k,.08*k,.12*k,k,.08*k,.12*k],i*6);}
     g.attributes.position.needsUpdate=true;g.attributes.color.needsUpdate=true;}};}
-function castBloodNeedles(t,dmg,o,range){const root=new THREE.Group();root.position.set(t.x,0,t.z);scene.add(root);const mats=[],geos=[];
+/* v466: XO (optional, Blood Needles' masteries): this cast's own numbers over BND (sub: the longest step a needle's flight takes, for every
+   cast, Mastery 0 too: a longer frame is flown in several steps, see the flight below; 0 flies each frame in one step, as before v466; K: each
+   needle's strike, times the old 125% of the hero's attack; spd/turn: the flight's speed and turning; reach: how far the needles hunt;
+   let/letMax: a needle striking a foe this swarm has already pierced strikes let harder per needle already in it, up to letMax; wait: how
+   long past the hunt's end a needle with no prey waits in the orbit for one, and rush: how many a second the waiting needles fly once one
+   comes; N: the needles in the orbit; SH: the needles the hunt looses one by one, F1: by when; halo: at haloT every needle still circling
+   looses at once at the strongest prey) and its looks (len: the needles' length; sheen; tip; trail/trailW/trailA/trailC: the trails; swoop/
+   swoopA: how sharp and wide the swoop is; spray: the hit spray deepening as they pile in; glow/wSpin: waiting needles glowing and the orbit
+   spinning faster while they wait; spin: the orbit's own spin; blur/blurSpin: the orbit spinning to a blur before the halo looses; smoke/
+   smokeS: the red smoke), and log() for the tests. Without XO: exactly as before (but for sub). */
+const BND={sub:.02,K:1,spd:1,turn:1,reach:1,let:0,letMax:0,wait:0,rush:32,N:8,SH:32,F1:4.35,halo:0,haloT:4.35,len:1,sheen:.3,tip:0,trail:14,trailW:.05,trailA:.55,trailC:0xb01020,swoop:1,swoopA:.9,spray:0,glow:0,wSpin:0,spin:0,blur:0,blurSpin:0,smoke:1,smokeS:1,log:null};
+const bnMix=(a,b,k)=>{const A=new THREE.Color(a),B=new THREE.Color(b);return A.lerp(B,k).getHex();};
+/* the orbit spun to a blur: a thin tube of light along the orbit (a torus, so it reads from the game's steep camera as well as from the
+   side), bright just behind each needle and fading along the arc it has swept; it turns with the orbit, so each streak stays behind its needle */
+const BN_BLUR_VS='varying vec2 vUv;varying float vF;void main(){vUv=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vF=abs(dot(normalize(normalMatrix*normal),normalize(-mv.xyz)));gl_Position=projectionMatrix*mv;}';
+const BN_BLUR_FS='varying vec2 vUv;varying float vF;uniform float uA,uN;uniform vec3 uC;void main(){float f=1.-fract(vUv.x*uN);float s=pow(f,4.)*.8+pow(f,30.)*.7;float a=s*pow(vF,1.6)*uA;if(a<.004)discard;gl_FragColor=vec4(mix(uC,vec3(1.,.5,.55),pow(f,30.)*.45),min(1.,a));}';
+function castBloodNeedles(t,dmg,o,range,XO){const D=XO?Object.assign({},BND,XO):BND,lg=D.log;dmg*=D.K;const root=new THREE.Group();root.position.set(t.x,0,t.z);scene.add(root);const mats=[],geos=[];
   const pg=new THREE.PlaneGeometry(1,1);pg.rotateX(-Math.PI/2);geos.push(pg);
   /* faint red dim around the hero, rune beneath */
   const dimM=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0x5a0010,transparent:true,opacity:0,depthWrite:false});mats.push(dimM);const dim=new THREE.Mesh(pg,dimM);dim.position.y=.035;dim.scale.setScalar(3.8);root.add(dim);
   const runeM=BMA(0x9a0a18,0,false);runeM.map=bmTex('sigil');mats.push(runeM);const rune=new THREE.Mesh(pg,runeM);rune.position.y=.05;rune.scale.setScalar(2.3);rune.renderOrder=4;root.add(rune);
   const runeG=BMA(0xff2a3a,0);runeG.map=bmTex('ring');mats.push(runeG);const ring=new THREE.Mesh(pg,runeG);ring.position.y=.055;ring.scale.setScalar(2.5);ring.renderOrder=5;root.add(ring);
-  /* the needles: dark body, faint red sheen */
-  const bodyM=new THREE.MeshBasicMaterial({color:0x14020a}),sheenM=BMA(0xff1a2a,.3);mats.push(bodyM,sheenM);
-  const N=8,R=.72,orbit=new THREE.Group();orbit.position.y=.6;root.add(orbit);const nd=[];
-  for(let i=0;i<N;i++){const g=new THREE.Group();const b=new THREE.Mesh(BN_GEO,bodyM),sh=new THREE.Mesh(BN_GEO2,sheenM);g.add(sh,b);orbit.add(g);nd.push({g,a:i/N*Math.PI*2,grow:0});}
-  const SH=32,FIRE0=.35,FIRE1=4.35,END=4.9;let T=0,shot=0,nextI=0;const tmp=new THREE.Vector3(),tmp2=new THREE.Vector3();
-  const inRange=e=>!e.dead&&(e.x-t.x)**2+(e.z-t.z)**2<=range*range*1.6;
-  const pend=new Map(),aim=(e,d)=>{if(e)pend.set(e,(pend.get(e)||0)+d);};
+  const SH=D.SH,FIRE0=.35,FIRE1=4.35,END=4.9,F1=D.F1,HT=D.halo?D.haloT:F1;let T=0,shot=0,nextI=0;const tmp=new THREE.Vector3(),tmp2=new THREE.Vector3();
+  /* the needles: dark body, faint red sheen (the flying needles share them: they are freed once the last needle that could still fly is gone) */
+  const bodyM=new THREE.MeshBasicMaterial({color:0x14020a}),sheenM=BMA(0xff1a2a,D.sheen);addFx(new THREE.Group(),HT+D.wait+4.3,null,null,{mats:[bodyM,sheenM]});
+  const N=D.N,R=.72,orbit=new THREE.Group();orbit.position.y=.6;root.add(orbit);const nd=[];
+  const waitM=D.glow?BMA(0xff4050,0):null;if(waitM)mats.push(waitM);
+  for(let i=0;i<N;i++){const g=new THREE.Group();const b=new THREE.Mesh(BN_GEO,bodyM),sh=new THREE.Mesh(BN_GEO2,sheenM);g.add(sh,b);orbit.add(g);const n={g,a:i/N*Math.PI*2,grow:0};
+    if(waitM){n.w=new THREE.Mesh(BN_GEO2,waitM);n.w.scale.set(1.5,1.5,1.12);n.w.visible=false;g.add(n.w);}nd.push(n);}
+  let blurM=null;if(D.blur){const bg=new THREE.TorusGeometry(R,.06,8,144);bg.rotateX(Math.PI/2);geos.push(bg);blurM=new THREE.ShaderMaterial({uniforms:{uA:{value:0},uN:{value:N},uC:{value:new THREE.Color(0xff1a2a)}},vertexShader:BN_BLUR_VS,fragmentShader:BN_BLUR_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});mats.push(blurM);const bm=new THREE.Mesh(bg,blurM);bm.position.y=-.02;orbit.add(bm);}
+  const inRange=e=>!e.dead&&(e.x-t.x)**2+(e.z-t.z)**2<=range*range*1.6*D.reach*D.reach;
+  const pend=new Map(),aim=(e,d)=>{if(e)pend.set(e,(pend.get(e)||0)+d);},pin=new Map();let nid=0;
   const pickTarget=(not)=>{let best=null,bd=-1e18,top=null,td=-1;for(const e of enemies){if(!inRange(e)||e===not)continue;const hp=e.hp+(e.shield||0),left=hp-(pend.get(e)||0);if(hp>td){td=hp;top=e;}if(left>0&&left>bd){bd=left;best=e;}}const r=best||top||(not&&inRange(not)?not:null);aim(r,dmg);return r;};
+  /* (the strongest prey: the most life left after the needles already flying at it) */
+  const strongest=()=>{let best=null,bd=-1e18,top=null,td=-1;for(const e of enemies){if(!inRange(e))continue;const hp=e.hp+(e.shield||0),left=hp-(pend.get(e)||0);if(hp>td){td=hp;top=e;}if(left>0&&left>bd){bd=left;best=e;}}return best||top;};
+  const hitRed=D.spray?k=>bnMix(0xff3040,0xc0101e,k):null;
   /* guided needle: leaves along the orbit, swings wide, then accelerates and steers into its mark, re-targeting if the mark dies */
-  const fire=(n)=>{let e=pickTarget();if(!e)return false;n.g.getWorldPosition(tmp);n.g.getWorldDirection(tmp2);const p=bnFlyNeedle(bodyM,sheenM);p.position.copy(tmp);scene.add(p);
-    const tr=bnTrail(14,.05);scene.add(tr.mesh);const tf=addFx(tr.mesh,3.9,(f)=>{if(f.life<.3)tr.m.opacity=.55*f.life/.3;},null,{mats:[tr.m],geos:[tr.g]});const vel=tmp2.clone().normalize().multiplyScalar(3.2).add(new THREE.Vector3((rnd()-.5)*2,1.4+rnd()*1.2,(rnd()-.5)*2));let age=0;const wob=rnd()*6.28,wd=rnd()<.5?-1:1;
-    addFx(p,3.6,(f,dt)=>{age+=dt;if(!e||e.dead){aim(e,-dmg);e=pickTarget(e);}if(!e){f.life=Math.min(f.life,.15);p.scale.multiplyScalar(.85);tr.push(p.position);return;}
+  const fire=(n,e0)=>{let e=e0||pickTarget();if(!e)return false;if(e0)aim(e0,dmg);n.g.getWorldPosition(tmp);n.g.getWorldDirection(tmp2);const p=bnFlyNeedle(bodyM,sheenM,D.tip);if(D.len!==1)p.scale.z=D.len;p.position.copy(tmp);scene.add(p);
+    const tr=bnTrail(D.trail,D.trailW);if(D.trailC!==0xb01020)tr.m.color.setHex(D.trailC);tr.m.opacity=D.trailA;scene.add(tr.mesh);const tf=addFx(tr.mesh,3.9,(f)=>{if(f.life<.3)tr.m.opacity=D.trailA*f.life/.3;},null,{mats:[tr.m],geos:[tr.g]});const vel=tmp2.clone().normalize().multiplyScalar(3.2).add(new THREE.Vector3((rnd()-.5)*2,1.4+rnd()*1.2,(rnd()-.5)*2));let age=0;const wob=rnd()*6.28,wd=rnd()<.5?-1:1;
+    if(D.spd!==1)vel.multiplyScalar(D.spd);const id=++nid;let hit=0;if(lg)lg({ev:'fire',id,e,T,halo:!!e0,slot:nd.indexOf(n),wait:wq});
+    /* (v466: a long frame is flown in steps of at most D.sub s, so the needles fly and strike at any frame rate or game speed as they do at
+       50-60 fps; flown in one long step, most of them circled their mark until they expired) */
+    addFx(p,3.6,(f,dt0)=>{const ns=D.sub&&dt0>D.sub?Math.ceil(dt0/D.sub):1,dt=ns>1?dt0/ns:dt0;for(let j=0;j<ns;j++){age+=dt;if(!e||e.dead){aim(e,-dmg);e=pickTarget(e);}if(!e){f.life=Math.min(f.life,.15);p.scale.multiplyScalar(.85);tr.push(p.position);return;}
       BN_V.set(e.x,(e.y||0)+e.hitY*.55,e.z).sub(p.position);const dl=BN_V.length();
-      if(dl<.2){f.life=0;aim(e,-dmg);hurt(e,dmg,'magic',o);sprayP(1,p.position.x,p.position.y,p.position.z,9,{c:0xff3040,c2:0x5a0008,sp:1.5,up:.4,s:.04,s2:0,life:.35,g:3});sprayP(0,p.position.x,p.position.y,p.position.z,5,{c:0x3a0006,c2:0x0a0002,sp:1,up:.3,s:.05,s2:0,life:.4,g:3});return;}
-      const sp=Math.min(14,3.2+age*age*16),turn=Math.min(1,dt*(2.2+age*9));BN_V.normalize();BN_D.copy(vel).normalize();
+      if(dl<.2){f.life=0;hit=1;aim(e,-dmg);const k=pin.get(e)||0,amt=D.let?dmg*(1+Math.min(D.letMax,D.let*k)):dmg;pin.set(e,k+1);hurt(e,amt,'magic',o);if(lg)lg({ev:'hit',id,e,amt,k,T,age});
+        if(!D.spray){sprayP(1,p.position.x,p.position.y,p.position.z,9,{c:0xff3040,c2:0x5a0008,sp:1.5,up:.4,s:.04,s2:0,life:.35,g:3});sprayP(0,p.position.x,p.position.y,p.position.z,5,{c:0x3a0006,c2:0x0a0002,sp:1,up:.3,s:.05,s2:0,life:.4,g:3});}
+        /* Bloodletting: the spray thickens and darkens with every needle already in the foe */
+        else{const q=Math.min(1,D.letMax?D.let*k/D.letMax:0);sprayP(1,p.position.x,p.position.y,p.position.z,9+Math.round(7*q),{c:hitRed(q),c2:0x4a0006,sp:1.5+.4*q,up:.4,s:.04+.012*q,s2:0,life:.35+.08*q,g:3});
+          sprayP(0,p.position.x,p.position.y,p.position.z,5+Math.round(9*q),{c:bnMix(0x3a0006,0x200002,q),c2:0x0a0002,sp:1+.35*q,up:.3+.15*q,s:.05+.025*q,s2:0,life:.4+.15*q,g:3});}return;}
+      const sp=Math.min(14*D.spd,(3.2+age*age*16)*D.spd),turn=Math.min(1,dt*(2.2+age*9)*D.turn);BN_V.normalize();BN_D.copy(vel).normalize();
       /* sideways wobble early on gives the swooping, hunting arc */
-      if(age<.45){BN_S.crossVectors(BN_D,BN_C.set(0,1,0)).normalize().multiplyScalar(wd*Math.sin(age*14+wob)*.9);BN_V.add(BN_S).normalize();}
-      BN_D.lerp(BN_V,turn).normalize();vel.copy(BN_D).multiplyScalar(sp);p.position.addScaledVector(vel,dt);
-      tmp.copy(p.position).add(vel);p.lookAt(tmp);tr.push(p.position);if(f.life<=0)tf.life=Math.min(tf.life,.3);},()=>{tf.life=Math.min(tf.life,.3);},{});
+      if(age<.45/D.swoop){BN_S.crossVectors(BN_D,BN_C.set(0,1,0)).normalize().multiplyScalar(wd*Math.sin(age*14*D.swoop+wob)*D.swoopA);BN_V.add(BN_S).normalize();}
+      BN_D.lerp(BN_V,turn).normalize();vel.copy(BN_D).multiplyScalar(sp);p.position.addScaledVector(vel,dt);}
+      tmp.copy(p.position).add(vel);p.lookAt(tmp);tr.push(p.position);if(f.life<=0)tf.life=Math.min(tf.life,.3);},()=>{tf.life=Math.min(tf.life,.3);if(lg&&!hit)lg({ev:'lost',id,T});},{});
     n.grow=0;return true;};
-  addFx(root,END,(f,dt)=>{T+=dt;root.position.set(t.x,0,t.z);
-    const inK=SMS(T,0,.35),outK=1-SMS(T,FIRE1,END);dimM.opacity=.42*inK*outK;runeM.opacity=.85*inK*outK;runeG.opacity=(.35+.15*Math.sin(T*9))*inK*outK;rune.rotation.y+=dt*.8;ring.rotation.y-=dt*1.4;
-    orbit.rotation.y+=dt*(2.4+2*SMS(T,FIRE0,FIRE0+.4));
-    nd.forEach((n,i)=>{n.grow=Math.min(1,n.grow+dt*3.5);const a=n.a,k=inK*outK*n.grow;n.g.position.set(Math.cos(a)*R,Math.sin(T*3+i)*.05,Math.sin(a)*R);n.g.rotation.set(0,-a,0);n.g.rotateX(-.25);n.g.scale.setScalar(Math.max(.001,k));});
+  /* the hunt's end: when the needles stop leaving (later while needles wait for prey, Mastery 4), and the halo (Mastery 5) */
+  let hEnd=HT,halo=!D.halo,wq=0,hw=0,rushT=0,wK=0,bK=0;const lateT=HT+D.wait;
+  if(lg)lg({ev:'cast',N,SH,F1,HT,dmg,range:Math.sqrt(range*range*1.6)*D.reach,root,nd});
+  addFx(root,XO?lateT+.65:END,(f,dt)=>{T+=dt;root.position.set(t.x,0,t.z);
+    const inK=SMS(T,0,.35),outK=1-SMS(T,hEnd,hEnd===FIRE1?END:hEnd+.55);dimM.opacity=.42*inK*outK;runeM.opacity=.85*inK*outK;runeG.opacity=(.35+.15*Math.sin(T*9))*inK*outK;rune.rotation.y+=dt*.8;ring.rotation.y-=dt*1.4;
+    orbit.rotation.y+=dt*(2.4+2*SMS(T,FIRE0,FIRE0+.4)+D.spin*inK+D.wSpin*wK+D.blurSpin*bK);
+    nd.forEach((n,i)=>{n.grow=Math.min(1,n.grow+dt*3.5);const a=n.a,k=n.gone?0:inK*outK*n.grow;n.g.position.set(Math.cos(a)*R,Math.sin(T*3+i)*.05,Math.sin(a)*R);n.g.rotation.set(0,-a,0);n.g.rotateX(-.25);const s=Math.max(.001,k);n.g.scale.set(s,s,s*D.len);
+      if(n.w)n.w.visible=wK>.01&&!n.gone&&(hw||((i-nextI)%N+N)%N<wq);});
     if(T<.35)nd.forEach(n=>n.grow=Math.min(n.grow,T/.35));
-    /* fire: 32 needles over 4s, each orbit slot regrows after it flies */
-    if(T>=FIRE0&&T<FIRE1&&shot<SH){const want=Math.floor((T-FIRE0)/(FIRE1-FIRE0)*SH)+1;while(shot<Math.min(SH,want)){const n=nd[nextI%N];nextI++;if(fire(n))shot++;else{shot=Math.min(SH,want);break;}}}
+    /* fire: 32 needles over 4s, each orbit slot regrows after it flies (Mastery 4: a needle with no prey waits in its slot instead of being
+       lost, until lateT; once prey comes, the waiting needles fly at D.rush a second until the hunt has caught up) */
+    if(T>=FIRE0&&shot<SH&&(T<F1||D.wait&&T<lateT)){const want=T<F1?Math.min(SH,Math.floor((T-FIRE0)/(F1-FIRE0)*SH)+1):SH;let miss=0;if(D.wait)rushT=Math.min(3,rushT+dt*D.rush);
+      while(shot<want){const rush=D.wait&&want-shot>1;if(rush&&rushT<1)break;const n=nd[nextI%N];nextI++;if(fire(n)){shot++;if(rush)rushT--;}else{if(D.wait){nextI--;miss=1;}else shot=want;break;}}
+      if(D.wait){if(miss&&!wq&&lg)lg({ev:'wait',T,n:want-shot});wq=miss?want-shot:0;}}else wq=0;
+    if(D.wait){wK=wq||hw?Math.min(1,wK+dt*5):Math.max(0,wK-dt*4);if(waitM)waitM.opacity=wK*(.5+.22*Math.sin(T*16));if(shot<SH&&T<lateT&&T>hEnd)hEnd=T;}
+    /* Mastery 5: the orbit spins to a blur, and as the hunt ends every needle still circling looses at once at the strongest prey */
+    /* (with Mastery 4 the circling needles wait for prey too, glowing, until lateT; and once needles that waited have flown, the halo waits
+       the moment it takes their slots to regrow, so every needle of the orbit looses) */
+    hw=0;if(!halo&&T>=HT){if(shot>=SH||T>=lateT||!D.wait){const e=strongest();if(!e){if(T>=lateT)halo=1;else{hw=1;if(T>hEnd)hEnd=T;}}
+      else if(T>=lateT||nd.every(n=>n.gone||n.grow>=1)){halo=1;let n0=0;for(const n of nd)if(!n.gone&&n.grow>.5){fire(n,e);n.gone=1;n0++;}if(lg)lg({ev:'halo',e,n:n0,T});hEnd=Math.max(hEnd,T);}else if(T>hEnd)hEnd=T;}else hw=1;}
+    if(blurM){bK=halo?Math.max(0,bK-dt*5):Math.max(bK,SMS(T,F1-.15,HT));blurM.uniforms.uA.value=D.blur*(halo?bK:.3*inK+.7*bK)*outK;}
     /* red smoke clinging to the hero, embers rising */
-    if(outK>.1){if(rnd()<dt*14)emitS(0,{x:t.x+(rnd()-.5)*.35,y:.15+rnd()*.35,z:t.z+(rnd()-.5)*.35,vx:(rnd()-.5)*.15,vy:.25+rnd()*.2,vz:(rnd()-.5)*.15,s:.14,s2:.45,c:0x8a0818,c2:0x2a0208,a:.4,life:1.1,turb:.5,drag:.8});
+    if(outK>.1){if(rnd()<dt*14*D.smoke)emitS(0,{x:t.x+(rnd()-.5)*.35*D.smokeS,y:.15+rnd()*.35,z:t.z+(rnd()-.5)*.35*D.smokeS,vx:(rnd()-.5)*.15,vy:.25+rnd()*.2,vz:(rnd()-.5)*.15,s:.14*D.smokeS,s2:.45*D.smokeS,c:0x8a0818,c2:0x2a0208,a:.4,life:1.1,turb:.5,drag:.8});
       if(rnd()<dt*18)emit(1,{x:t.x+(rnd()-.5)*.8,y:.08,z:t.z+(rnd()-.5)*.8,vx:0,vy:.5+rnd()*.6,vz:0,s:.04,s2:0,c:0xff2a3a,c2:0x400008,life:.7});}
+    if(XO&&T>=(hEnd===FIRE1?END:hEnd+.55)&&halo&&(shot>=SH||T>=lateT||!D.wait))f.life=0;
   },null,{mats,geos});}
 const cursedSeal=k=>CURSE.on&&k!=='bloodcurse'&&k!=='bloodneedles'&&RB[SPELLS_S[k].r].i>=2;
 
@@ -14535,6 +14579,12 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Blood Needles: more of them, and sharper',d:'3 Nov',v:'v466',li:[
+    'Blood Needles (Secret) has five new masteries, for now in developer mode. Still one crimson orbit round the hero and one hunt of guided needles: each mastery makes the swarm sharper or larger, and draws it a little richer.',
+    'Barbed Points: each needle strikes 135% of the hero\u2019s attack (125% before), drawn a fifth longer with brighter sheens, bigger tips and longer trails. Bloodhound: the needles fly 25% faster, turn twice as tight and hunt a quarter further, so they strike in under a second instead of circling their mark; longer, brighter trails.',
+    'Bloodletting: a needle striking a foe the swarm has already pierced strikes 2% harder for every needle already in it (up to 20%), and the spray thickens as they pile in. Patient Swarm: a needle with no foe in reach waits in the orbit, glowing, and flies the moment one comes (up to 1.5s after the hunt), instead of being lost.',
+    'Crimson Halo: the orbit fills to 12 needles (8 before); after 24 have flown one by one it spins to a blur, and every needle still circling looses at once at the strongest foe: 36 needles in all (32 before).',
+    'A fix for every Blood Needles cast: below 50 frames a second, or at 2x game speed and up, most needles overshot their mark and circled it until they expired (at 20 frames a second only about a quarter struck). They now fly the same at any frame rate and speed; at 50 frames a second and up at 1x nothing changes.']},
   {t:'The Primordial Tempest: the hurricane',d:'2 Nov',v:'v465',li:[
     'The Primordial Tempest (Ancient) has five new masteries, for now in developer mode, and its storm is now a hurricane at every mastery (Simon: \u201cmake it feel like there\u2019s an actual storm like a hurricane around the hero\u201d). The hero rises higher into the eye, the eye wall towers about 5 tiles round it and leans out as it rises, spiral rain bands reach out over the ground with arms of cloud over them, and a faint outflow wheels high above. The wall is cut away on the camera\u2019s side, so the hero, the road and the foes stay in view. The storm\u2019s numbers are unchanged.',
     'Crown of Thunder: the crown bolt strikes every foe for 300% (200% before) and leaves them Charged for 6s (4s before); the hero is lifted higher and the wall rises taller. The Storm Chooses: every volley locks onto one more foe, 3 rising to 8 (2 rising to 7 before), and the rain bands sweep out from the wall across the whole field.',
@@ -34014,6 +34064,67 @@ function pgmOpts(c){const L=c.L,a=c.a,X={};
   X.log=pgmLog;pgmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
 const PGM_OLD=castPurgatory;
 castPurgatory=function(t,PW,o,XO){const c=!XO?pgmC(o):null;return PGM_OLD(t,PW,o,c?pgmOpts(c):XO);};
+/* ================= Blood Needles' masteries (v466), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: a crimson orbit of eight needles circles the hero over a blood rune, then hunts for 4 seconds: guided blood darts leave it one
+   every eighth of a second, each going for the foe with the most life left after the darts already in flight. No splash, chains or bursts.
+   Simon (v447), the picture this scroll is closest to: "piercing judgment really cannot lose its identity so masteries should make it more
+   powerful but not by adding crazy effects but picture it like fern from frieren where she fires alot of em and just more powerful ones";
+   and for every Mythic, Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is
+   preserved but their visuals barely change and change only to better". So every mastery is the same swarm, with more needles or sharper
+   ones: nothing ricochets, pierces, bursts or bleeds (Murder of Crows, Frost Wolves, Vael, Seraph Lance).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Barbed Points | what if every needle bit deeper? | each needle | stronger needles |
+   | 2 | Bloodhound | what if they found their prey at once? | the flight | a faster hunt |
+   | 3 | Bloodletting | what if they piled into the same wound? | the focus | a stronger focus |
+   | 4 | Patient Swarm | what if no needle were wasted? | the orbit | no needle lost |
+   | 5 | Crimson Halo | what if the orbit itself loosed? | the orbit's end | signature payoff: Fern's volley |
+   - M1 Barbed Points: each needle strikes BNM.atk of the hero's attack (125% before), drawn a fifth longer in the orbit and in flight, with
+     a brighter sheen (0.45, 0.3 before), tips half again as large and longer trails (18 points, 14 before).
+   - M2 Bloodhound: the needles fly BNM.spd times as fast, turn BNM.turn times as tight and hunt BNM.reach times as far. Today most of them
+     circle their mark for 2-3s before they strike (they turn too slowly to meet a mark 0.2 wide at full speed), and one that is still
+     circling at 3.6s expires; at Mastery 2 they strike in about 0.8s on average (2.3s before). Turning only as much faster as they fly would
+     circle in the same loops, so the turn is doubled. Longer, brighter trails (22 points, a brighter red, 0.68) and a sharper swoop.
+   - M3 Bloodletting: a needle striking a foe this swarm has already pierced strikes BNM.let harder for each needle already in it, up to
+     BNM.letMax (from the 11th); the needles still spread by the life left, so it pays on the big foes that draw many. The hit spray thickens
+     and darkens as they pile in (9 red and 5 dark sparks at first, 16 and 14 once ten are in).
+   - M4 Patient Swarm: a needle with no foe in reach waits in its slot, glowing, the orbit spinning faster, instead of being lost; when one
+     comes, the waiting needles fly at BND.rush a second (32) until the hunt has caught up. They wait until BNM.wait s after the hunt's end
+     (4.35s), and the orbit with them.
+   - M5 Crimson Halo: the orbit fills to BNM.N needles (8 before); BNM.SH of them fly one by one at the hunt's old pace (by BNM.F1 s), then
+     the orbit spins to a blur (a thin torus of light streaked behind each needle) and at BNM.haloT s every needle still circling looses at
+     once at the strongest foe (the most life left after the needles in flight); thicker blood smoke. 36 needles in all (32 before). Built as
+     written (the 32 one by one, then 12 more) the halo added 41%: Mastery 5 measured 1.64 against 1.35, a factor of 0.82, so each needle
+     would have struck weaker than at Mastery 0. So the halo's twelve come out of the hunt's own count: 24 one by one, then 12 at once.
+   Every cast (v466, Mastery 0 too): a needle's flight is flown in steps of at most BND.sub (0.02s). Effects step by the frame's time times
+   the game speed, and in one long step a needle flew so far past its mark that it never met it: below 50 fps, or at 2x speed and up, most
+   needles circled until they expired (at 20 fps 6-11 of the 32 struck). At 50 fps and up at 1x a frame is still one step: nothing changes.
+   Percentages are of the hero's attack (the needles' own strike). Every mastered Blood Needles cast runs castBloodNeedles with its XO
+   (bnmOpts); Mastery 0, echoes and other casters cast as before. Bloodhound's speed and reach and Patient Swarm count for nothing on the
+   ladder (its foes stand in reach and never die, and every needle strikes), so their factors carry them. On the ladder (Secret, half steps;
+   pack .6 / lone foe .4, 12 casts 15s apart) with the factors below: 1.08 / 1.162 / 1.226 / 1.303 / 1.349 against 1.078 / 1.162 / 1.226 /
+   1.302 / 1.35; with the foes put back before every cast, 1.08 / 1.162 / 1.226 / 1.302 / 1.343. BNM.dbg (an array) logs the events. */
+const BNM={dbg:null,atk:1.35,spd:1.25,turn:2,reach:1.25,let:.02,letMax:.2,wait:1.5,N:12,SH:24,F1:3.35,haloT:3.85};
+const bnmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='bloodneedles'&&c.L?c:null;};
+const bnmLog=d=>{if(BNM.dbg){d.t=time;BNM.dbg.push(d);}};
+SM_D.bloodneedles=[
+  {n:'Barbed Points',d:'Each needle strikes {135}% of the hero\'s attack (125% before). The needles are drawn a fifth longer, with brighter sheens, bigger tips and longer trails.'},
+  {n:'Bloodhound',d:'The needles fly 25% faster, turn twice as tight and hunt a quarter further, so far fewer arrive late. Longer, brighter trails and a sharper swoop.'},
+  {n:'Bloodletting',d:'A needle striking a foe this swarm has already pierced strikes {2}% harder for every needle already in it (up to {20}%). The spray thickens and darkens as they pile in.'},
+  {n:'Patient Swarm',d:'A needle with no foe in reach waits in the orbit, glowing, and flies the moment one comes (up to 1.5s after the hunt), instead of being lost.'},
+  {n:'Crimson Halo',d:'The orbit fills to 12 needles (8 before). After 24 have flown one by one it spins to a blur, and every needle still circling looses at once at the strongest foe: 36 needles in all (32 before).'}];
+SMF.bloodneedles={m:1};
+SMA.bloodneedles=[1,1,1,1,1];
+SMG.bloodneedles=[1,1.076,1.054,1.12,1.005];
+/* this cast's numbers and looks (castBloodNeedles' XO), cumulative: Mastery L has masteries 1..L */
+function bnmOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.K=(1.25+(BNM.atk-1.25)*a[0])/1.25;X.len=1.2;X.sheen=.45;X.tip=1.5;X.trail=18;}
+  if(L>=2){X.spd=BNM.spd;X.turn=BNM.turn;X.reach=BNM.reach;X.trail=22;X.trailA=.68;X.trailC=0xc8142a;X.swoop=1.25;X.swoopA=1.05;}
+  if(L>=3){X.let=BNM.let*a[2];X.letMax=BNM.letMax*a[2];X.spray=1;}
+  if(L>=4){X.wait=BNM.wait;X.glow=1;X.wSpin=3;}
+  if(L>=5){X.N=BNM.N;X.SH=BNM.SH;X.F1=BNM.F1;X.halo=1;X.haloT=BNM.haloT;X.spin=1.2;X.blur=1;X.blurSpin=9;X.smoke=1.8;X.smokeS=1.25;}
+  X.log=BNM.dbg?bnmLog:null;bnmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+const BNM_OLD=castBloodNeedles;
+castBloodNeedles=function(t,dmg,o,range,XO){const c=!XO?bnmC(o):null;return BNM_OLD(t,dmg,o,range,c?bnmOpts(c):XO);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
