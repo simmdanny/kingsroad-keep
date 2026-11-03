@@ -1,0 +1,52 @@
+{
+ "abyss-1": {
+  "k": "abyss",
+  "L": 1,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 3107130,
+  "note": "Foes drown faster: streams of bubbles rise off every one.",
+  "ev": {
+   "opts": 1,
+   "drown": 96,
+   "lunge": 3,
+   "bite": 18
+  }
+ },
+ "abyss-0": {
+  "k": "abyss",
+  "L": 0,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 3099637,
+  "note": "The sea rises over the field and its leviathans hunt (the first 13 seconds of the cast)."
+ },
+ "abyss-3": {
+  "k": "abyss",
+  "L": 3,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 3205364,
+  "note": "The leviathans lunge more often, bite harder and reach further.",
+  "ev": {
+   "opts": 1,
+   "drown": 96,
+   "lunge": 4,
+   "bite": 24
+  }
+ },
+ "abyss-2": {
+  "k": "abyss",
+  "L": 2,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 2984105,
+  "note": "The pack walks on: the sea slows it 70%.",
+  "ev": {
+   "opts": 1,
+   "drown": 96,
+   "lunge": 3,
+   "bite": 18
+  }
+ }
+}
