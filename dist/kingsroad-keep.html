@@ -5860,7 +5860,7 @@ function castExpanse(t,PW,o){
 
 /* ================= ANCIENT: Crimson Purgatory ================= */
 /* PURG.f multiplies enemy speed; PURG.on hands lights + background to the domain (wins over DOM) */
-var PURG={on:false,f:1,hemi:.58,sun:.8,bg:new THREE.Color(0x120103),bgK:0,live:null};
+var PURG={on:false,f:1,hemi:.58,sun:.8,bg:new THREE.Color(0x120103),bgK:0,live:null,pose:{j:15,e:18.5}};
 const HEMI_C0=new THREE.Color(0xe8f2ff),HEMI_G0=new THREE.Color(0x4a5530),SUN_C0=new THREE.Color(0xfff0d8);
 /* ---- day and night: 20 minutes of day, 10 of night, with a slow dusk and dawn. e is a signed sun height (+day, -night) ---- */
 const DAYC={T:1800,day:1200,sky:new THREE.Color(),c:new THREE.Color(),hm:1,sm:1,k:1,last:-1,off:new THREE.Vector3(-7,15,5),e:1};
@@ -5947,16 +5947,32 @@ function thornGeos(){if(thornGeos.c)return thornGeos.c;
   const g2=merge([[new THREE.ConeGeometry(.07,.6,4),M4(0,.29,0,.12,0,.28)],[new THREE.ConeGeometry(.06,.48,4),M4(.06,.22,.04,-.35,0,-.42)],[new THREE.ConeGeometry(.05,.4,4),M4(-.05,.18,-.05,.45,0,.1)],barb(.2,2.6,1,.8)]);
   return thornGeos.c=[g0,g1,g2];}
 
-function castPurgatory(t,PW,o){
+/* (v464) the pooled blades: the slashes' own look (slF), each blade timed by its attributes; and an execution's red-hot glow under its scorch */
+const PURG_BPV='attribute float aU,aV,aS,aL,aD,aM;uniform float uT;varying float vU,vV,vH,vTl,vA;void main(){vU=aU;vV=aV;float t=uT-aS;float tk=clamp((t-aD)/max(.001,aL-aD),0.,1.);vH=min(1.001,t/aD);if(aM>.5){vTl=0.;vA=t<aD+.06?1.2:.5*(1.-tk)*(1.-tk);}else{vTl=pow(tk,.7);vA=1.3*(1.-tk*.4);}if(t<0.||t>=aL)vA=0.;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+const PURG_BPF='varying float vU,vV,vH,vTl,vA;void main(){if(vA<=0.||vU>vH||vU<vTl)discard;float av=abs(vV);float core=pow(1.-av,6.);float glow=pow(1.-av,2.);float hd=smoothstep(.16,0.,vH-vU);vec3 c=mix(vec3(.9,.03,.04),vec3(1.,.72,.62),core);gl_FragColor=vec4(c,(core*1.3+glow*.5+hd*glow)*vA);}';
+const PURG_XGV='varying vec2 vP;void main(){vP=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+const PURG_XGF='uniform float uA,uR;varying vec2 vP;void main(){float r=length(vP);if(r>1.)discard;float ring=exp(-pow((r-uR)/.13,2.));float core=pow(max(0.,1.-r/max(.2,uR+.15)),2.);vec3 c=mix(vec3(.7,.02,.04),vec3(1.,.42,.26),core*.8);gl_FragColor=vec4(c,(ring*.75+core*.8)*uA*smoothstep(1.,.75,r));}';
+/* v464: XO (optional, Crimson Purgatory's masteries): this cast's own numbers over PURGD (fall: how far the judgment reaches, closeness
+   k=exp(-d/fall) from the hero; JUDG/b2: when the last stage begins and how fast it cuts, b0/b1 the stages before it; focus2: the eyes'
+   second stare; END/sil: when the world returns and how long the silence before it holds; stare/stareR/stareK/stareV: during the eyes'
+   stares, foes within stareR tiles of where they look are cut with a closeness of at least stareK, their blades drawn as near the hero
+   (stareV); ex0/exK: a cut that leaves a non-boss foe under ex0+exK x closeness of its health cuts it down; last: as the silence breaks,
+   every foe takes one last cut, last x (1+2.2 x closeness), and that frame holds no other cut) and its looks (auraK/glowR: the aura's
+   reach and glow; swell: the eyes in the last stage; flareK: the eyes and links in a stare; wide: the eyes thrown open for the last cut;
+   bladeN: a pool of blades in one mesh for the executions and the last cut). PURG.pose times the hero's judgment pose to the stages (the
+   cast arrives 1s after the pose starts). log(d) receives the events for the tests. Without XO: exactly as before. */
+const PURGD={fall:2.8,JUDG:14,END:17.5,sil:.32,b0:.45,b1:.8,b2:1.5,focus2:11.2,stare:0,stareR:1.5,stareK:.5,stareV:.62,ex0:0,exK:0,last:0,
+  auraK:1,glowR:1.7,swell:.06,flareK:0,wide:0,bladeN:0,log:null};
+function castPurgatory(t,PW,o,XO){const D=XO?Object.assign({},PURGD,XO):PURGD,lg=D.log;
   if(PURG.live&&PURG.live.refresh()){toast('Crimson Purgatory deepens','lvl');return;}
   const geos=[],mats=[],root=new THREE.Group();scene.add(root);
-  const ARR=3,FORM=7,JUDG=14,END=17.5,LIFE=END+2.3;cineLock=Math.max(cineLock,5);
+  const ARR=3,FORM=7,JUDG=D.JUDG,END=D.END,LIFE=END+2.3;cineLock=Math.max(cineLock,5);PURG.pose={j:JUDG+1,e:END+1};
   const tmp=new THREE.Vector3(),tmp2=new THREE.Vector3(),tmp3=new THREE.Vector3(),col=new THREE.Color();
   const reg=g=>{geos.push(g);return g;},regM=m=>{mats.push(m);return m;};
   const camF=new THREE.Vector3(),camR=new THREE.Vector3(),camU=new THREE.Vector3();
   const C=()=>tmp3.set(t.x,0,t.z);
   const alive=()=>enemies.filter(e=>!e.dead);
-  const closeK=(x,z)=>Math.exp(-Math.hypot(x-t.x,z-t.z)/2.8);   /* 1 at the caster, ~.3 at 3.4 tiles, ~.03 at 10 */
+  const closeK=(x,z)=>Math.exp(-Math.hypot(x-t.x,z-t.z)/D.fall);   /* 1 at the caster, ~.3 at 3.4 tiles, ~.03 at 10 */
 
   /* ---------- particle pool (additive glowing embers) ---------- */
   const NP=2200,PP=new Float32Array(NP*3),PV=new Float32Array(NP*3),PC=new Float32Array(NP*3),PA=new Float32Array(NP),PS=new Float32Array(NP),PL=new Float32Array(NP),PM=new Float32Array(NP),PD=new Float32Array(NP),PG=new Float32Array(NP);let pHead=0;
@@ -6014,7 +6030,7 @@ function castPurgatory(t,PW,o){
     PEND.push({g,x,y,len,gm,ph:rnd()*6});});
   const eyeLinkM=top(new THREE.LineBasicMaterial({color:0xff2020,opacity:0,blending:THREE.AdditiveBlending}));const eyeLinkG=reg(new THREE.BufferGeometry());eyeLinkG.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6*3*2*4),3));
   const eyeLinks=new THREE.LineSegments(eyeLinkG,eyeLinkM);eyeLinks.renderOrder=89;eyeLinks.frustumCulled=false;root.add(eyeLinks);let linkT=0;
-  let focusT=0;const focusAt=[FORM,11.2,JUDG+.2,16.9];let focusIdx=0;
+  let focusT=0;const focusAt=[FORM,D.focus2,JUDG+.2,16.9];let focusIdx=0;
 
   /* ---------- corrupted sky: crimson cloud shadows sweep in and cover the arena ---------- */
   const SHL=[];for(let i=0;i<2;i++){const tx=cloudShadowTex().clone();tx.needsUpdate=true;tx.repeat.set(i?2.1:1.4,i?2.4:1.7);tx.offset.set(rnd(),rnd());
@@ -6070,14 +6086,58 @@ function castPurgatory(t,PW,o){
   const decG=reg(new THREE.CircleGeometry(.16,6));decG.rotateX(-Math.PI/2);const DEC=[];for(let i=0;i<36;i++){const m=new THREE.Mesh(decG,regM(new THREE.MeshBasicMaterial({color:0x160000,transparent:true,opacity:0,depthWrite:false})));m.position.y=.02;m.visible=false;root.add(m);DEC.push({m,t:0});}let decI=0;
   const decal=(x,z,s)=>{const d=DEC[decI];decI=(decI+1)%DEC.length;d.m.position.set(x,.02+decI*.0003,z);d.m.rotation.y=rnd()*6;d.m.scale.setScalar(s);d.m.visible=true;d.t=1.4;};
   let lightFl=0;
-  function slashEnemy(e,power){const k=closeK(e.x,e.z),c=new THREE.Vector3(e.x,e.y+e.hitY*(.35+rnd()*.4),e.z),L=.9+k*1.4+rnd()*.6,curved=rnd()<.35;
-    if(slashes.length<110){mkSlash(slashPts(c,L,ANG(),curved),.07+k*.07,'cam',.15+rnd()*.08,{draw:.035,trail:false});if(rnd()<.35+k*.4)mkSlash(slashPts(c,L*.9,ANG(),curved),.03+k*.03,'cam',.55,{draw:.04,trail:true});
-      if(k>.45&&rnd()<.4)mkSlash(slashPts(c,L*.8,ANG()+1.2,false),.06+k*.05,'cam',.16,{draw:.03});}
+  /* ---------- (masteries) pooled blades: one mesh holds D.bladeN blades with the slashes' own ribbon and shader look, each one drawn on the
+     GPU from its own start, so the executions and the last cut make no geometry or material per blade ---------- */
+  let BP=null,XG=null;const BPP=[0,1,2,3,4,5,6].map(()=>new THREE.Vector3()),bv1=new THREE.Vector3(),bv2=new THREE.Vector3(),bv3=new THREE.Vector3();
+  /* seven points of a blade through c, L long, at angle a on the screen, bowed by bend */
+  const bpPts=(c,L,a,bend)=>{const d=bv1.copy(camR).multiplyScalar(Math.cos(a)).addScaledVector(camU,Math.sin(a)),side=bv3.crossVectors(d,camF).normalize();
+    for(let i=0;i<7;i++){const u=i/6-.5;BPP[i].copy(c).addScaledVector(d,u*L).addScaledVector(side,bend*(1-4*u*u));}return BPP;};
+  if(D.bladeN){const N=D.bladeN,S=7,V=N*S*2,pos=new Float32Array(V*3),A={aU:new Float32Array(V),aV:new Float32Array(V),aS:new Float32Array(V).fill(-99),aL:new Float32Array(V).fill(1),aD:new Float32Array(V).fill(.04),aM:new Float32Array(V)},idx=[];
+    for(let b=0;b<N;b++)for(let i=0;i<S-1;i++){const b0=(b*S+i)*2;idx.push(b0,b0+1,b0+2,b0+1,b0+3,b0+2);}
+    const g=reg(new THREE.BufferGeometry());g.setAttribute('position',new THREE.BufferAttribute(pos,3));for(const n in A)g.setAttribute(n,new THREE.BufferAttribute(A[n],1));g.setIndex(idx);
+    const m=regM(new THREE.ShaderMaterial({uniforms:{uT:{value:0}},vertexShader:PURG_BPV,fragmentShader:PURG_BPF,transparent:true,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
+    const mesh=new THREE.Mesh(g,m);mesh.frustumCulled=false;mesh.renderOrder=37;root.add(mesh);
+    BP={g,m,mesh,N,t:0,i:0,n:0,
+      /* a blade along P (seven points), width wide, life s long, drawn in draw s, starting delay s from now (trail: it lingers and fades) */
+      add(P,width,life,draw,delay,trail){const b=this.i;this.i=(this.i+1)%N;this.n++;let L=0;const acc=[0];for(let i=1;i<S;i++){L+=P[i].distanceTo(P[i-1]);acc.push(L);}
+        for(let i=0;i<S;i++){const u=acc[i]/L;bv2.subVectors(P[Math.min(S-1,i+1)],P[Math.max(0,i-1)]).normalize().cross(camF).normalize();
+          const w=width*(.06+.94*Math.pow(Math.sin(Math.PI*Math.min(1,Math.max(0,u*1.1-.02))),.6));
+          for(let s2=0;s2<2;s2++){const v=(b*S+i)*2+s2,sg=s2?1:-1;pos[v*3]=P[i].x+bv2.x*w*sg;pos[v*3+1]=P[i].y+bv2.y*w*sg;pos[v*3+2]=P[i].z+bv2.z*w*sg;A.aU[v]=u;A.aV[v]=sg;A.aS[v]=this.t+(delay||0);A.aL[v]=life;A.aD[v]=draw;A.aM[v]=trail?1:0;}}
+        for(const n in g.attributes)g.attributes[n].needsUpdate=true;}};}
+  /* (D.exK) an execution's scorch flares: a red-hot glow spreading under the scorch mark, then gone */
+  if(D.exK){const gG=reg(new THREE.PlaneGeometry(2,2));gG.rotateX(-Math.PI/2);XG={L:[],i:0};
+    for(let i=0;i<10;i++){const u={uA:{value:0},uR:{value:0}},m=regM(new THREE.ShaderMaterial({uniforms:u,vertexShader:PURG_XGV,fragmentShader:PURG_XGF,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+      const me=new THREE.Mesh(gG,m);me.visible=false;me.renderOrder=4;root.add(me);XG.L.push({m:me,u,t:0});}}
+  const xGlow=(x,z,s)=>{XG.i=(XG.i+1)%XG.L.length;const g=XG.L[XG.i];g.m.position.set(x,.03+XG.i*.0004,z);g.m.scale.setScalar(s);g.m.visible=true;g.t=0;};
+  function stepXG(dt){for(const g of XG.L){if(!g.m.visible)continue;g.t+=dt;const q=g.t/.8;if(q>=1){g.m.visible=false;continue;}g.u.uR.value=.18+.62*ease(q);g.u.uA.value=.9*Math.pow(1-q,1.5)*Math.min(1,q*14);}}
+  /* (D.exK) a cut that leaves a non-boss foe low enough cuts it down: its crossing blade and scorch flare larger (noX: no blades, the last
+     cut's far foes) */
+  function execute(e,k,c,noX){const hp0=e.hp;e.hp=0;if(e.type==='voidk'&&!e.revived)REVIVE_FX(e);else kill(e,o.src);if(lg)lg({ev:'exec',e,k,T,hp0,dead:e.dead,noX:!!noX,n:BP?BP.n:0});
+    if(BP&&!noX){const a0=(rnd()<.5?1:-1)*(Math.PI/4+(rnd()-.5)*.3),L=1.5+k*1.6+rnd()*.4,w=.12+k*.08;
+      BP.add(bpPts(c,L,a0,0),w,.3,.04,0);BP.add(bpPts(c,L*.92,a0+Math.PI/2+(rnd()-.5)*.25,0),w*.9,.3,.04,.05);BP.add(bpPts(c,L*1.1,a0+(rnd()-.5)*.3,L*.2*(rnd()<.5?-1:1)),w*.45,.75,.05,.02,true);}
+    xGlow(e.x,e.z,.75+k*.6);
+    for(let i=0;i<14+Math.round(k*10);i++){const a=rnd()*6.28,el=(rnd()-.3)*1.5,v=1.8+rnd()*2.4;sp(c.x,c.y,c.z,Math.cos(a)*Math.cos(el)*v,Math.sin(el)*v+.5,Math.sin(a)*Math.cos(el)*v,pick(RED),1,.05+rnd()*.05,.35+rnd()*.35,2.5,3);}
+    for(let i=0;i<4;i++)emit(0,{x:c.x,y:c.y,z:c.z,vx:(rnd()-.5)*3,vy:1+rnd()*2,vz:(rnd()-.5)*3,s:.06,s2:.03,c:0x3a0006,c2:0x100000,a:.9,life:.7,g:6});
+    if(!noX)flash(c.x,c.y,c.z,0xff2a20,.3+k*.2,.16);lightFl=Math.min(1.2,lightFl+.12);camShake=Math.max(camShake,.05+.05*k);}
+  /* (D.last) as the silence breaks every foe takes one last cut, harder the closer it stands: blades cross on the forty nearest (in order
+     from the hero), sparks burst on the rest */
+  function lastCut(){const L=alive().map(e=>[e,Math.hypot(e.x-t.x,e.z-t.z)]).sort((a,b)=>a[1]-b[1]),H=lg?[]:null;let n=0,np=0;
+    for(const [e] of L){const k=closeK(e.x,e.z),dm=PW*D.last*(1+2.2*k),x=e.x,z=e.z;hurt(e,dm,'magic',o);
+      const ex=D.exK&&!e.dead&&!e.boss&&e.hp<e.maxHp*(D.ex0+D.exK*k);if(H)H.push({e,k,dm,ex:!!ex,x,z,hp:e.hp,dead:e.dead});const c=new THREE.Vector3(x,e.y+e.hitY*.55,z),near=n<40;
+      if(near){n++;if(BP&&!ex){const a0=(rnd()<.5?1:-1)*(Math.PI/4+(rnd()-.5)*.35),Lb=1.4+k*1.3+rnd()*.3,w=.13+k*.08,dl=n*.004;BP.add(bpPts(c,Lb,a0,0),w,.45,.045,dl);BP.add(bpPts(c,Lb*.9,a0+Math.PI/2+(rnd()-.5)*.3,0),w*.85,.45,.045,dl+.035);}decal(x,z,.7+k*.9);}
+      if(ex)execute(e,k,c,!near);
+      if(np<480){const m=near?8:5;for(let i=0;i<m;i++)sp(c.x,c.y,c.z,(rnd()-.5)*3,(rnd()-.2)*2.4,(rnd()-.5)*3,pick(RED),1,.04+rnd()*.05,.3+rnd()*.35,3,2);np+=m;}}
+    if(lg)lg({ev:'last',H,T,n});lightFl=Math.min(1.2,lightFl+.5);camShake=Math.max(camShake,.42);}
+  /* (kS: a stare's closeness; its blades are drawn as large as near the hero, at least D.stareV) */
+  function slashEnemy(e,power,kS){const k=kS!=null?kS:closeK(e.x,e.z),q=kS!=null?Math.max(k,D.stareV):k,c=new THREE.Vector3(e.x,e.y+e.hitY*(.35+rnd()*.4),e.z),L=.9+q*1.4+rnd()*.6,curved=rnd()<.35;
+    if(slashes.length<110){mkSlash(slashPts(c,L,ANG(),curved),.07+q*.07,'cam',.15+rnd()*.08,{draw:.035,trail:false});if(rnd()<.35+q*.4)mkSlash(slashPts(c,L*.9,ANG(),curved),.03+q*.03,'cam',.55,{draw:.04,trail:true});
+      if(q>.45&&rnd()<.4)mkSlash(slashPts(c,L*.8,ANG()+1.2,false),.06+q*.05,'cam',.16,{draw:.03});}
     const dm=PW*.65*power*(1+2.2*k);hurt(e,dm,'magic',o);if(!e.dead&&k>.2)hurt(e,e.maxHp*(e.boss?.0025:.005)*k*power,'magic',{src:o.src});
-    for(let i=0;i<5+Math.round(k*8);i++)sp(c.x,c.y,c.z,(rnd()-.5)*3,(rnd()-.2)*2.4,(rnd()-.5)*3,pick(RED),1,.04+rnd()*.05,.25+rnd()*.35,3,2);
-    if(rnd()<.4&&slashes.length<50)flash(c.x,c.y,c.z,0xff2020,.18+k*.12,.12);decal(e.x+(rnd()-.5)*.2,e.z+(rnd()-.5)*.2,.6+k*.8);
+    const ex=D.exK&&!e.dead&&!e.boss&&e.hp<e.maxHp*(D.ex0+D.exK*k);if(lg)lg({ev:'cut',e,k,dm,st:kS!=null,ex:!!ex,T,hx:t.x,hz:t.z,hp:e.hp,dead:e.dead});
+    for(let i=0;i<5+Math.round(q*8);i++)sp(c.x,c.y,c.z,(rnd()-.5)*3,(rnd()-.2)*2.4,(rnd()-.5)*3,pick(RED),1,.04+rnd()*.05,.25+rnd()*.35,3,2);
+    if(rnd()<.4&&slashes.length<50)flash(c.x,c.y,c.z,0xff2020,.18+k*.12,.12);decal(e.x+(rnd()-.5)*.2,e.z+(rnd()-.5)*.2,(.6+k*.8)*(ex?1.7:1));
     for(let i=0;i<2;i++)emit(0,{x:c.x,y:c.y,z:c.z,vx:(rnd()-.5)*2,vy:rnd()*1.5,vz:(rnd()-.5)*2,s:.05,s2:.02,c:0x3a0006,c2:0x100000,a:.9,life:.5,g:4});
-    lightFl=Math.min(1.2,lightFl+.06+k*.12);if(k>.6)camShake=Math.max(camShake,.05*k);}
+    lightFl=Math.min(1.2,lightFl+.06+k*.12);if(k>.6)camShake=Math.max(camShake,.05*k);if(ex)execute(e,k,c);}
   function slashAmbient(){let c;if(rnd()<.55){const a=rnd()*6.28,r=.4+Math.pow(rnd(),1.6)*4;c=new THREE.Vector3(t.x+Math.cos(a)*r,.3+rnd()*1.4,t.z+Math.sin(a)*r);}
     else{if(!ROUTES.length)return;const rt=pick(ROUTES),q=posAt(rnd()*rt.len,rt);c=new THREE.Vector3(q[0],.25+rnd()*1.2,q[1]);if(rnd()>.25+closeK(c.x,c.z))return;}
     const k=closeK(c.x,c.z);if(slashes.length<110)mkSlash(slashPts(c,1+rnd()*2+k,ANG(),rnd()<.4),.05+k*.06,'cam',.18,{draw:.04});sp(c.x,c.y,c.z,0,0,0,0xff4030,.9,.1,.12);lightFl=Math.min(1.2,lightFl+.03);}
@@ -6094,8 +6154,8 @@ function castPurgatory(t,PW,o){
   const shardM=regM(new THREE.MeshPhongMaterial({color:0x6a0610,emissive:0xa00a14,emissiveIntensity:.8,flatShading:true}));const SH=[];
   for(let i=0;i<11;i++){const m=new THREE.Mesh(i%3?oct(.07):tet(.09),shardM);m.scale.set(.6,1.7,.6);auraG.add(m);SH.push({m,a:rnd()*6.28,r:.7+rnd()*.55,y:.4+rnd()*1.2,sp:(rnd()<.5?-1:1)*(.8+rnd()*.9),w:rnd()*5});m.visible=false;}
   const pulseG=reg(new THREE.RingGeometry(.9,1,36));pulseG.rotateX(-Math.PI/2);const PULSES=[];for(let i=0;i<4;i++){const m=new THREE.Mesh(pulseG,regM(new THREE.MeshBasicMaterial({color:0xff1a1a,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide})));m.position.y=.04;auraG.add(m);PULSES.push({m,t:9});}
-  let pulseAcc=0,pulseI=0;const cracks=crackSet(auraG,9,1.5,0x0a0000,0xff1010);
-  const auraGlowM=regM(new THREE.MeshBasicMaterial({color:0xff1010,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));const auraGlowG=reg(new THREE.CircleGeometry(1.7,28));auraGlowG.rotateX(-Math.PI/2);const auraGlow=new THREE.Mesh(auraGlowG,auraGlowM);auraGlow.position.y=.03;auraG.add(auraGlow);
+  let pulseAcc=0,pulseI=0;const cracks=crackSet(auraG,9,1.5*D.auraK,0x0a0000,0xff1010);
+  const auraGlowM=regM(new THREE.MeshBasicMaterial({color:0xff1010,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));const auraGlowG=reg(new THREE.CircleGeometry(D.glowR,28));auraGlowG.rotateX(-Math.PI/2);const auraGlow=new THREE.Mesh(auraGlowG,auraGlowM);auraGlow.position.y=.03;auraG.add(auraGlow);
 
   /* ---------- screen tint overlays (CSS multiply + crimson vignette) ---------- */
   const tint=document.createElement('div');tint.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:4;background:#ff4a3c;mix-blend-mode:multiply;opacity:0';
@@ -6108,12 +6168,13 @@ function castPurgatory(t,PW,o){
   const restore=()=>{if(restored)return;restored=true;if(PURG.live===live)PURG.live=null;PURG.on=false;PURG.f=1;PURG.bgK=0;hemi.color.copy(HEMI_C0);hemi.groundColor.copy(HEMI_G0);sun.color.copy(SUN_C0);tint.remove();vig.remove();};
   const cleanup=()=>{killed=true;restore();};SG_ACTIVE.add(cleanup);
   const live={refresh:()=>{if(killed||collapsed)return false;T=Math.min(T,FORM+.01);return true;}};PURG.live=live;PURG.on=true;
+  if(lg)lg({ev:'cast',D,root,EYES,t,hx:t.x,hz:t.z,BP,XG,T:()=>T,tint,vig});
   const slashAcc=new Map();let ambAcc=0,rndAcc=0;
   addFx(root,LIFE,(f,dtR)=>{if(killed){f.life=0;return;}f.life=Math.max(f.life,LIFE-T);const run=state==='playing'&&!paused,dt=run?dtR:0;T+=dt;
     camera.getWorldDirection(camF);camR.set(1,0,0).applyQuaternion(camera.quaternion);camU.set(0,1,0).applyQuaternion(camera.quaternion);
     const arrive=SMS(T,0,ARR),form=SMS(T,ARR,FORM),judg=SMS(T,JUDG,END),outK=collapsed?1-SMS(T,END,END+1.4):1;
     const I=(.25*arrive+.45*form+.3*SMS(T,FORM,FORM+1.5)+.45*judg)*outK;        /* overall intensity, escalates */
-    silence=T>=END-.32&&T<END;
+    silence=T>=END-D.sil&&T<END;
     /* nearest foe drives how violently the caster reacts */
     let prox=0;for(const e of enemies){if(e.dead)continue;prox=Math.max(prox,closeK(e.x,e.z));}
     /* ---- lighting and tint ---- */
@@ -6126,22 +6187,22 @@ function castPurgatory(t,PW,o){
     if(collapsed&&T>END+1.45)PURG.on=false;
     /* ---- the six eyes ---- */
     const anchor=tmp2.set(t.x,2.5,t.z);const fwd=tmp.set(camF.x,0,camF.z).normalize();anchor.addScaledVector(fwd,1.5);
-    let focusNow=false;if(focusIdx<focusAt.length&&T>=focusAt[focusIdx]){focusIdx++;focusT=1.3;camShake=Math.max(camShake,.15);lightFl=Math.min(1.2,lightFl+.5);}
+    let focusNow=false;if(focusIdx<focusAt.length&&T>=focusAt[focusIdx]){focusIdx++;focusT=1.3;camShake=Math.max(camShake,.15);lightFl=Math.min(1.2,lightFl+.5);if(D.flareK)EYES.forEach(E=>{E.flare=1;});if(lg)lg({ev:'stare',i:focusIdx-1,T});}
     if(focusT>0){focusT-=dt;focusNow=true;}if(silence)focusNow=true;
-    const L0=alive();let tgt=null;if(L0.length)tgt=densest(L0);
+    const L0=alive();let tgt=null;if(L0.length)tgt=densest(L0);const wideK=D.wide&&collapsed?BELL(T,END,END+.07,END+.6):0;
     const tgtS=tgt?new THREE.Vector3(tgt.x,.3,tgt.z).project(camera):null;
     EYES.forEach((E,i)=>{const op=collapsed?1-SMS(T,E.closeAt,E.closeAt+.28):SMS(T,E.openAt,E.openAt+.7);
       E.nextBlink-=dt;if(E.nextBlink<=0&&!focusNow&&!collapsed&&op>=1){E.blink=.28;E.nextBlink=3+rnd()*5;}if(E.blink>0)E.blink-=dt;const bk=E.blink>0?Math.sin(E.blink/.28*Math.PI):0;
       E.open=op*(1-bk*.95);
       E.G.position.copy(anchor).addScaledVector(camR,E.ox).addScaledVector(camU,E.oy+Math.sin(time*.9+E.wob)*.05);E.G.quaternion.copy(camera.quaternion);
-      E.G.scale.setScalar(E.sc*(1+.06*judg*outK)*(.85+.15*Math.min(1,op*1.4)));
+      E.G.scale.setScalar(E.sc*(1+D.swell*judg*outK)*(.85+.15*Math.min(1,op*1.4)));
       E.nextLook-=dt;if(E.nextLook<=0){E.nextLook=1.2+rnd()*2.5;E.tgx=(rnd()-.5)*1.2;E.tgy=(rnd()-.5)*.6;E.tpup=rnd()<.3?.65:1;if(rnd()<.2)E.flare=1;}
       let gx=E.tgx,gy=E.tgy;if(focusNow&&tgtS){tmp3.copy(E.G.position).project(camera);gx=clamp((tgtS.x-tmp3.x)*3,-1,1);gy=clamp((tgtS.y-tmp3.y)*3,-1,1);}
       const pupT=focusNow?.6:E.tpup;E.gx+=(gx-E.gx)*Math.min(1,dtR*(focusNow?9:2.5));E.gy+=(gy-E.gy)*Math.min(1,dtR*(focusNow?9:2.5));E.pup+=(pupT-E.pup)*Math.min(1,dtR*6);
       /* the dot drifts inside the sickle; gaze is mirrored for the left-hand eyes */
       E.pupil.position.set(-.05+E.gx*E.mir*.42,.1+E.gy*.07,0);E.pupil.scale.setScalar(E.pup);
-      E.flare=Math.max(0,E.flare-dtR*1.5);const glowI=.35+.4*form+.9*judg*outK+(focusNow?.7:0)+E.flare*.8+.15*Math.sin(time*7+E.wob);
-      E.lidBox.scale.set(1,Math.max(.03,E.open),1);
+      E.flare=Math.max(0,E.flare-dtR*1.5);const glowI=.35+.4*form+.9*judg*outK+(focusNow?.7+D.flareK:0)+E.flare*.8+.15*Math.sin(time*7+E.wob)+(wideK?1.5*wideK:0);
+      E.lidBox.scale.set(1,Math.max(.03,E.open),1);if(wideK){E.lidBox.scale.y*=1+D.wide*wideK;E.pupil.scale.multiplyScalar(1-.4*wideK);}
       const vis=Math.min(1,op*1.6);E.glowM.uniforms.uA.value=vis*(.5+.5*redK);E.glowM.uniforms.uI.value=glowI;
       E.scM.opacity=.55*vis;E.irM.opacity=vis*Math.min(1,E.open*2);E.pM2.opacity=.9*vis*Math.min(1,E.open*2);E.pgM.uniforms.uA.value=(.5+.4*glowI)*vis*Math.min(1,E.open*2);
       E.lidM.opacity=Math.min(1,.6+glowI*.35)*vis;E.tearM.opacity=(.25+.2*glowI)*vis*SMS(op,.5,1);
@@ -6152,7 +6213,7 @@ function castPurgatory(t,PW,o){
     linkT-=dtR;const lp=eyeLinkG.attributes.position.array;if(linkT<=0&&T>ARR&&!collapsed){linkT=focusNow?.05:.4+rnd()*.9;let n=0;const cnt=focusNow?6:1+Math.floor(rnd()*2);lp.fill(0);
       for(let c=0;c<cnt;c++){const a=EYES[Math.floor(rnd()*6)],b=EYES[Math.floor(rnd()*6)];if(a===b)continue;const s=4;let px=a.G.position.x,py=a.G.position.y,pz=a.G.position.z;
         for(let k=1;k<=s&&n<24;k++){const u=k/s,j=k<s?.1:0;const nx=a.G.position.x+(b.G.position.x-a.G.position.x)*u+(rnd()-.5)*j,ny=a.G.position.y+(b.G.position.y-a.G.position.y)*u+(rnd()-.5)*j,nz=a.G.position.z+(b.G.position.z-a.G.position.z)*u+(rnd()-.5)*j;
-          lp.set([px,py,pz,nx,ny,nz],n*6);n++;px=nx;py=ny;pz=nz;}}eyeLinkG.attributes.position.needsUpdate=true;eyeLinkM.opacity=focusNow?.9:.6;}
+          lp.set([px,py,pz,nx,ny,nz],n*6);n++;if(D.flareK&&focusNow&&!silence&&rnd()<.5)sp(nx,ny,nz,(rnd()-.5)*.5,(rnd()-.5)*.5,(rnd()-.5)*.5,pick(RED),1,.05+rnd()*.03,.25+rnd()*.2,2);px=nx;py=ny;pz=nz;}}eyeLinkG.attributes.position.needsUpdate=true;eyeLinkM.opacity=focusNow?(D.flareK?1:.9):.6;}
     eyeLinkM.opacity=Math.max(0,eyeLinkM.opacity-dtR*3);
     /* ---- cloud shadows: coverage grows, drifts, pulses in judgment ---- */
     {const cov=(.2*arrive+.45*form+.15*judg)*outK;SHL.forEach((L,i)=>{L.tx.offset.x+=L.vx*dt*(1+judg);L.tx.offset.y+=L.vy*dt*(1+judg);L.m.opacity=Math.min(.6,cov*(i?.62:.55)*(1+.12*Math.sin(time*(1.5+i)+i)*judg)+skyFl*.15*(i?-1:0));});
@@ -6163,8 +6224,11 @@ function castPurgatory(t,PW,o){
     updThorns();
     /* ---- gameplay: slow + slashes scaled by distance to the caster ---- */
     PURG.f=silence?0:(T>=ARR&&!collapsed?.5:1);
-    if(T>=ARR+.6&&!collapsed&&!silence){const base=(T<FORM?.45:T<JUDG?.8:1.5);
-      for(const e of L0){const k=closeK(e.x,e.z),r=base*(.35+2.8*k);let a=(slashAcc.get(e)||rnd())+dt*r;while(a>=1){a--;slashEnemy(e,1);}slashAcc.set(e,a);
+    /* (D.last: the frame the silence breaks in holds only the last cut) */
+    if(T>=ARR+.6&&!collapsed&&!silence&&!(D.last&&T>=END)){const base=(T<FORM?D.b0:T<JUDG?D.b1:D.b2);
+      /* (D.stare: in a stare, foes near where the eyes look are cut as if they stood closer) */
+      const stP=D.stare&&focusNow&&tgt?tgt:null,sR2=D.stareR*D.stareR;
+      for(const e of L0){let k=closeK(e.x,e.z),kS=null;if(stP&&k<D.stareK&&(e.x-stP.x)**2+(e.z-stP.z)**2<=sR2)k=kS=D.stareK;const r=base*(.35+2.8*k);let a=(slashAcc.get(e)||rnd())+dt*r;while(a>=1){a--;slashEnemy(e,1,kS);}slashAcc.set(e,a);
         /* oppressive drag: embers trail behind, dark energy at their feet */
         if(rnd()<dt*(3+5*k))sp(e.x+(rnd()-.5)*.2,e.y+e.hitY*(.2+rnd()*.6),e.z+(rnd()-.5)*.2,(rnd()-.5)*.2,.15,(rnd()-.5)*.2,pick(RED),.8,.035,.8);
         if(rnd()<dt*4)emit(0,{x:e.x+(rnd()-.5)*.3,y:.04,z:e.z+(rnd()-.5)*.3,vx:(rnd()-.5)*.2,vy:.12+rnd()*.2,vz:(rnd()-.5)*.2,s:.09,s2:.16,c:0x2a0004,c2:0x0a0000,a:.6,life:.7,turb:.6});}
@@ -6172,20 +6236,22 @@ function castPurgatory(t,PW,o){
     for(const [e] of slashAcc)if(e.dead)slashAcc.delete(e);
     /* ---- caster aura ---- */
     const aK=Math.min(1,I*.9+prox*.5)*(collapsed?1-SMS(T,END,END+.8):1);auraG.position.set(t.x,0,t.z);
-    rings.forEach((r,i)=>{r.mm.rotation.z+=dt*r.spd*(1+prox*2.5+judg*2);r.piv.position.y=.55+i*.25+Math.sin(time*1.3+i)*.05;ringMs[i].opacity=(.35+.45*aK)*aK*(.8+.2*Math.sin(time*9+i));r.piv.scale.setScalar(1+prox*.2);});
-    SH.forEach(s=>{s.m.visible=aK>.05;s.a+=dt*s.sp*(1+prox*2);s.m.position.set(Math.cos(s.a)*s.r,s.y+Math.sin(time*2+s.w)*.1,Math.sin(s.a)*s.r);s.m.rotation.y+=dt*3;s.m.scale.set(.6*aK,1.7*aK,.6*aK);});
+    rings.forEach((r,i)=>{r.mm.rotation.z+=dt*r.spd*(1+prox*2.5+judg*2);r.piv.position.y=.55+i*.25+Math.sin(time*1.3+i)*.05;ringMs[i].opacity=(.35+.45*aK)*aK*(.8+.2*Math.sin(time*9+i));r.piv.scale.setScalar(D.auraK*(1+prox*.2));});
+    SH.forEach(s=>{s.m.visible=aK>.05;s.a+=dt*s.sp*(1+prox*2);s.m.position.set(Math.cos(s.a)*s.r*D.auraK,s.y+Math.sin(time*2+s.w)*.1,Math.sin(s.a)*s.r*D.auraK);s.m.rotation.y+=dt*3;s.m.scale.set(.6*aK,1.7*aK,.6*aK);});
     pulseAcc+=dt*(.6+2.4*prox+1.2*judg)*(aK>.1&&!silence?1:0);while(pulseAcc>=1){pulseAcc--;PULSES[pulseI].t=0;pulseI=(pulseI+1)%PULSES.length;}
-    PULSES.forEach(p=>{p.t+=dt;const k=clamp(p.t/.9,0,1);p.m.visible=k<1;p.m.scale.setScalar(.3+2.6*ease(k));p.m.material.opacity=.7*(1-k)*aK;});
+    PULSES.forEach(p=>{p.t+=dt;const k=clamp(p.t/.9,0,1);p.m.visible=k<1;p.m.scale.setScalar(.3+2.6*D.auraK*ease(k));p.m.material.opacity=.7*(1-k)*aK;});
     cracks.grow(clamp((T-.4)/1.2,0,1)*(collapsed?1-SMS(T,END,END+.6):1));cracks.gm.opacity=(.3+.5*aK)*aK*(rnd()<.08?.2:1);
     auraGlowM.opacity=(.12+.2*prox+.15*judg)*aK*(.85+.15*Math.sin(time*6));
-    if(!silence&&aK>.05)for(let i=0;i<2+aK*5+prox*6;i++){const a=rnd()*6.28,r=.3+rnd()*1.3;sp(t.x+Math.cos(a)*r,.1+rnd()*1.5,t.z+Math.sin(a)*r,-Math.sin(a)*1.2,.2+rnd()*.3,Math.cos(a)*1.2,pick(RED),.85,.035+rnd()*.03,.6+rnd()*.4,1);}
+    if(!silence&&aK>.05)for(let i=0;i<2+aK*5+prox*6;i++){const a=rnd()*6.28,r=(.3+rnd()*1.3)*D.auraK;sp(t.x+Math.cos(a)*r,.1+rnd()*1.5,t.z+Math.sin(a)*r,-Math.sin(a)*1.2,.2+rnd()*.3,Math.cos(a)*1.2,pick(RED),.85,.035+rnd()*.03,.6+rnd()*.4,1);}
     /* ---- decals fade ---- */
     DEC.forEach(d=>{if(d.t>0){d.t-=dt;d.m.material.opacity=.75*Math.min(1,d.t);if(d.t<=0)d.m.visible=false;}});
+    if(XG)stepXG(dt);
     /* ---- collapse: silence, then the world returns ---- */
     if(!collapsed&&T>=END){collapsed=true;PURG.f=1;slashAcc.clear();flashA=Math.max(flashA,.45);flashCol='#300000';flashDecay=1.4;camShake=Math.max(camShake,.3);
-      for(let i=0;i<120;i++){const a=rnd()*6.28,r=rnd()*6;sp(t.x+Math.cos(a)*r,1+rnd()*4,t.z+Math.sin(a)*r,(rnd()-.5)*.3,-.2-rnd()*.4,(rnd()-.5)*.3,pick(RED),.8,.05+rnd()*.04,2.2+rnd()*1.2,.3);}}
+      for(let i=0;i<120;i++){const a=rnd()*6.28,r=rnd()*6;sp(t.x+Math.cos(a)*r,1+rnd()*4,t.z+Math.sin(a)*r,(rnd()-.5)*.3,-.2-rnd()*.4,(rnd()-.5)*.3,pick(RED),.8,.05+rnd()*.04,2.2+rnd()*1.2,.3);}
+      if(D.last)lastCut();}
     if(collapsed&&T>=END+.9&&T<END+1.1){darkTarget=0;vigTarget=0;}
-    if(!silence)stepSlashes(dtR);stepP(dtR,silence);
+    if(!silence){stepSlashes(dtR);if(BP){BP.t+=dtR;BP.m.uniforms.uT.value=BP.t;}}stepP(dtR,silence);
   },()=>{SG_ACTIVE.delete(cleanup);cleanup();slashes.forEach(s=>{s.g.dispose();s.m.dispose();});SHL.forEach(L=>L.tx.dispose());darkTarget=0;vigTarget=0;},{mats:mats.concat([cracks.gm]),geos});
 }
 
@@ -6216,7 +6282,7 @@ const POSES={
   grasp:k=>POSES.gravebind(k),lantern:k=>POSES.stormcloud(k),graveburst:k=>POSES.darkpulse(k),
   singularity:k=>{const s=k*14.6,a=SMS(s,.9,3.3)*(1-SMS(s,12.7,14.3)),tr=Math.sin(s*8)*.035*SMS(s,4.5,6.5)*(1-SMS(s,12.3,12.6)),slam=SMS(s,12.45,12.6)*(1-SMS(s,12.6,13.4));return{lx:-4.6*a+tr,lz:-.3*a,lex:-.15*a,rx:.35*a,rz:.12*a,bx:-.14*a+.12*slam,ry:.18*a,y:.012*a-.02*slam};},
   expanse:k=>{const s=k*26,a=SMS(s,.2,1.5)*(1-SMS(s,24.9,25.8)),fl=Math.sin(s*1.6)*.006*a,cut=SMS(s,4.9,5.05)*(1-SMS(s,5.05,5.8));return{rx:-2.2*a-.5*cut,rz:.35*a,ex:-1.9*a+.6*cut,wx:.4*a,lx:-.55*a,lz:.5*a,lex:-.3*a,y:.03*a+fl,bx:-.07*a+.08*cut,ry:.12*a};},
-  purgatory:k=>{const s=k*21,a=SMS(s,.2,1.8)*(1-SMS(s,19.2,20.6)),j=SMS(s,15,18.5)*(1-SMS(s,18.5,19)),br=Math.sin(s*1.3)*.02*a;return{rx:-.9*a-.5*j,lx:-.9*a-.5*j,rz:-.75*a,lz:.75*a,ex:-.2*a,lex:-.2*a,y:.035*a+br+.02*j,bx:-.12*a-.06*j,ry:0};},
+  purgatory:k=>{const s=k*21,a=SMS(s,.2,1.8)*(1-SMS(s,19.2,20.6)),pj=PURG.pose,j=SMS(s,pj.j,pj.e)*(1-SMS(s,pj.e,pj.e+.5)),br=Math.sin(s*1.3)*.02*a;return{rx:-.9*a-.5*j,lx:-.9*a-.5*j,rz:-.75*a,lz:.75*a,ex:-.2*a,lex:-.2*a,y:.035*a+br+.02*j,bx:-.12*a-.06*j,ry:0};},
   cataclysm:k=>{const a=BELL(k,0,.12,.95),tr=Math.sin(k*24)*.025*SMS(k,.1,.86),th=SMS(k,.84,.92)*(1-SMS(k,.92,1));return{wx:3*a-1.2*th,rx:-2.95*a+tr+1.9*th,lx:-2.95*a-tr+1.7*th,rz:-.28*a,lz:-.28*a,ex:-.15*a,lex:-.15*a,y:.03*a*(1-th),bx:-.14*a+.35*th};},
   voidfall:k=>{const a=BELL(k,0,.3,.96),sp=SMS(k,0,.45),dr=SMS(k,.84,.92)*(1-SMS(k,.92,1));return{wx:.8*a+1.6*dr,rx:-1.25*a-1.2*dr,lx:-1.25*a-1.2*dr,rz:1.15*sp*a*(1-dr),lz:1.15*sp*a*(1-dr),y:.075*a*(1-dr)+Math.sin(k*14)*.008*a,bx:-.16*a+.3*dr};},
   eclipse:k=>{const a=BELL(k,0,.12,.985),tw=SMS(k,.89,.93)*(1-SMS(k,.93,.99));return{wx:3.05*a-1.4*tw,rx:-3.05*a+1.7*tw,lx:-1.7*a,lz:.95*a,ex:-.1*a,y:.095*a+Math.sin(k*16)*.008*a,ry:Math.sin(k*5)*.2*a,bx:-.22*a+.38*tw};}};
@@ -14178,6 +14244,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Crimson Purgatory: the judgment falls',d:'2 Nov',v:'v464',li:[
+    'Crimson Purgatory (Ancient) has five new masteries, for now in developer mode. Still one crimson world round the hero as judge: six watching eyes, every foe at half speed, invisible blades that cut more often and harder the closer a foe stands, building in stages to one frozen, silent instant. Each mastery makes a part the domain already has stronger and draws that part richer.',
+    'Closer Still: the judgment reaches further: closeness to the hero falls off over 3 tiles (2.8 before), about 10% more to a foe 3-4 tiles away; the aura\u2019s rings, pulses and glow reach further. Swifter Judgment: the last stage begins at 13s (14s before) and cuts 7% faster; the eyes swell more, and the red deepens and the thorns surge sooner.',
+    'The Watching Eyes: during the eyes\u2019 four stares (until now only a picture), foes within 1.5 tiles of where they look are cut as if they stood 2.5 tiles from the hero, with the large blades of the foes beside him; the eyes and their links flare. Execution: a cut that leaves a foe under 8% of its health, up to 20% beside the hero, cuts it down (not bosses), with a larger crossing blade and a red-hot scorch.',
+    'The Last Judgment: the silence holds 0.8s (0.32s before), then every foe takes one last cut, 150% far from the hero and up to 480% beside him; the six eyes open wide and blades cross on the forty nearest foes.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -31965,6 +32036,65 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
   dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
+/* ================= Crimson Purgatory's masteries (v464), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: the world turns crimson round the hero as judge. Six eyes watch, every foe moves at half speed, and invisible blades cut every
+   foe, more often and harder the closer it stands to the hero, building in stages to one frozen, silent instant. Simon, for every Mythic,
+   Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is preserved but their visuals
+   barely change and change only to better", and "new stuff CAN appear ... but just nothing that over shines the spell". So each mastery
+   strengthens one part the domain already has and draws that same part richer. Its cuts stay crimson and tied to the distance to the hero
+   (Infinite Void's are white and everywhere), and its execution is tied to closeness (Dimensional Slash and Piercing Judgment keep theirs).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Closer Still | what if the judgment reached further? | the closeness | wider reach |
+   | 2 | Swifter Judgment | what if the last stage came sooner? | the stages | timing |
+   | 3 | The Watching Eyes | what if the eyes' stares mattered? | the eyes (a picture until now) | a look made to matter |
+   | 4 | Execution | what if a cut finished what it cut? | the blades | execute |
+   | 5 | The Last Judgment | what if the silence ended in a verdict? | the silence | signature payoff |
+   - M1 Closer Still: closeness to the hero falls off over PGM.fall tiles (2.8 before), about 10% more to a foe 3-4 tiles away (rate x
+     strike). The aura's rings, shards, pulses and cracks reach x3/2.8 further, its glow 2 tiles (1.7). The thorns follow the closeness.
+   - M2 Swifter Judgment: the last stage begins at PGM.judg s (14 before) and cuts PGM.b2 x (0.35 + 2.8k) a second (1.5 before, 7% faster);
+     the eyes swell 0.09 (0.06) in it, and the red, the thorns' surge and the third stare come with it; the second stare moves to 10.6s
+     (11.2) so the stares stay spread. The hero's judgment pose follows the stages (PURG.pose; it was fixed at 15s of the gesture).
+   - M3 The Watching Eyes: during the eyes' four stares (1.3s each at 7s, 10.6s, 13.2s and 16.9s, until now only a picture), foes within
+     PGM.stareR tiles of where they look (the densest foe) are cut as if they stood PGM.stareD tiles from the hero (closeness
+     exp(-2.5/3) = 0.43 at least), drawn with the large blades of the foes beside him; the eyes flare and sparks run along their links.
+   - M4 Execution: a cut that leaves a non-boss foe under PGM.ex0 + PGM.exK x closeness of its health (20% beside the hero) cuts it down
+     (a void knight still rises once). Its crossing blade flares larger (a wide cross and a lingering trail from a pool of blades in one
+     mesh, drawn over the thorns), its scorch mark 1.7 times larger with a red-hot glow spreading under it, embers thrown out.
+   - M5 The Last Judgment: the silence holds PGM.sil s (0.32 before; still map-wide, bosses too: 0.8s is the cap), then every foe takes one
+     last cut, PGM.last x (1 + 2.2 x closeness): 150% far from the hero, up to 480% beside him (the frame it falls in holds no other cut).
+     The six eyes open wide (their lids 1.45 times open) as blades cross on the forty nearest foes, in order from the hero; sparks burst on
+     the rest. Execution rides it.
+   Percentages are of the scroll's power. Every mastered Purgatory cast runs castPurgatory with its XO (pgmOpts); Mastery 0, echoes and other
+   casters cast exactly as before. Execution (it needs foes that can die) and the longer silence (a hold) count for nothing on the ladder (its
+   foes stand still with huge health), so their factors carry them.
+   Calibrated on fresh foes (pack .6 / one .4, 3 casts 23s apart, the foes put back before every cast, 4 runs): in play the cooldown is
+   120s, so every cast meets fresh foes. The cuts depend on the distance to the hero, so the ladder's foes stand at sensible distances: the
+   pack of 12 on the road 2.6-3.4 tiles from him, the lone foe 3.2 tiles away. With the factors below: FRESH_ROW, against 1.078 / 1.162 /
+   1.226 / 1.302 / 1.35. The standard ladder (the kit's, its foes 0.8-2.5 tiles from the hero, the lone foe 1.4) reads lower, as foes that
+   close gain little from a longer reach or a stare: STD_ROW.
+   PGM.dbg (an array) logs the events. */
+const PGM={dbg:null,fall:3,judg:13,b2:1.6,focus2:10.6,stareR:1.5,stareD:2.5,ex0:.08,exK:.12,sil:.8,last:1.5};
+const pgmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='purgatory'&&c.L?c:null;};
+const pgmLog=d=>{if(PGM.dbg){d.t=time;PGM.dbg.push(d);}};
+SM_D.purgatory=[
+  {n:'Closer Still',d:'The judgment reaches further: closeness to the hero falls off over 3 tiles (2.8 before), about 10% more to a foe 3-4 tiles away. The aura reaches further.'},
+  {n:'Swifter Judgment',d:'The last stage begins at 13s (14s before) and cuts 7% faster. The eyes swell more.'},
+  {n:'The Watching Eyes',d:'While the six eyes stare, foes within 1.5 tiles of where they look are cut as if they stood 2.5 tiles from the hero.'},
+  {n:'Execution',d:'A cut that leaves a foe under 8% of its health, up to 20% beside the hero, cuts it down (not bosses).'},
+  {n:'The Last Judgment',d:'The silence holds 0.8s (0.32s before), then every foe takes one last cut: {150}%, up to {480}% beside the hero.'}];
+SMF.purgatory={m:1};
+SMA.purgatory=[1,1,1,1,1];
+SMG.purgatory=[.99,.975,.955,1.015,.947];
+/* this cast's numbers and looks (castPurgatory's XO), cumulative: Mastery L has masteries 1..L */
+function pgmOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.fall=PGM.fall;X.auraK=PGM.fall/2.8;X.glowR=2;}
+  if(L>=2){X.JUDG=PGM.judg;X.b2=PGM.b2;X.focus2=PGM.focus2;X.swell=.09;}
+  if(L>=3){X.stare=1;X.stareR=PGM.stareR;X.stareK=Math.exp(-PGM.stareD/PGM.fall);X.flareK=.5;}
+  if(L>=4){X.ex0=PGM.ex0;X.exK=PGM.exK;X.bladeN=48;}
+  if(L>=5){X.sil=PGM.sil;X.END=17.18+PGM.sil;X.last=PGM.last*a[4];X.wide=.45;X.bladeN=128;}
+  X.log=pgmLog;pgmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+const PGM_OLD=castPurgatory;
+castPurgatory=function(t,PW,o,XO){const c=!XO?pgmC(o):null;return PGM_OLD(t,PW,o,c?pgmOpts(c):XO);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.

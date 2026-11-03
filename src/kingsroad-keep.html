@@ -5956,13 +5956,13 @@ const PURG_XGV='varying vec2 vP;void main(){vP=position.xz;gl_Position=projectio
 const PURG_XGF='uniform float uA,uR;varying vec2 vP;void main(){float r=length(vP);if(r>1.)discard;float ring=exp(-pow((r-uR)/.13,2.));float core=pow(max(0.,1.-r/max(.2,uR+.15)),2.);vec3 c=mix(vec3(.7,.02,.04),vec3(1.,.42,.26),core*.8);gl_FragColor=vec4(c,(ring*.75+core*.8)*uA*smoothstep(1.,.75,r));}';
 /* v464: XO (optional, Crimson Purgatory's masteries): this cast's own numbers over PURGD (fall: how far the judgment reaches, closeness
    k=exp(-d/fall) from the hero; JUDG/b2: when the last stage begins and how fast it cuts, b0/b1 the stages before it; focus2: the eyes'
-   second stare; END/sil: when the world returns and how long the silence before it holds; stare/stareR/stareK: during the eyes' stares, foes
-   within stareR tiles of where they look are cut with a closeness of at least stareK; ex0/exK: a cut that leaves a non-boss foe under
-   ex0+exK x closeness of its health cuts it down; last: the last cut on every foe as the silence breaks, last x (1+2.2 x closeness)) and
-   its looks (auraK/glowR: the aura's reach and glow; swell: the eyes in the last stage; flareK: the eyes and links in a stare; wide: the
-   eyes thrown open for the last cut; bladeN: a pool of blades in one mesh for the executions and the last cut). PURG.pose times the hero's
-   judgment pose to the stages (the cast arrives 1s after the pose starts). log(d) receives the events for the tests. Without XO: exactly as
-   before. */
+   second stare; END/sil: when the world returns and how long the silence before it holds; stare/stareR/stareK/stareV: during the eyes'
+   stares, foes within stareR tiles of where they look are cut with a closeness of at least stareK, their blades drawn as near the hero
+   (stareV); ex0/exK: a cut that leaves a non-boss foe under ex0+exK x closeness of its health cuts it down; last: as the silence breaks,
+   every foe takes one last cut, last x (1+2.2 x closeness), and that frame holds no other cut) and its looks (auraK/glowR: the aura's
+   reach and glow; swell: the eyes in the last stage; flareK: the eyes and links in a stare; wide: the eyes thrown open for the last cut;
+   bladeN: a pool of blades in one mesh for the executions and the last cut). PURG.pose times the hero's judgment pose to the stages (the
+   cast arrives 1s after the pose starts). log(d) receives the events for the tests. Without XO: exactly as before. */
 const PURGD={fall:2.8,JUDG:14,END:17.5,sil:.32,b0:.45,b1:.8,b2:1.5,focus2:11.2,stare:0,stareR:1.5,stareK:.5,stareV:.62,ex0:0,exK:0,last:0,
   auraK:1,glowR:1.7,swell:.06,flareK:0,wide:0,bladeN:0,log:null};
 function castPurgatory(t,PW,o,XO){const D=XO?Object.assign({},PURGD,XO):PURGD,lg=D.log;
@@ -14246,6 +14246,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Crimson Purgatory: the judgment falls',d:'2 Nov',v:'v464',li:[
+    'Crimson Purgatory (Ancient) has five new masteries, for now in developer mode. Still one crimson world round the hero as judge: six watching eyes, every foe at half speed, invisible blades that cut more often and harder the closer a foe stands, building in stages to one frozen, silent instant. Each mastery makes a part the domain already has stronger and draws that part richer.',
+    'Closer Still: the judgment reaches further: closeness to the hero falls off over 3 tiles (2.8 before), about 10% more to a foe 3-4 tiles away; the aura\u2019s rings, pulses and glow reach further. Swifter Judgment: the last stage begins at 13s (14s before) and cuts 7% faster; the eyes swell more, and the red deepens and the thorns surge sooner.',
+    'The Watching Eyes: during the eyes\u2019 four stares (until now only a picture), foes within 1.5 tiles of where they look are cut as if they stood 2.5 tiles from the hero, with the large blades of the foes beside him; the eyes and their links flare. Execution: a cut that leaves a foe under 8% of its health, up to 20% beside the hero, cuts it down (not bosses), with a larger crossing blade and a red-hot scorch.',
+    'The Last Judgment: the silence holds 0.8s (0.32s before), then every foe takes one last cut, 150% far from the hero and up to 480% beside him; the six eyes open wide and blades cross on the forty nearest foes.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -32034,7 +32039,42 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
 /* ================= Crimson Purgatory's masteries (v464), designed with the framework (MASTERY_DESIGN.md) ================= */
-/* (header written at the end) */
+/* Identity: the world turns crimson round the hero as judge. Six eyes watch, every foe moves at half speed, and invisible blades cut every
+   foe, more often and harder the closer it stands to the hero, building in stages to one frozen, silent instant. Simon, for every Mythic,
+   Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is preserved but their visuals
+   barely change and change only to better", and "new stuff CAN appear ... but just nothing that over shines the spell". So each mastery
+   strengthens one part the domain already has and draws that same part richer. Its cuts stay crimson and tied to the distance to the hero
+   (Infinite Void's are white and everywhere), and its execution is tied to closeness (Dimensional Slash and Piercing Judgment keep theirs).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Closer Still | what if the judgment reached further? | the closeness | wider reach |
+   | 2 | Swifter Judgment | what if the last stage came sooner? | the stages | timing |
+   | 3 | The Watching Eyes | what if the eyes' stares mattered? | the eyes (a picture until now) | a look made to matter |
+   | 4 | Execution | what if a cut finished what it cut? | the blades | execute |
+   | 5 | The Last Judgment | what if the silence ended in a verdict? | the silence | signature payoff |
+   - M1 Closer Still: closeness to the hero falls off over PGM.fall tiles (2.8 before), about 10% more to a foe 3-4 tiles away (rate x
+     strike). The aura's rings, shards, pulses and cracks reach x3/2.8 further, its glow 2 tiles (1.7). The thorns follow the closeness.
+   - M2 Swifter Judgment: the last stage begins at PGM.judg s (14 before) and cuts PGM.b2 x (0.35 + 2.8k) a second (1.5 before, 7% faster);
+     the eyes swell 0.09 (0.06) in it, and the red, the thorns' surge and the third stare come with it; the second stare moves to 10.6s
+     (11.2) so the stares stay spread. The hero's judgment pose follows the stages (PURG.pose; it was fixed at 15s of the gesture).
+   - M3 The Watching Eyes: during the eyes' four stares (1.3s each at 7s, 10.6s, 13.2s and 16.9s, until now only a picture), foes within
+     PGM.stareR tiles of where they look (the densest foe) are cut as if they stood PGM.stareD tiles from the hero (closeness
+     exp(-2.5/3) = 0.43 at least), drawn with the large blades of the foes beside him; the eyes flare and sparks run along their links.
+   - M4 Execution: a cut that leaves a non-boss foe under PGM.ex0 + PGM.exK x closeness of its health (20% beside the hero) cuts it down
+     (a void knight still rises once). Its crossing blade flares larger (a wide cross and a lingering trail from a pool of blades in one
+     mesh, drawn over the thorns), its scorch mark 1.7 times larger with a red-hot glow spreading under it, embers thrown out.
+   - M5 The Last Judgment: the silence holds PGM.sil s (0.32 before; still map-wide, bosses too: 0.8s is the cap), then every foe takes one
+     last cut, PGM.last x (1 + 2.2 x closeness): 150% far from the hero, up to 480% beside him (the frame it falls in holds no other cut).
+     The six eyes open wide (their lids 1.45 times open) as blades cross on the forty nearest foes, in order from the hero; sparks burst on
+     the rest. Execution rides it.
+   Percentages are of the scroll's power. Every mastered Purgatory cast runs castPurgatory with its XO (pgmOpts); Mastery 0, echoes and other
+   casters cast exactly as before. Execution (it needs foes that can die) and the longer silence (a hold) count for nothing on the ladder (its
+   foes stand still with huge health), so their factors carry them.
+   Calibrated on fresh foes (pack .6 / one .4, 3 casts 23s apart, the foes put back before every cast, 4 runs): in play the cooldown is
+   120s, so every cast meets fresh foes. The cuts depend on the distance to the hero, so the ladder's foes stand at sensible distances: the
+   pack of 12 on the road 2.6-3.4 tiles from him, the lone foe 3.2 tiles away. With the factors below: FRESH_ROW, against 1.078 / 1.162 /
+   1.226 / 1.302 / 1.35. The standard ladder (the kit's, its foes 0.8-2.5 tiles from the hero, the lone foe 1.4) reads lower, as foes that
+   close gain little from a longer reach or a stare: STD_ROW.
+   PGM.dbg (an array) logs the events. */
 const PGM={dbg:null,fall:3,judg:13,b2:1.6,focus2:10.6,stareR:1.5,stareD:2.5,ex0:.08,exK:.12,sil:.8,last:1.5};
 const pgmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='purgatory'&&c.L?c:null;};
 const pgmLog=d=>{if(PGM.dbg){d.t=time;PGM.dbg.push(d);}};
@@ -32046,7 +32086,7 @@ SM_D.purgatory=[
   {n:'The Last Judgment',d:'The silence holds 0.8s (0.32s before), then every foe takes one last cut: {150}%, up to {480}% beside the hero.'}];
 SMF.purgatory={m:1};
 SMA.purgatory=[1,1,1,1,1];
-SMG.purgatory=[.99,.975,.955,1.015,.94];
+SMG.purgatory=[.99,.975,.955,1.015,.947];
 /* this cast's numbers and looks (castPurgatory's XO), cumulative: Mastery L has masteries 1..L */
 function pgmOpts(c){const L=c.L,a=c.a,X={};
   if(L>=1){X.fall=PGM.fall;X.auraK=PGM.fall/2.8;X.glowR=2;}
