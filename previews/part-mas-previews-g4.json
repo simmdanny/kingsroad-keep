@@ -102,5 +102,91 @@
   "seed": 1,
   "bytes": 4894397,
   "note": "The hurricane forms round the hero, its eye wall rising (the first 13 seconds of the cast)."
+ },
+ "tempest-2": {
+  "k": "tempest",
+  "L": 2,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 5480728,
+  "note": "Every volley locks onto one more foe.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "crown": 11,
+   "volley": 9,
+   "leap": 38
+  }
+ },
+ "tempest-5": {
+  "k": "tempest",
+  "L": 5,
+  "len": 5.5,
+  "seed": 1,
+  "bytes": 2768825,
+  "note": "The last thunder, and the hero’s fall rolls out over the whole field (the clip joins it there).",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "wall": 68,
+   "crown": 9,
+   "volley": 13,
+   "leap": 58,
+   "fin": 1,
+   "fallwave": 9
+  }
+ },
+ "tempest-3": {
+  "k": "tempest",
+  "L": 3,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 5361073,
+  "note": "Each precise strike leaps on further and harder.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "crown": 6,
+   "volley": 9,
+   "leap": 31
+  }
+ },
+ "tempest-4": {
+  "k": "tempest",
+  "L": 4,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 5382458,
+  "note": "The lightning racing round the eye wall strikes the foes it passes.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "wall": 12,
+   "crown": 6,
+   "volley": 9,
+   "leap": 31
+  }
+ },
+ "purgatory-0": {
+  "k": "purgatory",
+  "L": 0,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 2783630,
+  "note": "The judgment gathers round the hero and its cuts begin (the first 13 seconds of the cast)."
+ },
+ "purgatory-1": {
+  "k": "purgatory",
+  "L": 1,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 3021930,
+  "note": "The foes are spread along the road: the judgment reaches further.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cut": 73,
+   "stare": 2
+  }
  }
 }
