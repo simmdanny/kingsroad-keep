@@ -7768,16 +7768,16 @@ function nsLance(x0,y0,z0,tx,tz,w){w=w||1;const mats=[],ty=gy(tx,tz),[bg1,bg2]=n
 const CS_BAND_VS='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
 const CS_BAND_FS='varying vec2 vUv;uniform float uA,uT,uL;uniform vec3 uC;void main(){float h=vUv.y,x=vUv.x*uL,e=smoothstep(0.,.3,x)*smoothstep(uL,uL-.3,x);'+
   'float s=.55+.45*sin(x*4.7+uT*2.3+sin(x*1.6-uT*1.2)*2.),r=.62+.38*sin(h*13.-uT*6.5+x*1.3);float a=uA*e*pow(1.-h,1.7)*s*r;if(a<.004)discard;gl_FragColor=vec4(mix(uC,vec3(1.),pow(1.-h,3.)*.75),min(1.,a));}';
-function nsStreak(ax,az,bx,bz,X){const L=Math.hypot(bx-ax,bz-az);if(L<.1)return;const mats=[],geos=[],geo=new THREE.PlaneGeometry(L,X?X.w:.22);geo.rotateX(-Math.PI/2);geos.push(geo);const m=nsAM(mats,X?0xdce8ff:0xcfe0ff,X?X.op:.9),me=new THREE.Mesh(geo,m);
+function nsStreak(ax,az,bx,bz,X){const L=Math.hypot(bx-ax,bz-az);if(L<.1)return;const mats=[],geos=[],geo=new THREE.PlaneGeometry(L,X?X.w:.22);geo.rotateX(-Math.PI/2);geos.push(geo);const m=nsAM(mats,X?0xc0d4ff:0xcfe0ff,X?X.op:.9),me=new THREE.Mesh(geo,m);
   me.position.set((ax+bx)/2,gy((ax+bx)/2,(az+bz)/2)+.05,(az+bz)/2);me.rotation.y=-Math.atan2(bz-az,bx-ax);me.renderOrder=3;scene.add(me);
   for(let i=0;i<Math.ceil(L*6);i++){const u=rnd();emit(1,{x:ax+(bx-ax)*u,y:.1,z:az+(bz-az)*u,vx:0,vy:.3+rnd()*.4,vz:0,s:.05,s2:0,c:0xffffff,c2:0x5a7aff,life:.7});}
   let cm=null,bm=null,tt=0;
-  if(X){const cg=new THREE.PlaneGeometry(L,X.w*.3);cg.rotateX(-Math.PI/2);geos.push(cg);cm=nsAM(mats,0xffffff,0);const cr=new THREE.Mesh(cg,cm);cr.position.y=.006;cr.renderOrder=4;me.add(cr);
-    if(X.band){const bg=new THREE.PlaneGeometry(L,X.band);bg.translate(0,X.band/2,0);geos.push(bg);bm=new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:rnd()*9},uL:{value:L},uC:{value:new THREE.Color(0x7aa0ff)}},vertexShader:CS_BAND_VS,fragmentShader:CS_BAND_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
+  if(X){const cg=new THREE.PlaneGeometry(L,X.w*.22);cg.rotateX(-Math.PI/2);geos.push(cg);cm=nsAM(mats,0xffffff,0);const cr=new THREE.Mesh(cg,cm);cr.position.y=.006;cr.renderOrder=4;me.add(cr);
+    if(X.band){const bg=new THREE.PlaneGeometry(L,X.band);bg.translate(0,X.band/2,0);geos.push(bg);bm=new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:rnd()*9},uL:{value:L},uC:{value:new THREE.Color(0x6a90ff)}},vertexShader:CS_BAND_VS,fragmentShader:CS_BAND_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
       mats.push(bm);const bd=new THREE.Mesh(bg,bm);bd.renderOrder=4;me.add(bd);}}
   addFx(me,X?X.life:1.3,(f,dt)=>{const k=f.life/f.max;if(!X){m.opacity=.9*k*(.8+.2*Math.sin(f.life*40));me.scale.z=1+(1-k)*.8;return;}
-    tt+=dt;const a=Math.min(1,f.life/.7)*Math.min(1,tt/.08),fl=.86+.14*Math.sin(f.life*40);m.opacity=X.op*a*fl;cm.opacity=.8*a*fl;me.scale.z=1+(1-k)*.35;
-    if(bm){bm.uniforms.uT.value+=dt;bm.uniforms.uA.value=.6*a*Math.min(1,tt/.3);}
+    tt+=dt;const a=Math.min(1,f.life/.7)*Math.min(1,tt/.08)*(1-.3*SMS(tt,.15,.6)),fl=.86+.14*Math.sin(f.life*40);m.opacity=X.op*a*fl;cm.opacity=.55*a*fl;me.scale.z=1+(1-k)*.35;
+    if(bm){bm.uniforms.uT.value+=dt;bm.uniforms.uA.value=.95*a*Math.min(1,tt/.3);}
     if(dt>0&&rnd()<dt*L*4*a){const u=rnd(),x=ax+(bx-ax)*u,z=az+(bz-az)*u;emit(1,{x,y:gy(x,z)+.08,z,vx:0,vy:.45+rnd()*.5,vz:0,s:.045,s2:0,c:0xffffff,c2:0x6a8aff,life:.7});}},null,{mats,geos});}
 /* v470 (Brighter Stars): where a star falls, a short column of light rises off the ground round its foe (open, brightest at its edges and its
    foot, streaked, thinning as it climbs) inside a low wall of light racing out to the lance's reach: the impact's flat ring made 3D (the
@@ -7785,13 +7785,13 @@ function nsStreak(ax,az,bx,bz,X){const L=Math.hypot(bx-ax,bz-az);if(L<.1)return;
 const CS_COL_VS='varying vec2 vUv;varying float vF;void main(){vUv=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vF=abs(dot(normalize(normalMatrix*normal),normalize(-mv.xyz)));gl_Position=projectionMatrix*mv;}';
 const CS_COL_FS='varying vec2 vUv;varying float vF;uniform float uA,uH,uT;uniform vec3 uC;void main(){float h=vUv.y,top=1.-smoothstep(uH-.3,uH,h),s=.68+.32*sin(vUv.x*31.42+h*5.-uT*15.);'+
   'float a=uA*top*pow(1.-h,1.2)*(.28+.72*pow(1.-vF,1.3))*s;if(a<.004)discard;gl_FragColor=vec4(mix(uC,vec3(1.),.6*(1.-h)),min(1.,a));}';
-const csColGeo=()=>gget('csCol',()=>{const g=new THREE.CylinderGeometry(.16,.24,1.3,20,6,true);g.translate(0,.65,0);return g;}),
-  csWallGeo=()=>gget('csWall',()=>{const g=new THREE.CylinderGeometry(1,1,.18,40,1,true);g.translate(0,.09,0);return g;});
-function csImpact(tx,tz,R){const y=gy(tx,tz),mats=[],mk=c=>{const m=new THREE.ShaderMaterial({uniforms:{uA:{value:0},uH:{value:.3},uT:{value:rnd()*5},uC:{value:new THREE.Color(c)}},vertexShader:CS_COL_VS,fragmentShader:CS_COL_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});mats.push(m);return m;};
+const csColGeo=()=>gget('csCol',()=>{const g=new THREE.CylinderGeometry(.32,.25,1.05,24,6,true);g.translate(0,.525,0);return g;}),
+  csWallGeo=()=>gget('csWall',()=>{const g=new THREE.CylinderGeometry(1,1,.32,40,1,true);g.translate(0,.16,0);return g;});
+function csImpact(tx,tz,R,K){K=K||1;const y=gy(tx,tz),mats=[],mk=c=>{const m=new THREE.ShaderMaterial({uniforms:{uA:{value:0},uH:{value:.3},uT:{value:rnd()*5},uC:{value:new THREE.Color(c)}},vertexShader:CS_COL_VS,fragmentShader:CS_COL_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});mats.push(m);return m;};
   const g=new THREE.Group(),cm=mk(0x8aacff),wm=mk(0xa8c0ff),col=new THREE.Mesh(csColGeo(),cm),wall=new THREE.Mesh(csWallGeo(),wm);g.position.set(tx,y,tz);g.add(col,wall);wall.scale.set(.2,1,.2);scene.add(g);let tt=0;
   for(let i=0;i<10;i++){const a=rnd()*6.28,r=.08+rnd()*.12;emit(1,{x:tx+Math.cos(a)*r,y:y+.05+rnd()*.2,z:tz+Math.sin(a)*r,vx:Math.cos(a)*.2,vy:1.6+rnd()*1.6,vz:Math.sin(a)*.2,s:.05,s2:0,c:0xffffff,c2:0x7a9aff,life:.45+rnd()*.25,drag:.6});}
-  addFx(g,.6,(f,dt)=>{tt+=dt;const k=f.life/f.max,rise=Math.min(1,tt/.14),w=SMS(tt,0,.38);cm.uniforms.uT.value+=dt;cm.uniforms.uH.value=.3+1.05*rise;cm.uniforms.uA.value=1.15*Math.min(1,k*1.7);col.scale.set(1+tt*.8,1+tt*.5,1+tt*.8);
-    wall.scale.set(R*(.2+.8*w),1.2-.6*w,R*(.2+.8*w));wm.uniforms.uH.value=1.3;wm.uniforms.uT.value+=dt;wm.uniforms.uA.value=1.1*(1-w);},null,{mats});}
+  addFx(g,.6,(f,dt)=>{tt+=dt;const k=f.life/f.max,rise=Math.min(1,tt/.12),w=SMS(tt,0,.36);cm.uniforms.uT.value+=dt;cm.uniforms.uH.value=.3+1.05*rise;cm.uniforms.uA.value=1.05*K*Math.min(1,k*1.8);col.scale.set(1+tt*.7,1+tt*.8,1+tt*.7);
+    wall.scale.set(R*(.2+.8*w),1.1-.5*w,R*(.2+.8*w));wm.uniforms.uH.value=1.3;wm.uniforms.uT.value+=dt;wm.uniforms.uA.value=1.25*K*(1-w);},null,{mats});}
 /* v470: XO (optional, Constellation's masteries): this cast's own numbers over CSL (N: the stars, R: how far from the figure's heart they reach;
    lance: a lance's strike, spl/splK: the foes it strikes round its foe, within spl, for splK; line/lineW: the burning lines' strike and reach;
    alight: how long they stay alight, and late: a foe stepping onto a line while it burns is burnt too, once a figure; hold: a non-boss foe is
@@ -7806,10 +7806,10 @@ function castConstellation(t,list,P,o,XO){const D=XO?Object.assign({},CSL,XO):CS
   const pool=enemies.filter(e=>!e.dead&&!e.fake),cand=list.filter(e=>!e.fake&&!e.dead),c=cand.length?densest(cand):(pool.length?densest(pool):list[0]);
   let T=pool.filter(e=>(e.x-c.x)**2+(e.z-c.z)**2<D.R*D.R).sort((a,b)=>nsStrong(b)-nsStrong(a)).slice(0,D.N);if(!T.length)T=[c];
   const ord=[T[0]],rest=T.slice(1);while(rest.length){const l=ord[ord.length-1];let bi=0,bd=1e9;rest.forEach((e,i)=>{const d=(e.x-l.x)**2+(e.z-l.z)**2;if(d<bd){bd=d;bi=i;}});ord.push(rest.splice(bi,1)[0]);}
-  const mats=[],geos=[],SY=3,starM=nsAM(mats,D.white?0xffffff:0xf4f8ff,0),haloM=nsAM(mats,D.white?0x86a6ff:0x5a8aff,0),flM=nsAM(mats,D.white?0xd0e0ff:0xa8c8ff,0),lineM=nsAM(mats,0xd8e8ff,0),lineH=nsAM(mats,0x6a8aff,0),[bg1,bg2]=nsBeamGeos();
-  const holdM=D.pulse?nsAM(mats,0xa8c4ff,0):null;
+  const mats=[],geos=[],SY=3,starM=nsAM(mats,D.white?0xffffff:0xf4f8ff,0),haloM=nsAM(mats,D.white?0x6c98ff:0x5a8aff,0),flM=nsAM(mats,D.white?0xd0e0ff:0xa8c8ff,0),lineM=nsAM(mats,0xd8e8ff,0),lineH=nsAM(mats,0x6a8aff,0),[bg1,bg2]=nsBeamGeos();
+  const holdM=D.pulse?nsAM(mats,0x7aa4ff,0):null;
   const flG=new THREE.PlaneGeometry(.62*D.flK,.035);geos.push(flG);
-  const stars=ord.map((e,i)=>{const g=new THREE.Group();g.add(new THREE.Mesh(ico(.075,1),starM));const h=new THREE.Mesh(ico(.2,1),haloM);g.add(h);const fl=new THREE.Group(),f2=new THREE.Mesh(flG,flM);f2.rotation.z=Math.PI/2;fl.add(new THREE.Mesh(flG,flM),f2);g.add(fl);
+  const stars=ord.map((e,i)=>{const g=new THREE.Group();g.add(new THREE.Mesh(ico(.075,1),starM));const h=new THREE.Mesh(ico(.2,D.white?2:1),haloM);g.add(h);const fl=new THREE.Group(),f2=new THREE.Mesh(flG,flM);f2.rotation.z=Math.PI/2;fl.add(new THREE.Mesh(flG,flM),f2);g.add(fl);
     g.scale.setScalar(.001);nsOwn(g);return{e,g,h,fl,i,x:e.x,z:e.z,ox:0,oz:0,shot:false,born:(.15+i*.14)*ts,fall:0};});
   const lines=[];for(let i=0;i<stars.length-1;i++){const g=new THREE.Group();g.add(new THREE.Mesh(bg1,lineM),new THREE.Mesh(bg2,lineH));g.visible=false;nsOwn(g);lines.push({g,a:stars[i],b:stars[i+1]});}
   cineLock=Math.max(cineLock,4*ts);darkTarget=Math.max(darkTarget,.45);vigTarget=Math.max(vigTarget,.4);if(typeof sfxWind==='function')sfxWind(2.2*ts,.12);
@@ -7829,14 +7829,14 @@ function castConstellation(t,list,P,o,XO){const D=XO?Object.assign({},CSL,XO):CS
       if(tt>=s.born&&tt-dt<s.born){sprayP(1,s.x,y,s.z,12,{c:0xffffff,c2:0x7fa8ff,sp:.8,s:.04,s2:0,life:.5});if(D.hold)hold(s);}
       /* (the halo tightens round a held foe and pulses; round a slowed boss a little less, and slower) */
       if(D.pulse&&s.held&&!s.shot)s.h.scale.setScalar(s.held===1?.66+.12*Math.sin(tt*15+s.i*1.3):.84+.08*Math.sin(tt*8+s.i));}
-    const vis=Math.min(1,tt*3/ts);starM.opacity=vis;haloM.opacity=(.28+.3*glowUp)*vis;flM.opacity=.55*vis;if(holdM)holdM.opacity=(.5+.22*Math.sin(tt*15)+.2*glowUp)*vis;
+    const vis=Math.min(1,tt*3/ts);starM.opacity=vis;haloM.opacity=(.28+.3*glowUp)*vis;flM.opacity=.55*vis;if(holdM)holdM.opacity=(.36+.16*Math.sin(tt*15)+.14*glowUp)*vis;
     const lk=SMS(tt,1.1*ts,1.8*ts);lineM.opacity=.9*lk;lineH.opacity=(.25+.35*glowUp)*lk;
     lines.forEach((L,i)=>{const A=L.a.g.position,B=L.b.g.position,d=Math.min(1,Math.max(0,lk*lines.length-i));L.g.visible=d>0&&!(fired&&tt>PL+.15*ts);if(!L.g.visible)return;nsBeamSet(L.g,A.x,A.y,A.z,A.x+(B.x-A.x)*d,A.y+(B.y-A.y)*d,A.z+(B.z-A.z)*d);});
     if(!fired&&tt>=PL){fired=true;stars.forEach((s,i)=>{s.fall=PL+i*.06*ts;});camShake=Math.max(camShake,.1);flashA=Math.max(flashA,.16);flashCol='#cfdcff';}
     for(const s of stars){if(s.fall&&!s.shot&&tt>=s.fall){s.shot=true;let e=s.e;if(e.dead){let b=null,bd=2.5;for(const q of enemies){if(q.dead)continue;const d=Math.hypot(q.x-s.x,q.z-s.z);if(d<bd){bd=d;b=q;}}e=b;}
         const tx=e?e.x:s.x,tz=e?e.z:s.z;nsLance(s.x,s.g.position.y,s.z,tx,tz,D.lanceW);if(e)hurt(e,P*D.lance,'magic',o);for(const q of enemies){if(q.dead||q===e)continue;if((q.x-tx)**2+(q.z-tz)**2<D.spl*D.spl)hurt(q,P*D.splK,'magic',o);}
         if(lg)lg({ev:'fall',i:s.i,e,own:e===s.e,tx,tz,T:tt});
-        s.g.visible=false;s.tx=tx;s.tz=tz;flash(tx,.5,tz,0xdfe8ff,.8,.2);if(D.col)csImpact(tx,tz,D.spl);else ringFx(tx,.08,tz,1,0xa8c8ff,.4);sprayP(1,tx,gy(tx,tz)+.1,tz,24,{c:0xffffff,c2:0x6a8aff,sp:2,up:1,s:.05,s2:0,life:.6,g:2});camShake=Math.max(camShake,.08);}}
+        s.g.visible=false;s.tx=tx;s.tz=tz;flash(tx,.5,tz,0xdfe8ff,D.second?.6:.8,.2);if(D.col)csImpact(tx,tz,D.spl,D.second?.75:1);else ringFx(tx,.08,tz,1,0xa8c8ff,.4);sprayP(1,tx,gy(tx,tz)+.1,tz,24,{c:0xffffff,c2:0x6a8aff,sp:2,up:1,s:.05,s2:0,life:.6,g:2});camShake=Math.max(camShake,.08);}}
     if(!streaked&&fired&&stars.every(s=>s.shot)){streaked=true;twT=tt;burnt=new Set();segs=[];for(const L of lines){const ax=L.a.tx,az=L.a.tz,bx=L.b.tx,bz=L.b.tz;nsStreak(ax,az,bx,bz,D.streak);segs.push([ax,az,bx,bz]);for(const q of enemies){if(q.dead||burnt.has(q))continue;if(nsSegDist(q.x,q.z,ax,az,bx,bz)<D.lineW)burn(q,0);}}
       if(D.late&&segs.length){f.life=Math.max(f.life,D.alight+.1);lastP=new Map();}}
     /* Burning Lines: while they stay alight a foe stepping onto one burns too, once (its path since the last frame is checked in steps of at
@@ -32033,15 +32033,15 @@ SM_D.constellation=[
   {n:'A Larger Figure',d:'One more star and one more line: the figure kindles over the 8 strongest foes (7 before), reaching foes within 10 tiles (9 before).'},
   {n:'Burning Lines',d:'The lines burn wider and brighter: {250}% (200% before) to every foe within 0.75 tiles of them (0.55 before). They stay alight 2s, burning a foe that steps onto them later (once).'},
   {n:'Fixed Stars',d:'A foe is held under its star from the moment it kindles until it falls (about 1.5-2s); bosses are slowed 50% instead. The halo tightens and pulses over its foe.'},
-  {n:'The Sky Falls Twice',d:'When the lines have burnt, the figure kindles again over the strongest foes still standing, drawn faster, and falls a second time at {12}% of the power.'}];
+  {n:'The Sky Falls Twice',d:'When the lines have burnt, the figure kindles again over the strongest foes still standing, drawn faster, and falls a second time at 12% of the power.'}];
 SMF.constellation={m:1};
 SMA.constellation=[1,1,1,1,1];
 SMG.constellation=[.955,.943,.961,1.02,.945];
 /* this cast's numbers and looks (castConstellation's XO), cumulative: Mastery L has masteries 1..L */
 function csmOpts(c){const L=c.L,a=c.a,X={};
-  if(L>=1){X.lance=CSL.lance+(CSM.lance-CSL.lance)*a[0];X.spl=CSM.spl;X.starK=1.25;X.white=1;X.flK=1.45;X.lanceW=1.5;X.col=1;}
+  if(L>=1){X.lance=CSL.lance+(CSM.lance-CSL.lance)*a[0];X.spl=CSM.spl;X.starK=1.25;X.white=1;X.flK=1.1;X.lanceW=1.5;X.col=1;}
   if(L>=2){X.N=CSM.N;X.R=CSM.R;}
-  if(L>=3){X.line=CSL.line+(CSM.line-CSL.line)*a[2];X.lineW=CSM.lineW;X.alight=CSM.alight;X.late=1;X.streak={w:.3,life:CSM.alight,op:1,band:.4};}
+  if(L>=3){X.line=CSL.line+(CSM.line-CSL.line)*a[2];X.lineW=CSM.lineW;X.alight=CSM.alight;X.late=1;X.streak={w:.3,life:CSM.alight,op:.45,band:.5};}
   if(L>=4){X.hold=1;X.bossSlow=CSM.bossSlow;X.pulse=1;}
   if(L>=5){X.twice=CSM.twice*a[4];X.twTs=CSM.twTs;}
   X.log=CSM.dbg?csmLog:null;csmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
