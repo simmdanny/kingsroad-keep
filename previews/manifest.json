@@ -3034,6 +3034,14 @@
     "hit": 36,
     "shatter": 1
    }
+  },
+  "embertitan-0": {
+   "k": "embertitan",
+   "L": 0,
+   "len": 11.87,
+   "seed": 1,
+   "bytes": 1536873,
+   "note": ""
   }
  },
  "made": "2026-10-29"
