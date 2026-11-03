@@ -5061,9 +5061,19 @@ function citHum(){const c=sfxCtx();if(!c)return null;const t=c.currentTime,out=c
   return{fade(d){const n=c.currentTime;out.gain.cancelScheduledValues(n);out.gain.setValueAtTime(out.gain.value,n);out.gain.linearRampToValueAtTime(0,n+d);setTimeout(()=>{try{os.forEach(o=>o.stop());lf.stop();}catch(e){}},d*1000+100);}};}
 const CIT_BODY_FS=()=>'varying vec2 vUv;varying vec3 vN;uniform float uT,uI,uS;'+NOISE+'void main(){float y=vUv.y;float n=fbm(vec2(vUv.x*5.0+uS,y*2.5-uT*.7));float bands=smoothstep(.9,1.,abs(sin(y*11.+uS*3.)))*.3+smoothstep(.97,1.,abs(sin(vUv.x*18.85+uS)))*.15;float fr=1.-abs(normalize(vN).z);vec3 c=mix(vec3(1.,.5,.12),vec3(1.,.82,.32),smoothstep(.1,.85,1.-fr));c=mix(c,vec3(1.,.97,.85),pow(1.-fr,3.)*.8)+bands*vec3(1.,.9,.6);float a=(.4+.6*n)*(.28+.72*(1.-fr))*uI;a*=smoothstep(0.,.04,y)*(1.-smoothstep(.78,1.,y));gl_FragColor=vec4(c,clamp(a,0.,1.));}';
 const CIT_STRIP_FS='varying vec2 vUv;uniform float uA;void main(){float tp=sin(3.14159*vUv.x);float d=abs(vUv.y-.5)*2.;float a=smoothstep(tp*.16+.012,0.,d)*uA;gl_FragColor=vec4(mix(vec3(.55,.85,1.),vec3(1.),smoothstep(.1,0.,d)),a);}';
-function castCitadel(t,c0,P,o){
+/* v460: XO (optional, the Citadel's masteries): this cast's own numbers over CITD (R: the domain's reach; cutK/wakeK: a cut's strike on its mark
+   and in its wake; push: how far it throws its mark back; crawl/crawlEnd: how fast foes inside move, and at the end; actSl: the opening slow's
+   length; edict: cuts aim at the foe nearest the keep that no cut has struck yet; finK/finK2/finL/finPush: the final fracture's strike near its
+   main crack and elsewhere, its length and its throw) and its looks (pH/uI: the pillars' height and light; bAmp/qAmp/qR: how deep a cut bends
+   space and how large its quake; strip/stripFS: show the cut's seam (made with every cut, never shown before) and its shader;
+   ghostN/ghostMax/ghostL/ghostA/ghostC: the afterimages' pool, how many a beat, their life, light and colour; brW/brAmp: the fracture's
+   branches; colK: the pillars' last light). log(d) receives the events for the tests.
+   CIT.pf (tower and hero shots inside) keeps the old curve whatever crawl is. Without XO: exactly as before. */
+const CITD={R:5.2,pH:1,uI:1,cutK:2,wakeK:1,push:.25,bAmp:1,qAmp:1,qR:1,strip:0,stripFS:null,crawl:.5,crawlEnd:.1,actSl:2.5,ghostN:14,ghostMax:4,ghostL:.4,ghostA:.3,ghostC:0xffe2a0,
+  edict:0,finK:8,finK2:4,finL:1.85,brW:.3,brAmp:.8,finPush:.55,colK:1,log:null};
+function castCitadel(t,c0,P,o,XO){const D=XO?Object.assign({},CITD,XO):CITD,lg=D.log;
   sdpInit();const geos=[],mats=[],root=new THREE.Group();scene.add(root);cineLock=Math.max(cineLock,3.4);
-  const hx=t.x,hz=t.z,R=5.2,TAU=6.2832,T_ACT0=2,T_SL0=3.45,T_SL1=12.8,T_FS=13.55,T_SNAP=14.45,T_COL=14.55,END=17;
+  const hx=t.x,hz=t.z,R=D.R,TAU=6.2832,T_ACT0=2,T_SL0=3.45,T_SL1=12.8,T_FS=13.55,T_SNAP=14.45,T_COL=14.55,END=17;
   let Tact0=0,quakeT=9,T=0,ended=false,nextSl=T_SL0,faceA=0,actDone=false,snapDone=false,fsOn=false,lastTgt=null,ghT=0,hum=null;
   /* ---- pillar placement: only open ground, ring with procedural variation ---- */
   const okPos=(x,z,placed)=>{const c=Math.round(x/TS+OX),r=Math.round(z/TS+OZ);if(c<1||c>=W-1||r<1||r>=H-1)return false;const gv=grid[r][c];if(gv!==0&&!(OW.on&&gv===1))return false;
@@ -5074,9 +5084,9 @@ function castCitadel(t,c0,P,o){
   const N=10+Math.floor(rnd()*3),a0=rnd()*TAU,pil=[];
   for(let i=0;i<N;i++){const a=a0+i/N*TAU+(rnd()-.5)*.35,rr=R*(.9+rnd()*.22),ix=hx+Math.cos(a)*rr*.95,iz=hz+Math.sin(a)*rr*1.1;let found=null;
     for(let k=0;k<30&&!found;k++){const rho=k?.35*Math.ceil(k/8):0,aa=k*2.4;const x=ix+Math.cos(aa)*rho,z=iz+Math.sin(aa)*rho;if(okPos(x,z,pil))found={x,z};}
-    if(found)pil.push({x:found.x,z:found.z,a,H:7+rnd()*4.5,w:.24+rnd()*.2,I:.8+rnd()*.35,seed:rnd()*10,tilt:(rnd()-.5)*.05,rot:rnd()*TAU,dA:.14+rnd()*.12,dR:1.9+rnd()*.7});}
+    if(found)pil.push({x:found.x,z:found.z,a,H:(7+rnd()*4.5)*D.pH,w:.24+rnd()*.2,I:.8+rnd()*.35,seed:rnd()*10,tilt:(rnd()-.5)*.05,rot:rnd()*TAU,dA:.14+rnd()*.12,dR:1.9+rnd()*.7});}
   /* a hero standing where no pillar fits (a crowded square, a bridge) still gets one pillar, so the cast can never fail */
-  if(!pil.length){const a=a0;pil.push({x:hx+Math.cos(a)*3.2,z:hz+Math.sin(a)*3.2,a,H:8,w:.3,I:1,seed:rnd()*10,tilt:0,rot:0,dA:.18,dR:2.2});}
+  if(!pil.length){const a=a0;pil.push({x:hx+Math.cos(a)*3.2,z:hz+Math.sin(a)*3.2,a,H:8*D.pH,w:.3,I:1,seed:rnd()*10,tilt:0,rot:0,dA:.18,dR:2.2});}
   let nr=0,nd=1e9;pil.forEach((p,i)=>{const d=Math.hypot(p.x-hx,p.z-hz);if(d<nd){nd=d;nr=i;}});
   pil.forEach((p,i)=>{p.t0=.55+i*.24;p.isLast=i===nr;p.vis=false;p.snd=false;});
   const order=pil.map((p,i)=>i).filter(i=>i!==nr).sort((a,b)=>Math.hypot(pil[b].x-hx,pil[b].z-hz)-Math.hypot(pil[a].x-hx,pil[a].z-hz));order.push(nr);order.forEach((i,k)=>{pil[i].tc=T_COL+k*(.95/Math.max(1,order.length-1));});
@@ -5098,19 +5108,23 @@ function castCitadel(t,c0,P,o){
   const stripG=new THREE.PlaneGeometry(1,1);stripG.translate(0,.5,0);geos.push(stripG);const slashes=[],ghosts=[];
   SDP.bl=[null,null,null,null,null,null];SDP.qk=[null,null,null,null];SDP.wv=[null,null,null,null];let waveT=Tact0,tickW=0;
   const freeSlot=()=>{for(let i=0;i<6;i++)if(!SDP.bl[i])return i;return -1;};
-  const quake=(x,z,Rq,amp)=>{let i=SDP.qk.findIndex(q=>!q);if(i<0){i=0;let oa=-1;SDP.qk.forEach((q,j)=>{if(q&&q.age>oa){oa=q.age;i=j;}});}SDP.qk[i]={x,z,age:0,seed:rnd()*20,R:Rq,amp,mode:rnd()<.5?.4+rnd()*.6:0};};
+  const quake=(x,z,Rq,amp)=>{let i=SDP.qk.findIndex(q=>!q);if(i<0){i=0;let oa=-1;SDP.qk.forEach((q,j)=>{if(q&&q.age>oa){oa=q.age;i=j;}});}return SDP.qk[i]={x,z,age:0,seed:rnd()*20,R:Rq,amp,mode:rnd()<.5?.4+rnd()*.6:0};};
   const inside=()=>enemies.filter(e=>!e.dead&&(e.x-hx)**2+(e.z-hz)**2<=R*R);
+  /* how far a cut throws its mark back (D.edict: never out of the domain, where no cut could follow it) */
+  const throwBack=q=>{let p=D.push;if(D.edict&&q.route){for(;p>.001;p-=.05){const w=posAt(q.dist-p,q.route);if((w[0]-hx)**2+(w[1]-hz)**2<=R*R*.94)break;}p=Math.max(0,p);}return p;};
   const segDist=(px,pz,ax,az,bx,bz)=>{const dx=bx-ax,dz=bz-az,L2=dx*dx+dz*dz||1,s=clamp(((px-ax)*dx+(pz-az)*dz)/L2,0,1);return Math.hypot(px-(ax+dx*s),pz-(az+dz*s));};
   const sparks=(x,z,n,sp)=>{return;for(let i=0;i<n;i++){const a=rnd()*TAU;emit(1,{x,y:.25+rnd()*.5,z,vx:Math.cos(a)*sp*(.4+rnd()),vy:.4+rnd()*1.4,vz:Math.sin(a)*sp*(.4+rnd()),s:.05,s2:0,c:0xf4fdff,c2:0x7fe8ff,life:.35+rnd()*.3});}};
-  let lastSl=-9;const doSlash=(ft)=>{const L=inside();if(!L.length&&!ft){nextSl+=.3;return;}lastSl=T;
-    const r=rnd();let tg=ft?ft:r<.4?L.reduce((a,b)=>b.hp>a.hp?b:a):r<.8?L.reduce((a,b)=>b.dist>a.dist?b:a):L[Math.floor(rnd()*L.length)];if(!ft&&tg===lastTgt&&L.length>1)tg=L[Math.floor(rnd()*L.length)];lastTgt=tg;
+  /* (D.edict: the foe nearest the keep that no cut has struck yet; once every foe inside has been struck, the orders start again from the front) */
+  let lastSl=-9;const struck=new Set(),toKeep=e=>(e.route||ROUTES[0]).len-e.dist;const doSlash=(ft)=>{const L=inside();if(!L.length&&!ft){nextSl+=.3;return;}lastSl=T;let tg;
+    if(D.edict&&!ft){let U=L.filter(e=>!struck.has(e));if(!U.length){struck.clear();U=L;}tg=U.reduce((a,b)=>toKeep(b)<toKeep(a)?b:a);struck.add(tg);}
+    else{const r=rnd();tg=ft?ft:r<.4?L.reduce((a,b)=>b.hp>a.hp?b:a):r<.8?L.reduce((a,b)=>b.dist>a.dist?b:a):L[Math.floor(rnd()*L.length)];if(!ft&&tg===lastTgt&&L.length>1)tg=L[Math.floor(rnd()*L.length)];}lastTgt=tg;if(lg)lg({ev:'aim',e:tg,L,K:L.map(toKeep),fake:!!ft});
     const dx=tg.x-hx,dz=tg.z-hz,d=Math.hypot(dx,dz)||1,ux=dx/d,uz=dz/d,slot=freeSlot(),k=clamp((T-T_SL0)/(T_SL1-T_SL0),0,1);faceA=Math.atan2(dx,dz);t.faceA=faceA;t.faceLock=.5;CIT.flick=1;citSnd('slash');
-    const s={slot,state:'pre',age:0,pos:0,ox:hx+ux*.8,oz:hz+uz*.8,ux,uz,dist:Math.max(.3,d-.8),speed:4.2+11*Math.pow(k,1.2),pre:.4-.28*k,a:1.5+rnd()*.9,amp:.55+rnd()*.3,seed:rnd()*20,hit:false,tg,tx:tg.x,tz:tg.z,amp2:0,seam:0,v:1.2,t1:0,cx:hx,cz:hz};
+    const s={slot,state:'pre',age:0,pos:0,ox:hx+ux*.8,oz:hz+uz*.8,ux,uz,dist:Math.max(.3,d-.8),speed:4.2+11*Math.pow(k,1.2),pre:.4-.28*k,a:1.5+rnd()*.9,amp:(.55+rnd()*.3)*D.bAmp,seed:rnd()*20,hit:false,tg,tx:tg.x,tz:tg.z,amp2:0,seam:0,v:1.2,t1:0,cx:hx,cz:hz};
     if(slot<0){impact(s);return;}
-    SDP.bl[slot]=s;const m=new THREE.ShaderMaterial({uniforms:{uA:{value:0}},vertexShader:VS_UV,fragmentShader:CIT_STRIP_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});s.mm=m;s.mesh=new THREE.Mesh(stripG,m);s.mesh.visible=false;root.add(s.mesh);slashes.push(s);};
-  const impact=s=>{s.hit=true;const e=s.tg;s.tx=e.x;s.tz=e.z;citSnd('impact');const nx=-s.uz,nz=s.ux;
-    for(const q of enemies){if(q.dead)continue;const rx=q.x-s.ox,rz=q.z-s.oz,al=rx*s.ux+rz*s.uz,lat=rx*nx+rz*nz;if(q===e||(al>-.3&&al<s.dist+.8&&Math.abs(lat)<s.a*.8)){hurt(q,P*(q===e?2:1),'magic',o);if(!q.boss&&q===e)q.dist=Math.max(0,q.dist-.25);sparks(q.x,q.z,q===e?8:3,2.2);}}
-    quake(s.tx,s.tz,2.6+rnd()*.8,.45+rnd()*.3);camShake=Math.max(camShake,.07);};
+    SDP.bl[slot]=s;const m=new THREE.ShaderMaterial({uniforms:{uA:{value:0}},vertexShader:VS_UV,fragmentShader:D.stripFS||CIT_STRIP_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});s.mm=m;s.mesh=new THREE.Mesh(stripG,m);s.mesh.visible=false;root.add(s.mesh);slashes.push(s);};
+  const impact=s=>{s.hit=true;const e=s.tg;s.tx=e.x;s.tz=e.z;citSnd('impact');const nx=-s.uz,nz=s.ux,Hh=lg?[]:null,d0=e.dist;
+    for(const q of enemies){if(q.dead)continue;const rx=q.x-s.ox,rz=q.z-s.oz,al=rx*s.ux+rz*s.uz,lat=rx*nx+rz*nz;if(q===e||(al>-.3&&al<s.dist+.8&&Math.abs(lat)<s.a*.8)){if(Hh)Hh.push(q);hurt(q,P*(q===e?D.cutK:D.wakeK),'magic',o);if(!q.boss&&q===e)q.dist=Math.max(0,q.dist-throwBack(q));sparks(q.x,q.z,q===e?8:3,2.2);}}
+    const qk=quake(s.tx,s.tz,(2.6+rnd()*.8)*D.qR,(.45+rnd()*.3)*D.qAmp);camShake=Math.max(camShake,.07);if(lg)lg({ev:'cut',e,H:Hh,ox:s.ox,oz:s.oz,ux:s.ux,uz:s.uz,dist:s.dist,a:s.a,amp:s.amp,d0,d1:e.dist,slot:s.slot,qR:qk.R,qA:qk.amp});};
   /* left click: the player throws a slash at the cursor point (nearest foe if one is close), at most one every 0.4 s */
   const manual=(x,z)=>{if(ended||fsOn||snapDone||T<T_SL0||T>=T_SL1)return false;if(T-lastSl<.4)return true;let tg=null,bd=3.2;for(const e of inside()){const d=Math.hypot(e.x-x,e.z-z);if(d<bd){bd=d;tg=e;}}
     if(!tg){let dx=x-hx,dz=z-hz;const d=Math.hypot(dx,dz)||1,m=Math.min(d,R*.92);tg={x:hx+dx/d*m,z:hz+dz/d*m,hp:0,dist:0,fake:true};}doSlash(tg);return true;};
@@ -5118,12 +5132,13 @@ function castCitadel(t,c0,P,o){
   /* ---- final slash ---- */
   let fin=null;
   const startFinal=()=>{fsOn=true;const L=inside();let tx=hx,tz=hz-3;if(L.length){const d=densest(L);tx=d.x;tz=d.z;}let dx=tx-hx,dz=tz-hz,d=Math.hypot(dx,dz)||1;const ux=dx/d,uz=dz/d;faceA=Math.atan2(dx,dz);t.faceA=faceA;t.faceLock=1.6;CIT.flick=1.7;
-    fin={ox:hx+ux*.8,oz:hz+uz*.8,ux,uz,L:R*1.85,curve:(rnd()-.5)*.24,seed:rnd()*20};for(const i of [0,1,2])if(SDP.sl[i]&&SDP.sl[i].mm){SDP.sl[i].age=9;}
-    fin.slots=[0,1,2].map(i=>{const q={slot:i,seed:fin.seed+i*3,ang:i?(i===1?-.2:.24):0,len:i?.62:1,w:i?.3:.62,amp:i?.8:1.35,cv:i?-fin.curve*1.3:fin.curve};SDP.sl[i]=q;return q;});};
+    fin={ox:hx+ux*.8,oz:hz+uz*.8,ux,uz,L:R*D.finL,curve:(rnd()-.5)*.24,seed:rnd()*20};for(const i of [0,1,2])if(SDP.sl[i]&&SDP.sl[i].mm){SDP.sl[i].age=9;}
+    fin.slots=[0,1,2].map(i=>{const q={slot:i,seed:fin.seed+i*3,ang:i?(i===1?-.2:.24):0,len:i?.62:1,w:i?D.brW:.62,amp:i?D.brAmp:1.35,cv:i?-fin.curve*1.3:fin.curve};SDP.sl[i]=q;return q;});};
   const finalUpd=(dt)=>{const U=T-T_FS;fin.slots.forEach(q=>{const ca=Math.cos(q.ang),sa=Math.sin(q.ang),dx=fin.ux*ca-fin.uz*sa,dz=fin.ux*sa+fin.uz*ca,ext=fin.L*q.len*SMS(U,.1,.75);
     q.ax=fin.ox;q.az=fin.oz;q.bx=fin.ox+dx*ext;q.bz=fin.oz+dz*ext;const grow=SMS(U,.1,.8),sh=snapDone?Math.exp(-(T-T_SNAP)*30):1;q.amp2=q.amp*grow*sh*(1+.15*Math.sin(T*40)*(snapDone?0:grow));q.w2=q.w*(.3+.7*grow)*(snapDone?Math.max(.1,sh):1);q.curve=q.cv;});};
-  const snap=()=>{snapDone=true;citSnd('final');const L=enemies.filter(e=>!e.dead&&(e.x-hx)**2+(e.z-hz)**2<=R*R*1.15);const q=fin.slots[0];
-    for(const e of L){const dd=segDist(e.x,e.z,q.ax,q.az,q.bx,q.bz);hurt(e,P*(dd<2?8:4),'magic',o);if(!e.boss)e.dist=Math.max(0,e.dist-.55);sparks(e.x,e.z,5,2.6);}
+  const snap=()=>{snapDone=true;citSnd('final');const L=enemies.filter(e=>!e.dead&&(e.x-hx)**2+(e.z-hz)**2<=R*R*1.15);const q=fin.slots[0],xz=lg?L.map(e=>[e.x,e.z,e.dist]):null;
+    for(const e of L){const dd=segDist(e.x,e.z,q.ax,q.az,q.bx,q.bz);hurt(e,P*(dd<2?D.finK:D.finK2),'magic',o);if(!e.boss)e.dist=Math.max(0,e.dist-D.finPush);sparks(e.x,e.z,5,2.6);}
+    if(lg)lg({ev:'snap',L:L.slice(),xz,d1:L.map(e=>e.dist),ax:q.ax,az:q.az,bx:q.bx,bz:q.bz,fin,slots:fin.slots.map(q=>Object.assign({},q))});
     quake(hx+fin.ux*R*.6,hz+fin.uz*R*.6,6.5,.95);camShake=Math.max(camShake,.6);
     CIT.flick=2;CIT.on=false;CIT.k=1;CIT.pf=1;};
   /* ---- state shared with the rest of the game ---- */
@@ -5131,8 +5146,8 @@ function castCitadel(t,c0,P,o){
   SG_ACTIVE.add(finish);CIT.hero=t;CIT.x=hx;CIT.z=hz;CIT.R=R;CIT.k=1;CIT.pf=1;CIT.flick=0;
   citSnd('start');hum=citHum();t.faceLock=1.2;
   const gM=new THREE.MeshBasicMaterial({color:0xffe2a0,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(gM);const gG=new THREE.IcosahedronGeometry(.5,0);geos.push(gG);
-  for(let i=0;i<14;i++){const m=new THREE.Mesh(gG,new THREE.MeshBasicMaterial({color:0xffe2a0,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));mats.push(m.material);m.visible=false;root.add(m);ghosts.push({m,life:0});}
-  const prev=new Map();
+  for(let i=0;i<D.ghostN;i++){const m=new THREE.Mesh(gG,new THREE.MeshBasicMaterial({color:D.ghostC,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));mats.push(m.material);m.visible=false;root.add(m);ghosts.push({m,life:0});}
+  const prev=new Map();if(lg)lg({ev:'cast',x:hx,z:hz,R,pil,ghosts,root,D,T:()=>T});
   addFx(root,END,(f,dt)=>{if(ended){f.life=0;return;}T+=dt;CIT.flick*=Math.exp(-dt*8);
     if(!t||(t!==heroU&&!towers.includes(t))){f.life=0;return;}
     /* hero is the unmoving ruler of the domain */
@@ -5143,7 +5158,7 @@ function castCitadel(t,c0,P,o){
     glowM.opacity=.085*gl*acc;hazeM.opacity=.035*gl*acc;heroG.material.opacity=(.17*SMS(T,0,.5)*(1-SMS(T,T_COL,T_COL+1.5)))*(1+.15*Math.sin(T*5));
     FXL.position.set(hx,1.6,hz);if(!snapDone){FXL.color.setHex(0xffb248);FXL.distance=18;FXL.intensity=1.3*gl*acc+(actDone?Math.max(0,1.2*Math.exp(-(T-Tact)*2.2)):0);}else{FXL.intensity=Math.max(1.3*gl,FXL.intensity-dt*7);if(T>T_SNAP+.3)FXL.color.setHex(0xffb248);}
     /* time dilation */
-    if(T>=T_ACT0&&!snapDone){CIT.on=true;CIT.k=T<T_ACT0+1?1-.5*SMS(T,T_ACT0,T_ACT0+1):.5-.4*SMS(T,T_SL1,T_FS-.3);CIT.pf=Math.max(.15,CIT.k);}
+    if(T>=T_ACT0&&!snapDone){const e1=T<T_ACT0+1,s1=SMS(T,T_ACT0,T_ACT0+1),s2=SMS(T,T_SL1,T_FS-.3);CIT.on=true;CIT.k=e1?1-(1-D.crawl)*s1:D.crawl-(D.crawl-D.crawlEnd)*s2;CIT.pf=Math.max(.15,e1?1-.5*s1:.5-.4*s2);}
     /* pillars */
     for(let i=0;i<pil.length;i++){const p=pil[i],u=T-p.t0,uc=T-p.tc;let sy=0,sw=0,yo=0,I=0,vis=u>0;
       if(vis&&!p.snd){p.snd=true;citSnd('pillar',i);flash(p.x,.5,p.z,0xffe6a0,.9,.25);}
@@ -5151,13 +5166,14 @@ function castCitadel(t,c0,P,o){
         else{const q=uc/.75;if(q>=1)vis=false;else if(p.isLast){if(q<.55){sw=1-.7*(q/.55);sy=p.H;I=1+q*2;}else{const r=(q-.55)/.45;sw=.3*(1-r*.4);sy=p.H*Math.max(.02,1-Math.pow(r,.6)*.98);I=3+r*3;yo=r*.4;}}
           else{if(q<.35){sw=1-.65*(q/.35);sy=p.H;I=1+q;}else{const r=(q-.35)/.65;yo=r*r*p.H*2.2;sy=Math.max(.05,p.H*(1-r)*.9+.1);sw=.35*(1-r*.5);I=1.4+r*1.5;}}}}
       if(p.g.visible!==vis)p.g.visible=vis;
+      if(vis&&uc>0)I*=D.colK;
       if(vis){I*=p.I*acc*(.92+.08*Math.sin(T*3+p.seed));if(actDone)I+=1.1*Math.exp(-(T-Tact)*3);const ww=p.w*sw;p.body.scale.set(ww,Math.max(.01,sy),ww);p.body.position.y=.28+yo;p.core.scale.set(ww,Math.max(.01,sy),ww);p.core.position.y=.28+yo;
-        p.bm.uniforms.uT.value=T;p.bm.uniforms.uI.value=I*.62;p.cm.opacity=Math.min(1,I*.5);p.col.visible=sy>2;if(sy>2){p.col.position.y=.28+yo+sy*(.32+.22*Math.sin(T*.5+p.seed));p.col.scale.setScalar(ww*1.5);p.col.rotation.y=T*.4+p.seed;}
+        p.bm.uniforms.uT.value=T;p.bm.uniforms.uI.value=I*.62*D.uI;p.cm.opacity=Math.min(1,I*.5);p.col.visible=sy>2;if(sy>2){p.col.position.y=.28+yo+sy*(.32+.22*Math.sin(T*.5+p.seed));p.col.scale.setScalar(ww*1.5);p.col.rotation.y=T*.4+p.seed;}
         if(Math.random()<dt*5){emit(1,{x:p.x+(Math.random()-.5)*ww*1.4,y:.4+Math.random()*sy*.7,z:p.z+(Math.random()-.5)*ww*1.4,vx:0,vy:.5+Math.random()*.5,vz:0,s:.045,s2:0,c:0xfff0c0,c2:0xffa030,life:.9});}
         /* the world around the pillar is slightly wrong */
         const dk=SMS(u,.4,1.3)*(1-SMS(uc,.1,.6));SDP.pl[i]={x:p.x,z:p.z,r:p.dR,amp:p.dA*dk*(1+.5*SMS(T,9,13)+.9*SMS(T,T_SL1,T_FS)*(1-SMS(T,T_SNAP,T_SNAP+.2)))};}
       else if(SDP.pl[i])SDP.pl[i]=null;}
-    if(!actDone&&T>=Tact){actDone=true;citSnd('act');camShake=Math.max(camShake,.3);quakeT=0;for(const e of inside()){hurt(e,P*1.5,'magic',o);e.slow=Math.max(e.slow||0,.6);e.slowT=Math.max(e.slowT||0,2.5);}}
+    if(!actDone&&T>=Tact){actDone=true;citSnd('act');camShake=Math.max(camShake,.3);quakeT=0;const A=inside();for(const e of A){hurt(e,P*1.5,'magic',o);e.slow=Math.max(e.slow||0,.6);e.slowT=Math.max(e.slowT||0,D.actSl);}if(lg)lg({ev:'act',L:A});}
     if(actDone&&quakeT<3&&T>=Tact+quakeT*.28){quakeT++;quake(hx+(rnd()-.5)*2,hz+(rnd()-.5)*2,R*1.5,.85);}
     /* spatial slashes, accelerating */
     if(!fsOn&&T>=nextSl&&T<T_SL1){doSlash();const k=clamp((T-T_SL0)/(T_SL1-T_SL0-.3),0,1);nextSl+=1.15+(.13-1.15)*Math.pow(k,1.35);}
@@ -5165,7 +5181,7 @@ function castCitadel(t,c0,P,o){
       if(s.state==='pre'){s.amp2=s.amp*.6*SMS(s.age,0,s.pre);s.seam=SMS(s.age,s.pre*.45,s.pre);if(s.age>=s.pre)s.state='go';}
       else if(s.state==='go'){s.v+=(s.speed-s.v)*Math.min(1,dt*4);s.pos+=s.v*dt;s.amp2=s.amp*(.6+.4*Math.min(1,(s.age-s.pre)/.4));s.seam=1;if(s.pos>=s.dist){s.pos=s.dist;impact(s);s.state='post';s.t1=0;}}
       else{s.t1+=dt;s.amp2=s.amp*Math.exp(-s.t1*4.5);s.seam=Math.max(0,1-s.t1*4);}
-      s.cx=s.ox+s.ux*s.pos;s.cz=s.oz+s.uz*s.pos;s.mesh.position.set(s.cx,.35,s.cz);s.mesh.rotation.y=Math.atan2(-s.ux,-s.uz);s.mesh.scale.set(s.a*2,.9*s.seam+.01,1);s.mm.uniforms.uA.value=s.seam*.8;
+      s.cx=s.ox+s.ux*s.pos;s.cz=s.oz+s.uz*s.pos;s.mesh.position.set(s.cx,.35,s.cz);s.mesh.rotation.y=Math.atan2(-s.ux,-s.uz);s.mesh.scale.set(s.a*2,.9*s.seam+.01,1);s.mm.uniforms.uA.value=s.seam*.8;if(D.strip)s.mesh.visible=s.seam>.01;
       if(s.state==='post'&&s.t1>.55){SDP.bl[s.slot]=null;root.remove(s.mesh);s.mm.dispose();slashes.splice(i,1);}}
     SDP.qk.forEach((q,j)=>{if(q){q.age+=dt;if(q.age>1.2)SDP.qk[j]=null;}});
     /* the final order */
@@ -5177,8 +5193,8 @@ function castCitadel(t,c0,P,o){
     for(let i=0;i<4;i++){const w=SDP.wv[i];if(!w)continue;w.age+=dt;w.x+=w.dx*w.sp*dt;w.z+=w.dz*w.sp*dt;const k=w.age/w.life;w.amp=w.A*Math.sin(Math.PI*clamp(k,0,1));if(k>=1||snapDone||T>T_FS){SDP.wv[i]=null;continue;}
       const nx=-w.dz,nz=w.dx;for(const e of enemies){if(e.dead)continue;const rx=e.x-w.x,rz=e.z-w.z,u=rx*w.dx+rz*w.dz,v=rx*nx+rz*nz;if(Math.abs(u)<w.wd*.9&&Math.abs(v)<w.len*.9){e.slow=Math.max(e.slow||0,.5);e.slowT=Math.max(e.slowT||0,.5);if(doTick&&w.amp>.05)hurt(e,P*.04,'magic',o);}}}
     /* temporal afterimages */
-    ghT+=dt;if(ghT>=.2&&CIT.on){ghT=0;let n=0;for(const e of inside()){const pp=prev.get(e);prev.set(e,{x:e.x,z:e.z});if(!pp||n>=4||Math.hypot(e.x-pp.x,e.z-pp.z)<.04)continue;const gh=ghosts.find(q=>q.life<=0);if(!gh)break;n++;gh.life=.4;gh.m.visible=true;gh.m.position.set(pp.x,(e.hitY||.5)*.5,pp.z);gh.m.scale.set(.42,(e.hitY||.5)*1.1,.42);}}
-    for(const q of ghosts){if(q.life>0){q.life-=dt;q.m.material.opacity=.3*Math.max(0,q.life/.4);if(q.life<=0)q.m.visible=false;}}
+    ghT+=dt;if(ghT>=.2&&CIT.on){ghT=0;let n=0;for(const e of inside()){const pp=prev.get(e);prev.set(e,{x:e.x,z:e.z});if(!pp||n>=D.ghostMax||Math.hypot(e.x-pp.x,e.z-pp.z)<.04)continue;const gh=ghosts.find(q=>q.life<=0);if(!gh)break;n++;gh.life=D.ghostL;gh.m.visible=true;gh.m.position.set(pp.x,(e.hitY||.5)*.5,pp.z);gh.m.scale.set(.42,(e.hitY||.5)*1.1,.42);}}
+    for(const q of ghosts){if(q.life>0){q.life-=dt;q.m.material.opacity=D.ghostA*Math.max(0,q.life/D.ghostL);if(q.life<=0)q.m.visible=false;}}
     if(T>=T_COL&&CIT.on)CIT.on=false;
     if(T>=T_COL+1.1&&hum){hum.fade(1.2);hum=null;citSnd('end');}
   },()=>finish(),{mats,geos});
@@ -14178,6 +14194,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Citadel of Orders: the Monarch\u2019s orders',d:'2 Nov',v:'v460',li:[
+    'Citadel of Orders (Ancient) has five new masteries, for now in developer mode. Still one domain round the unmoving Time Monarch, one cut at a time and one final fracture: each mastery makes a part the domain already has stronger and draws that part richer.',
+    'Wider Dominion: the domain reaches 6 tiles (5.2 before), a third more ground, and its pillars rise a fifth taller and brighter. Keener Orders: each cut strikes 240% (200% before) and 120% to every foe in its wake (100% before); its wound bends space deeper, and its seam now shows, white-hot.',
+    'Time Crawls: foes inside move at 40% (50% before), down to 5% at the end (10% before), and the opening slow lasts 4s (2.5s before); towers and the hero still shoot as before inside it. Twice the afterimages, in brighter gold. Edict: each cut aims at the foe nearest the keep that no cut has struck yet and throws it 0.6 tiles back (0.25 before; not bosses), never out of the domain, with a larger quake of space.',
+    'The Final Order: the fracture strikes 1200% near its main crack and 600% elsewhere (800% and 400% before), tears further across the domain with wider branches and throws foes 1 tile back (0.55 before); the pillars rise into a brighter column of light. Still one fracture.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -31965,6 +31986,65 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
   dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
+/* ================= Citadel of Orders' masteries (v460), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: the Time Monarch stands unmoving in a ring of golden light pillars; inside it time crawls for his foes while he throws single
+   cuts through space, ever faster, and he ends with one final order: a fracture that snaps shut. There is only ever one fracture. Simon, for
+   every Mythic, Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is preserved but
+   their visuals barely change and change only to better", and "new stuff CAN appear ... but just nothing that over shines the spell". So each
+   mastery strengthens one part the domain already has and draws that same part richer; nothing new appears (no burst when time catches up:
+   that is Chronostasis; no shards: Spatial Shatter; no grey stillness: Dimensional Slash).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Wider Dominion | what if the domain claimed more ground? | its reach | wider zone |
+   | 2 | Keener Orders | what if every cut bit deeper? | the cuts | stronger cuts |
+   | 3 | Time Crawls | what if time crawled slower still? | the crawl | stronger control |
+   | 4 | Edict | what if the cuts kept order? | where the cuts land | targeting and push |
+   | 5 | The Final Order | what if the last order broke the world? | the fracture | signature payoff |
+   - M1 Wider Dominion: the domain reaches CIM.R tiles (5.2 before; a third more ground) and CIT.R, the crawl's reach, follows; the pillars
+     rise a fifth taller and their light is 15% brighter (still 10-12 of them: the warp has twelve pillar slots), the gold glow and haze widen
+     with the ring.
+   - M2 Keener Orders: each cut strikes CIM.cut on its mark and CIM.wake in its wake (200% and 100% before); its wound bends space 1.3 times
+     deeper with a 1.3 times deeper quake, and its seam is shown with a white-hot core. The base cast makes a seam strip for every cut but never
+     shows it (it stays hidden from the moment it is made), so the strengthened seam is shown here, at Mastery 2, through an option (strip).
+   - M3 Time Crawls: foes inside move at CIM.crawl, down to CIM.crawlEnd at the end (50% and 10% before), and the opening slow lasts CIM.actSl s
+     (2.5 before); CIT.pf keeps its old curve, so tower and hero shots inside are not slowed more. Twice the afterimages (28, up to 8 a beat:
+     14 and 4 before), living 0.6s (0.4), in a brighter gold.
+   - M4 Edict: each cut aims at the foe nearest the keep that no cut has aimed at yet (once every foe inside has been, the orders start again
+     from the front) and throws it CIM.push tiles back (0.25 before; not bosses), but never out of the domain, where no cut could follow it;
+     a larger quake of space (x1.4) on its mark.
+   - M5 The Final Order: the fracture strikes CIM.fin within 2 tiles of its main crack and CIM.fin2 elsewhere in the domain (800% and 400%
+     before); its main crack is longer (R x2.2, 1.85 before), its two branches wider (0.45, 0.3) and deeper (1.1, 0.8), and it throws foes
+     CIM.finPush tiles back (0.55; not bosses). The pillars rise into a brighter column of light (x1.5). Still one fracture.
+   Percentages are of the scroll's power. Every mastered Citadel cast runs castCitadel with its XO (cimOpts); Mastery 0, echoes and other
+   casters cast exactly as before. Time Crawls (a slow) and Edict (targeting and throws) count for nothing on the ladder (its foes stand still
+   with huge health), so their factors carry them; Edict even measures below Mastery 3 there, as a lone foe it holds at the domain's edge is
+   thrown out of it by the fracture and never walks back for the next cast. On the Ancient ladder (pack .6 / one .4, 3 casts 20 s apart,
+   4 runs) with the factors below: 1.077 / 1.15 / 1.233 / 1.305 / 1.354 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35 (1.055 / 1.211 /
+   1.203 / 1.09 / 1.192 without them). CIM.dbg (an array) logs the events. */
+const CIM={dbg:null,R:6,cut:2.4,wake:1.2,crawl:.4,crawlEnd:.05,actSl:4,push:.6,fin:12,fin2:6,finL:2.2,finPush:1};
+const cimC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='citadel'&&c.L?c:null;};
+const cimLog=d=>{if(CIM.dbg){d.t=time;CIM.dbg.push(d);}};
+SM_D.citadel=[
+  {n:'Wider Dominion',d:'The domain reaches 6 tiles (5.2 before): a third more ground. Its pillars rise a fifth taller and brighter.'},
+  {n:'Keener Orders',d:'Each cut strikes {240}% (200% before) and {120}% to every foe in its wake (100% before). Its wound bends space deeper, with a white-hot seam.'},
+  {n:'Time Crawls',d:'Foes inside move at 40% (50% before), down to 5% at the end (10% before), and the opening slow lasts 4s (2.5s before). Twice the afterimages.'},
+  {n:'Edict',d:'Each cut aims at the foe nearest the keep that no cut has struck yet, and throws it 0.6 tiles back (0.25 before; not bosses).'},
+  {n:'The Final Order',d:'The final fracture strikes {1200}% near its main crack and {600}% elsewhere (800% and 400% before), tears further across the domain and throws foes 1 tile back (0.55 before).'}];
+SMF.citadel={m:1};
+SMA.citadel=[1,1,1,1,1];
+SMG.citadel=[1.022,.96,1.019,1.195,1.133];
+/* Keener Orders: the cut's seam, shown (the base cast makes it with every cut and never shows it), with a white-hot core and a cold glow
+   round it (the old shader, CIT_STRIP_FS, is a thin pale line) */
+const CIM_STRIP_FS='varying vec2 vUv;uniform float uA;void main(){float tp=sin(3.14159*vUv.x);float d=abs(vUv.y-.5)*2.;float core=smoothstep(tp*.16+.012,0.,d),hot=smoothstep(tp*.07+.006,0.,d),glow=exp(-d*d*5.)*tp*tp*.3;float a=(core*.85+hot*.6+glow)*uA;if(a<.003)discard;gl_FragColor=vec4(mix(vec3(.58,.86,1.),vec3(1.),clamp(hot+core*.45,0.,1.)),min(1.,a));}';
+/* this cast's numbers and looks (castCitadel's XO), cumulative: Mastery L has masteries 1..L */
+function cimOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.R=CIM.R;X.pH=1.2;X.uI=1.15;}
+  if(L>=2){X.cutK=CIM.cut*a[1];X.wakeK=CIM.wake*a[1];X.bAmp=1.3;X.qAmp=1.3;X.strip=1;X.stripFS=CIM_STRIP_FS;}
+  if(L>=3){X.crawl=CIM.crawl;X.crawlEnd=CIM.crawlEnd;X.actSl=CIM.actSl;X.ghostN=28;X.ghostMax=8;X.ghostL=.6;X.ghostA=.42;X.ghostC=0xffd877;}
+  if(L>=4){X.edict=1;X.push=CIM.push;X.qR=1.4;}
+  if(L>=5){X.finK=CIM.fin*a[4];X.finK2=CIM.fin2*a[4];X.finL=CIM.finL;X.brW=.45;X.brAmp=1.1;X.finPush=CIM.finPush;X.colK=1.5;}
+  X.log=cimLog;cimLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+const CIM_OLD=castCitadel;
+castCitadel=function(t,c0,P,o,XO){const c=!XO?cimC(o):null;return CIM_OLD(t,c0,P,o,c?cimOpts(c):XO);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
