@@ -7802,37 +7802,129 @@ function whTex(){if(WH_TEX)return WH_TEX;const S=256,cv=document.createElement('
     const c=u<.35?'255,255,255':u<.7?'160,170,255':'120,60,220';g.addColorStop(0,'rgba('+c+','+(.5*(1-u*.6))+')');g.addColorStop(1,'rgba('+c+',0)');x.fillStyle=g;x.fillRect(px-s,py-s,s*2,s*2);}
   const rg=x.createRadialGradient(C,C,C*.6,C,C,C);rg.addColorStop(0,'rgba(0,0,0,0)');rg.addColorStop(.8,'rgba(90,60,220,.35)');rg.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=rg;x.fillRect(0,0,S,S);
   WH_TEX=new THREE.CanvasTexture(cv);return WH_TEX;}
-function whPortal(mats,geos,col){const g=new THREE.Group(),dg=new THREE.CircleGeometry(1,40);dg.rotateX(-Math.PI/2);geos.push(dg);
+/* v473: an open cylinder whose vertices are coloured from white at its foot to black at its top (drawn additive, it melts into the air
+   instead of ending in an edge); full until fade of the way up. Wormhole's taller columns (Held Open) and its rising walls of light */
+function whFadeCyl(r1,r0,h,seg,fade){const g=new THREE.CylinderGeometry(r1,r0,h,seg,8,true);g.translate(0,h/2,0);const P=g.attributes.position,c=new Float32Array(P.count*3),f=fade||1;
+  for(let i=0;i<P.count;i++){const u=P.getY(i)/h,k=Math.pow(clamp((1-u)/f,0,1),1.3);c[i*3]=c[i*3+1]=c[i*3+2]=k;}g.setAttribute('color',new THREE.BufferAttribute(c,3));return g;}
+/* v473: colH (optional, Wormhole's Held Open): the column of light colH times as tall, as bright as before up to about its old height and
+   fading out above it; 0 or none: as before */
+function whPortal(mats,geos,col,colH){const g=new THREE.Group(),dg=new THREE.CircleGeometry(1,40);dg.rotateX(-Math.PI/2);geos.push(dg);
   const dm=new THREE.MeshBasicMaterial({map:whTex(),color:col,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-3});mats.push(dm);
   const cm=new THREE.MeshBasicMaterial({color:0x020008,transparent:true,opacity:.92,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});mats.push(cm);const core=new THREE.Mesh(dg,cm);core.scale.setScalar(.42);core.position.y=.01;g.add(core);
   const disk=new THREE.Mesh(dg,dm);disk.position.y=.02;g.add(disk);const disk2=new THREE.Mesh(dg,dm);disk2.scale.setScalar(.66);disk2.position.y=.03;g.add(disk2);
   const tg=new THREE.TorusGeometry(1,.035,6,48);tg.rotateX(Math.PI/2);geos.push(tg);const ring=new THREE.Mesh(tg,nsAM(mats,0xd8d0ff,.85));ring.position.y=.06;g.add(ring);const ring2=new THREE.Mesh(tg,nsAM(mats,col,.4));ring2.position.y=.18;ring2.scale.setScalar(1.12);g.add(ring2);
-  const cg=new THREE.CylinderGeometry(.62,1,2.4,28,1,true);cg.translate(0,1.2,0);geos.push(cg);const col2=new THREE.Mesh(cg,nsAM(mats,col,.13));g.add(col2);
+  let col2;if(colH){const cg=whFadeCyl(.62,1,2.4*colH,28,1-1/colH+.05);geos.push(cg);const m=nsAM(mats,col,.13);m.vertexColors=true;col2=new THREE.Mesh(cg,m);}
+  else{const cg=new THREE.CylinderGeometry(.62,1,2.4,28,1,true);cg.translate(0,1.2,0);geos.push(cg);col2=new THREE.Mesh(cg,nsAM(mats,col,.13));}g.add(col2);
   return{g,disk,disk2,core,ring,ring2,col:col2};}
-function castWormhole(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.fake&&e.dist!=null);let lead=null;for(const e of pool)if(!lead||e.dist>lead.dist)lead=e;
+/* v473 (Torn Through the Stars): a comet of light running the arc between the mouths with each crossing (a bright head, a fading tail) */
+const WH_COM_VS='varying float vU;void main(){vU=uv.x;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+const WH_COM_FS='varying float vU;uniform float uH,uA;uniform vec3 uC;void main(){float d=uH-vU,a=uA*(d>=0.?exp(-d*11.):smoothstep(.03,0.,-d));if(a<.004)discard;gl_FragColor=vec4(mix(uC,vec3(1.),exp(-abs(d)*26.)),min(1.,a));}';
+/* v473: a foe drawn into the first mouth from where it stands (Hungry Mouth, The Last Crossing): motes along its way in, falling inward */
+function whPull(ep,px,py,pz){const dx=px-ep.x,dz=pz-ep.z,L=Math.hypot(dx,dz);if(L<.25)return;const n=Math.min(14,Math.ceil(L*6));
+  for(let i=0;i<n;i++){const u=i/n,s=Math.sin(u*Math.PI)*.35,x=ep.x+dx*u-dz/L*s,z=ep.z+dz*u+dx/L*s,y=ep.y+(py+.1-ep.y)*u,lf=.22+.2*(1-u);
+    emit(1,{x,y,z,vx:(px-x)/lf*.8,vy:(py+.1-y)/lf*.8,vz:(pz-z)/lf*.8,s:.07,s2:0,c:0xffffff,c2:0x8a6aff,life:lf});}}
+/* v473 (Torn Through the Stars, The Last Crossing): a wall of light rising round a mouth and racing out to R (tall h), with a fountain of
+   motes: an exit's burst, or a collapse's, made 3D; K its brightness */
+function whBurst(x,y,z,col,R,h,K,dur){K=K||1;dur=dur||.42;const m=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,vertexColors:true});
+  const w=new THREE.Mesh(gget('whWall',()=>whFadeCyl(1,1,1,32,1)),m);w.position.set(x,y,z);w.renderOrder=4;scene.add(w);let tt=0;
+  for(let i=0;i<Math.round(8+R*5);i++){const a=rnd()*6.28,r=R*(.15+rnd()*.2);emit(1,{x:x+Math.cos(a)*r,y:y+.05,z:z+Math.sin(a)*r,vx:Math.cos(a)*R*1.2,vy:1.2+rnd()*1.8*Math.min(1.6,h*2),vz:Math.sin(a)*R*1.2,s:.05,s2:0,c:0xffffff,c2:col,life:.4+rnd()*.3,drag:1.2});}
+  addFx(w,dur,(f,dt)=>{tt+=dt;const k=SMS(tt,0,dur*.85);w.scale.set(R*(.25+.75*k),h*(1-.55*k)+.02,R*(.25+.75*k));m.opacity=.9*K*Math.min(1,tt/.05)*(1-k);},null,{mat:m});}
+/* v473 (No Weight Too Great): where a boss comes out, a small far mouth flickers open and shut */
+function whExit(x,y,z){const mats=[],geos=[],P2=whPortal(mats,geos,0x5ac8ff);P2.col.visible=false;P2.g.position.set(x,y,z);P2.g.scale.setScalar(.001);nsOwn(P2.g);let tt=0;
+  addFx(new THREE.Group(),.8,(f,dt)=>{tt+=dt;const k=SMS(tt,0,.12)*(1-SMS(tt,.45,.8));P2.g.scale.setScalar(Math.max(.001,.62*k));P2.disk.rotation.y-=dt*4;P2.disk2.rotation.y+=dt*6;},()=>nsFree(P2.g),{mats,geos});}
+/* v473: XO (optional, Wormhole's masteries): this cast's own numbers over WHL (LIFE: how long the mouths stay open, dec: their ground
+   shadows' life; hit: the crossing's strike; back: how far behind the first mouth the far one opens; col/colR: the collapse's strike and
+   reach; catchR: the first mouth also draws in every foe within catchR of it, on any road; bossBack: bosses go through too, coming out
+   bossBack tiles behind the first mouth (slowed bossSlow for bossSlowT s, as before); last/lastR: as the mouths close the first swallows
+   every foe within lastR of it not yet sent; sweep: each foe's way since the last frame is checked, not only where it stands, so a long
+   frame cannot carry it past a mouth) and its looks (mouthK: the first mouth's size, swirl: how thick its swirl, colH: the columns'
+   height, streak: a comet of light along the arc with each crossing, burst: a rising wall of light at each exit, shudder: the first mouth
+   shudders as a boss goes through, rush: the last crossing's rush of streaks, collK: the collapse's size), and log() for the tests. A foe
+   drawn in off the road it stands on, or swallowed at the end, goes through only if it comes out further from the end of its road than it
+   was (and on a road to the same place): it comes out on the far mouth's road, its place on the road and its block reset. Each foe goes
+   through once a cast. Without XO: exactly as before. */
+const WHL={LIFE:9.2,dec:9.8,hit:4,back:13,col:3,colR:1.6,catchR:0,bossBack:0,bossSlow:.5,bossSlowT:2,last:0,lastR:2.4,sweep:0,mouthK:1,swirl:1,colH:0,streak:0,burst:0,shudder:0,rush:0,collK:1,log:null};
+function castWormhole(t,list,P,o,XO){const D=XO?Object.assign({},WHL,XO):WHL,lg=D.log,LIFE=D.LIFE;
+  const pool=enemies.filter(e=>!e.dead&&!e.fake&&e.dist!=null);let lead=null;for(const e of pool)if(!lead||e.dist>lead.dist)lead=e;
   let rt,dIn;if(lead){rt=lead.route||ROUTES[0];dIn=Math.min(rt.len-.6,lead.dist+(lead.spd||0)*1.2+1.4);}else{const q=nsRouteNear(list[0].x,list[0].z);rt=q.rt;dIn=Math.min(rt.len-.6,q.d+1.4);}
-  const dOut=Math.max(.4,dIn-13),pI=posAt(dIn,rt),pO=posAt(dOut,rt),mats=[],geos=[],A=whPortal(mats,geos,0x8a6aff),B=whPortal(mats,geos,0x5ac8ff);
+  const dOut=Math.max(.4,dIn-D.back),pI=posAt(dIn,rt),pO=posAt(dOut,rt),mats=[],geos=[],A=whPortal(mats,geos,0x8a6aff,D.colH),B=whPortal(mats,geos,0x5ac8ff,D.colH);
   const yI=gy(pI[0],pI[1])+.03,yO=gy(pO[0],pO[1])+.03;A.g.position.set(pI[0],yI,pI[1]);B.g.position.set(pO[0],yO,pO[1]);A.g.scale.setScalar(.001);B.g.scale.setScalar(.001);nsOwn(A.g);nsOwn(B.g);
-  const decA=nsDecal(pI[0],pI[1],1.4,0x2a1a6a,0,9.8,{manual:true}),decB=nsDecal(pO[0],pO[1],1.4,0x1a3a6a,0,9.8,{manual:true});
+  const decA=nsDecal(pI[0],pI[1],1.4*D.mouthK,0x2a1a6a,0,D.dec,{manual:true}),decB=nsDecal(pO[0],pO[1],1.4,0x1a3a6a,0,D.dec,{manual:true});
   cineLock=Math.max(cineLock,3);darkTarget=Math.max(darkTarget,.32);vigTarget=Math.max(vigTarget,.32);if(typeof sfxWind==='function')sfxWind(2.6,.2);if(typeof sfxRumble==='function')sfxRumble(1.6,.25);
+  /* (Held Open: the Calm space setting covers the longer opening; the cast's wrapper gives 10.5s, the old opening's) */
+  if(LIFE>WHL.LIFE)SPACE_T=Math.max(SPACE_T,LIFE+1.3);
   const sent=new Set(),C=new THREE.Vector3((pI[0]+pO[0])/2,Math.max(yI,yO)+4.2,(pI[1]+pO[1])/2),bez=(u,v)=>{const q=1-u;v.set(q*q*pI[0]+2*q*u*C.x+u*u*pO[0],q*q*yI+2*q*u*C.y+u*u*yO,q*q*pI[1]+2*q*u*C.z+u*u*pO[1]);return v;},tv=new THREE.Vector3();
-  let tt=0,pulsed=false;const LIFE=9.2,riders=[];
+  let tt=0,pulsed=false,shud=0,G2=null,tube=null;const riders=[],prevP=D.sweep?new Map():null,skip=new Set();
+  if(lg)lg({ev:'cast',rt,dIn,dOut,pI,pO,LIFE,lead,T:0});
+  /* (Torn Through the Stars: the comets run on the arc's own curve; a boss's shorter arc gets its own) */
+  const comet=geo=>{if(!G2)G2=nsOwn(new THREE.Group());const g=new THREE.Group();for(const[i,c]of[[0,0xa898ff],[1,0x6a4aff]]){const m=new THREE.ShaderMaterial({uniforms:{uH:{value:0},uA:{value:0},uC:{value:new THREE.Color(c)}},vertexShader:WH_COM_VS,fragmentShader:WH_COM_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
+      mats.push(m);const me=new THREE.Mesh(geo[i],m);me.renderOrder=5;g.add(me);}G2.add(g);return g;};
+  /* (each arc: a thin core and a wide soft halo round it) */
+  const arcTube=(a,c,b)=>{const cv=new THREE.QuadraticBezierCurve3(a,c,b),g=[new THREE.TubeGeometry(cv,56,.045,6,false),new THREE.TubeGeometry(cv,56,.15,8,false)];geos.push(...g);g.cv=cv;return g;},
+    mainTube=()=>tube||(tube=arcTube(new THREE.Vector3(pI[0],yI,pI[1]),C,new THREE.Vector3(pO[0],yO,pO[1]))),
+    /* (The Last Crossing's rush: streaks on arcs fanned out to either side of the first and above and below it) */
+    rushTube=i=>{const dx=pO[0]-pI[0],dz=pO[1]-pI[1],L=Math.hypot(dx,dz)||1,sd=[-1.3,1.3,-.65,.65,0][i%5],c=C.clone();c.x-=dz/L*sd;c.z+=dx/L*sd;c.y+=[.5,-.3,.9,.2,-.7][i%5];
+      return arcTube(new THREE.Vector3(pI[0],yI,pI[1]),c,new THREE.Vector3(pO[0],yO,pO[1]));};
+  /* where a foe comes out: the far mouth, or (a boss, with bossBack) bossBack tiles behind the first one */
+  const land=e=>e.boss&&D.bossBack?Math.max(0,dIn-D.bossBack):dOut;
+  /* (a foe off the road it stands on goes through only if it comes out further from its road's end, on a road to the same place) */
+  const loses=e=>{if(e.boss&&!D.bossBack)return true;const r0=e.route||ROUTES[0];return(r0.village||null)===(rt.village||null)&&(rt.len-land(e))-(r0.len-e.dist)>.3;};
+  /* one foe through: torn through the stars (the crossing's strike; the last crossing's foes are only thrown: the far mouth's collapse
+     strikes them), then thrown out of the far mouth; a boss is only slowed (with bossBack it goes through too, coming out bossBack tiles
+     back, still slowed) */
+  const cross=(e,how,dl)=>{sent.add(e);const ep=tpos2(e);
+    if(how!=='last')hurt(e,P*D.hit,'magic',o);sprayP(1,ep.x,ep.y,ep.z,14,{c:0xffffff,c2:0x8a6aff,sp:1.6,up:.3,s:.05,s2:0,life:.45,g:1});if(XO&&how!=='road'&&how!=='swept')whPull(ep,pI[0],yI,pI[1]);
+    if(e.dead){if(lg)lg({ev:'cross',e,how,dead:1,T:tt});return;}
+    if(e.boss&&!D.bossBack){e.slow=Math.max(e.slow||0,D.bossSlow);e.slowT=Math.max(e.slowT||0,D.bossSlowT);if(lg)lg({ev:'cross',e,how,boss:1,slowed:1,T:tt});return;}
+    const r0=e.route||ROUTES[0],d0=e.dist,boss=!!e.boss;
+    e.dist=Math.max(0,land(e)+(rnd()-.5)*.3);if(r0!==rt){e.route=rt;e.ox=0;e.oz=0;}e.blockBy=null;moveEnemy(e,0);const np=tpos2(e),lk=how==='last';
+    /* (the last crossing's foes come out together: each a softer flash, one burst for them all, so they never stack into a white blot) */
+    flash(np.x,np.y,np.z,0x9fe4ff,lk?.3:D.burst?.9:.6,.2);sprayP(1,np.x,np.y,np.z,lk?10:D.burst?26:16,{c:0xffffff,c2:0x5ac8ff,sp:2,up:.4,s:.05,s2:0,life:.5,g:1});
+    if(!XO){riders.push({u:0});return;}
+    const R={u:dl?-dl:0};if(boss){const a=new THREE.Vector3(pI[0],yI,pI[1]),b=new THREE.Vector3(np.x,gy(np.x,np.z)+.03,np.z),c=a.clone().add(b).multiplyScalar(.5);c.y=Math.max(a.y,b.y)+2.2;
+      R.bz=(u,v)=>{const q=1-u;v.set(q*q*a.x+2*q*u*c.x+u*u*b.x,q*q*a.y+2*q*u*c.y+u*u*b.y,q*q*a.z+2*q*u*c.z+u*u*b.z);return v;};if(D.streak)R.m=comet(arcTube(a,c,b));
+      e.slow=Math.max(e.slow||0,D.bossSlow);e.slowT=Math.max(e.slowT||0,D.bossSlowT);if(D.shudder){shud=.7;camShake=Math.max(camShake,.12);}whExit(np.x,gy(np.x,np.z)+.03,np.z);}
+    else if(D.streak)R.m=comet(mainTube());
+    riders.push(R);if(D.burst&&(!lk||!dl))whBurst(np.x,gy(np.x,np.z)+.03,np.z,0x7ad8ff,boss?.9:.75,.7,lk?.7:1);
+    if(lg)lg({ev:'cross',e,how,boss,d0,d1:e.dist,r0,r1:rt,lost:(rt.len-e.dist)-(r0.len-d0),T:tt});};
   addFx(new THREE.Group(),LIFE+.4,(f,dt)=>{tt+=dt;const open=SMS(tt,0,.8)*(1-SMS(tt,LIFE-.45,LIFE));
-    for(const[P2,sg]of[[A,1],[B,-1]]){P2.g.scale.setScalar(Math.max(.001,open*(1+.05*Math.sin(tt*5))));P2.disk.rotation.y+=dt*3.2*sg;P2.disk2.rotation.y-=dt*5*sg;P2.ring2.position.y=.18+.1*Math.sin(tt*3+sg);P2.ring2.scale.setScalar(1.12+.08*Math.sin(tt*4));P2.col.material.opacity=.13*(.8+.2*Math.sin(tt*6+sg));}
+    for(const[P2,sg]of[[A,1],[B,-1]]){P2.g.scale.setScalar(Math.max(.001,open*(1+.05*Math.sin(tt*5))*(sg>0?D.mouthK:1)));P2.disk.rotation.y+=dt*3.2*sg;P2.disk2.rotation.y-=dt*5*sg;P2.ring2.position.y=.18+.1*Math.sin(tt*3+sg);P2.ring2.scale.setScalar(1.12+.08*Math.sin(tt*4));P2.col.material.opacity=.13*(.8+.2*Math.sin(tt*6+sg));}
+    /* (No Weight Too Great: the first mouth shudders as a boss goes through) */
+    if(D.shudder){if(shud>0){shud=Math.max(0,shud-dt);const k=shud/.7;A.g.position.set(pI[0]+(rnd()-.5)*.14*k,yI,pI[1]+(rnd()-.5)*.14*k);A.g.scale.multiplyScalar(1+.07*k*Math.sin(tt*55));A.ring2.position.y+=.12*k*Math.sin(tt*40);}else A.g.position.set(pI[0],yI,pI[1]);}
     decA.material.opacity=.6*open;decB.material.opacity=.6*open;
     if(dt>0&&open>.2){for(let i=0;i<4;i++){const a=rnd()*6.28,r=1.2+rnd()*.7;
         emit(1,{x:pI[0]+Math.cos(a)*r,y:yI+.08+rnd()*.3,z:pI[1]+Math.sin(a)*r,vx:-Math.cos(a)*r*1.5-Math.sin(a)*1.2,vy:-.15,vz:-Math.sin(a)*r*1.5+Math.cos(a)*1.2,s:.05,s2:0,c:0xffffff,c2:0x7a5aff,life:.6,drag:.4});
         const b2=rnd()*6.28;emit(1,{x:pO[0]+Math.cos(b2)*.25,y:yO+.1,z:pO[1]+Math.sin(b2)*.25,vx:Math.cos(b2)*2.4,vy:1.2+rnd()*1.2,vz:Math.sin(b2)*2.4,s:.05,s2:0,c:0xffffff,c2:0x5ac8ff,life:.7,drag:.8});}
-      if(rnd()<.8){const u=(tt*.35+rnd()*.15)%1;bez(u,tv);emit(1,{x:tv.x+(rnd()-.5)*.3,y:tv.y+(rnd()-.5)*.3,z:tv.z+(rnd()-.5)*.3,vx:0,vy:0,vz:0,s:.06,s2:0,c:0xdfe4ff,c2:0x6a4aff,life:.9});}}
+      if(rnd()<.8){const u=(tt*.35+rnd()*.15)%1;bez(u,tv);emit(1,{x:tv.x+(rnd()-.5)*.3,y:tv.y+(rnd()-.5)*.3,z:tv.z+(rnd()-.5)*.3,vx:0,vy:0,vz:0,s:.06,s2:0,c:0xdfe4ff,c2:0x6a4aff,life:.9});}
+      if(XO){/* (Hungry Mouth: a thicker swirl, drawn from further out; The Last Crossing: in the last moments before the mouths close it
+          pulls from all the way out to lastR; Held Open: motes rise up the taller columns; Torn Through the Stars: more stars on the arc) */
+        const nIn=Math.round(4*(D.swirl-1))+(D.last&&tt>LIFE-1&&tt<LIFE-.45?6:0),rIn=D.last&&tt>LIFE-1&&tt<LIFE-.45?D.lastR:1.9*D.mouthK;
+        for(let i=0;i<nIn;i++){const a=rnd()*6.28,r=1.1*D.mouthK+rnd()*(rIn-1.1*D.mouthK);emit(1,{x:pI[0]+Math.cos(a)*r,y:yI+.08+rnd()*.3,z:pI[1]+Math.sin(a)*r,vx:-Math.cos(a)*r*1.6-Math.sin(a)*1.3,vy:-.15,vz:-Math.sin(a)*r*1.6+Math.cos(a)*1.3,s:.05,s2:0,c:0xffffff,c2:0x8a6aff,life:.6,drag:.4});}
+        if(D.colH)for(const[px,py,pz,cc]of[[pI[0],yI,pI[1],0x8a6aff],[pO[0],yO,pO[1],0x5ac8ff]])if(rnd()<.6){const a=rnd()*6.28,r=.75+rnd()*.2;emit(1,{x:px+Math.cos(a)*r,y:py+.15,z:pz+Math.sin(a)*r,vx:-Math.cos(a)*.1,vy:1.3+rnd()*.7,vz:-Math.sin(a)*.1,s:.045,s2:0,c:0xffffff,c2:cc,life:1.7});}
+        if(D.streak&&rnd()<.8){const u=(tt*.35+.5+rnd()*.15)%1;bez(u,tv);emit(1,{x:tv.x+(rnd()-.5)*.3,y:tv.y+(rnd()-.5)*.3,z:tv.z+(rnd()-.5)*.3,vx:0,vy:0,vz:0,s:.07,s2:0,c:0xffffff,c2:0x7a6aff,life:.9});}}}
     /* the crossing: foes on this road that reach the first wormhole are torn through to the second */
-    if(open>.6&&tt<LIFE-.45){for(const e of enemies){if(e.dead||sent.has(e)||e.dist==null||(e.route||ROUTES[0])!==rt)continue;if(e.dist<dIn-.05||e.dist>dIn+1.5)continue;sent.add(e);const ep=tpos2(e);
-      hurt(e,P*4,'magic',o);sprayP(1,ep.x,ep.y,ep.z,14,{c:0xffffff,c2:0x8a6aff,sp:1.6,up:.3,s:.05,s2:0,life:.45,g:1});if(e.dead)continue;
-      if(e.boss){e.slow=Math.max(e.slow||0,.5);e.slowT=Math.max(e.slowT||0,2);continue;}
-      e.dist=Math.max(0,dOut+(rnd()-.5)*.3);e.blockBy=null;moveEnemy(e,0);const np=tpos2(e);flash(np.x,np.y,np.z,0x9fe4ff,.6,.2);sprayP(1,np.x,np.y,np.z,16,{c:0xffffff,c2:0x5ac8ff,sp:2,up:.4,s:.05,s2:0,life:.5,g:1});riders.push({u:0});}}
-    for(let i=riders.length-1;i>=0;i--){const r=riders[i];r.u+=dt*2.2;if(r.u>=1){riders.splice(i,1);continue;}bez(r.u,tv);for(let j=0;j<3;j++)emit(1,{x:tv.x,y:tv.y,z:tv.z,vx:(rnd()-.5)*.3,vy:(rnd()-.5)*.3,vz:(rnd()-.5)*.3,s:.12,s2:0,c:0xffffff,c2:0x7a8aff,life:.4});}
-    if(!pulsed&&tt>=LIFE-.45){pulsed=true;for(const[px,pz]of[[pI[0],pI[1]],[pO[0],pO[1]]]){shockwave(px,pz,1.8,0xb8a8ff,.5,0x140a3a);flash(px,1,pz,0xdfe0ff,1,.25);for(const e of enemies){if(e.dead)continue;if((e.x-px)**2+(e.z-pz)**2<1.6*1.6)hurt(e,P*3,'magic',o);}}camShake=Math.max(camShake,.16);}
+    if(open>.6&&tt<LIFE-.45){for(const e of enemies){if(e.dead||sent.has(e)||e.dist==null||(e.route||ROUTES[0])!==rt)continue;if(e.dist<dIn-.05||e.dist>dIn+1.5)continue;cross(e,'road');}
+      /* (sweep: a foe carried right over the mouth in one long frame goes through too; Hungry Mouth: and every foe whose way since the last
+         frame came within catchR of the first mouth, on any road) */
+      if(prevP)for(const e of enemies){if(e.dead||e.fake||sent.has(e)||e.dist==null)continue;const q=prevP.get(e),r0=e.route||ROUTES[0],dd=q&&q[3]===r0?e.dist-q[2]:-1;
+        if(r0===rt&&dd>=0&&dd<2.5&&q[2]<dIn-.05&&e.dist>dIn+1.5){cross(e,'swept');continue;}
+        if(!D.catchR)continue;const R2=D.catchR*D.catchR;let hit=(e.x-pI[0])**2+(e.z-pI[1])**2<R2;
+        /* (its way along the road since the last frame, in steps of at most 0.15 tiles) */
+        if(!hit&&dd>0&&dd<2.5){const n=Math.ceil(dd/.15);for(let j=1;j<n&&!hit;j++){const p=posAt(q[2]+dd*j/n,r0),x=p[0]+Math.cos(p[2])*(e.off||0),z=p[1]-Math.sin(p[2])*(e.off||0);hit=(x-pI[0])**2+(z-pI[1])**2<R2;}}
+        if(hit){if(loses(e))cross(e,'hungry');else if(lg&&!skip.has(e)){skip.add(e);lg({ev:'skip',e,T:tt});}}}}
+    if(prevP)for(const e of enemies)if(!e.dead)prevP.set(e,[e.x,e.z,e.dist,e.route||ROUTES[0]]);
+    for(let i=riders.length-1;i>=0;i--){const r=riders[i];r.u+=dt*2.2;if(r.u>=1){riders.splice(i,1);if(r.m&&r.m.parent)r.m.parent.remove(r.m);continue;}if(r.u<0)continue;(r.bz||bez)(r.u,tv);
+      for(let j=0;j<3;j++)emit(1,{x:tv.x,y:tv.y,z:tv.z,vx:(rnd()-.5)*.3,vy:(rnd()-.5)*.3,vz:(rnd()-.5)*.3,s:.12,s2:0,c:0xffffff,c2:0x7a8aff,life:.4});
+      if(r.m){const a=(r.ka||1)*Math.min(1,r.u*8)*(1-SMS(r.u,.85,1));r.m.children.forEach((me,i)=>{const U=me.material.uniforms;U.uH.value=r.u;U.uA.value=a*(i?.32:.85);});for(let j=0;j<3;j++)emit(1,{x:tv.x+(rnd()-.5)*.2,y:tv.y+(rnd()-.5)*.2,z:tv.z+(rnd()-.5)*.2,vx:(rnd()-.5)*.5,vy:(rnd()-.5)*.5,vz:(rnd()-.5)*.5,s:.07,s2:0,c:0xffffff,c2:0x9a7aff,life:.55});}}
+    if(!pulsed&&tt>=LIFE-.45){pulsed=true;
+      /* The Last Crossing: as the mouths close, the first swallows every foe within lastR of it not yet sent, a rush of streaks across the
+         stars, and throws them out of the far one, just before both collapse */
+      if(D.last){let k=0;for(const e of enemies){if(e.dead||e.fake||sent.has(e)||e.dist==null)continue;if((e.x-pI[0])**2+(e.z-pI[1])**2>=D.lastR*D.lastR)continue;if(!loses(e))continue;cross(e,'last',Math.min(k,10)*.1);k++;}
+        if(D.rush)for(let i=0;i<5;i++){const g=rushTube(i);riders.push({u:-(Math.min(k,10)*.1+i*.07),m:comet(g),ka:.55,bz:(u,v)=>g.cv.getPoint(u,v)});}if(lg)lg({ev:'last',n:k,T:tt});}
+      for(const[px,pz]of[[pI[0],pI[1]],[pO[0],pO[1]]]){shockwave(px,pz,1.8*D.collK,0xb8a8ff,.5,0x140a3a);flash(px,1,pz,0xdfe0ff,Math.min(1.2,1*D.collK),.25);if(D.collK>1)whBurst(px,gy(px,pz)+.03,pz,px===pI[0]&&pz===pI[1]?0x9a7aff:0x6ac8ff,D.colR,1.1,1,.5);
+        for(const e of enemies){if(e.dead)continue;if((e.x-px)**2+(e.z-pz)**2<D.colR*D.colR){hurt(e,P*D.col,'magic',o);if(lg)lg({ev:'collapse',e,at:px===pI[0]&&pz===pI[1]?'A':'B',T:tt});}}}camShake=Math.max(camShake,.16*(D.collK>1?1.35:1));}
     if(tt>LIFE-.6){darkTarget=Math.max(0,darkTarget-dt*.5);vigTarget=Math.max(0,vigTarget-dt*.5);}},
-    ()=>{nsFree(A.g);nsFree(B.g);darkTarget=0;vigTarget=0;},{mats,geos});}
+    ()=>{nsFree(A.g);nsFree(B.g);if(G2)nsFree(G2);darkTarget=0;vigTarget=0;if(lg)lg({ev:'end',T:tt});},{mats,geos,whCast:1});}
 
 /* ---- hooks ---- */
 Object.assign(NSP,{bloodeye:(t,s,l,P,o)=>castBloodEye(t,l,P,o),moonfall:(t,s,l,P,o)=>castMoonfall(t,l,P,o),constellation:(t,s,l,P,o)=>castConstellation(t,l,P,o),wormhole:(t,s,l,P,o)=>castWormhole(t,l,P,o)});
@@ -31967,6 +32059,33 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
   dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
+/* ================= Wormhole's masteries (v473), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* (header: filled in after the ladder) */
+const WHM={dbg:null,catchR:1.6,LIFE:10.5,hit:4.5,back:16,bossBack:5,col:3.5,colR:2.4,lastR:2.4};
+const whmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='wormhole'&&c.L?c:null;};
+const whmLog=d=>{if(WHM.dbg){d.t=time;WHM.dbg.push(d);}};
+SM_D.wormhole=[
+  {n:'Hungry Mouth',d:'The first wormhole yawns 30% wider and draws in every foe within 1.6 tiles of it, on any road (before, only foes walking into it on its own road), throwing them out of the far one.'},
+  {n:'Held Open',d:'The wormholes stay open 10.5s (9.2s before), so more foes walk in; their columns of light rise taller.'},
+  {n:'Torn Through the Stars',d:'Every foe that goes through takes {450}% (400% before) and is thrown 16 tiles back (13 before). A brighter streak runs across the stars, a bigger burst at the exit.'},
+  {n:'No Weight Too Great',d:'Bosses go through too (before, they were only slowed): each comes out 5 tiles back and is still slowed 50% for 2s. The mouth shudders.'},
+  {n:'The Last Crossing',d:'As the wormholes close, the first swallows every foe within 2.4 tiles of it that has not gone through yet and throws it out of the far one; then both collapse for {350}% within 2.4 tiles (300% within 1.6 before).'}];
+SMF.wormhole={m:1};
+SMA.wormhole=[1,1,1,1,1];
+SMG.wormhole=[1,1,1,1,1];
+/* this cast's numbers and looks (castWormhole's XO), cumulative: Mastery L has masteries 1..L; every mastered cast checks each foe's way
+   since the last frame (sweep) */
+function whmOpts(c){const L=c.L,a=c.a,X={sweep:1};
+  if(L>=1){X.catchR=WHM.catchR;X.mouthK=1.3;X.swirl=2;}
+  if(L>=2){X.LIFE=WHM.LIFE;X.dec=WHM.LIFE+.6;X.colH=1.5;}
+  if(L>=3){X.hit=WHL.hit+(WHM.hit-WHL.hit)*a[2];X.back=WHM.back;X.streak=1;X.burst=1;}
+  if(L>=4){X.bossBack=WHM.bossBack;X.shudder=1;}
+  if(L>=5){X.last=1;X.lastR=WHM.lastR;X.col=WHL.col+(WHM.col-WHL.col)*a[4];X.colR=WHM.colR;X.rush=1;X.collK=1.5;}
+  X.log=WHM.dbg?whmLog:null;whmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+const WHM_OLD=castWormhole;
+castWormhole=function(t,list,P,o,XO){const c=!XO?whmC(o):null;return WHM_OLD(t,list,P,o,c?whmOpts(c):XO);};
+/* (every Wormhole cast stays open past its cineLock, 9.6s, 12.4s from Held Open: the mastery preview waits for it) */
+SMPV_BUSY.push(()=>fx.some(f=>f.whCast));
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
