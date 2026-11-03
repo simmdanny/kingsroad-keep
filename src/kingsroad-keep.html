@@ -4528,13 +4528,13 @@ function sgSound(){const c=sfxCtx();if(!c)return null;const t0=c.currentTime,out
   return S;}
 
 /* v472: XO (optional, Singularity's masteries): this cast's numbers over SGX: GRIP (when every foe is pinned and the drain begins), DPS
-   (the drain, x the power a second), MHP and MHPB (of max health a second; bosses), SIZE (the hole's size), ROUT (its disk's outer edge, in
-   horizon radii), RING and DISK (the photon ring's and the disk's light), SPARK (gold sparks off each pinned foe a second); ACC and ACCMAX
+   (the drain, x the power a second), MHP and MHPB (of max health a second; bosses), SIZE (the hole's size), RB (its lensing sphere) and ROUT
+   (its disk's outer edge, both in horizon radii), RING and DISK (the photon ring's and the disk's light), SPARK (gold sparks off each pinned foe a second); ACC and ACCMAX
    (Accretion: each foe that dies while pinned makes the drain ACC stronger, up to ACCMAX; the disk heats with it, uHeat); ROCK and ROCKIV
    (Torn Earth: a rock with glowing broken edges tears up from beneath each pinned foe every ROCKIV s and strikes it as it rises, ROCK x
    the power; 0: none); COLL (the collapse strikes every foe, x the power; 0: only a picture, as before), CON (s the hole draws in longer
    before it breaks) and COLLK (the collapse's flare, rays and ground waves, x); LIFE. log(d) receives the events. Without XO: as before. */
-const SGX={GRIP:4,DPS:3,MHP:.05,MHPB:.03,SIZE:1,ROUT:10.3,RING:1,DISK:1,SPARK:10,ACC:0,ACCMAX:.45,ROCK:0,ROCKIV:1.5,COLL:0,CON:0,COLLK:1,LIFE:13.8,log:null};
+const SGX={GRIP:4,DPS:3,MHP:.05,MHPB:.03,SIZE:1,RB:14,ROUT:10.3,RING:1,DISK:1,SPARK:10,ACC:0,ACCMAX:.45,ROCK:0,ROCKIV:1.5,COLL:0,CON:0,COLLK:1,LIFE:13.8,log:null};
 function castSingularity(t,P,o,XO){const D=XO?Object.assign({},SGX,XO):SGX,lg=D.log;
   const geos=[],mats=[],root=new THREE.Group();scene.add(root);
   const TOT=11.5,END=D.LIFE,CX=D.CON,CL=D.COLLK;cineLock=Math.max(cineLock,13);
@@ -4543,7 +4543,7 @@ function castSingularity(t,P,o,XO){const D=XO?Object.assign({},SGX,XO):SGX,lg=D.
   const hy=4.4,tt0=(hy-cp.y)/dr.y,C=cp.clone().addScaledVector(dr,tt0);
   const dist=cp.distanceTo(C),U=2*dist*Math.tan(camera.fov*Math.PI/360);
   const RS=.038*U;                       /* scale for the release burst */
-  const RSF=.0205*U*D.SIZE,RB=14,ROUT=D.ROUT;               /* final horizon radius rs (shadow reads ~2.6 rs, disk 3..8.5 rs), lensing sphere radius in rs */
+  const RSF=.0205*U*D.SIZE,RB=D.RB,ROUT=D.ROUT;               /* final horizon radius rs (shadow reads ~2.6 rs, disk 3..8.5 rs), lensing sphere radius in rs */
   const hand=new THREE.Vector3(),hpos=new THREE.Vector3(),tmp=new THREE.Vector3(),tmp2=new THREE.Vector3(),tmp3=new THREE.Vector3();
   const getHand=()=>{if(t.rig&&t.rig.L){t.rig.L.hd.getWorldPosition(hand);}else hand.set(t.x,t.topY+.35,t.z);return hand;};
   /* the disk plane is fixed in the world: about 12 degrees open to the casting camera, slightly rolled; turning the camera shows it from other sides */
@@ -4669,7 +4669,7 @@ function castSingularity(t,P,o,XO){const D=XO?Object.assign({},SGX,XO):SGX,lg=D.
     if(lg)lg({ev:'feed',e,n:feed,dk:1+Math.min(D.ACCMAX,feed*D.ACC),drained,T});};
   /* (Torn Earth) rocks with glowing broken edges (their own pool, drawn like the others), torn up from beneath the pinned foes */
   const rockT=new Map(),rk=[];let EP=null,EM=null;
-  if(D.ROCK>0){const eg=sgEdgeGeo(rockG);geos.push(eg);EM=sgEdgeMat();mats.push(EM);const NE=200,ei=new THREE.InstancedMesh(eg,EM,NE),eF=new THREE.InstancedMesh(eg,EM,NE);
+  if(D.ROCK>0){const NE=200,eg=sgEdgeGeo(rockG,NE);geos.push(eg);EM=sgEdgeMat();mats.push(EM);const ei=new THREE.InstancedMesh(eg,EM,NE),eF=new THREE.InstancedMesh(eg,EM,NE);
     [ei,eF].forEach(im=>{im.frustumCulled=false;im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);root.add(im);});eF.layers.set(1);eF.renderOrder=41;
     for(let i=0;i<NE;i++){col.setHex(0x6a5a48);ei.setColorAt(i,col);eF.setColorAt(i,col);ei.setMatrixAt(i,m0);eF.setMatrixAt(i,m0);}EP=mkPool(NE,ei,eF);}
   const tearRock=e=>{const gx=e.x+(rnd()-.5)*.24,gz=e.z+(rnd()-.5)*.24;spawnR(EP,gx,.04,gz,(rnd()-.5)*.3,2.2+rnd()*.8,(rnd()-.5)*.3,.065+rnd()*.045,rnd()<.55?pick(DIRT):pick(STONE),.12);
@@ -4724,7 +4724,7 @@ function castSingularity(t,P,o,XO){const D=XO?Object.assign({},SGX,XO):SGX,lg=D.
     const on=T>.45&&rsW>.0005;vol.visible=dkV.visible=on;
     if(on){HU.value.copy(hole);vol.position.copy(hole);vol.scale.setScalar(RB*rsW*1.002);
       const U_=BU;U_.uRs.value=rsW;U_.uSpinT.value=spinT;U_.uLens.value=(collapsed?1:.45+.55*SMS(T,1.5,4.5))*SPACE_K;
-      const dI=collapsed?0:(.32*SMS(T,.5,2.2)+.68*SMS(T,2,6.5))*(1+1.6*ck)*(1-pt);U_.uDisk.value=dI*D.DISK*(1+.55*heat+.4*pulse);U_.uRing.value=(collapsed?0:SMS(T,1.4,4)*(1+.8*pre)*(1-pt))*D.RING;U_.uHeat.value=collapsed?0:.32*heat+.14*pulse;
+      const dI=collapsed?0:(.32*SMS(T,.5,2.2)+.68*SMS(T,2,6.5))*(1+1.6*ck)*(1-pt);U_.uDisk.value=dI*D.DISK*(1+.28*heat+.22*pulse);U_.uRing.value=(collapsed?0:SMS(T,1.4,4)*(1+.8*pre)*(1-pt))*D.RING;U_.uHeat.value=collapsed?0:.2*heat+.1*pulse;
       U_.uRin.value=3-.45*ck;U_.uRout.value=ROUT-(ROUT-3.3)*Math.pow(ck,1.5);U_.uExp.value=1.25+.8*ck;
       DK.value=collapsed?0:.78*SMS(T,2,9)*(1-.9*pre)*SPACE_K;DKR.value=19.2*RSF*grow;dkV.position.copy(hole);dkV.scale.setScalar(DKR.value*1.002);}
     {const gk=collapsed?Math.max(0,1-(T-tC)/.6):SMS(T,2.5,9)*(1-.85*pre);decal.visible=gk>.002;if(decal.visible){decal.position.set(hole.x,.03,hole.z);const R=1.2+6.8*grow;decal.scale.setScalar(R);decM.uniforms.uR.value=R;decM.uniforms.uDk.value=.5*gk;
@@ -4786,7 +4786,8 @@ function castSingularity(t,P,o,XO){const D=XO?Object.assign({},SGX,XO):SGX,lg=D.
     if(EP){for(let i=rk.length-1;i>=0;i--){const q=rk[i];if(T<q.at)continue;rk.splice(i,1);if(collapsed||q.e.dead)continue;hurt(q.e,P*D.ROCK,'magic',o);if(lg)lg({ev:'rock',e:q.e,T});
         const y=gy(q.e.x,q.e.z);for(let k=0;k<5;k++)spawnP(q.e.x+(rnd()-.5)*.2,q.e.y+q.e.hitY*(.2+rnd()*.5),q.e.z+(rnd()-.5)*.2,(rnd()-.5)*1.6,.6+rnd()*1.2,(rnd()-.5)*1.6,k<3?1:0,k<3?0xffa040:pick(DIRT),.95,.04,k<3?.6:2);
         emit(0,{x:q.e.x,y:y+.04,z:q.e.z,vx:0,vy:.25,vz:0,s:.12,s2:.34,c:0x7a6a55,c2:0x3a3028,a:.5,life:.6,turb:.4});}
-      EM.uniforms.uEdge.value=collapsed?Math.max(0,1-(T-tC)*1.5):.85+.15*Math.sin(T*9);stepPool(EP,dt,.85,true);}
+      EM.uniforms.uEdge.value=collapsed?Math.max(0,1-(T-tC)*1.5):.85+.15*Math.sin(T*9);stepPool(EP,dt,.85,true);
+      {const A=EP.im.geometry.attributes.aHot,H=A.array;for(let i=0;i<EP.n;i++){const age=30-EP.L[i];H[i]=EP.L[i]>0?1-SMS(age,.4,1.7):0;}A.needsUpdate=true;}}
     stepPts(dt);stepPool(RP,dt,.85,true);stepPool(GP,dt,1.1,false);
   },()=>{SG_ACTIVE.delete(cleanup);cleanup();darkTarget=0;vigTarget=0;if(lg)lg({ev:'end',T});
     rest.forEach(r=>{if(r.m){root.remove(r.m);r.m.material.dispose();}});torn.forEach(tt=>{if(tt.m){root.remove(tt.m);tt.m.material.dispose();}});},{mats,geos});
@@ -31999,7 +32000,7 @@ const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
 /* ================= Singularity's masteries (v472), designed with the framework (MASTERY_DESIGN.md) ================= */
 /* (header: filled in below) */
-const SGM={dbg:null,grip:3.2,size:1.15,rout:11.3,ring:1.35,mhp:.058,mhpb:.035,spark:20,acc:.025,accMax:.45,rock:.4,rockIv:1,coll:5,con:.15,collK:1.3,busy:0};
+const SGM={dbg:null,grip:3.2,size:1.15,rout:10.8,ring:1.35,mhp:.058,mhpb:.035,spark:20,acc:.025,accMax:.45,rock:.4,rockIv:1,coll:5,con:.15,collK:1.3,busy:0};
 const sgmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='singularity'&&c.L?c:null;};
 const sgmLog=d=>{if(SGM.dbg){d.t=time;SGM.dbg.push(d);}};
 SM_D.singularity=[
@@ -32010,18 +32011,21 @@ SM_D.singularity=[
   {n:'Last Light',d:'The collapse strikes every foe on the map: {500}%. The hole draws in a little longer before it breaks, and its flare, rays and ground waves reach 30% further.'}];
 SMF.singularity={m:1};
 SMA.singularity=[1,1,1,1,1];
-SMG.singularity=[1,1,1,1,1];
-/* M4: the torn rocks' broken edges glow (each face knows how near the rim it is: aBary) */
-function sgEdgeGeo(src){const g=src.index?src.toNonIndexed():src.clone(),n=g.attributes.position.count,b=new Float32Array(n*3);for(let i=0;i<n;i++)b[i*3+i%3]=1;g.setAttribute('aBary',new THREE.BufferAttribute(b,3));return g;}
+SMG.singularity=[.968,.949,.949,1.02,.97];
+/* M4: the torn rocks' broken edges glow: each face knows how near its rim it is (aBary), some of the rims glow (a hash of the rock's own
+   shape), and each rock (aHot, per instance) is hot as it tears up and cools to plain rock as it flies */
+function sgEdgeGeo(src,n){const g=src.index?src.toNonIndexed():src.clone(),c=g.attributes.position.count,b=new Float32Array(c*3);for(let i=0;i<c;i++)b[i*3+i%3]=1;g.setAttribute('aBary',new THREE.BufferAttribute(b,3));
+  const h=new THREE.InstancedBufferAttribute(new Float32Array(n),1);h.setUsage(THREE.DynamicDrawUsage);g.setAttribute('aHot',h);return g;}
 function sgEdgeMat(){const m=new THREE.MeshPhongMaterial({flatShading:true,shininess:0,emissive:0x2a2418,emissiveIntensity:1});m.uniforms={uEdge:{value:1}};
   m.onBeforeCompile=sh=>{sh.uniforms.uEdge=m.uniforms.uEdge;
-    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec3 aBary;varying vec3 vBary;').replace('#include <begin_vertex>','#include <begin_vertex>\nvBary=aBary;');
-    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform float uEdge;varying vec3 vBary;')
-      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n{float eb=min(min(vBary.x,vBary.y),vBary.z);totalEmissiveRadiance+=vec3(1.,.5,.14)*(1.-smoothstep(.02,.13,eb))*1.7*uEdge;}');};
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec3 aBary;attribute float aHot;varying vec3 vBary,vLoc;varying float vHot;').replace('#include <begin_vertex>','#include <begin_vertex>\nvBary=aBary;vLoc=position;vHot=aHot;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform float uEdge;varying vec3 vBary,vLoc;varying float vHot;')
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n{float eb=min(min(vBary.x,vBary.y),vBary.z),cut=step(.45,fract(sin(dot(floor(vLoc*2.6+.5),vec3(12.9898,78.233,37.719)))*43758.5453));'
+        +'totalEmissiveRadiance+=vec3(1.,.36,.07)*(1.-smoothstep(.0,.07,eb))*cut*1.25*vHot*uEdge+vec3(.35,.1,.02)*vHot*uEdge*.35;}');};
   m.customProgramCacheKey=()=>'sgEdge';return m;}
 /* this cast's numbers (castSingularity's XO): level L has masteries 1..L */
 function sgmOpts(c){const L=c.L,a=c.a,X={log:sgmLog};
-  if(L>=1){X.GRIP=SGM.grip;X.SIZE=SGM.size;X.ROUT=SGM.rout;X.RING=SGM.ring;}
+  if(L>=1){X.GRIP=SGM.grip;X.SIZE=SGM.size;X.RB=SGX.RB/SGM.size;X.ROUT=SGM.rout;X.RING=SGM.ring;}
   if(L>=2){X.MHP=SGM.mhp;X.MHPB=SGM.mhpb;X.SPARK=SGM.spark;}
   if(L>=3){X.ACC=SGM.acc;X.ACCMAX=SGM.accMax;}
   if(L>=4){X.ROCK=SGM.rock*a[3];X.ROCKIV=SGM.rockIv;}
