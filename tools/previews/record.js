@@ -72,7 +72,9 @@ P.setup=(k,L,s)=>{P.clearTags();P.T=0;P.ev={};P.hit=[];P.hx=[];P.packAt=null;P.t
   P.cam={x:fx+(s.cx||0),zz:fz+(s.cz==null?.12:s.cz),y:gy(fx,fz),z:s.zoom};P.camSet();
   P.add=add;P.d0=d0-s.spd*s.castAt;P.enter=(s.enter||[]).map(f=>Object.assign({done:false},f));P.towersAt=towers.map(t=>[t.x,t.z]);
   P.tm0=time;P.dbgN=0;if(s.dbg)try{eval(s.dbg+'.dbg=[]');}catch(e){}
-  for(const sp of (s.spy||[]))P.spy(sp);if(s.pre)eval(s.pre);return{Pw,n:P.foes.length};};
+  for(const sp of (s.spy||[]))P.spy(sp);if(s.pre)eval(s.pre);
+  /* v475: the Ancient domains (ancRun) and other great spells only run while the battle is not paused: the recorder steps it unpaused */
+  if(s.live){paused=false;nextQ=null;spawners.length=0;}return{Pw,n:P.foes.length};};
 /* what the clip's mastery logged (its module's dbg events, and the spies), for the recorder's line and the manifest */
 P.evSum=()=>{const c={};try{if(P.s.dbg)for(const d of (eval(P.s.dbg+'.dbg')||[]))c[d.ev]=(c[d.ev]||0)+1;}catch(e){}for(const k in P.ev)c[k]=P.ev[k];return c;};
 /* when each of them first happened (s from the start of the stage, the recorder's clock), for placing a clip's window */
@@ -245,7 +247,7 @@ function sheet(frameDir, n, out) {
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-framerate', String(FPS), '-i', path.join(frameDir, '%04d.jpg'), '-vf', `select='not(mod(n\\,${step}))',scale=320:-1,tile=3x3`, '-frames:v', '1', '-q:v', '3', out]);
 }
 
-exports.camPath = camPath;
+exports.camPath = camPath; exports.launch = launch; exports.openPage = openPage; exports.recordClip = recordClip;
 /* only when run itself (loading it, from a test, records nothing) */
 if (require.main === module) (async () => {
   const args = process.argv.slice(2), opt = k => { const i = args.indexOf(k); return i < 0 ? null : args.splice(i, 2)[1]; }, flag = k => { const i = args.indexOf(k); if (i < 0) return false; args.splice(i, 1); return true; };

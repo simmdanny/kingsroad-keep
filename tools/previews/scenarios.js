@@ -238,6 +238,197 @@ const S = {
     3: { probe: "HYB.dbg.some(d=>d.ev==='petal')", note: '16 razor petals whirl out of the burst and slice into the foes.' },
     4: { spd: .6, probe: "HYB.dbg.some(d=>d.ev==='haze')", note: 'The pack walks on through the pollen: the cloud drifts with it.' },
     5: { pack: PACK.concat([{ t: 'soldier', at: 2.6, off: .1 }, { t: 'peasant', at: -2.8, off: -.1 }]), probe: "HYB.dbg.some(d=>d.ev==='sprout')", note: 'The flower goes to seed: seeds drift onto the foes and sprout small blooms.' } },
+
+  /* ======== Mythic, Ancient and Secret (v475, developer mode): the tracking camera again. Their foes are tougher still (hp 60) and the
+     battle runs unpaused (live: the Ancient domains only run then). The longest casts (15-25s) are shown as a window round the moment each
+     mastery is about (from/len, or focus on the first time its module logs that moment) ======== */
+  eclipse: {
+    base: { dbg: 'ECM', cap: 13.2, sky: 3.2, zmax: .95, probe: "ECM.dbg.some(d=>d.ev==='shatter')" },
+    0: { probe: null },
+    1: { note: 'The star beams strike harder and wider, and burst up in starfire where they land.' },
+    2: { note: 'The heavy gold beams fall far more often.' },
+    3: { note: 'A star every 0.0625s: about 35 beams from a brighter sky.' },
+    4: { pack: BIG, note: 'Eleven foes: each star picks a foe no star has struck yet and lands on it.' },
+    5: { trail: TRAIL, note: 'The sun breaks: the shatter strikes every foe on the map, the ones further back too.' } },
+  embertitan: {
+    base: { dbg: 'EMT', cap: 12.5, zmax: 1, probe: "EMT.dbg.some(d=>d.ev==='blow')" },
+    0: { probe: null },
+    1: { note: 'The greatsword is longer and white-hot.' },
+    2: { trail: [{ t: 'soldier', at: -4, off: .1 }, { t: 'peasant', at: -6, off: -.12 }, { t: 'soldier', at: -8, off: .05 }], follow: 'hits', note: 'Foes far back up the road: the fissure tears 14 tiles down it and burns longer.' },
+    3: { note: 'The blast at the blade’s tip strikes harder and wider.' },
+    4: { pack: swap(2, { t: 'ogre', hp: 120, tag: 'Boss', tc: TAG.tough }), note: 'Foes under the blade are stunned 1.2s; the boss (an Ogre) 0.4s.' },
+    5: { trail: TRAIL, note: 'The whole fissure tears open as the sword lands: every geyser bursts at once.' } },
+  eternalwinter: {
+    base: { dbg: 'EWM', cap: 10.5, probe: "EWM.dbg.some(d=>d.ev==='shatter')" },
+    0: { probe: null },
+    1: { note: 'The frost strikes harder as it reaches each foe, and leaves larger ice.' },
+    2: { note: 'The Heart gathers itself longer: the foes stay frozen, then slowed, longer.' },
+    3: { probe: "EWM.dbg.some(d=>d.ev==='shard')", note: 'When the Heart bursts, six shards fly at the nearest foes.' },
+    4: { pack: swap(2, { t: 'ogre', hp: 120, tag: 'Boss', tc: TAG.tough }), note: 'The boss (an Ogre) stays frozen until the wave reaches it.' },
+    5: { probe: "EWM.dbg.some(d=>d.ev==='plates')", note: 'The shatter wave strikes 1500%: the ice sheet bursts up as it breaks.' } },
+  aeon: {
+    /* the dial turns for about 20s: the clips are windows of it */
+    base: { dbg: 'AEM', from: 1.2, len: 13.2, cap: 13, probe: "AEM.dbg.some(d=>d.ev==='pass')" },
+    0: { probe: null, note: 'The dial forms and its great hand starts to turn (the first 12 seconds of the cast).' },
+    1: { note: 'Each pass of the great hand takes 2% of a foe’s max health.' },
+    2: { note: 'Each pass ages the foes slower, up to 50%.' },
+    3: { probe: "AEM.dbg.filter(d=>d.ev==='turn').length>=3", note: 'The hand turns every 2.56s: more sweeps before midnight.' },
+    4: { towers: [{ t: 'archer', at: .3 }, { t: 'archer', at: -1.2, side: -1 }], probe: "AEM.dbg.some(d=>d.ev==='glint')", note: 'Archer towers fight 30% faster while the dial turns, glinting gold as the hand passes.' },
+    5: { from: null, len: null, cap: 26, pack: PACK.map((p, j) => j < 3 ? Object.assign({}, p, { frac: .45, tag: 'Worn down', tc: TAG.hp1 }) : p), probe: "AEM.dbg.some(d=>d.ev==='stroke')", focus: { ev: 'stroke', before: 2.5, after: 4.5 }, note: 'Midnight tolls twelve times (the clip joins the dial at midnight); foes left under 25% crumble.' } },
+  gaia: {
+    base: { dbg: 'WGM', cap: 11, probe: "WGM.dbg.some(d=>d.ev==='strike')" },
+    0: { probe: null },
+    1: { note: 'Each tree tears up harder and reaches further.' },
+    2: { note: 'Foes a tree strikes are pinned longer, roots splaying from every trunk.' },
+    3: { trail: [{ t: 'soldier', at: -1.6, off: .1 }, { t: 'peasant', at: -1.9, off: -.15 }, { t: 'soldier', at: -2.2, off: .05 }], spd: .5, note: 'Foes behind the pack walk into the standing trees and are struck and pinned too.' },
+    4: { note: 'The keep mends 3 lives; a green column rises at the keep.' },
+    5: { probe: "WGM.dbg.some(d=>d.ev==='drag')", note: 'Every tree sheds its leaves, and as the forest sinks it drags its foes down.' } },
+  seraphlance: {
+    base: { dbg: 'SRL', cap: 9, sky: 3.2, probe: "SRL.dbg.some(d=>d.ev==='impact')" },
+    0: { probe: null },
+    1: { pack: swap(2, TOUGH()), note: 'The great lance is forged longer and brighter.' },
+    2: { trail: TRAIL, note: 'It lands like a falling star: a 4-tile blast.' },
+    3: { pack: BIG, note: 'Nine lances leave the wings after the great one.' },
+    4: { note: 'The lances stay standing in their foes and hold them.' },
+    5: { pack: BIG, note: 'Every lance from the wings strikes like a lesser great lance.' } },
+  shatter: {
+    base: { dbg: 'SHM', cap: 13, probe: "SHM.dbg.some(d=>d.ev==='break')" },
+    0: { probe: null },
+    1: { note: 'The break strikes harder; thicker shards with coloured edges.' },
+    2: { probe: "SHM.dbg.some(d=>d.ev==='hold')", note: 'Foes stay held 1.2s after the break; the shards hang still at the top of their flight.' },
+    3: { spd: .6, probe: "SHM.dbg.some(d=>d.ev==='twist')", note: 'The twist turns further and drags at the foes inside.' },
+    4: { pack: PACK.map((p, j) => j < 3 ? Object.assign({}, p, { frac: .3, tag: 'Worn down', tc: TAG.hp1 }) : p), probe: "SHM.dbg.some(d=>d.ev==='clean')", note: 'Three foes are worn down: the break leaves them under 25%, and they break apart with it.' },
+    5: { probe: "SHM.dbg.some(d=>d.ev==='land')", note: 'The sheet of shards bursts up and rains back down on the foes.' } },
+  vael: {
+    base: { dbg: 'VTM', cap: 13.5, sky: 3.5, zmax: .95, probe: "VTM.dbg.some(d=>d.ev==='final')" },
+    0: { probe: null },
+    1: { note: 'The storm grows wilder faster: some 26 strikes.' },
+    2: { pack: BIG, probe: "VTM.dbg.some(d=>d.ev==='arcs')", note: 'Every strike that lands arcs on into one or two foes nearby.' },
+    3: { pack: BIG, note: 'Every foe in the storm joins the network, and it tears harder at them.' },
+    4: { spd: .6, probe: "VTM.dbg.some(d=>d.ev==='recentre')", note: 'The pack walks on: the storm re-centres and glides after it.' },
+    5: { cap: 16, trail: TRAIL, note: 'The final strike hits 1260% within 3.2 tiles; the crater stays live longer.' } },
+  abyss: {
+    /* the sea stands about 20s: windows of it */
+    base: { dbg: 'ABM', hp: 200, from: 1.2, len: 14, cap: 13.5, sky: 3, probe: "ABM.dbg.some(d=>d.ev==='bite')" },
+    0: { probe: null, note: 'The sea rises over the field and its leviathans hunt (the first 13 seconds of the cast).' },
+    1: { note: 'Foes drown faster: streams of bubbles rise off every one.' },
+    2: { spd: .5, note: 'The pack walks on: the sea slows it 70%.' },
+    3: { note: 'The leviathans lunge more often, bite harder and reach further.' },
+    4: { probe: "ABM.dbg.some(d=>d.ev==='bite')", note: 'A foe a leviathan bites drowns 50% faster, a column of bubbles rising from it.' },
+    5: { from: null, len: null, cap: 26, probe: "ABM.dbg.some(d=>d.ev==='rise')", focus: { ev: 'rise', before: 1.5, after: 8 }, note: 'Halfway through the eldest leviathan bursts up out of the deep and joins the hunt (the clip joins it there).' } },
+  citadel: {
+    base: { dbg: 'CIM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "CIM.dbg.some(d=>d.ev==='cut')" },
+    0: { probe: null, note: 'The domain rises and its cuts begin (the first 13 seconds of the cast).' },
+    1: { pack: PACK.map(p => Object.assign({}, p, { at: p.at * 2.4, off: p.off * 1.5 })), note: 'The foes are spread out: the domain reaches 6 tiles.' },
+    2: { note: 'Each cut strikes harder, and harder in its wake.' },
+    3: { spd: .6, note: 'The pack walks on: inside the domain it crawls.' },
+    4: { note: 'Each cut aims at the foe nearest the keep no cut has struck yet, and throws it back.' },
+    5: { from: null, len: null, cap: 24, probe: "CIM.dbg.some(d=>d.ev==='snap')", focus: { ev: 'snap', before: 2.5, after: 3.5 }, note: 'The final fracture tears across the domain (the clip joins it near its end).' } },
+  expanse: {
+    base: { dbg: 'IVM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "IVM.dbg.some(d=>d.ev==='cut')" },
+    0: { probe: null, note: 'The void swallows the land and its cuts begin (the first 13 seconds of the cast).' },
+    1: { note: 'Every cut strikes harder, with wider, whiter strokes.' },
+    2: { pack: BIG, note: 'Eleven foes: more cuts a second.' },
+    3: { spd: .6, note: 'The pack walks on: in the void it crawls at 15%.' },
+    4: { len: 15, pack: PACK.map((p, j) => j < 4 ? Object.assign({}, p, { frac: .25, tag: 'Worn down', tc: TAG.hp1 }) : p), probe: "IVM.dbg.some(d=>d.ev==='erase')", note: 'Four foes are worn down: a cut leaves them under 15%, and they are erased.' },
+    5: { hp: 400, from: null, len: null, cap: 30, probe: "IVM.dbg.some(d=>d.ev==='great')", focus: { ev: 'great', before: 1.5, after: 5 }, note: 'In the last 3 seconds great screen-wide cuts, then one last cut on every foe as reality returns (the clip joins it there).' } },
+  firsttree: {
+    base: { dbg: 'ETM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "ETM.dbg.some(d=>d.ev==='erupt')" },
+    0: { probe: null, note: 'The tree rises and its roots begin to burst (the first 13 seconds of the cast).' },
+    1: { note: 'Each eruption reaches further, with more root spikes.' },
+    2: { note: 'The roots drink twice as much; motes of life fly to the trunk.' },
+    3: { note: 'The roots burst more often and strike the same foe again sooner.' },
+    4: { len: 16, pack: PACK.map((p, j) => j < 3 ? Object.assign({}, p, { frac: .3, tag: 'Worn down', tc: TAG.hp1 }) : p), probe: "ETM.dbg.some(d=>d.ev==='swallow')", note: 'Three foes are worn down: the roots leave them under 20% and drag them under the earth.' },
+    5: { from: null, len: null, cap: 30, probe: "ETM.dbg.some(d=>d.ev==='bloom')", focus: { ev: 'bloom', before: 2.5, after: 4 }, note: 'The world in bloom: the bloom strikes harder for every foe the roots drank from (the clip joins it there).' } },
+  never: {
+    base: { dbg: 'NVM', hp: 120, cap: 13.5, from: 1.2, len: 14, sky: 3, probe: "NVM.dbg.some(d=>d.ev==='star')" },
+    0: { probe: null },
+    1: { note: 'A shooting star every 0.36s, splashing wider.' },
+    2: { note: 'Time stands still longer, and the foes held in it take 50% more.' },
+    3: { probe: "NVM.dbg.filter(d=>d.ev==='lash').length>=3", note: 'Four stars lash more often, over a wider square.' },
+    4: { spd: .6, towers: [{ t: 'archer', at: .3 }, { t: 'archer', at: -1.2, side: -1 }], note: 'Foes move 50% slower, and the archer towers attack 35% faster.' },
+    5: { from: null, len: null, cap: 24, probe: "NVM.dbg.some(d=>d.ev==='great')", focus: { ev: 'fin', before: 2, after: 4 }, note: 'The last fall: the great stars land for real (the clip joins it there).' } },
+  tempest: {
+    base: { dbg: 'TPM', hp: 150, from: 1.2, len: 14, cap: 13.5, sky: 3.5, zmax: 1, probe: "TPM.dbg.some(d=>d.ev==='volley')" },
+    0: { probe: null, note: 'The hurricane forms round the hero, its eye wall rising (the first 13 seconds of the cast).' },
+    1: { probe: "TPM.dbg.some(d=>d.ev==='crown')", note: 'The crown bolt strikes every foe on the field and leaves them Charged.' },
+    2: { pack: BIG, note: 'Every volley locks onto one more foe.' },
+    3: { probe: "TPM.dbg.some(d=>d.ev==='leap')", note: 'Each precise strike leaps on further and harder.' },
+    4: { probe: "TPM.dbg.some(d=>d.ev==='wall')", note: 'The lightning racing round the eye wall strikes the foes it passes.' },
+    5: { from: null, len: null, cap: 24, trail: TRAIL, probe: "TPM.dbg.some(d=>d.ev==='fin')", focus: { ev: 'fin', before: 2, after: 3.5 }, note: 'The last thunder, and the hero’s fall rolls out over the whole field (the clip joins it there).' } },
+  purgatory: {
+    base: { dbg: 'PGM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "PGM.dbg.some(d=>d.ev==='cut')" },
+    0: { probe: null, note: 'The judgment gathers round the hero and its cuts begin (the first 13 seconds of the cast).' },
+    1: { pack: PACK.map(p => Object.assign({}, p, { at: p.at * 2.2 })), note: 'The foes are spread along the road: the judgment reaches further.' },
+    2: { from: 9.5, len: 20, cap: 11, note: 'The last stage begins at 13s and cuts faster (the clip joins it there).' },
+    3: { probe: "PGM.dbg.some(d=>d.ev==='stare')", from: 6.5, len: 18.5, note: 'The six eyes stare: foes where they look are cut as if they stood close to the hero.' },
+    4: { from: null, len: null, cap: 24, pack: PACK.map((p, j) => j < 3 ? Object.assign({}, p, { frac: .35, tag: 'Worn down', tc: TAG.hp1 }) : p), probe: "PGM.dbg.some(d=>d.ev==='exec')", focus: { ev: 'exec', before: 3, after: 4 }, note: 'Three foes are worn down: a cut that leaves them under 8% cuts them down.' },
+    5: { from: null, len: null, cap: 26, probe: "PGM.dbg.some(d=>d.ev==='last')", focus: { ev: 'last', before: 3, after: 3.5 }, note: 'The silence holds, then every foe takes one last cut (the clip joins it there).' } },
+  bloodneedles: {
+    base: { dbg: 'BNM', cap: 12, probe: "BNM.dbg.some(d=>d.ev==='hit')" },
+    0: { probe: null },
+    1: { note: 'Each needle strikes harder: longer, with brighter tips and trails.' },
+    2: { spd: .6, note: 'The pack walks on: the needles fly faster and turn tighter, so few arrive late.' },
+    3: { pack: swap(2, TOUGH()), note: 'A needle striking a foe already pierced strikes harder for every needle in it.' },
+    4: { pack: [ONE({ at: 0 })], enter: [{ t: 'soldier', at: .3, off: .1, time: 2.9 }, { t: 'peasant', at: 0, off: -.1, time: 3.2 }, { t: 'soldier', at: -.3, off: .05, time: 3.5 }], probe: "BNM.dbg.some(d=>d.ev==='wait')", note: 'One foe with 1 HP: the first needle kills it, the rest wait glowing in the orbit, and fly at the foes that come next.' },
+    5: { pack: swap(2, TOUGH({ tag: 'Strongest' })), probe: "BNM.dbg.some(d=>d.ev==='halo')", note: 'The orbit fills to 12 and, after 24 have flown, looses all at once at the strongest foe (the ram).' } },
+  bloodeye: {
+    base: { dbg: 'BEY', cap: 13.5, sky: 3.5, probe: "BEY.dbg.some(d=>d.ev==='lash')" },
+    0: { probe: null },
+    1: { pack: BIG, note: 'Eleven foes: the eye brands 7 within 10 tiles.' },
+    2: { note: 'Branded foes take 40% more from everything, for 10s.' },
+    3: { note: 'The blood lightning lashes every brand 7 times.' },
+    4: { pack: BIG.map((p, j) => j < 3 ? Object.assign({}, p, { frac: .08, tag: 'Low HP', tc: TAG.hp1 }) : p), probe: "BEY.dbg.some(d=>d.ev==='move')", note: 'Three foes are low on health: when a branded foe dies the gaze swings to the strongest unbranded one.' },
+    5: { probe: "BEY.dbg.some(d=>d.ev==='last')", note: 'Before the lids close, one great lash strikes every brand at once.' } },
+  moonfall: {
+    base: { dbg: 'MFM', cap: 12.5, sky: 4, probe: "MFM.dbg.some(d=>d.ev==='impact')" },
+    0: { probe: null },
+    1: { pack: PACK.map(p => Object.assign({}, p, { at: p.at * 2, off: p.off * 1.6 })), note: 'The foes are spread out: the fuller moon’s impact reaches 4.6 tiles.' },
+    2: { trail: TRAIL, note: 'The crater of molten blood spreads wider and burns longer; foes behind walk into it.' },
+    3: { pack: PACK.concat([{ t: 'soldier', at: 2.8, off: .1 }, { t: 'peasant', at: -3.2, off: -.1 }]), probe: "MFM.dbg.some(d=>d.ev==='shard')", note: 'The moon’s 16 shards are thrown at the foes round the crater.' },
+    4: { spd: .7, probe: "MFM.dbg.some(d=>d.ev==='slow')", note: 'The pack walks on: under the falling moon’s shadow it slows.' },
+    5: { trail: [{ t: 'soldier', at: -5, off: .1 }, { t: 'peasant', at: -6.5, off: -.12 }, { t: 'soldier', at: -8, off: .05 }], probe: "MFM.dbg.some(d=>d.ev==='wave')", note: 'Moonbreaker: a wave of blood rolls out to 10.6 tiles and strikes the foes further back.' } },
+  constellation: {
+    base: { dbg: 'CSM', cap: 9.5, sky: 3.5, probe: "CSM.dbg.some(d=>d.ev==='fall')" },
+    0: { probe: null },
+    1: { note: 'The stars burn larger and fall as thicker lances.' },
+    2: { pack: BIG, note: 'Eleven foes: the figure kindles over the 8 strongest.' },
+    3: { trail: TRAIL, note: 'The lines burn wider and stay alight: foes behind walk onto them.' },
+    4: { spd: .55, probe: "CSM.dbg.some(d=>d.ev==='hold')", note: 'The pack walks on: each foe under a star is held there until it falls.' },
+    5: { cap: 11, probe: "CSM.dbg.some(d=>d.ev==='twice')", note: 'When the lines have burnt the figure kindles again and falls a second time.' } },
+  bloodcurse: {
+    base: { dbg: 'BCM', hp: 160, cap: 15.5, zmax: 1, probe: "BCM.dbg.some(d=>d.ev==='erupt')" },
+    0: { probe: null },
+    1: { pack: PACK.map(p => Object.assign({}, p, { at: p.at * 2, off: p.off * 1.6 })), note: 'The opening blast reaches 5 tiles.' },
+    2: { note: 'Every eruption strikes harder, its columns taller and hotter.' },
+    3: { note: 'Each stage of the escalation grows the eruptions 18%.' },
+    4: { note: 'Each greater scroll the curse seals on the hero makes every eruption stronger.' },
+    5: { probe: "BCM.dbg.some(d=>d.ev==='plunge')", note: 'The final eruption is half again as large, and the blast after it strikes 1500%.' } },
+  pulsar: {
+    /* the star burns about 15s, then implodes: windows of it */
+    base: { dbg: 'PSM', hp: 120, from: 1.2, len: 12.5, cap: 12, probe: "PSM.dbg.some(d=>d.ev==='hit')" },
+    0: { probe: null, note: 'The neutron star rises and its beam sweeps its ring (the first 11 seconds of the cast).' },
+    1: { note: 'Every beam hit strikes harder; the beams burn thicker.' },
+    2: { note: 'Every phase comes sooner and the star spins faster.' },
+    3: { note: 'The second beam tips down and sweeps a second, smaller ring.' },
+    4: { spd: .5, probe: "PSM.dbg.some(d=>d.ev==='sear')", note: 'The pack walks on over the burnt ground: it sears them.' },
+    5: { from: null, len: null, cap: 24, probe: "PSM.dbg.some(d=>d.ev==='blast')", focus: { ev: 'imp', before: 2.5, after: 4 }, note: 'Supernova: the implosion draws the rings in, and the blast reaches 8.5 tiles (the clip joins it there).' } },
+  singularity: {
+    base: { dbg: 'SGM', hp: 120, cap: 16.5, sky: 3.5, zmax: 1, probe: "SGM.dbg.some(d=>d.ev==='grip')" },
+    0: { probe: null },
+    1: { note: 'The hole takes hold sooner and holds longer, drawn larger.' },
+    2: { note: 'The drain tears harder at the pinned foes.' },
+    3: { pack: PACK.map((p, j) => j < 3 ? Object.assign({}, p, { frac: .2, tag: 'Low HP', tc: TAG.hp1 }) : p), probe: "SGM.dbg.some(d=>d.ev==='feed')", note: 'Three foes are low on health: each that dies while pinned feeds the hole.' },
+    4: { probe: "SGM.dbg.some(d=>d.ev==='rock')", note: 'Rocks tear up from beneath every pinned foe, one a second.' },
+    5: { trail: TRAIL, probe: "SGM.dbg.some(d=>d.ev==='collapse')", note: 'The collapse strikes every foe on the map for 500%.' } },
+  wormhole: {
+    base: { dbg: 'WHM', cap: 14, zmax: 1.05, follow: 'foes', probe: "WHM.dbg.some(d=>d.ev==='cross')" },
+    0: { probe: null },
+    1: { pack: PACK.map((p, j) => j % 2 ? Object.assign({}, p, { off: p.off + (p.off > 0 ? .5 : -.5) }) : p), note: 'Foes at the road’s edges: the first wormhole yawns wider and draws in every foe within 1.6 tiles.' },
+    2: { trail: TRAIL, note: 'The wormholes stay open longer, so the foes further back walk in too.' },
+    3: { note: 'Every foe that goes through is struck and thrown 16 tiles back.' },
+    4: { pack: swap(2, { t: 'ogre', hp: 120, tag: 'Boss', tc: TAG.tough }), probe: "WHM.dbg.some(d=>d.ev==='cross'&&d.boss)", note: 'The boss (an Ogre) goes through too, and comes out 5 tiles back, slowed.' },
+    5: { pack: PACK.slice(0, 3), trail: [{ t: 'soldier', at: -3.6, off: .1, spd: .12 }, { t: 'peasant', at: -3.9, off: -.15, spd: .12 }], probe: "WHM.dbg.some(d=>d.ev==='last')", note: 'Slow foes still short of the mouth as it closes: it swallows them, then both wormholes collapse.' } },
 };
 
 exports.crf = 26;
@@ -247,6 +438,11 @@ exports.scrolls = () => ['hexspark', 'lightbolt', 'wither', 'emberbolt', 'graveb
 /* v439: the Epic and Legendary scrolls (their masteries are in developer mode); `node record.js epic legendary` records them all */
 exports.epic = () => ['loop', 'judgment', 'cataclysm', 'phoenix', 'comet', 'wyrm', 'prism', 'treant'];
 exports.legendary = () => ['compress', 'voidfall', 'stormcaller', 'chronostasis', 'skyfall', 'glacialrift', 'harvest', 'dslash', 'bloom'];
+/* v475: the Mythic, Ancient and Secret scrolls (developer mode too); `node record.js mythic ancient secret` records them all */
+exports.mythic = () => ['eclipse', 'embertitan', 'eternalwinter', 'aeon', 'gaia', 'seraphlance', 'shatter', 'vael'];
+exports.ancient = () => ['abyss', 'citadel', 'expanse', 'firsttree', 'never', 'tempest', 'purgatory'];
+exports.secret = () => ['bloodneedles', 'bloodeye', 'moonfall', 'constellation', 'bloodcurse', 'pulsar', 'singularity', 'wormhole'];
 const EL = new Set(exports.epic().concat(exports.legendary()));
-exports.get = (k, L) => { const s = S[k] || {}; return Object.assign({}, DEF, EL.has(k) ? { hp: 30 } : {}, s.base || {}, s[L] || {}); };
+const HI = new Set(exports.mythic().concat(exports.ancient(), exports.secret()));
+exports.get = (k, L) => { const s = S[k] || {}; return Object.assign({}, DEF, EL.has(k) ? { hp: 30 } : {}, HI.has(k) ? { hp: 60, cap: 14, live: true } : {}, s.base || {}, s[L] || {}); };
 exports.S = S; exports.TAG = TAG;
