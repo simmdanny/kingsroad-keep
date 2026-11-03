@@ -14000,15 +14000,24 @@ function aeonRoman(n,h){const s=['','I','II','III','IV','V','VI','VII','VIII','I
   L.push([-tot/2-gap,h/2+gap*.8,tot/2+gap,h/2+gap*.8]);L.push([-tot/2-gap,-h/2-gap*.8,tot/2+gap,-h/2-gap*.8]);return L;}
 function aeonPlace(L,a,r){const ox=Math.sin(a),oz=-Math.cos(a),tx=Math.cos(a),tz=Math.sin(a);/* outward (ox,oz), tangent (tx,tz) clockwise */
   return L.map(([x1,z1,x2,z2,w])=>[tx*x1+ox*(z1+r),tz*x1+oz*(z1+r),tx*x2+ox*(z2+r),tz*x2+oz*(z2+r),w]);}
-function castAeon(t,PW,o){
+/* v454: XO (optional, the Aeon Dial's masteries): this dial's own numbers over AEOD (mhp/mhpB: the share of max health each pass takes from a
+   foe/a boss; age/ageMax: how much slower each pass ages a foe, and the most; PER: one turn of the minute hand; tower: the towers' speed while
+   it turns; toll: midnight tolls tollN strokes over tollT s, tollK each, each crumbling non-bosses under tollC, instead of one 10x strike that
+   crumbles under 20%) and its looks (trail/trailB/beam: the hand's trail and light; dustN/dustS: the dust off each foe it passes; ageDust:
+   aged foes shed thicker, paler dust; gearK: gears and rune rings turn faster; glint: towers glint as the hand passes them; fx: the toll's and
+   the glint's own visuals, aemFx). log(d) receives the events for the tests. A recast while the dial runs only winds it back: the first
+   cast's options rule. Without XO: exactly as before. */
+const AEOD={mhp:.01,mhpB:.003,age:.1,ageMax:.4,PER:3.2,tower:1.2,toll:0,tollN:12,tollT:2.2,tollK:.95,tollC:.25,trail:.8,trailB:.26,beam:.5,dustN:10,dustS:1,ageDust:0,gearK:1,glint:0,fx:null,log:null};
+function castAeon(t,PW,o,XO){const D=XO?Object.assign({},AEOD,XO):AEOD;
   if(ANC.live.aeon&&ANC.live.aeon.refresh()){toast('The Aeon Dial winds back another age','lvl');return;}
-  const C=ancBegin('aeon'),{root,reg,regM}=C,L=C.L;const ARR=AEON_ACT[0],END=AEON_ACT[1],LIFE=END+3.5,PER=3.2,TAU=Math.PI*2;
+  /* HOLD: the toll keeps the dial up until its last stroke, then it fades as it did after its one strike */
+  const C=ancBegin('aeon'),{root,reg,regM}=C,L=C.L;const ARR=AEON_ACT[0],END=AEON_ACT[1],HOLD=D.toll?D.tollT:0,EF=END+HOLD,LIFE=END+3.5+HOLD,PER=D.PER,TAU=Math.PI*2,lg=D.log;
   ancIntro('aeon','#ffd878');
   const zT=tw(0,0).z-.6,zB=tw(0,H-1).z+.6,BW=W+1.2;
   /* the dial is laid across the part of the field the player is looking at */
   const V=ancView(),O=V.c,R=clamp(Math.min(V.hw,V.hh)*.94,3.6,7.2),HL=Math.max(...[[-BW/2,zT],[BW/2,zT],[-BW/2,zB],[BW/2,zB]].map(([x,z])=>Math.hypot(x-O.x,z-O.z)))+1;
   L.hc.setHex(0xffe0a0);L.hg.setHex(0x3a2a18);L.sc.setHex(0xfff0c8);L.bg.setHex(0x2a1c10);L.hemi=.5;L.sun=.6;L.sunOff=new THREE.Vector3();
-  const pool=ancPool(root,1500,reg,regM,44);const alive=()=>enemies.filter(e=>!e.dead);
+  const pool=ancPool(root,D.toll?2400:1500,reg,regM,44);const alive=()=>enemies.filter(e=>!e.dead);
   const GOLD=regM(new THREE.MeshPhongMaterial({color:0xe8b84a,emissive:0x7a5010,emissiveIntensity:.55,shininess:90,flatShading:true}));
   const lineM=(c,a)=>regM(new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,userData:{a}}));
   const LM=[lineM(0xffd070,.75),lineM(0xfff0b8,.9),lineM(0xc89848,.55),lineM(0xffe6a0,.6)];
@@ -14037,11 +14046,14 @@ function castAeon(t,PW,o){
   const blade=(len,w,y)=>{const g=new THREE.Group();const b=new THREE.Mesh(reg(new THREE.BoxGeometry(w,.06,len)),GOLD);b.position.set(0,y,len/2);g.add(b);const tp=new THREE.Mesh(reg(new THREE.ConeGeometry(w*1.3,w*3,4)),GOLD);tp.rotation.x=Math.PI/2;tp.position.set(0,y,len+w*1.4);g.add(tp);
     const tl=new THREE.Mesh(reg(new THREE.BoxGeometry(w*2.2,.06,w*2.2)),GOLD);tl.rotation.y=Math.PI/4;tl.position.set(0,y,-w*1.4);g.add(tl);return g;};
   hand.add(blade(R*.86,.16,.15));hour.add(blade(R*.5,.26,.12));
-  const beamM=lineM(0xffe6a0,.5);{const b=new THREE.Mesh(reg(aeonStrokes([[0,R*.9,0,HL]],.08)),beamM);b.renderOrder=31;b.position.y=.07;hand.add(b);}
-  const trailM=regM(new THREE.ShaderMaterial({uniforms:{uA:{value:0},uR:{value:R}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+  const beamM=lineM(0xffe6a0,D.beam);{const b=new THREE.Mesh(reg(aeonStrokes([[0,R*.9,0,HL]],.08)),beamM);b.renderOrder=31;b.position.y=.07;hand.add(b);}
+  /* the trail: a sector D.trail radians long behind the hand, fading towards its end (M1: longer and brighter) */
+  const trailM=regM(new THREE.ShaderMaterial({uniforms:{uA:{value:0},uR:{value:R},uL:{value:D.trail},uB:{value:D.trailB}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
     vertexShader:'varying vec2 vP;void main(){vP=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader:'uniform float uA,uR;varying vec2 vP;void main(){float a=atan(vP.y,vP.x);float k=clamp(1.-a/.8,0.,1.);float r=length(vP);float far=mix(1.,.3,smoothstep(uR,uR+1.5,r));gl_FragColor=vec4(vec3(1.,.8,.38),uA*pow(k,2.4)*.26*far*smoothstep(.2,.6,r));}'}));
-  {const tr=new THREE.Mesh(reg(new THREE.CircleGeometry(HL,40,0,.8)),trailM);tr.rotation.x=-Math.PI/2;tr.rotation.z=-Math.PI/2;tr.position.y=.06;tr.renderOrder=30;hand.add(tr);}
+    fragmentShader:'uniform float uA,uR,uL,uB;varying vec2 vP;void main(){float a=atan(vP.y,vP.x);float k=clamp(1.-a/uL,0.,1.);float r=length(vP);float far=mix(1.,.3,smoothstep(uR,uR+1.5,r));gl_FragColor=vec4(vec3(1.,.8,.38),uA*pow(k,2.4)*uB*far*smoothstep(.2,.6,r));}'}));
+  {const tr=new THREE.Mesh(reg(new THREE.CircleGeometry(HL,40,0,D.trail)),trailM);tr.rotation.x=-Math.PI/2;tr.rotation.z=-Math.PI/2;tr.position.y=.06;tr.renderOrder=30;hand.add(tr);}
+  /* the masteries' own pieces (the toll's numerals and rings, the towers' glints), built and freed with the dial */
+  const FX=D.fx?D.fx({root,reg,regM,pool,O,R,TAU,spinG,gem:C.gem,D}):null;
   /* ---- ruins of an empire older than memory push out of the ground round the dial (never on a road or a tower) ---- */
   const stoneM=regM(new THREE.MeshPhongMaterial({color:0xe8dcc0,flatShading:true,shininess:12})),stone2=regM(new THREE.MeshPhongMaterial({color:0xc8b896,flatShading:true,shininess:8}));const RUIN=[];
   const colG=reg(new THREE.CylinderGeometry(.27,.31,1,14)),capG=reg(new THREE.BoxGeometry(.78,.18,.78)),baseG=reg(new THREE.BoxGeometry(.8,.22,.8)),brokeG=reg(new THREE.CylinderGeometry(.24,.3,.3,7));
@@ -14051,24 +14063,26 @@ function castAeon(t,PW,o){
     if(broken){const b=new THREE.Mesh(brokeG,stone2);b.position.y=h;b.rotation.set(.4,0,.3);g.add(b);}else{const k=new THREE.Mesh(capG,stoneM);k.position.y=h+.1;k.castShadow=true;g.add(k);}
     RUIN.push({g,h,x,z,d:.12*n});}
   /* ---- the frame ---- */
-  const wrap=a=>((a%TAU)+TAU)%TAU,HR0=TAU*.08;let prevC=null,prevH=0,midnight=false,dustT=0;
-  return ancRun(C,LIFE,(T,dt,dtR)=>{const tt=time;
-    const up=SMS(T,.1,ARR),down=SMS(T,END+.8,END+3),A=up*(1-down);
-    L.k=SMS(T,.3,2.4)*(1-SMS(T,END+.8,END+3.2));darkTarget=Math.max(darkTarget,.18*L.k);vigTarget=Math.max(vigTarget,.35*L.k);
-    /* the face is wound: it spins in fast from far away and settles as time starts */
-    const w=1-SMS(T,.1,ARR);spinG.rotation.y=-w*w*TAU*3;face.scale.setScalar(1+w*.6);for(const m of LM)m.opacity=m.userData.a*A*(T<END?1:1+2*Math.max(0,1-(T-END)*2));
+  const wrap=a=>((a%TAU)+TAU)%TAU,HR0=TAU*.08;let prevC=null,prevH=0,midnight=false,dustT=0,strokes=0,lastS=-9;
+  const live=ancRun(C,LIFE,(T,dt,dtR)=>{const tt=time;
+    const up=SMS(T,.1,ARR),down=SMS(T,EF+.8,EF+3),A=up*(1-down);
+    L.k=SMS(T,.3,2.4)*(1-SMS(T,EF+.8,EF+3.2));darkTarget=Math.max(darkTarget,.18*L.k);vigTarget=Math.max(vigTarget,.35*L.k);
+    /* the face is wound: it spins in fast from far away and settles as time starts (it flares at midnight; with the toll, at every stroke) */
+    const w=1-SMS(T,.1,ARR);spinG.rotation.y=-w*w*TAU*3;face.scale.setScalar(1+w*.6);for(const m of LM)m.opacity=m.userData.a*A*(T<END?1:D.toll?1+1.1*Math.max(0,1-(T-lastS)*3.5):1+2*Math.max(0,1-(T-END)*2));
     bez.position.y=-.5+.5*SMS(T,.6,ARR);hand.position.y=hour.position.y=bez.position.y;bez.visible=hand.visible=hour.visible=up>.02&&down<.98;
-    runeA.rotation.y+=dt*.22;runeB.rotation.y-=dt*.38;for(const G of GEARS)G.g.rotation.y+=G.sp*dt*(T<END?1:4);C.gem.rotation.y+=dtR*1.5;
-    /* five turns of the minute hand while the hour hand creeps from one to twelve: both meet at midnight */
+    runeA.rotation.y+=dt*.22*D.gearK;runeB.rotation.y-=dt*.38*D.gearK;for(const G of GEARS)G.g.rotation.y+=G.sp*dt*(T<END?1:4)*D.gearK;C.gem.rotation.y+=dtR*1.5;
+    /* four turns of the minute hand (five with Quickening) while the hour hand creeps from one to twelve: both meet at midnight */
     const act=T>=ARR&&T<END,ph=act?(T-ARR)/PER:0,clk=act?wrap(ph*TAU):0;
     hand.rotation.y=Math.PI-clk;hour.rotation.y=Math.PI-(T<ARR?HR0:act?HR0+(TAU-HR0)*(T-ARR)/(END-ARR):0);
-    beamM.opacity=act?.5:0;trailM.uniforms.uA.value=act?1:0;
+    beamM.opacity=act?D.beam:0;trailM.uniforms.uA.value=act?1:0;
     /* the Hand of Ages: clock angle c points at x=sin c, z=-cos c, so it turns clockwise on screen, and ages every foe it passes */
-    if(act){if(Math.floor(ph)!==prevH){prevH=Math.floor(ph);if(typeof sfxBoom==='function')sfxBoom(.14,true);}
+    if(act){if(Math.floor(ph)!==prevH){prevH=Math.floor(ph);if(typeof sfxBoom==='function')sfxBoom(.14,true);if(lg)lg({ev:'turn',n:prevH});}
       const d=prevC==null?0:wrap(clk-prevC);
       if(d>0&&d<1)for(const e of alive()){const a=wrap(Math.atan2(e.x-O.x,O.z-e.z)),u=wrap(a-prevC);if(!(u>0&&u<=d))continue;
-        hurt(e,PW*3.5,'magic',o);if(!e.dead){hurt(e,e.maxHp*(e.boss?.003:.01),'magic',{src:o.src});e.ageS=Math.min(.4,(e.ageS||0)+.1);}
-        for(let i=0;i<10;i++)pool.sp(e.x,e.y+e.hitY*.6,e.z,(rnd()-.5)*1.6,rnd()*1.4,(rnd()-.5)*1.6,rnd()<.6?0xffe8a0:0xd8c8a0,.9,.05+rnd()*.04,.6+rnd()*.4,2,1);}
+        hurt(e,PW*3.5,'magic',o);if(!e.dead){hurt(e,e.maxHp*(e.boss?D.mhpB:D.mhp),'magic',{src:o.src});e.ageS=Math.min(D.ageMax,(e.ageS||0)+D.age);}if(lg)lg({ev:'pass',e,age:e.ageS||0});
+        for(let i=0;i<D.dustN;i++)pool.sp(e.x,e.y+e.hitY*.6,e.z,(rnd()-.5)*1.6,rnd()*1.4,(rnd()-.5)*1.6,rnd()<.6?0xffe8a0:0xd8c8a0,.9,(.05+rnd()*.04)*D.dustS,.6+rnd()*.4,2,1);}
+      /* M4: your towers glint gold as the hand passes over them */
+      if(D.glint&&d>0&&d<1)for(const q of towers){if(q.isHero||q.x==null)continue;const u=wrap(wrap(Math.atan2(q.x-O.x,O.z-q.z))-prevC);if(u>0&&u<=d){if(FX)FX.glint(q);if(lg)lg({ev:'glint',tw:q});}}
       prevC=clk;
       /* gold dust streams off the blade */
       for(let i=0;i<3;i++){const r=rnd()*R*.95;pool.sp(O.x+Math.sin(clk)*r,.15,O.z-Math.cos(clk)*r,(rnd()-.5)*.2,.3+rnd()*.5,(rnd()-.5)*.2,0xffe6a0,.7,.04+rnd()*.03,.8+rnd()*.5,1);}}
@@ -14076,22 +14090,35 @@ function castAeon(t,PW,o){
     /* years pass in seconds: the sun circles, the shadows of every tower sweep round, day and night flicker past */
     const dayA=T*1.5,dn=.5+.5*Math.sin(dayA),fl=SPACE_K*.6+.4;L.sunOff.set(Math.cos(dayA)*15,Math.max(7,Math.sin(dayA)*12+12),Math.sin(dayA)*9);L.hemi=.32+.22*dn*fl;L.sun=.14+.44*dn*fl;
     /* the ruins rise with their dust, then sand trickles off them */
-    for(const R2 of RUIN){const k=SMS(T,.5+R2.d,2.8+R2.d)*(1-SMS(T,END+.8,END+2.8));R2.g.position.y=-R2.h-.3+(R2.h+.3)*k;
+    for(const R2 of RUIN){const k=SMS(T,.5+R2.d,2.8+R2.d)*(1-SMS(T,EF+.8,EF+2.8));R2.g.position.y=-R2.h-.3+(R2.h+.3)*k;
       if(k>.02&&k<.98&&rnd()<dtR*14)pool.sp(R2.x+(rnd()-.5)*.8,.08,R2.z+(rnd()-.5)*.8,(rnd()-.5)*.5,.4+rnd()*.7,(rnd()-.5)*.5,0xc8b48a,.7,.1+rnd()*.08,1+rnd(),1.5);
       if(k>.95&&rnd()<dtR*2)pool.sp(R2.x+(rnd()-.5)*.3,R2.h,R2.z+(rnd()-.5)*.3,0,-.2,0,0xd8c49a,.6,.035,2,0,1.5);}
     /* aged foes shed dust */
-    dustT-=dtR;if(dustT<=0){dustT=.05;for(const e of alive())if(e.ageS>0&&rnd()<e.ageS*1.5)pool.sp(e.x+(rnd()-.5)*.3,e.y+e.hitY*(.3+rnd()*.6),e.z+(rnd()-.5)*.3,(rnd()-.5)*.1,-.2,(rnd()-.5)*.1,0xb8ac98,.6,.04+rnd()*.03,1,0,.8);}
+    dustT-=dtR;if(dustT<=0){dustT=.05;for(const e of alive())if(e.ageS>0&&rnd()<e.ageS*1.5){
+      if(D.ageDust){for(let j=0;j<2;j++)pool.sp(e.x+(rnd()-.5)*.42,e.y+e.hitY*(.25+rnd()*.75),e.z+(rnd()-.5)*.42,(rnd()-.5)*.16,-.16-rnd()*.12,(rnd()-.5)*.16,rnd()<.7?0xece4d4:0xd8ccb4,.72,.055+rnd()*.045,1.3+rnd()*.4,.4,.5);}
+      else pool.sp(e.x+(rnd()-.5)*.3,e.y+e.hitY*(.3+rnd()*.6),e.z+(rnd()-.5)*.3,(rnd()-.5)*.1,-.2,(rnd()-.5)*.1,0xb8ac98,.6,.04+rnd()*.03,1,0,.8);}}
     ANC.fs.aeon=1;
+    if(FX)FX.frame(T,dt,dtR);
+    /* M5: midnight tolls: tollN strokes tollT/(tollN-1) s apart, each tollK to every foe; each crumbles the non-bosses left under tollC */
+    if(D.toll&&T>=END)while(strokes<D.tollN&&T>=END+strokes*D.tollT/(D.tollN-1)){const i=strokes++,last=strokes===D.tollN,H=[];lastS=T;
+      if(!i){flashA=Math.max(flashA,.3*SPACE_K+.08);flashCol='#fff0c0';flashDecay=2.4;if(typeof sfxRumble==='function')sfxRumble(2.6,.4);for(const e of enemies)delete e.ageS;}
+      camShake=Math.max(camShake,(last?.42:.16)*SPACE_K+.05);if(last){flashA=Math.max(flashA,.36*SPACE_K+.1);flashCol='#fff0c0';flashDecay=1.8;if(typeof sfxBoom==='function')sfxBoom(.55,true);
+        for(let j=0;j<220;j++){const a=rnd()*TAU,r=rnd()*R;pool.sp(O.x+Math.sin(a)*r,.1,O.z-Math.cos(a)*r,Math.sin(a)*2.5,1+rnd()*2,-Math.cos(a)*2.5,rnd()<.5?0xfff0c0:0xffc860,.9,.06+rnd()*.06,1+rnd(),1.6,1);}}
+      if(FX)FX.stroke(i,last);
+      for(const e of alive()){hurt(e,PW*D.tollK,'magic',o);H.push(e);if(!e.dead&&!e.boss&&e.hp<e.maxHp*D.tollC){hurt(e,e.hp+1,'magic',{src:o.src,noReact:true});if(FX)FX.crumble(e);if(lg)lg({ev:'crumble',e,i});}}
+      if(lg)lg({ev:'stroke',i,last,L:H});}
     /* midnight: the hands meet and the last hour strikes */
-    if(T>=END&&!midnight){midnight=true;flashA=Math.max(flashA,.55*SPACE_K+.15);flashCol='#fff0c0';flashDecay=1.6;camShake=Math.max(camShake,.5*SPACE_K+.12);if(typeof sfxBoom==='function')sfxBoom(.6,true);if(typeof sfxRumble==='function')sfxRumble(2.2,.45);
+    if(T>=END&&!midnight&&!D.toll){midnight=true;if(lg)lg({ev:'midnight'});flashA=Math.max(flashA,.55*SPACE_K+.15);flashCol='#fff0c0';flashDecay=1.6;camShake=Math.max(camShake,.5*SPACE_K+.12);if(typeof sfxBoom==='function')sfxBoom(.6,true);if(typeof sfxRumble==='function')sfxRumble(2.2,.45);
       for(let i=0;i<4;i++)setTimeout(()=>shockwave(O.x,O.z,R*.6+i*R*.5,0xffd878,.9),i*160);
       for(let i=0;i<220;i++){const a=rnd()*TAU,r=rnd()*R;pool.sp(O.x+Math.sin(a)*r,.1,O.z-Math.cos(a)*r,Math.sin(a)*2.5,1+rnd()*2,-Math.cos(a)*2.5,rnd()<.5?0xfff0c0:0xffc860,.9,.06+rnd()*.06,1+rnd(),1.6,1);}
       for(const e of alive()){hurt(e,PW*10,'magic',o);if(!e.dead&&!e.boss&&e.hp<e.maxHp*.2){hurt(e,e.hp+1,'magic',{src:o.src,noReact:true});for(let i=0;i<16;i++)pool.sp(e.x,e.y+e.hitY*.5,e.z,(rnd()-.5)*2,rnd()*1.6,(rnd()-.5)*2,0xc8b89a,.85,.07+rnd()*.05,1+rnd()*.5,1.5,1.2);}}
       for(const e of enemies)delete e.ageS;}
     pool.step(dtR);
-  },()=>{for(const e of enemies)delete e.ageS;delete ANC.fs.aeon;},END);}
-/* while the dial turns, your towers live through the same years in an instant */
-{const ts=tStats;tStats=function(t,P){const s=ts.apply(this,arguments);const L=ANC.live.aeon;if(s&&s.rate&&L&&L.T>=AEON_ACT[0]&&L.T<AEON_ACT[1]&&t&&!t.isHero)s.rate*=1.2;return s;};}
+  },()=>{for(const e of enemies)delete e.ageS;delete ANC.fs.aeon;},END);
+  /* (the towers' speed while it turns: read by the tStats wrapper below) */
+  live.tr=D.tower;if(lg)lg({ev:'cast',D,O,R});return live;}
+/* while the dial turns, your towers live through the same years in an instant (20%, or the running dial's own tr) */
+{const ts=tStats;tStats=function(t,P){const s=ts.apply(this,arguments);const L=ANC.live.aeon;if(s&&s.rate&&L&&L.T>=AEON_ACT[0]&&L.T<AEON_ACT[1]&&t&&!t.isHero)s.rate*=L.tr||1.2;return s;};}
 /* ================= ANCIENT: the Eldritch Tree (the First Tree until v302), which stood before the first star burned ================= */
 /* bark with sap veins: a tube that grows from its root end (uGrow 0..1 along the length) and tapers towards its tip */
 function treeRootMat(regM,r0){return regM(new THREE.ShaderMaterial({uniforms:{uGrow:{value:0},uT:{value:0},uSap:{value:1},uR0:{value:r0}},
@@ -14215,6 +14242,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'The Aeon Dial: twelve strokes at midnight',d:'2 Nov',v:'v454',li:[
+    'The Aeon Dial (Mythic) has five new masteries, for now in developer mode. Still the great clock laid over the field: each mastery makes a part the dial already has stronger and draws that part a little richer.',
+    'The Toll of Years: each pass of the hand takes 2% of a foe\u2019s max health (1% before; bosses 0.5%, 0.3% before), and its trail burns longer and brighter. Deep Age: each pass ages foes 12.5% slower, up to 50% (10%, up to 40% before), and aged foes shed thicker, paler dust.',
+    'Quickening: the hand turns every 2.56s (3.2s before): five sweeps before the same midnight, its gears spinning faster. Borrowed Years: towers fight 30% faster while the dial turns (20% before), and glint gold as the hand passes over them.',
+    'Twelve Strokes: midnight tolls twelve times over 2.2s, 95% to every foe each (1140% in all, one 1000% strike before), and every stroke crumbles foes left under 25% of their health (20% before; not bosses). The numerals flare one by one, I to XII, and each stroke sends a golden ring with a wall of light out across the field.']},
   {t:'Eternal Winter: the same winter, colder',d:'2 Nov',v:'v453',li:[
     'Eternal Winter (Mythic) has five new masteries, for now in developer mode. Still the same Heart, the same frost and the same wave: each mastery strengthens a part the spell already has and draws it richer.',
     'Biting Frost: the frost strikes 320% as it reaches each foe (200% before); its ice is larger, with longer spikes, and the cracks behind its front light up. The Long Freeze: the Heart gathers itself 0.6s longer, so the foes it freezes stay frozen 0.6s longer (bosses as before), and slowed 2.5s after (1.5s before); its rays reach further and the aurora burns brighter.',
@@ -32503,6 +32535,121 @@ const EWM_OLD=castEternalWinter;
 castEternalWinter=function(t,list,P,o,XO){const c=!XO?ewmC(o):null;return EWM_OLD(t,list,P,o,c?ewmOpts(c):XO);};
 /* the mastery preview waits for the cast to end (its frost floor is shared: a cast on top of the last one's fade would lose it) */
 SMPV_BUSY.push(()=>!!(MY_FROST&&MY_FROST.visible));
+/* ================= The Aeon Dial's masteries (v454), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: a great clock is laid over the field; its minute hand sweeps every foe, ageing it slower and slower, while the towers live
+   through the years faster; at midnight the last hour strikes everything. Simon, for every Mythic, Ancient and Secret scroll: "lets do the
+   same way all the mythics ancients and secrets where their identity is preserved but their visuals barely change and change only to
+   better", and "new stuff CAN appear ... but just nothing that over shines the spell". So each mastery strengthens one part the dial
+   already has and draws that same part richer; the only new pieces are the toll's twelve strokes, which are the dial's own midnight.
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | The Toll of Years | what if each pass took more years? | each sweep | stronger sweep |
+   | 2 | Deep Age | what if they aged deeper? | the ageing | stronger control |
+   | 3 | Quickening | what if the hand turned faster? | the turning | one more sweep |
+   | 4 | Borrowed Years | what if the towers borrowed more time? | the towers' time | stronger support |
+   | 5 | Twelve Strokes | what if midnight really struck twelve? | midnight | signature payoff |
+   - M1 The Toll of Years: each pass takes AEM.mhp of a foe's max health (1% before; bosses AEM.mhpB, 0.3% before); the hand's trail runs
+     longer and brighter, and more gold dust flies off every foe it passes.
+   - M2 Deep Age: each pass ages a foe AEM.age slower, up to AEM.ageMax (10%, up to 40% before); aged foes shed thicker, paler dust.
+   - M3 Quickening: the hand turns every AEM.PER s (3.2 before): five sweeps before the same midnight; gears and rune rings spin faster.
+   - M4 Borrowed Years: towers fight AEM.tower times as fast while the dial turns (1.2 before), and glint gold (a star on the crown, gold
+     motes climbing the walls) as the hand passes over them.
+   - M5 Twelve Strokes: midnight tolls AEM.tollN times over AEM.tollT s, AEM.tollK to every foe each (1140% in all, one 1000% strike before),
+     and every stroke crumbles the non-boss foes left under AEM.tollC (20% before). The numerals flare in turn, I to XII, each with a column
+     of light; each stroke sends a golden ring with a wall (sixty ribs, like the dial's ticks) and a band of motes out across the field, and
+     the dial holds until the last stroke. Midnight before was four flat shockwaves; these strokes are on game time (the frame), not timers.
+   Percentages are of the scroll's power, except the max-health share (which, as before, is not scaled by the mastery's factor). Every
+   mastered Aeon Dial cast runs castAeon with its XO (aemOpts); Mastery 0, echoes and other casters cast exactly as before. A recast while
+   the dial turns winds it back, as before: the running dial keeps its own masteries. Deep Age (a slow) and Borrowed Years (the towers) count
+   for nothing on the ladder (its foes stand still, there are no towers), so their factors carry them. On the Mythic ladder (pack .6 / one .4,
+   3 casts 25 s apart, 2 runs) with the factors below: 1.078 / 1.162 / 1.226 / 1.302 / 1.35 against
+   1.078 / 1.162 / 1.226 / 1.302 / 1.35 (the foes stand still and nothing is random there, so the factors follow from the sums: a cast
+   is four passes of 350% + 1% of 4000 and a 1000% midnight; Quickening adds a pass, the toll 140%). AEM.dbg (an array) logs the events. */
+const AEM={dbg:null,mhp:.02,mhpB:.005,age:.125,ageMax:.5,PER:2.56,tower:1.3,tollN:12,tollT:2.2,tollK:.95,tollC:.25};
+const aemC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='aeon'&&c.L?c:null;};
+const aemLog=d=>{if(AEM.dbg){d.t=time;AEM.dbg.push(d);}};
+SM_D.aeon=[
+  {n:'The Toll of Years',d:'Each pass of the great hand takes 2% of a foe\'s max health (1% before; bosses 0.5%, 0.3% before). Its trail burns longer and brighter.'},
+  {n:'Deep Age',d:'Each pass ages foes 12.5% slower, up to 50% (10%, up to 40% before). Aged foes shed thicker, paler dust.'},
+  {n:'Quickening',d:'The hand turns every 2.56s (3.2s before): five sweeps before the same midnight. Its gears spin faster.'},
+  {n:'Borrowed Years',d:'Towers fight 30% faster while the dial turns (20% before), and glint gold as the hand passes over them.'},
+  {n:'Twelve Strokes',d:'Midnight tolls twelve times over 2.2s, {95}% to every foe each ({1140}% in all, one 1000% strike before). Every stroke crumbles foes left under 25% of their health (20% before; not bosses).'}];
+SMF.aeon={m:1};
+SMA.aeon=[1,1,1,1,1];
+SMG.aeon=[1.017,1.106,1.003,1.074,1.064];
+/* this dial's numbers and looks (castAeon's XO), cumulative: Mastery L has masteries 1..L */
+function aemOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.mhp=AEM.mhp;X.mhpB=AEM.mhpB;X.trail=1.3;X.trailB=.36;X.beam=.66;X.dustN=24;X.dustS=1.6;}
+  if(L>=2){X.age=AEM.age;X.ageMax=AEM.ageMax;X.ageDust=1;}
+  if(L>=3){X.PER=AEM.PER;X.gearK=1.6;}
+  if(L>=4){X.tower=AEM.tower;X.glint=1;}
+  if(L>=5){X.toll=1;X.tollN=AEM.tollN;X.tollT=AEM.tollT;X.tollK=AEM.tollK*a[4];X.tollC=AEM.tollC;}
+  if(L>=4)X.fx=aemFx;
+  X.log=aemLog;aemLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+/* a bell for each stroke: a few inharmonic partials ringing down (the hum an octave under the strike note) */
+function aemBell(v,f){const c=typeof sfxCtx==='function'&&sfxCtx();if(!c||!SFX.master)return;const t=c.currentTime,g=c.createGain();g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0008,t+2);g.connect(SFX.master);
+  for(const[r,k]of[[.5,.55],[1,1],[1.19,.4],[2,.45],[2.66,.18]]){const o=c.createOscillator(),og=c.createGain();o.type='sine';o.frequency.value=f*r;og.gain.setValueAtTime(.0001,t);og.gain.exponentialRampToValueAtTime(k*.35,t+.006);og.gain.exponentialRampToValueAtTime(.0005,t+1.9/(r*.5+.5));o.connect(og);og.connect(g);o.start(t);o.stop(t+2);}}
+/* the masteries' own pieces of the dial (castAeon's fx): built with it in its root, freed with it. K: the dial's root, reg/regM, pool,
+   centre O, radius R, its turning face spinG, the gem on the pin, and its options D. */
+function aemFx(K){const{root,reg,regM,pool,O,R,TAU,spinG,gem,D}=K,GL=[],RG=[],FLV=new Array(12).fill(0);let gi=0,done=false,gp=0;
+  const add=(m,ro)=>{m.visible=false;m.renderOrder=ro;m.frustumCulled=false;return m;};
+  /* M4: a four-pointed star of light on a tower's crown (eight, reused; turned to face the camera) */
+  if(D.glint){const g=reg(new THREE.PlaneGeometry(1,1));
+    for(let i=0;i<8;i++){const mat=regM(new THREE.ShaderMaterial({uniforms:{uA:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+        vertexShader:'varying vec2 vU;void main(){vU=uv-.5;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+        fragmentShader:'uniform float uA;varying vec2 vU;void main(){vec2 a=abs(vU)*2.;float s=max(exp(-a.x*16.)*(1.-a.y),exp(-a.y*16.)*(1.-a.x));float d=max(0.,1.-length(a)*1.5);float c=d*d*d;float k=clamp(s*.9+c,0.,1.);if(k<.01)discard;gl_FragColor=vec4(mix(vec3(1.,.76,.32),vec3(1.,.97,.86),clamp(c*1.4+s*.3,0.,1.)),uA*k);}'}));
+      const m=add(new THREE.Mesh(g,mat),52);root.add(m);GL.push({m,mat,age:9,life:.62,rot:0});}}
+  /* M5: the numerals again (one mesh, each vertex knowing its numeral and its centre) to flare one by one, a column of light over each, and
+     twelve rings with a wall, one per stroke */
+  const uF={value:FLV.slice()};let nMesh=null,pMesh=null;
+  if(D.toll){const P=[],I=[],AI=[],AC=[];let b=0;
+    /* (each stroke drawn wide, with aX running -1..1 across it: a hot core as wide as the dial's own numeral and a soft glow round it) */
+    const AX=[];for(let n=1;n<=12;n++){const a=n/12*TAU,cx=Math.sin(a)*R*.75,cz=-Math.cos(a)*R*.75,h=R*.03;
+      for(const[x1,z1,x2,z2]of aeonPlace(aeonRoman(n,R*.085),a,R*.75)){const dx=x2-x1,dz=z2-z1,l=Math.hypot(dx,dz)||1,nx=-dz/l*h,nz=dx/l*h,ex=dx/l*h*.5,ez=dz/l*h*.5;
+        P.push(x1+nx-ex,0,z1+nz-ez,x1-nx-ex,0,z1-nz-ez,x2-nx+ex,0,z2-nz+ez,x2+nx+ex,0,z2+nz+ez);AX.push(1,-1,-1,1);for(let j=0;j<4;j++){AI.push(n-1);AC.push(cx,0,cz);}I.push(b,b+1,b+2,b,b+2,b+3);b+=4;}}
+    const ng=reg(new THREE.BufferGeometry());ng.setAttribute('position',new THREE.Float32BufferAttribute(P,3));ng.setAttribute('aI',new THREE.Float32BufferAttribute(AI,1));ng.setAttribute('aC',new THREE.Float32BufferAttribute(AC,3));ng.setAttribute('aX',new THREE.Float32BufferAttribute(AX,1));ng.setIndex(I);
+    nMesh=add(new THREE.Mesh(ng,regM(new THREE.ShaderMaterial({uniforms:{uF},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+      vertexShader:'uniform float uF[12];attribute float aI;attribute vec3 aC;attribute float aX;varying float vF,vX;void main(){float f=uF[int(aI+.5)];vF=f;vX=aX;vec3 p=aC+(position-aC)*(1.+.28*f);p.y+=.02+.12*f;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}',
+      fragmentShader:'varying float vF,vX;void main(){if(vF<.004)discard;float a=vX*vX;float core=exp(-a*14.),glow=exp(-a*2.6)*.4;gl_FragColor=vec4(mix(vec3(1.,.68,.24),vec3(1.,.96,.84),core*(.4+.6*vF)),vF*(core*.9+glow));}'}))),33);spinG.add(nMesh);
+    /* the columns: one upright quad over each numeral, turned about its own upright to face the camera */
+    const Q=[],QS=[],QI=[];for(let n=1;n<=12;n++){const a=n/12*TAU,cx=Math.sin(a)*R*.75,cz=-Math.cos(a)*R*.75;for(const[u,v]of[[-1,0],[1,0],[1,1],[-1,0],[1,1],[-1,1]]){Q.push(cx,0,cz);QS.push(u,v);QI.push(n-1);}}
+    const pg=reg(new THREE.BufferGeometry());pg.setAttribute('position',new THREE.Float32BufferAttribute(Q,3));pg.setAttribute('aS',new THREE.Float32BufferAttribute(QS,2));pg.setAttribute('aI',new THREE.Float32BufferAttribute(QI,1));
+    pMesh=add(new THREE.Mesh(pg,regM(new THREE.ShaderMaterial({uniforms:{uF,uH:{value:Math.min(3.2,R*.5)},uW:{value:R*.11}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+      vertexShader:'uniform float uF[12];uniform float uH,uW;attribute float aI;attribute vec2 aS;varying float vF;varying vec2 vS;void main(){float f=uF[int(aI+.5)];vF=f;vS=aS;vec4 c=modelMatrix*vec4(position,1.);vec3 d=cameraPosition-c.xyz;vec3 r=normalize(vec3(d.z,0.,-d.x));'+
+        'vec3 p=c.xyz+r*aS.x*uW*(.55+.45*f)+vec3(0.,aS.y*uH*(.25+.75*f),0.);gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}',
+      fragmentShader:'varying float vF;varying vec2 vS;void main(){float f=vF*vF;if(f<.003)discard;float sd=1.-abs(vS.x),h=vS.y;float k=pow(sd,2.4)*pow(1.-h,1.5);gl_FragColor=vec4(mix(vec3(1.,.7,.26),vec3(1.,.96,.84),sd*sd*(1.-h)),f*k*.8);}'}))),32);spinG.add(pMesh);
+    const rg=reg(new THREE.CylinderGeometry(1,1,1,120,1,true));rg.translate(0,.5,0);
+    for(let i=0;i<D.tollN;i++){const mat=regM(new THREE.ShaderMaterial({uniforms:{uA:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+        vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+        fragmentShader:'uniform float uA;varying vec2 vU;void main(){float h=vU.y;float rib=pow(abs(cos(vU.x*188.5)),10.);float wall=pow(1.-h,1.4)*(.22+.78*rib);float foot=exp(-h*16.);float crest=exp(-pow((h-.9)/.05,2.))*.3*rib;gl_FragColor=vec4(mix(vec3(1.,.7,.26),vec3(1.,.96,.82),foot*.8+rib*.25),uA*(wall*.75+foot*.8+crest));}'}));
+      const m=add(new THREE.Mesh(rg,mat),34);m.position.set(O.x,.04,O.z);root.add(m);RG.push({m,mat,age:-1,life:1.15,r0:R*.14,r1:R*1.9,h:1.4,a:.72});}}
+  return{
+    glint(q){const G=GL[gi++%GL.length];if(!G)return;const top=(q.topY||1.3)+.14,b=q.g?q.g.position.y:0;G.m.position.set(q.x,top,q.z);G.age=0;G.rot=rnd()*.8;G.m.visible=true;
+      for(let i=0;i<16;i++){const a=rnd()*TAU,r=.36+rnd()*.14,y=b+.1+rnd()*(top-b-.1);pool.sp(q.x+Math.sin(a)*r,y,q.z+Math.cos(a)*r,Math.cos(a)*.55+Math.sin(a)*.12,.55+rnd()*.7,-Math.sin(a)*.55+Math.cos(a)*.12,rnd()<.6?0xffe090:0xfff4d0,.85,.045+rnd()*.03,.7+rnd()*.45,1.2);}
+      for(let i=0;i<6;i++)pool.sp(q.x,top,q.z,(rnd()-.5)*1.6,.4+rnd()*1.1,(rnd()-.5)*1.6,0xfff0c0,.95,.05+rnd()*.03,.5+rnd()*.3,1.5,1.6);},
+    stroke(i,last){const G=RG[i];if(!G)return;G.age=0;G.m.visible=true;if(last){G.life=1.6;G.r1=R*2.7;G.h=2;G.a=.95;}
+      FLV[i%12]=1;gp=1;if(last){done=true;for(let j=0;j<12;j++)FLV[j]=Math.max(FLV[j],.85);}
+      /* a band of motes riding the ring out, so it is made of pieces as well as light (they keep pace with it: the same easing) */
+      const c=2.6/G.life,v0=(G.r1-G.r0)*c/(1-Math.exp(-c*G.life)),n=last?72:36;
+      for(let j=0;j<n;j++){const a=(j+rnd())/n*TAU;pool.sp(O.x+Math.sin(a)*G.r0,.08+rnd()*G.h*.55,O.z-Math.cos(a)*G.r0,Math.sin(a)*v0,.15+rnd()*.35,-Math.cos(a)*v0,rnd()<.5?0xffe6a0:0xffc860,.85,.07+rnd()*.06,G.life*(.8+rnd()*.25),c);}
+      /* and the numeral it strikes sends gold up its column */
+      const a=(i%12+1)/12*TAU,x=O.x+Math.sin(a)*R*.75,z=O.z-Math.cos(a)*R*.75;for(let j=0;j<12;j++)pool.sp(x+(rnd()-.5)*R*.1,.1,z+(rnd()-.5)*R*.1,(rnd()-.5)*.3,1.2+rnd()*1.6,(rnd()-.5)*.3,rnd()<.5?0xfff0c0:0xffd070,.9,.05+rnd()*.04,.7+rnd()*.5,1.4);
+      aemBell(last?.16:.1,last?147:196);},
+    /* a foe the toll crumbles: sand that falls, chunks thrown in arcs, a few sparks (about the old crumble's count: a crowd crumbling at
+       once must not pile up into a white cloud in this additive pool) */
+    crumble(e){const y=e.y+e.hitY*.5;
+      for(let i=0;i<10;i++)pool.sp(e.x+(rnd()-.5)*.3,y+(rnd()-.3)*e.hitY*.6,e.z+(rnd()-.5)*.3,(rnd()-.5)*1.4,.2+rnd()*1.1,(rnd()-.5)*1.4,rnd()<.6?0xd8ccb0:0xb8a888,.65,.07+rnd()*.05,1+rnd()*.6,1.2,1.4);
+      for(let i=0;i<6;i++)pool.sp(e.x,y+e.hitY*.2,e.z,(rnd()-.5)*2.4,.8+rnd()*1.5,(rnd()-.5)*2.4,0xa89470,.85,.09+rnd()*.05,.8+rnd()*.4,.5,4.5);
+      for(let i=0;i<4;i++)pool.sp(e.x,y,e.z,(rnd()-.5)*1.2,.5+rnd()*1.3,(rnd()-.5)*1.2,0xffe6a0,.8,.05,.6+rnd()*.3,2,.5);},
+    frame(T,dt,dtR){
+      for(const G of GL){if(G.age>=G.life){G.m.visible=false;continue;}G.age+=dtR;const s=Math.min(1,G.age/G.life);
+        G.m.quaternion.copy(camera.quaternion);G.m.rotateZ(G.rot+s*.9);G.m.scale.setScalar(.5+.9*Math.min(1,s*7));G.mat.uniforms.uA.value=Math.min(1,s*12)*Math.pow(1-s,1.4);}
+      if(!D.toll)return;
+      for(const G of RG){if(G.age<0)continue;G.age+=dt;const s=Math.min(1,G.age/G.life);if(s>=1){G.m.visible=false;G.age=-1;continue;}
+        const r=G.r0+(G.r1-G.r0)*(1-Math.exp(-2.6*s))/(1-Math.exp(-2.6));G.m.scale.set(r,G.h*(1-.5*s)*(.3+.7*Math.min(1,s*8)),r);G.mat.uniforms.uA.value=G.a*Math.min(1,s*10)*Math.pow(1-s,1.3);}
+      let any=false;for(let i=0;i<12;i++){const v=FLV[i];if(v<=0)continue;const fl=done?0:.3;FLV[i]=Math.max(v>fl?fl:0,v-dt*(done?.85:2.4));uF.value[i]=FLV[i];if(FLV[i]>0)any=true;else uF.value[i]=0;}
+      nMesh.visible=pMesh.visible=any;gp=Math.max(0,gp-dt*3.2);if(gem)gem.scale.setScalar(1+.9*gp);}};}
+const AEM_OLD=castAeon;
+castAeon=function(t,PW,o,X){const c=!X?aemC(o):null;return AEM_OLD(t,PW,o,c?aemOpts(c):X);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
