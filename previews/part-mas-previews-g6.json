@@ -159,5 +159,78 @@
   "seed": 1,
   "bytes": 1512310,
   "note": ""
+ },
+ "wormhole-1": {
+  "k": "wormhole",
+  "L": 1,
+  "len": 13.13,
+  "seed": 1,
+  "bytes": 1734864,
+  "note": "Foes at the road’s edges: the first wormhole yawns wider and draws in every foe within 1.6 tiles.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cross": 6,
+   "collapse": 2,
+   "end": 1
+  }
+ },
+ "wormhole-2": {
+  "k": "wormhole",
+  "L": 2,
+  "len": 13.33,
+  "seed": 1,
+  "bytes": 1657312,
+  "note": "The wormholes stay open longer, so the foes further back walk in too.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cross": 8,
+   "collapse": 3,
+   "end": 1
+  }
+ },
+ "wormhole-3": {
+  "k": "wormhole",
+  "L": 3,
+  "len": 13.27,
+  "seed": 1,
+  "bytes": 1891534,
+  "note": "Every foe that goes through is struck and thrown 16 tiles back.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cross": 6,
+   "end": 1
+  }
+ },
+ "wormhole-4": {
+  "k": "wormhole",
+  "L": 4,
+  "len": 13.2,
+  "seed": 1,
+  "bytes": 1791825,
+  "note": "The boss (an Ogre) goes through too, and comes out 5 tiles back, slowed.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cross": 6,
+   "end": 1
+  }
+ },
+ "wormhole-5": {
+  "k": "wormhole",
+  "L": 5,
+  "len": 13.87,
+  "seed": 1,
+  "bytes": 1714802,
+  "note": "Slow foes still short of the mouth as it closes: it swallows them, then both wormholes collapse.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cross": 3,
+   "last": 1,
+   "end": 1
+  }
  }
 }
