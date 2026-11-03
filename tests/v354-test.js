@@ -29,7 +29,7 @@ try{
     renderer.render(scene,camera);ok('and it compiles',errs===0,errs);}
   play('plains');ok('away from the tundra no iceberg rings are left',TUNB.uBerg.value.every(v=>v.z<0));
   /* ---- the Infinite Void ---- */
-  for(const a of ['plains','snow','tundra','whitewaste'].concat(ARENAS.taiga?['taiga']:[])){play(a);/* v356: the Deep Taiga too */meta.spells.expanse=meta.spells.expanse||{lvl:1,hero:null};
+  for(const a of ['plains','snow','tundra','whitewaste'].concat(ARENAS.taiga?['taiga']:[])){play(a);/* v356: the Deep Taiga too */meta.spells.expanse=meta.spells.expanse||{lvl:1,hero:null};meta.smast=meta.smast||{};delete meta.smast.expanse;/* (the void itself: no mastery, v461, whatever the dev account has earned) */
     const keepL=[];TERRAIN.traverse(o=>{if(o.userData&&o.userData.voidKeep)keepL.push(o);});
     const kept=o=>{let p=o;while(p&&p!==TERRAIN){if(p.userData&&p.userData.voidKeep)return true;p=p.parent;}return false;};
     heroU.scd={};heroU.gcd=0;castScrollNow('expanse',heroU,tStats(heroU),[{x:heroU.x,z:heroU.z,y:0,hp:1e9,maxHp:1e9,dead:true,armor:0,res:{},fake:true}],100,{src:heroU,el:'light',spell:'expanse'});run(9);
