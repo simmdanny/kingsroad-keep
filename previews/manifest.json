@@ -2984,6 +2984,56 @@
     "ground": 1,
     "grounded": 6
    }
+  },
+  "eclipse-2": {
+   "k": "eclipse",
+   "L": 2,
+   "len": 13.23,
+   "seed": 1,
+   "bytes": 4697600,
+   "note": "The heavy gold beams fall far more often.",
+   "ev": {
+    "cast": 1,
+    "beam": 32,
+    "hit": 32,
+    "shatter": 1
+   }
+  },
+  "eclipse-0": {
+   "k": "eclipse",
+   "L": 0,
+   "len": 13.23,
+   "seed": 1,
+   "bytes": 4677572,
+   "note": ""
+  },
+  "eclipse-1": {
+   "k": "eclipse",
+   "L": 1,
+   "len": 13.23,
+   "seed": 1,
+   "bytes": 4730745,
+   "note": "The star beams strike harder and wider, and burst up in starfire where they land.",
+   "ev": {
+    "cast": 1,
+    "beam": 32,
+    "hit": 32,
+    "shatter": 1
+   }
+  },
+  "eclipse-3": {
+   "k": "eclipse",
+   "L": 3,
+   "len": 13.23,
+   "seed": 1,
+   "bytes": 4736343,
+   "note": "A star every 0.0625s: about 35 beams from a brighter sky.",
+   "ev": {
+    "cast": 1,
+    "beam": 36,
+    "hit": 36,
+    "shatter": 1
+   }
   }
  },
  "made": "2026-10-29"
