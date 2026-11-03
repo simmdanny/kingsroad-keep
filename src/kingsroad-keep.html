@@ -11917,40 +11917,46 @@ const BM_COL_G=(()=>{const g=new THREE.CylinderGeometry(.32,1,1,28,10,true);g.tr
 const BM_BALL_G=new THREE.IcosahedronGeometry(1,3);
 function bmFireMat(seed,hot){return new THREE.ShaderMaterial({uniforms:{uT:{value:0},uK:{value:0},uA:{value:1},uSeed:{value:seed},uHot:{value:hot}},vertexShader:BM_FIRE_VS,fragmentShader:BM_FIRE_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide});}
 /* jagged red lightning ribbons (normal-blended dark halo + additive core so it reads red over grass) */
-function bmBolt(A,B,w,life,branches){const root=new THREE.Group();scene.add(root);const geos=[];
+/* (v469: hot, optional, the Curse's masteries: the red glow ribbon 1+hot and the core 1+hot/2 times as wide, a brighter bolt from the same
+   three materials; without it exactly as before) */
+function bmBolt(A,B,w,life,branches,hot){const root=new THREE.Group();scene.add(root);const geos=[];const gk=1+(hot||0),ck=1+.5*(hot||0);
   const mH=new THREE.MeshBasicMaterial({color:0x4a0008,transparent:true,opacity:.75,depthWrite:false,side:THREE.DoubleSide}),mG=new THREE.MeshBasicMaterial({color:0xff1424,transparent:true,opacity:1,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}),mC=new THREE.MeshBasicMaterial({color:0xffd8d8,transparent:true,opacity:1,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
   [mH,mG,mC].forEach((m,i)=>{m.depthTest=true;});
   const vars=[];for(let v=0;v<1;v++){const g=new THREE.Group();const P=vFract(A,B,.35*A.distanceTo(B),4),Bs=vBranches(P,A.distanceTo(B),branches==null?2:branches,3);
-    const add=(pts,s)=>{const gg=ribbonGeo(pts,.045*w*s,.03*w*s),gc=ribbonGeo(pts,.016*w*s,.01*w*s);geos.push(gg,gc);const b=new THREE.Mesh(gg,mG),c=new THREE.Mesh(gc,mC);b.renderOrder=12;c.renderOrder=13;if(s>=1){const gh=ribbonGeo(pts,.11*w,.07*w);geos.push(gh);const a=new THREE.Mesh(gh,mH);a.renderOrder=11;g.add(a);}g.add(b,c);};
+    const add=(pts,s)=>{const gg=ribbonGeo(pts,.045*w*s*gk,.03*w*s*gk),gc=ribbonGeo(pts,.016*w*s*ck,.01*w*s*ck);geos.push(gg,gc);const b=new THREE.Mesh(gg,mG),c=new THREE.Mesh(gc,mC);b.renderOrder=12;c.renderOrder=13;if(s>=1){const gh=ribbonGeo(pts,.11*w,.07*w);geos.push(gh);const a=new THREE.Mesh(gh,mH);a.renderOrder=11;g.add(a);}g.add(b,c);};
     add(P,1);Bs.forEach(b=>add(b,.5));g.visible=v===0;root.add(g);vars.push(g);}
   let t=0,fl=0;addFx(root,life,(f,dt)=>{t+=dt;fl-=dt;if(fl<=0){fl=.04+rnd()*.05;vars[0].visible=rnd()<.82;}const k=f.life/life,on=(rnd()<.85?1:.25)*Math.min(1,k*2.5);mG.opacity=on;mC.opacity=on;mH.opacity=.75*on;},null,{mats:[mH,mG,mC],geos});}
-function bmErupt(x,z,size,dmg,o,warn,root){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);const mats=[],geos=[];
+/* (v469: X, optional, the Curse's masteries: h, the fire columns' height (x); hot, added to the three columns' uHot (their cores burn
+   hotter); bolt, the red lightning inside drawn brighter (bmBolt's hot); cs, the size its shards, bolts and boom are counted at, so an
+   eruption the masteries make larger allocates no more meshes or materials than it did; rk, its strike reaching that much further than it
+   is drawn. Without X: exactly as before) */
+function bmErupt(x,z,size,dmg,o,warn,root,X){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);const mats=[],geos=[];const cn=X?X.cs:size,hb=X?X.bolt:undefined,rk=X&&X.rk?X.rk:1;
   const rg=new THREE.RingGeometry(.86,1,32);rg.rotateX(-Math.PI/2);geos.push(rg);const rm=BMA(0xff1a2a,0,false);mats.push(rm);const ring=new THREE.Mesh(rg,rm);ring.position.y=.04;g.add(ring);
   const gm=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0xc01020,transparent:true,opacity:0,depthWrite:false});mats.push(gm);const gp=new THREE.PlaneGeometry(1,1);gp.rotateX(-Math.PI/2);geos.push(gp);const glow=new THREE.Mesh(gp,gm);glow.position.y=.035;g.add(glow);
   /* fire columns: outer smoky crimson, inner hot core */
-  const cols=[[.78,2.2,0],[.52,1.75,.55],[.3,1.35,1]].map(([r,h,hot],i)=>{const m=bmFireMat(rnd()*40,hot);mats.push(m);const me=new THREE.Mesh(BM_COL_G,m);me.visible=false;me.renderOrder=7+i;me.rotation.y=rnd()*6.28;g.add(me);return{me,m,r:r*size,h:h*size};});
+  const cols=[[.78,2.2,0],[.52,1.75,.55],[.3,1.35,1]].map(([r,h,hot],i)=>{const m=bmFireMat(rnd()*40,X?hot+X.hot[i]:hot);mats.push(m);const me=new THREE.Mesh(BM_COL_G,m);me.visible=false;me.renderOrder=7+i;me.rotation.y=rnd()*6.28;g.add(me);return{me,m,r:r*size,h:h*size*(X?X.h:1)};});
   const bm=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uK:{value:0},uA:{value:1}},vertexShader:BM_BALL_VS,fragmentShader:BM_BALL_FS,transparent:true,depthWrite:false});mats.push(bm);const ball=new THREE.Mesh(BM_BALL_G,bm);ball.visible=false;ball.renderOrder=10;g.add(ball);
   const W0=warn==null?.22:warn,D=.95;let T=0,boomed=false,boltT=0;
   addFx(g,W0+D,(f,dt)=>{T+=dt;
     if(T<W0){const k=T/W0;ring.scale.setScalar(size*(.4+.6*k));rm.opacity=.4+.5*k;glow.scale.setScalar(size*1.6*k);gm.opacity=.7*k;if(rnd()<.6)emit(1,{x:x+(rnd()-.5)*size,y:.05,z:z+(rnd()-.5)*size,vx:0,vy:.6+rnd(),vz:0,s:.05,s2:0,c:0xff4030,c2:0x5a0008,life:.35});return;}
     if(!boomed){boomed=true;ring.visible=false;cols.forEach(q=>q.me.visible=true);ball.visible=true;
-      splashAt(x,z,.62*size,dmg,'magic',o,false).forEach(e=>{if(!e.dead&&!e.boss)e.stunT=Math.max(e.stunT||0,.12);});
-      splashAt(x,z,.7*size,dmg*.4,'magic',Object.assign({},o,{el:'lightning'}),false);
+      splashAt(x,z,.62*size*rk,dmg,'magic',o,false).forEach(e=>{if(!e.dead&&!e.boss)e.stunT=Math.max(e.stunT||0,.12);});
+      splashAt(x,z,.7*size*rk,dmg*.4,'magic',Object.assign({},o,{el:'lightning'}),false);
 
       sprayP(1,x,.25,z,Math.round(14*size),{c:0xffb090,c2:0xc01020,sp:2.4*size,up:1.6,s:.07,s2:0,life:.6,g:4,drag:.8});
       sprayP(0,x,.25,z,Math.round(8*size),{c:0x2a0004,c2:0x000000,sp:2*size,up:1.2,s:.08,s2:0,life:.7,g:5,drag:.6});
       for(let i=0;i<Math.round(4*size);i++){const a=rnd()*6.28;emitS(0,{x:x+Math.cos(a)*.2*size,y:.3*size,z:z+Math.sin(a)*.2*size,vx:Math.cos(a)*.7,vy:.6+rnd()*.6,vz:Math.sin(a)*.7,s:.28*size,s2:.95*size,c:0x3a0a0e,c2:0x120306,a:.55,life:1.3+rnd()*.5,turb:.6,drag:1.2});}
-      if(rnd()<.6)debris(x,z,Math.round(1+size*2),0x4a1010);if(size>1.2)sfxBoom(.18*size);
-      for(let i=0;i<Math.round(2+size*2);i++){const sh=new THREE.Mesh(tet(.035+rnd()*.035*size),BMA(rnd()<.5?0xff3a30:0x1a0004,1,false));const a=rnd()*6.28,v=1.2+rnd()*2*size;const vel=new THREE.Vector3(Math.cos(a)*v*.5,2+rnd()*2.5,Math.sin(a)*v*.5),rs=new THREE.Vector3(rnd()*12,rnd()*12,rnd()*12);sh.position.set(x,.15,z);scene.add(sh);
+      if(rnd()<.6)debris(x,z,Math.round(1+cn*2),0x4a1010);if(cn>1.2)sfxBoom(.18*size);
+      for(let i=0;i<Math.round(2+cn*2);i++){const sh=new THREE.Mesh(tet(.035+rnd()*.035*size),BMA(rnd()<.5?0xff3a30:0x1a0004,1,false));const a=rnd()*6.28,v=1.2+rnd()*2*size;const vel=new THREE.Vector3(Math.cos(a)*v*.5,2+rnd()*2.5,Math.sin(a)*v*.5),rs=new THREE.Vector3(rnd()*12,rnd()*12,rnd()*12);sh.position.set(x,.15,z);scene.add(sh);
         addFx(sh,.8+rnd()*.4,(f2,dt2)=>{vel.y-=7*dt2;sh.position.addScaledVector(vel,dt2);sh.rotation.x+=rs.x*dt2;sh.rotation.y+=rs.y*dt2;if(sh.position.y<.03){sh.position.y=.03;vel.multiplyScalar(.3);}sh.material.opacity=Math.min(1,f2.life*2);},null,{mats:[sh.material]});}
       {const sc=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0x3a0006,transparent:true,opacity:.7,depthWrite:false});const sp2=new THREE.Mesh(BM_SCORCH_G,sc);sp2.position.set(x,.03,z);sp2.scale.setScalar(size*1.3);sp2.rotation.y=rnd()*6;scene.add(sp2);addFx(sp2,2.4,f2=>{sc.opacity=.7*Math.min(1,f2.life/1.2);},null,{mats:[sc]});}
       /* red lightning: through the column, plus a few ground arcs */
-      const nb=size>1.2?3:2;for(let i=0;i<nb;i++){const a=rnd()*6.28,r0=rnd()*.25*size;bmBolt(new THREE.Vector3(x+Math.cos(a)*r0,.05,z+Math.sin(a)*r0),new THREE.Vector3(x+(rnd()-.5)*.5*size,(1.2+rnd()*.9)*size,z+(rnd()-.5)*.5*size),Math.max(.8,size*.9),.45+rnd()*.2,2);}
+      const nb=cn>1.2?3:2;for(let i=0;i<nb;i++){const a=rnd()*6.28,r0=rnd()*.25*size;bmBolt(new THREE.Vector3(x+Math.cos(a)*r0,.05,z+Math.sin(a)*r0),new THREE.Vector3(x+(rnd()-.5)*.5*size,(1.2+rnd()*.9)*size*(X?X.h:1),z+(rnd()-.5)*.5*size),Math.max(.8,size*.9),.45+rnd()*.2,2,hb);}
       for(let i=0;i<nb-1;i++){const a=rnd()*6.28,l=(.7+rnd()*.6)*size;bmBolt(new THREE.Vector3(x,.12,z),new THREE.Vector3(x+Math.cos(a)*l,.06,z+Math.sin(a)*l),.7,.3+rnd()*.15,1);}}
     const k=(T-W0)/D,up=Math.min(1,k/.16),fade=1-SMS(k,.55,1);gm.opacity=.9*fade;glow.scale.setScalar(size*(1.6+k));
     cols.forEach((q,i)=>{const s=1+.35*k;q.me.scale.set(q.r*s,q.h*up*(1-.15*k),q.r*s);q.m.uniforms.uT.value=T;q.m.uniforms.uK.value=SMS(k,.1,1);q.m.uniforms.uA.value=Math.min(1,fade*1.4);q.me.rotation.y+=dt*(i%2?1.5:-1.2);});
     {const bk=SMS(k,0,.55);const r=size*(.2+.36*Math.sqrt(Math.min(1,k/.25)));ball.scale.set(r,r*.85,r);ball.position.y=size*(.35+.9*bk);bm.uniforms.uT.value=T;bm.uniforms.uK.value=bk;bm.uniforms.uA.value=1-SMS(k,.4,.62);if(k>.65)ball.visible=false;}
-    boltT-=dt;if(k<.45&&boltT<=0){boltT=.22+rnd()*.12;const a=rnd()*6.28;bmBolt(new THREE.Vector3(x+Math.cos(a)*.15*size,.1,z+Math.sin(a)*.15*size),new THREE.Vector3(x+(rnd()-.5)*.6*size,(.9+rnd()*1.1)*size,z+(rnd()-.5)*.6*size),.6+.3*size,.18,1);}
+    boltT-=dt;if(k<.45&&boltT<=0){boltT=.22+rnd()*.12;const a=rnd()*6.28;bmBolt(new THREE.Vector3(x+Math.cos(a)*.15*size,.1,z+Math.sin(a)*.15*size),new THREE.Vector3(x+(rnd()-.5)*.6*size,(.9+rnd()*1.1)*size*(X?X.h:1),z+(rnd()-.5)*.6*size),.6+.3*size,.18,1,hb);}
     if(k<.6&&rnd()<.9)emit(1,{x:x+(rnd()-.5)*.6*size,y:.2+rnd()*.8*size,z:z+(rnd()-.5)*.6*size,vx:(rnd()-.5)*.5,vy:1.2+rnd()*1.8,vz:(rnd()-.5)*.5,s:.06,s2:0,c:rnd()<.5?0xff6a40:0xff1a2a,c2:0x3a0006,life:.6+rnd()*.5,drag:.5});
   },null,{mats,geos});}
 /* hero takes on the aura's red tint while the curse burns */
@@ -11970,7 +11976,17 @@ function bmTowerTint(){const on=CURSE.st>0&&CURSE.cr>0;
     if(!q){q={g:t.g,n:t.g.children.length,list:[]};t.g.traverse(m=>{if(!m.isMesh||!m.material||Array.isArray(m.material)||!m.material.color||m.material.blending===THREE.AdditiveBlending)return;const orig=m.material,c=orig.clone();m.material=c;q.list.push({m,orig,c,col:orig.color.clone(),em:orig.emissive?orig.emissive.clone():null});});BM_TT.set(t,q);}
     for(const e of q.list){e.c.color.copy(e.col).lerp(BM_TC.copy(e.col).multiply(BM_DIM),w*.72);if(e.em)e.c.emissive.copy(e.em).multiplyScalar(1-w*.6);}}}
 /* ---- the spell ---- */
-function castBloodCurse(t,P,o){
+/* v469: XO (optional, the Curse's masteries): this cast's own numbers over BCD. blR/blF/blD: the opening blast's reach and its fire and
+   dark strikes (x the power); blK: its dome, waves and rings drawn that much wider; spk: the seal's 24 blade spikes that much longer; eK:
+   every eruption's strike (x); esc: how much each stage of the escalation grows the eruptions (and their strike with them); spinS: how much
+   faster each stage spins the seal's rings; starP: how much harder each stage pulses the crest's star; seal: the greater scrolls the curse
+   seals on the caster (counted by the masteries), each making every eruption pr harder, the crest's blades prL longer and its star prS
+   brighter; finK: the final eruption's size (its reach and strike); finV: the size it is drawn at, over the stage's (0: as finK), so a
+   larger finale does not swallow the view; finB/finR: the blast after it (x the power) and its reach; plunge: the crest's star dives down a shaft of light into the final eruption; crK: its web of cracks wider and
+   denser; ex: the eruptions' looks (bmErupt's X: columns' height, hotter cores, brighter bolts). log(d) receives the events for the tests.
+   Without XO: exactly as before. */
+const BCD={blR:4.4,blF:6,blD:6,blK:1,spk:1,eK:1,esc:.12,spinS:.6,starP:0,seal:0,pr:0,prL:0,prS:0,finK:1,finV:0,finB:10,finR:2.8,plunge:0,crK:1,ex:null,log:null};
+function castBloodCurse(t,P,o,XO){const D=XO?Object.assign({},BCD,XO):BCD,lg=D.log,eK=D.eK*(1+D.pr*D.seal),bladeK=1+D.prL*D.seal,starK=1+D.prS*D.seal;
   const oF=Object.assign({},o,{el:'fire'}),oD=Object.assign({},o,{el:'dark'});CURSE.on=true;cineLock=Math.max(cineLock,14);
   const cx=t.x,cz=t.z,R=2.7;const root=new THREE.Group();root.position.set(cx,0,cz);scene.add(root);const mats=[],geos=[];
   /* ignition circle + caster glow */
@@ -11986,7 +12002,7 @@ function castBloodCurse(t,P,o){
   const r2M=BMA(0xff3a40,0,false);r2M.map=bmTex('ring');mats.push(r2M);const ring2=new THREE.Mesh(pg,r2M);ring2.scale.setScalar(R*1.15);ring2.position.y=.01;ring2.rotation.y=.6;ring2.renderOrder=5;circ.add(ring2);
   /* asymmetric radial spikes */
   const spikes=new THREE.Group();circ.add(spikes);const spk=[];const darkM=BMA(0x0e0002,0,false),edgeM=BMA(0xff1a28,0,false);mats.push(darkM,edgeM);
-  for(let i=0;i<24;i++){const a=i/24*6.2832+(rnd()-.5)*.18,len=(1.1+rnd()*1.1)*(i%6===0?1.35:1)*(i%7===3?.7:1),w=.1+rnd()*.07,geo=bmSpikeGeo(len,w,i*31+7);geos.push(geo);const s=new THREE.Group();s.rotation.y=-a;spikes.add(s);
+  for(let i=0;i<24;i++){const a=i/24*6.2832+(rnd()-.5)*.18,len=(1.1+rnd()*1.1)*(i%6===0?1.35:1)*(i%7===3?.7:1)*D.spk,w=.1+rnd()*.07,geo=bmSpikeGeo(len,w,i*31+7);geos.push(geo);const s=new THREE.Group();s.rotation.y=-a;spikes.add(s);
     const tilt=new THREE.Group();tilt.position.x=R*(.5+rnd()*.15);tilt.position.y=.25+rnd()*.35;tilt.rotation.z=.12+rnd()*.42;s.add(tilt);const dm=new THREE.Mesh(geo,darkM);dm.rotation.x=-Math.PI/2;dm.renderOrder=7;tilt.add(dm);const em=new THREE.Mesh(geo,edgeM);em.rotation.x=-Math.PI/2;em.scale.set(1.05,1.7,1);em.position.set(-len*.025,-.003,0);em.renderOrder=6;tilt.add(em);
     spk.push({s,tilt,ph:rnd()*6,amp:.04+rnd()*.06,base:tilt.rotation.z,dm,em});}
   /* the crest above the caster: a flattened circle of blades around a shining red star (from the reference) */
@@ -11999,8 +12015,11 @@ function castBloodCurse(t,P,o){
   const crR=new THREE.RingGeometry(.42,.5,32);geos.push(crR);const crRM=BMA(0xff1a28,0,false);mats.push(crRM);const crRing=new THREE.Mesh(crR,crRM);crRing.renderOrder=9;spin.add(crRing);
   const crCoreM=BMA(0x140003,0,false);mats.push(crCoreM);const crCore=new THREE.Mesh(new THREE.CircleGeometry(.42,24),crCoreM);geos.push(crCore.geometry);crCore.renderOrder=8;spin.add(crCore);
   const starM=BMA(0xff2a3a);starM.map=bmTex('bmstar');mats.push(starM);const star=new THREE.Mesh(spg,starM);star.scale.set(2.3,3.8,1);starM.depthTest=false;star.position.z=.03;star.renderOrder=10;sig.add(star);
-  const star2M=BMA(0xffd0d0);star2M.map=bmTex('bmstar');mats.push(star2M);const star2=new THREE.Mesh(spg,star2M);star2.scale.set(1,1.7,1);star2M.depthTest=false;star2.position.z=.04;star2.renderOrder=11;sig.add(star2);
+  const star2M=BMA(0xffd0d0);star2M.map=bmTex('bmstar');mats.push(star2M);const star2=new THREE.Mesh(spg,star2M);star2.scale.set(starK,1.7*starK,1);if(D.seal&&D.prS)starM.color.multiplyScalar(starK);star2M.depthTest=false;star2.position.z=.04;star2.renderOrder=11;sig.add(star2);
   const shM=BMA(0xff1020,0,false);mats.push(shM);const shaft=new THREE.Mesh(spg,shM);shaft.scale.set(.09,5.2,1);shaft.position.set(0,2.7,.02);sig.add(shaft);const shM2=BMA(0xffa0a0);mats.push(shM2);const shaft2=new THREE.Mesh(spg,shM2);shaft2.scale.set(.03,5.3,1);shaft2.position.set(0,2.7,.025);sig.add(shaft2);
+  /* (D.plunge) the crest's star and its shaft, drawn in the world with the crest's own materials, for the dive into the final eruption */
+  let PL=null;if(D.plunge){const g=new THREE.Group();g.visible=false;root.add(g);const mk=(m,ro)=>{const me=new THREE.Mesh(spg,m);me.renderOrder=ro;g.add(me);return me;};
+    PL={g,b1:mk(shM,12),b2:mk(shM2,13),s1:mk(starM,14),s2:mk(star2M,15),S:new THREE.Vector3(),top:new THREE.Vector3(),Q:new THREE.Vector3(),p:new THREE.Vector3(),T0:0,dur:.35,done:0,m4:new THREE.Matrix4(),ax:new THREE.Vector3(),ay:new THREE.Vector3(),az:new THREE.Vector3()};}
   /* the ground around the caster stains blood-red for the whole curse */
   const stM=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0x7a0010,transparent:true,opacity:0,depthWrite:false});mats.push(stM);const stain=new THREE.Mesh(pg,stM);stain.position.y=.045;stain.scale.setScalar(R*4.4);root.add(stain);
   const st2M=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0xff1a2a,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(st2M);const stain2=new THREE.Mesh(pg,st2M);stain2.position.y=.05;stain2.scale.setScalar(R*3);root.add(stain2);
@@ -12013,7 +12032,11 @@ function castBloodCurse(t,P,o){
   const roadPt=()=>{const rt=ROUTES&&ROUTES.length?ROUTES[Math.floor(rnd()*ROUTES.length)]:null;if(rt){const p=posAt(rnd()*(rt.len||pathLen),rt);return{x:p[0],z:p[1]};}return{x:cx+(rnd()-.5)*6,z:cz-2-rnd()*4};};
   const pick1=()=>{const L=alive();return L.length?L[Math.floor(rnd()*L.length)]:roadPt();};
   const esc=()=>T<E0+2?0:T<E0+5?1:T<E0+8?2:3;
-  const E=(x,z,size,delay,warn)=>{const sz=size*(1+.12*esc());const d=P*1.5*sz;if(delay>0)addFx(new THREE.Group(),delay,null,()=>bmErupt(x,z,sz,d,oF,warn,root));else bmErupt(x,z,sz,d,oF,warn,root);};
+  const E=(x,z,size,delay,warn,fin)=>{const st=esc(),sz=size*(1+D.esc*st)*(fin?D.finK:1);const d=P*1.5*sz*eK,sv=fin&&D.finV?size*(1+D.esc*st)*D.finV:sz;
+    /* (with XO: the looks, the size the eruption's meshes are counted at (as large as it would be without the masteries), and the reach
+       of a finale drawn smaller than it strikes) */
+    const X=XO?{cs:size*(1+.12*st),h:D.ex?D.ex.h:1,hot:D.ex?D.ex.hot:[0,0,0],bolt:D.ex?D.ex.bolt:undefined,rk:sz/sv}:null;if(lg)lg({ev:'erupt',T,x,z,size,st,sz,sv,d,fin:!!fin,X});
+    if(delay>0)addFx(new THREE.Group(),delay,null,()=>bmErupt(x,z,sv,d,oF,warn,root,X));else bmErupt(x,z,sv,d,oF,warn,root,X);};
   const pattern=()=>{const lv=esc(),r=rnd();
     if(r<.16){const e=pick1();E(e.x,e.z,1.1,0);}
     else if(r<.32){for(let i=0;i<3;i++){const e=pick1();E(e.x+(rnd()-.5)*.2,e.z+(rnd()-.5)*.2,.9,i*.05);}}
@@ -12022,6 +12045,18 @@ function castBloodCurse(t,P,o){
     else if(r<.72){const c=dense();const n=6+lv*2;for(let i=0;i<n;i++)E(c.x+(rnd()-.5)*2.4,c.z+(rnd()-.5)*2.4,.55+rnd()*.3,rnd()*.35);}
     else if(r<.86){const e=pick1();if(e.x!=null&&e.hp){for(let i=0;i<4;i++)addFx(new THREE.Group(),i*.17,null,()=>{const q=e.dead?pick1():e;E(q.x,q.z,.8,0,.15);});}else E(e.x,e.z,1,0);}
     else{const c=dense();for(let i=0;i<3;i++)E(c.x+(rnd()-.5)*1.4,c.z+(rnd()-.5)*1.4,.7,i*.12);E(c.x,c.z,1.9,.5,.3);}};
+  /* (D.plunge) as the final eruption is called, the star leaves the crest and dives down a shaft of light (the crest's own, stretched from
+     its top) into it, landing as it bursts; the shaft then thins away */
+  const plBeam=(me,A,B,w)=>{PL.ay.subVectors(B,A);const L=PL.ay.length();if(L<1e-4||w<=1e-4){me.visible=false;return;}me.visible=true;PL.ay.multiplyScalar(1/L);me.position.addVectors(A,B).multiplyScalar(.5);
+    PL.az.copy(camera.position).sub(root.position).sub(me.position).normalize();PL.ax.crossVectors(PL.ay,PL.az).normalize();PL.az.crossVectors(PL.ax,PL.ay);PL.m4.makeBasis(PL.ax,PL.ay,PL.az);me.quaternion.setFromRotationMatrix(PL.m4);me.scale.set(w,L,1);};
+  const plungeStart=c=>{root.updateMatrixWorld(true);star.getWorldPosition(PL.S).sub(root.position);PL.top.set(0,.5,0).applyMatrix4(shaft2.matrixWorld).sub(root.position);PL.Q.set(c.x-cx,.35,c.z-cz);PL.c=c;PL.T0=T;PL.g.visible=true;
+    star.visible=star2.visible=shaft.visible=shaft2.visible=false;if(lg)lg({ev:'plunge',T,c,S:PL.S.clone(),Q:PL.Q.clone()});};
+  const plungeStep=()=>{const u=Math.min(1,(T-PL.T0)/PL.dur),w=PL.done?Math.max(0,1-(T-PL.T1)/.3):1;PL.p.lerpVectors(PL.S,PL.Q,u*u);
+    if(!PL.done){const ss=1.2*(1+.6*u)*starK;for(const [me,sx,sy] of [[PL.s1,2.3,3.8],[PL.s2,1,1.7]]){me.position.copy(PL.p);me.quaternion.copy(camera.quaternion);me.scale.set(sx*ss,sy*ss,1);}
+      if(rnd()<.9)emit(1,{x:cx+PL.p.x+(rnd()-.5)*.2,y:PL.p.y,z:cz+PL.p.z+(rnd()-.5)*.2,vx:(rnd()-.5)*.4,vy:.6+rnd()*.6,vz:(rnd()-.5)*.4,s:.05,s2:0,c:0xff4048,c2:0x5a0008,life:.45});}
+    plBeam(PL.b1,PL.top,PL.p,.17*w);plBeam(PL.b2,PL.top,PL.p,.06*w*(PL.done?1:1.4));
+    if(u>=1&&!PL.done){PL.done=1;PL.T1=T;PL.s1.visible=PL.s2.visible=false;flash(PL.c.x,.8,PL.c.z,0xff3040,2.4,.3);if(lg)lg({ev:'land',T});}
+    if(PL.done&&w<=0)PL.g.visible=false;};
   addFx(root,E1+1.6,(f,dt)=>{T+=dt;const sTime=T;
     /* 0-0.5 silence, 0.5-1.5 ignition */
     if(T<.5){CURSE.k=Math.max(CURSE.k,.05*T/.5);if(rnd()<.5)emit(1,{x:cx+(rnd()-.5)*.8,y:.1+rnd()*.5,z:cz+(rnd()-.5)*.8,vx:0,vy:.2,vz:0,s:.03,s2:0,c:0xff3040,c2:0x400008,life:.6});}
@@ -12029,30 +12064,32 @@ function castBloodCurse(t,P,o){
       for(let i=0;i<3;i++)emit(1,{x:cx+(rnd()-.5)*.6*(1+k),y:.1,z:cz+(rnd()-.5)*.6*(1+k),vx:(rnd()-.5)*.3,vy:1.5+rnd()*2,vz:(rnd()-.5)*.3,s:.05,s2:0,c:rnd()<.5?0xff2a30:0x200004,c2:0x3a0006,life:.6});}
     /* 1.6 INITIAL EXPLOSION: fire + dark */
     if(T>=1.6&&!exploded){exploded=true;ign.visible=false;sfxBoom(.75,true);sfxRumble(2.4,.45);camShake=Math.max(camShake,.5);flashA=Math.max(flashA,.5);flashCol='#80101a';flashDecay=3;
-      for(const e of alive()){const d=Math.hypot(e.x-cx,e.z-cz);if(d>4.4)continue;hurt(e,P*6,'magic',oF);if(!e.dead)hurt(e,P*6,'magic',oD);if(!e.dead&&!e.boss){e.dist=Math.max(0,e.dist-.6*(1-d/4.4));e.stunT=Math.max(e.stunT||0,.5);}}
-      bmWave(cx,cz,7.5,1.25,1);bmWave(cx,cz,4.2,.8,.7);bmRing(cx,cz,2,.5,0xff4a3a);
+      const bH=lg?[]:null;for(const e of alive()){const d=Math.hypot(e.x-cx,e.z-cz);if(d>D.blR)continue;if(bH)bH.push({e,d,dist:e.dist});hurt(e,P*D.blF,'magic',oF);if(!e.dead)hurt(e,P*D.blD,'magic',oD);if(!e.dead&&!e.boss){e.dist=Math.max(0,e.dist-.6*(1-d/D.blR));e.stunT=Math.max(e.stunT||0,.5);}}
+      if(lg)lg({ev:'blast',T,H:bH,R:D.blR,F:D.blF,Dk:D.blD});
+      bmWave(cx,cz,7.5*D.blK,1.25,1);bmWave(cx,cz,4.2*D.blK,.8,.7);bmRing(cx,cz,2*D.blK,.5,0xff4a3a);
       sprayP(1,cx,.3,cz,46,{c:0xff5a40,c2:0x8a0010,sp:4.5,up:1.4,s:.06,s2:0,life:.8,g:3,drag:.6});sprayP(1,cx,.3,cz,30,{c:0x300006,c2:0x000000,sp:3.5,up:1,s:.07,s2:0,life:.9,g:2,drag:.7});
       for(let i=0;i<16;i++){const a=rnd()*6.28;emitS(0,{x:cx+Math.cos(a)*.4,y:.2,z:cz+Math.sin(a)*.4,vx:Math.cos(a)*2.6,vy:.3+rnd()*.5,vz:Math.sin(a)*2.6,s:.45,s2:1.4,c:0x2a0608,c2:0x0e0204,a:.6,life:1.6+rnd(),turb:.5,drag:1.4});}
       debris(cx,cz,10,0x4a1010);debris(cx,cz,6,0x2a2020);
-      for(let i=0;i<3;i++)addFx(new THREE.Group(),.12+i*.14,null,()=>{if(i===1)bmWave(cx,cz,10.5,1.6,1.3);else bmRing(cx,cz,5.5+i*1.4,.9,i%2?0x3a0006:0xff1a2a);sprayP(1,cx,.4,cz,24,{c:0xff3a30,c2:0x5a0008,sp:3+i,up:1.8,s:.06,s2:0,life:.9,g:3,drag:.6});});
+      for(let i=0;i<3;i++)addFx(new THREE.Group(),.12+i*.14,null,()=>{if(i===1)bmWave(cx,cz,10.5*D.blK,1.6,1.3);else bmRing(cx,cz,(5.5+i*1.4)*D.blK,.9,i%2?0x3a0006:0xff1a2a);sprayP(1,cx,.4,cz,24,{c:0xff3a30,c2:0x5a0008,sp:3+i,up:1.8,s:.06,s2:0,life:.9,g:3,drag:.6});});
       {const cn=crackNet(cx,cz,2.4,14,0xff2a3a);cn.position.y=.014;scene.add(cn);addFx(cn,10,f2=>{cn.material.opacity=Math.min(1,f2.life/f2.max*3)*(.7+.3*Math.sin(f2.life*6));},null,{mats:[cn.material],geos:[cn.geometry]});}
       for(let i=0;i<18;i++){const a=i/18*6.28+rnd()*.2;const v=2.5+rnd()*2.5;emit(0,{x:cx,y:.4,z:cz,vx:Math.cos(a)*v,vy:1.5+rnd()*2.5,vz:Math.sin(a)*v,s:.12,s2:.04,c:0x2a0004,c2:0x000000,a:.9,life:1.1,g:4,drag:.5});}
       for(let i=0;i<4;i++)debris(cx+(rnd()-.5)*1.5,cz+(rnd()-.5)*1.5,6,i%2?0x5a1414:0x2a1a1a);}
-    if(dome.visible){const dk=SMS(T,1.6,2.35);const r=.4+4.6*Math.sqrt(dk);dome.scale.set(r,r*.55,r);domeW.scale.copy(dome.scale);dome.rotation.y+=dt;domeW.rotation.y-=dt*.7;domeM.opacity=.55*(1-dk);domeE.opacity=.8*(1-dk);if(dk>=1){dome.visible=domeW.visible=false;}}
+    if(dome.visible){const dk=SMS(T,1.6,2.35);const r=(.4+4.6*Math.sqrt(dk))*D.blK;dome.scale.set(r,r*.55,r);domeW.scale.copy(dome.scale);dome.rotation.y+=dt;domeW.rotation.y-=dt*.7;domeM.opacity=.55*(1-dk);domeE.opacity=.8*(1-dk);if(dk>=1){dome.visible=domeW.visible=false;}}
     /* ritual circle + sigil materialise */
     const ap=SMS(T,1.8,2.5),sgA=SMS(T,1.62,1.95);const endK=collapse>0?1-SMS(T,E1,E1+1.4):1;const pulse=.85+.15*Math.sin(T*(3+esc()*2.5));
     if(T>=1.8){circ.visible=true;circ.scale.setScalar(Math.max(.001,(.6+.4*ap)*(collapse>0?1+.15*(1-endK):1)));coreM.opacity=.82*ap*endK;swM.opacity=.55*ap*endK;sw2M.opacity=.45*ap*endK;r1M.opacity=.95*ap*endK*pulse;r2M.opacity=.75*ap*endK*pulse;
-      const sp=1+esc()*.6+(T>FIN-.6&&T<FIN?2.5:0);ring1.rotation.y+=dt*.12*sp;ring2.rotation.y-=dt*.35*sp;sw1.rotation.y+=dt*.5*sp;sw2.rotation.y-=dt*1.1*sp;spikes.rotation.y-=dt*(.8+.15*esc())*(T>FIN-.6&&T<FIN?2:1);
+      const sp=1+esc()*D.spinS+(T>FIN-.6&&T<FIN?2.5:0);ring1.rotation.y+=dt*.12*sp;ring2.rotation.y-=dt*.35*sp;sw1.rotation.y+=dt*.5*sp;sw2.rotation.y-=dt*1.1*sp;spikes.rotation.y-=dt*(.8+.15*esc())*(T>FIN-.6&&T<FIN?2:1);
       darkM.opacity=.92*ap*endK;edgeM.opacity=.9*ap*endK*(collapse>0&&rnd()<.4?.2:pulse);
       spk.forEach(q=>{q.tilt.rotation.z=q.base+Math.sin(T*1.3+q.ph)*q.amp;q.tilt.position.y=Math.sin(T*1.7+q.ph)*.05;});
       if(rnd()<.6*ap*endK){const a=rnd()*6.28,r=rnd()*R*.9;emit(1,{x:cx+Math.cos(a)*r,y:.15,z:cz+Math.sin(a)*r,vx:-Math.sin(a)*.8,vy:.15+rnd()*.3,vz:Math.cos(a)*.8,s:.035,s2:0,c:rnd()<.6?0xff2a30:0x1a0004,c2:0x400008,life:.7});}}
     /* the crest bursts into being out of the explosion */
     if(T>=1.62){sig.visible=true;sig.quaternion.copy(camera.quaternion);const sk=sgA*endK,pop=1+.45*(1-SMS(T,1.62,2.1));sig.scale.setScalar(Math.max(.001,1.3*sgA*pop*(collapse>0?.4+.6*endK:1)));
-      spin.rotation.z+=dt*(.55+esc()*.15+(T>FIN-.6&&T<FIN?1.5:0));crestB.forEach((q,i)=>{const ext=.82+.18*Math.sin(T*2.2+q.ph);q.holder.scale.set(ext,1,1);});
+      spin.rotation.z+=dt*(.55+esc()*.15+(T>FIN-.6&&T<FIN?1.5:0));crestB.forEach((q,i)=>{const ext=.82+.18*Math.sin(T*2.2+q.ph);q.holder.scale.set(ext*bladeK,1,1);});
       cbDark.opacity=.95*sk;cbEdge.opacity=.95*sk*(collapse>0&&rnd()<.4?.2:pulse);crRM.opacity=.95*sk;crCoreM.opacity=.9*sk;
-      const sp=.85+.15*Math.sin(T*6)+(Math.sin(T*1.1)>.95?.5:0)+(T>FIN-.6&&T<FIN+.2?.8:0);starM.opacity=sk*Math.min(1.2,sp);star.scale.set(2.3*(.9+.2*sp),3.8*(.9+.2*sp),1);star2M.opacity=sk*.9;shM.opacity=.6*sk*(.8+.2*Math.sin(T*23));shM2.opacity=.85*sk;
+      const sp=.85+(.15+D.starP*esc())*Math.sin(T*(6+D.starP*esc()*10))+(Math.sin(T*1.1)>.95?.5:0)+(T>FIN-.6&&T<FIN+.2?.8:0);starM.opacity=sk*Math.min(1.2,sp);star.scale.set(2.3*(.9+.2*sp)*starK,3.8*(.9+.2*sp)*starK,1);star2M.opacity=sk*.9;shM.opacity=.6*sk*(.8+.2*Math.sin(T*23));shM2.opacity=.85*sk;
       if(rnd()<.5*sk){tmp.set((rnd()-.5)*3.6,-.2,0).applyQuaternion(camera.quaternion);emit(1,{x:cx+tmp.x,y:3.4+tmp.y,z:cz-1.2+tmp.z,vx:0,vy:-.7,vz:0,s:.03,s2:0,c:0xff3040,c2:0x3a0006,life:1.4});}
       if(rnd()<.35*sk*endK)emitS(0,{x:cx+(rnd()-.5)*1.4,y:.3+rnd()*.6,z:cz+(rnd()-.5)*1.4,vx:(rnd()-.5)*.3,vy:.12,vz:(rnd()-.5)*.3,s:.5,s2:1.3,c:0x7a0812,c2:0x200004,a:.35,life:1.8,turb:.6,drag:.6});}
+    if(PL&&PL.g.visible)plungeStep();
     /* blood-red ground around the caster */
     {const g0=SMS(T,1.55,2.2)*(collapse>0?1-SMS(T,E1,E1+1.6):1);CURSE.cx=cx;CURSE.cz=cz;CURSE.cr=R*2.2;CURSE.st=g0*(1+.17*esc());stM.opacity=(.58+.1*esc())*g0;st2M.opacity=(.18+.05*esc()+.05*Math.sin(T*3))*g0;}
     /* lighting escalation */
@@ -12063,9 +12100,9 @@ function castBloodCurse(t,P,o){
     if(T>=E0&&T<FIN-.6&&T>=nextP){pattern();nextP=T+[.5,.3,.2,.14][esc()]*(.75+rnd()*.5);}
     /* final judgement */
     if(T>=FIN-.6&&!finalDone){if(!castBloodCurse._warn){castBloodCurse._warn=1;}}
-    if(T>=FIN&&!finalDone){finalDone=true;const c=dense();E(c.x,c.z,3.4,0,.35);addFx(new THREE.Group(),.36,null,()=>{sfxBoom(.7,true);camShake=Math.max(camShake,.6);flashA=Math.max(flashA,.45);flashCol='#a01020';flashDecay=2.5;
-        for(const e of alive()){const d=Math.hypot(e.x-c.x,e.z-c.z);if(d<=2.8){hurt(e,P*10,'magic',oF);if(!e.dead&&!e.boss)e.dist=Math.max(0,e.dist-.8*(1-d/2.8));}}
-        bmRing(c.x,c.z,5,1,0xff2a2a);bmRing(c.x,c.z,3,.7,0xff4a3a);const cn=crackNet(c.x,c.z,1.4,9,0xff3040);cn.position.y=.012;scene.add(cn);addFx(cn,2.4,f2=>{cn.material.opacity=f2.life/f2.max;},null,{mats:[cn.material],geos:[cn.geometry]});
+    if(T>=FIN&&!finalDone){finalDone=true;const c=dense();E(c.x,c.z,3.4,0,.35,true);if(PL)plungeStart(c);addFx(new THREE.Group(),.36,null,()=>{sfxBoom(.7,true);camShake=Math.max(camShake,.6);flashA=Math.max(flashA,.45);flashCol='#a01020';flashDecay=2.5;
+        const fH=lg?[]:null,rK=D.finR/2.8;for(const e of alive()){const d=Math.hypot(e.x-c.x,e.z-c.z);if(d<=D.finR){if(fH)fH.push({e,d});hurt(e,P*D.finB,'magic',oF);if(!e.dead&&!e.boss)e.dist=Math.max(0,e.dist-.8*(1-d/D.finR));}}if(lg)lg({ev:'final',T,c,H:fH,R:D.finR,B:D.finB});
+        bmRing(c.x,c.z,5*rK,1,0xff2a2a);bmRing(c.x,c.z,3*rK,.7,0xff4a3a);const cn=crackNet(c.x,c.z,1.4*D.crK,Math.round(9*D.crK),0xff3040);cn.position.y=.012;scene.add(cn);addFx(cn,2.4,f2=>{cn.material.opacity=f2.life/f2.max;},null,{mats:[cn.material],geos:[cn.geometry]});
         for(let i=0;i<3;i++)debris(c.x+(rnd()-.5),c.z+(rnd()-.5),8,i%2?0x4a1010:0x2a2020);sprayP(1,c.x,.4,c.z,50,{c:0xffd080,c2:0xc01020,sp:4,up:2.4,s:.07,s2:0,life:1,g:3,drag:.6});});}
     if(T>=E1&&!collapse){collapse=1;CURSE.on=false;}
     if(collapse){CURSE.k=Math.max(0,.3*(1-SMS(T,E1,E1+1.5)));if(rnd()<.5){const q=spk[Math.floor(rnd()*spk.length)];tmp.setFromMatrixPosition(q.tilt.matrixWorld);emit(1,{x:tmp.x,y:tmp.y+.1,z:tmp.z,vx:(rnd()-.5)*.6,vy:.5+rnd(),vz:(rnd()-.5)*.6,s:.04,s2:0,c:0xff3040,c2:0x200004,life:.6});}}
@@ -31967,6 +32004,32 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
   dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
+/* ================= Curse of the Blood Moon's masteries (v469), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* HEADER */
+const BCM={dbg:null,blR:5,bl:6.5,hot:.1,esc:.18,pr:.04,prN:3,finK:1.5,finV:1.12,finB:15,finR:4.2};
+const bcmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='bloodcurse'&&c.L?c:null;};
+const bcmLog=d=>{if(BCM.dbg){d.t=time;BCM.dbg.push(d);}};
+/* the greater scrolls the curse seals on its caster (cursedSeal's rule: Rare and up, but not the Curse or the Needles), at most n */
+const bcmSealed=(t,n)=>t&&t.hero&&HB[t.hero]?Math.min(n,heroSpells(t.hero).filter(k=>k!=='bloodcurse'&&k!=='bloodneedles'&&SPELLS_S[k]&&RB[SPELLS_S[k].r].i>=2).length):0;
+SM_D.bloodcurse=[
+  {n:'Wider Seal',d:'The opening blast reaches 5 tiles (4.4 before) and strikes {650}% fire and {650}% dark (600% each before). A wider dome and wave; the seal’s 24 blade spikes are 15% longer.'},
+  {n:'Hotter Blood',d:'Every eruption strikes {10}% harder. Its fire columns rise a tenth taller with hotter cores, and the red lightning inside burns brighter.'},
+  {n:'Rising Fury',d:'Each stage of the escalation grows the eruptions 18% (12% before): the last stage’s are half again as large. The seal’s rings spin faster and the crest’s star pulses harder each stage.'},
+  {n:'Blood Price',d:'Each greater scroll the curse seals on the hero feeds it: every eruption strikes {8}% harder for each, up to 3. The crest’s blades lengthen and its star brightens for each.'},
+  {n:'The Great Eruption',d:'The final eruption is half again as large and half again as hard: the blast after it strikes {1500}% within 4.2 tiles (1000% within 2.8). The crest’s star plunges down its shaft into it; a wider web of cracks.'}];
+SMF.bloodcurse={m:1};
+SMA.bloodcurse=[1,1,1,1,1];
+SMG.bloodcurse=[1,1,1,1,1];
+/* this cast's numbers and looks (castBloodCurse's XO), cumulative: Mastery L has masteries 1..L */
+function bcmOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.blR=BCM.blR;X.blF=X.blD=BCM.bl*a[0];X.blK=BCM.blR/4.4;X.spk=1.15;}
+  if(L>=2){X.eK=1+BCM.hot*a[1];X.ex={h:1.1,hot:[.15,.35,.45],bolt:.35};}
+  if(L>=3){X.esc=BCM.esc;X.spinS=1;X.starP=.1;}
+  if(L>=4){X.seal=bcmSealed(c.t,BCM.prN);X.pr=BCM.pr*a[3];X.prL=.08;X.prS=.1;}
+  if(L>=5){X.finK=BCM.finK;X.finB=BCM.finB*a[4];X.finR=BCM.finR;X.finV=BCM.finV;X.plunge=1;X.crK=1.5;}
+  X.log=BCM.dbg?bcmLog:null;bcmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+const BCM_OLD=castBloodCurse;
+castBloodCurse=function(t,P,o,XO){const c=!XO?bcmC(o):null;return BCM_OLD(t,P,o,c?bcmOpts(c):XO);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
