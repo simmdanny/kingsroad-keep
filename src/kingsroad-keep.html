@@ -31995,23 +31995,23 @@ const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
 /* ================= Eye of the Blood Moon's masteries (v467), designed with the framework (MASTERY_DESIGN.md) ================= */
 /* (header: filled in after calibration) */
-const BEY={dbg:null,R:10,N:7,mul:1.45,dur:10,iv:.34,n:7,moveN:6,last:2.5};
+const BEY={dbg:null,R:10,N:7,mul:1.4,dur:10,iv:.34,n:7,lash:1.4,moveN:6,last:2};
 const beyC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='bloodeye'&&c.L?c:null;};
 const beyLog=d=>{if(BEY.dbg){d.t=time;BEY.dbg.push(d);}};
 SM_D.bloodeye=[
   {n:'Wider Gaze',d:'The eye opens a tenth larger and its gaze sweeps further: it brands 7 foes (6 before) within 10 tiles (8 before).'},
-  {n:'Bloodshot Brand',d:'Branded foes take {45}% more damage from everything (35% before), for 10s (8s before). The brands glow bigger and deeper red.'},
-  {n:'Lashing Storm',d:'Blood lightning lashes every brand every 0.34s: 7 times (6 before), in thicker bolts.'},
+  {n:'Bloodshot Brand',d:'Branded foes take {40}% more damage from everything (35% before), for 10s (8s before). The brands glow bigger and deeper red.'},
+  {n:'Lashing Storm',d:'Blood lightning lashes every brand every 0.34s: 7 times (6 before), {140}% each (150% before), in thicker bolts.'},
   {n:'The Gaze Moves On',d:'When a branded foe dies while the eye is open, the gaze swings to the strongest unbranded foe in reach and brands it (up to 6 more).'},
-  {n:'The Last Look',d:'Before the lids close, the iris flares and one great lash strikes every brand at once: {250}%, renewing each brand.'}];
+  {n:'The Last Look',d:'Before the lids close, the iris flares and one great lash strikes every brand at once: {200}%, renewing each brand.'}];
 SMF.bloodeye={m:1};
 SMA.bloodeye=[1,1,1,1,1];
-SMG.bloodeye=[1,1,1,1,1];
+SMG.bloodeye=[.98,1.003,.976,1.04,.893];
 /* this cast's numbers and looks (castBloodEye's XO) */
 function beyOpts(c){const L=c.L,a=c.a,X={hold:1};
   if(L>=1){X.R=BEY.R;X.N=BEY.N;X.eyeS=1.32;X.wan=1.3;X.runeR=1.85;}
   if(L>=2){X.mul=BED.mul+(BEY.mul-BED.mul)*a[1];X.dur=BEY.dur;X.mkS=1.3;X.mkC=0xff1028;X.mkH=0xff0a24;X.pulse=.45;}
-  if(L>=3){X.iv=BEY.iv;X.n=BEY.n;X.w=1.6;X.br=3;}
+  if(L>=3){X.iv=BEY.iv;X.n=BEY.n;X.lash=BED.lash+(BEY.lash-BED.lash)*a[2];X.w=1.6;X.br=3;}
   if(L>=4)X.moveN=BEY.moveN;
   if(L>=5){X.last=BEY.last*a[4];X.lastW=2*(X.w||BED.w);}
   if(BEY.dbg)X.log=beyLog;beyLog({ev:'cast',L,X:Object.assign({},X)});return X;}
