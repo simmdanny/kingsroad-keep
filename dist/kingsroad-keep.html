@@ -32067,11 +32067,12 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
    Percentages are of the scroll's power. Every mastered Purgatory cast runs castPurgatory with its XO (pgmOpts); Mastery 0, echoes and other
    casters cast exactly as before. Execution (it needs foes that can die) and the longer silence (a hold) count for nothing on the ladder (its
    foes stand still with huge health), so their factors carry them.
-   Calibrated on fresh foes (pack .6 / one .4, 3 casts 23s apart, the foes put back before every cast, 4 runs): in play the cooldown is
-   120s, so every cast meets fresh foes. The cuts depend on the distance to the hero, so the ladder's foes stand at sensible distances: the
-   pack of 12 on the road 2.6-3.4 tiles from him, the lone foe 3.2 tiles away. With the factors below: FRESH_ROW, against 1.078 / 1.162 /
-   1.226 / 1.302 / 1.35. The standard ladder (the kit's, its foes 0.8-2.5 tiles from the hero, the lone foe 1.4) reads lower, as foes that
-   close gain little from a longer reach or a stare: STD_ROW.
+   Calibrated on fresh foes (pack .6 / one .4, 3 casts 23s apart, the foes put back before every cast; 4 runs, the lone foe 12): in play
+   the cooldown is 120s, so every cast meets fresh foes. The cuts depend on the distance to the hero, so the ladder's foes stand at sensible
+   distances: the pack of 12 on the road 2.6-3.4 tiles from him, the lone foe 3.2 tiles away. With the factors below (SMG.purgatory):
+   1.078 / 1.158 / 1.225 / 1.292 / 1.353, against 1.078 / 1.162 / 1.226 / 1.302 / 1.35. The standard ladder (the kit's, 3 runs: its foes
+   0.8-2.5 tiles from the hero, the lone foe 1.4) reads lower, as foes that close gain little from a longer reach or a stare:
+   1.034 / 1.114 / 1.129 / 1.196 / 1.203.
    PGM.dbg (an array) logs the events. */
 const PGM={dbg:null,fall:3,judg:13,b2:1.6,focus2:10.6,stareR:1.5,stareD:2.75,ex0:.08,exK:.12,sil:.8,last:1.5};
 const pgmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='purgatory'&&c.L?c:null;};
