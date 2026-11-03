@@ -74,6 +74,8 @@ try{
    ok('under every artifact set the night keeps its own colours',bad.length===0,bad.join(', ')||'all six');
    ok('and under the light set a dark cast still turns the sky violet',vio&&vio[0]>.69&&vio[0]<.88&&vio[1]>.3&&vio[2]>.69&&vio[2]<.88&&vio[3]>.3,vio&&vio.map(v=>v.toFixed(2)).join(' '));}
   /* ---- power next to the other ancients (foes with 40x the hero's power in health, so the max-health parts weigh as in a late game) ---- */
+  /* (the Eldritch Tree is measured as the Tree itself: no mastery, v462, whatever the dev account has earned; the account is put back afterwards) */
+  meta.smast=meta.smast||{};delete meta.smast.firsttree;
   {const res={};for(const k of['never','firsttree','abyss']){go();const P0=heroStats().dmg;const F=foes(8,{hp:40*P0});for(const e of F)e.hp=1e9;heroU.anim={k,t:0,d:ANIM_D[k]};castSN0(k);worldSlow=1;slowT=0;run(26);
      res[k]=F.reduce((a,e)=>a+(1e9-e.hp),0)/P0/SPELLS_S[k].cd;for(const e of enemies.slice())removeEnemy(e);enemies=[];}
    ok('its damage per second of cooldown sits among the ancients (between the Eldritch Tree and Abyssal Genesis, give or take 15%)',res.never>=res.firsttree*.95&&res.never<=res.abyss*1.15,JSON.stringify(Object.fromEntries(Object.entries(res).map(([k,v])=>[k,+v.toFixed(2)]))));}
