@@ -14067,12 +14067,12 @@ function treeRootMat(regM,r0){return regM(new THREE.ShaderMaterial({uniforms:{uG
     'c+=vec3(.75,1.,.35)*vein*(.25+1.6*pulse)*uSap;float tip=smoothstep(uGrow-.025,uGrow,vU.x)*step(uGrow,.995);c+=vec3(.9,1.,.5)*tip*1.4;gl_FragColor=vec4(c,1.);}'}));}
 /* v462: XO (optional, the Eldritch Tree's masteries): this cast's own numbers over TRD (reach: how far an eruption strikes from its knot;
    drink/drinkB: the share of max health the roots drink (bosses); gap: seconds between eruptions; lock: seconds before the roots may strike
-   a foe again; spare: the roots hold a foe only if its Resolve can take the whole hold, so they never make it Unstoppable; swallow: a foe that is not a boss left under this share of its health is dragged under; bloom: the bloom's strike; bloomPer/
-   bloomMax: its bonus for every foe the roots drank from, and the most) and its looks (spikes/spikeH: an eruption's root spikes and their
-   height; motes: motes of life per foe; draught: the sap veins flash with each draught; veinX: GLSL for the veins' flashes and surge; veinR:
-   the veins' thickness; flw/flwG:
-   blossoms per root (instanced) and their shape; waveK/waveH/waveS: the pollen wave's density, height and grain; surge: the sap surge up the trunk; pool: the particle pool), and a log.
-   Without XO the cast is exactly the old one. */
+   a foe again; spare: the roots hold a foe only if its Resolve can take the whole hold, so they never make it Unstoppable; swallow: a foe
+   that is not a boss left under this share of its health is dragged under; bloom: the bloom's strike; bloomPer/bloomMax: its bonus for
+   every foe the roots drank from, and the most) and its looks (spikes/spikeH: an eruption's root spikes and their height; motes: motes of
+   life per foe; draught: the sap veins flash with each draught; veinX: GLSL for the veins' flashes and surge; veinR: the veins' thickness;
+   flw/flwG: blossoms per root (instanced) and their shape; waveK/waveH/waveS: the pollen wave's density, height and grain; surge: the sap
+   surge up the trunk; pool: the particle pool), and a log. Without XO the cast is exactly the old one. */
 const TRD={reach:1.35,drink:.01,drinkB:.004,gap:.6,lock:4,spare:0,swallow:0,bloom:9,bloomPer:0,bloomMax:0,spikes:6,spikeH:1,motes:6,draught:0,veinX:'',veinR:.045,flw:0,flwG:null,waveK:1,waveH:1,waveS:1,surge:0,pool:1700,log:null};
 function castFirstTree(t,PW,o,XO){
   if(ANC.live.firsttree&&ANC.live.firsttree.refresh()){toast('The Eldritch Tree drinks deeper','lvl');return;}
