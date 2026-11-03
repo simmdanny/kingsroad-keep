@@ -63,5 +63,93 @@
    "shed": 1,
    "fin": 1
   }
+ },
+ "seraphlance-0": {
+  "k": "seraphlance",
+  "L": 0,
+  "len": 7.9,
+  "seed": 1,
+  "bytes": 1130725,
+  "note": ""
+ },
+ "seraphlance-2": {
+  "k": "seraphlance",
+  "L": 2,
+  "len": 7.9,
+  "seed": 1,
+  "bytes": 1207286,
+  "note": "It lands like a falling star: a 4-tile blast.",
+  "ev": {
+   "cast": 1,
+   "impact": 1,
+   "lance": 6
+  }
+ },
+ "gaia-5": {
+  "k": "gaia",
+  "L": 5,
+  "len": 9.7,
+  "seed": 1,
+  "bytes": 1097508,
+  "note": "Every tree sheds its leaves, and as the forest sinks it drags its foes down.",
+  "ev": {
+   "opts": 1,
+   "strike": 6,
+   "shed": 1,
+   "fin": 1,
+   "drag": 6
+  }
+ },
+ "seraphlance-1": {
+  "k": "seraphlance",
+  "L": 1,
+  "len": 7.9,
+  "seed": 1,
+  "bytes": 1060158,
+  "note": "The great lance is forged longer and brighter.",
+  "ev": {
+   "cast": 1,
+   "impact": 1,
+   "lance": 6
+  }
+ },
+ "seraphlance-3": {
+  "k": "seraphlance",
+  "L": 3,
+  "len": 8.6,
+  "seed": 1,
+  "bytes": 1387150,
+  "note": "Nine lances leave the wings after the great one.",
+  "ev": {
+   "cast": 1,
+   "impact": 1,
+   "lance": 9
+  }
+ },
+ "seraphlance-5": {
+  "k": "seraphlance",
+  "L": 5,
+  "len": 8.6,
+  "seed": 1,
+  "bytes": 1363760,
+  "note": "Every lance from the wings strikes like a lesser great lance.",
+  "ev": {
+   "cast": 1,
+   "impact": 1,
+   "lance": 9
+  }
+ },
+ "seraphlance-4": {
+  "k": "seraphlance",
+  "L": 4,
+  "len": 7.9,
+  "seed": 1,
+  "bytes": 1139254,
+  "note": "The lances stay standing in their foes and hold them.",
+  "ev": {
+   "cast": 1,
+   "impact": 1,
+   "lance": 9
+  }
  }
 }
