@@ -19,5 +19,31 @@
    "open": 1,
    "hit": 80
   }
+ },
+ "pulsar-2": {
+  "k": "pulsar",
+  "L": 2,
+  "len": 11.33,
+  "seed": 1,
+  "bytes": 2397657,
+  "note": "Every phase comes sooner and the star spins faster.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "hit": 86
+  }
+ },
+ "pulsar-3": {
+  "k": "pulsar",
+  "L": 3,
+  "len": 11.33,
+  "seed": 1,
+  "bytes": 3169311,
+  "note": "The second beam tips down and sweeps a second, smaller ring.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "hit": 218
+  }
  }
 }
