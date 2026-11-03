@@ -1,0 +1,16 @@
+{
+ "never-1": {
+  "k": "never",
+  "L": 1,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 2094568,
+  "note": "A shooting star every 0.36s, splashing wider.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "star": 25,
+   "lash": 3
+  }
+ }
+}
