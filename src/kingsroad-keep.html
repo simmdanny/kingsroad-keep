@@ -7854,7 +7854,7 @@ function castWormhole(t,list,P,o,XO){const D=XO?Object.assign({},WHL,XO):WHL,lg=
   /* (Held Open: the Calm space setting covers the longer opening; the cast's wrapper gives 10.5s, the old opening's) */
   if(LIFE>WHL.LIFE)SPACE_T=Math.max(SPACE_T,LIFE+1.3);
   const sent=new Set(),C=new THREE.Vector3((pI[0]+pO[0])/2,Math.max(yI,yO)+4.2,(pI[1]+pO[1])/2),bez=(u,v)=>{const q=1-u;v.set(q*q*pI[0]+2*q*u*C.x+u*u*pO[0],q*q*yI+2*q*u*C.y+u*u*yO,q*q*pI[1]+2*q*u*C.z+u*u*pO[1]);return v;},tv=new THREE.Vector3();
-  let tt=0,pulsed=false,shud=0,G2=null,tube=null;const riders=[],prevP=D.sweep?new Map():null,skip=new Set();
+  let tt=0,pulsed=false,shud=0,G2=null,tube=null;const riders=[],prevP=D.sweep||D.catchR?new Map():null,skip=new Set();
   if(lg)lg({ev:'cast',rt,dIn,dOut,pI,pO,LIFE,lead,T:0});
   /* (Torn Through the Stars: the comets run on the arc's own curve; a boss's shorter arc gets its own) */
   const comet=geo=>{if(!G2)G2=nsOwn(new THREE.Group());const g=new THREE.Group();for(const[i,c]of[[0,0xa898ff],[1,0x6a4aff]]){const m=new THREE.ShaderMaterial({uniforms:{uH:{value:0},uA:{value:0},uC:{value:new THREE.Color(c)}},vertexShader:WH_COM_VS,fragmentShader:WH_COM_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
@@ -7907,12 +7907,12 @@ function castWormhole(t,list,P,o,XO){const D=XO?Object.assign({},WHL,XO):WHL,lg=
       /* (sweep: a foe carried right over the mouth in one long frame goes through too; Hungry Mouth: and every foe whose way since the last
          frame came within catchR of the first mouth, on any road) */
       if(prevP)for(const e of enemies){if(e.dead||e.fake||sent.has(e)||e.dist==null)continue;const q=prevP.get(e),r0=e.route||ROUTES[0],dd=q&&q[3]===r0?e.dist-q[2]:-1;
-        if(r0===rt&&dd>=0&&dd<2.5&&q[2]<dIn-.05&&e.dist>dIn+1.5){cross(e,'swept');continue;}
+        if(D.sweep&&r0===rt&&dd>=0&&dd<2.5&&q[2]<dIn-.05&&e.dist>dIn+1.5){cross(e,'swept');continue;}
         if(!D.catchR)continue;const R2=D.catchR*D.catchR;let hit=(e.x-pI[0])**2+(e.z-pI[1])**2<R2;
         /* (its way along the road since the last frame, in steps of at most 0.15 tiles) */
         if(!hit&&dd>0&&dd<2.5){const n=Math.ceil(dd/.15);for(let j=1;j<n&&!hit;j++){const p=posAt(q[2]+dd*j/n,r0),x=p[0]+Math.cos(p[2])*(e.off||0),z=p[1]-Math.sin(p[2])*(e.off||0);hit=(x-pI[0])**2+(z-pI[1])**2<R2;}}
         if(hit){if(loses(e))cross(e,'hungry');else if(lg&&!skip.has(e)){skip.add(e);lg({ev:'skip',e,T:tt});}}}}
-    if(prevP)for(const e of enemies)if(!e.dead)prevP.set(e,[e.x,e.z,e.dist,e.route||ROUTES[0]]);
+    if(prevP)for(const e of enemies){if(e.dead)continue;let q=prevP.get(e);if(!q)prevP.set(e,q=[0,0,0,null]);q[0]=e.x;q[1]=e.z;q[2]=e.dist;q[3]=e.route||ROUTES[0];}
     for(let i=riders.length-1;i>=0;i--){const r=riders[i];r.u+=dt*2.2;if(r.u>=1){riders.splice(i,1);if(r.m&&r.m.parent)r.m.parent.remove(r.m);continue;}if(r.u<0)continue;(r.bz||bez)(r.u,tv);
       for(let j=0;j<3;j++)emit(1,{x:tv.x,y:tv.y,z:tv.z,vx:(rnd()-.5)*.3,vy:(rnd()-.5)*.3,vz:(rnd()-.5)*.3,s:.12,s2:0,c:0xffffff,c2:0x7a8aff,life:.4});
       if(r.m){const a=(r.ka||1)*Math.min(1,r.u*8)*(1-SMS(r.u,.85,1));r.m.children.forEach((me,i)=>{const U=me.material.uniforms;U.uH.value=r.u;U.uA.value=a*(i?.32:.85);});for(let j=0;j<3;j++)emit(1,{x:tv.x+(rnd()-.5)*.2,y:tv.y+(rnd()-.5)*.2,z:tv.z+(rnd()-.5)*.2,vx:(rnd()-.5)*.5,vy:(rnd()-.5)*.5,vz:(rnd()-.5)*.5,s:.07,s2:0,c:0xffffff,c2:0x9a7aff,life:.55});}}

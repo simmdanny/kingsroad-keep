@@ -1875,6 +1875,7 @@ Space folds into twin wormholes on one road, one just ahead of the enemy's front
   - The pack is a column of 20 foes, 0.72 tiles apart (a wave's spawn gap at that speed), long enough that the longer opening never runs out of foes. The other measure is a lone foe. The weights are .6 / .4, with 3 casts each, 3 times over.
   - Damage is every point of health the foes lose: the crossings and the collapse.
   - Setback is the road each foe loses when it is thrown back, summed over a cast and averaged over the foes.
+  - Mastery 1 wanders by about 0.01 between runs (1.079 and 1.091 on two runs): the exits' small random scatter decides which of the thrown foes the far mouth's collapse reaches.
 
 | `SMG.wormhole` | M1 | M2 | M3 | M4 | M5 |
 |---|---|---|---|---|---|
