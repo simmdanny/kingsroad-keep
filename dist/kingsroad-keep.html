@@ -7906,36 +7906,63 @@ function beModel(mats,geos){const g=new THREE.Group();
   const lg=jitterGeo(new THREE.SphereGeometry(1.1,24,12,0,Math.PI*2,0,Math.PI/2),.03);geos.push(lg);
   const up=new THREE.Group(),lo=new THREE.Group();g.add(up,lo);up.add(new THREE.Mesh(lg,lidM));const ll=new THREE.Mesh(lg,lidM);ll.rotation.x=Math.PI;lo.add(ll);
   const glow=new THREE.Mesh(ico(1.35,3),nsAM(mats,0xc0101e,.1));g.add(glow);return{g,ball,up,lo,glow};}
-function castBloodEye(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.fake),cand=list.filter(e=>!e.fake&&!e.dead),c=cand.length?densest(cand):(pool.length?densest(pool):list[0]);
+/* v467: XO (optional, the Eye's masteries): this cast's own numbers over BED (R/N: how far from its aim the gaze brands and how many foes;
+   dur/mul: how long a brand lasts and how much more its foe takes from everything; iv/n/lash: a lash's interval, how many lashes and
+   their strike; w/br: the bolts' width and branches; moveN/moveT: The Gaze Moves On, how many fallen brands the gaze replaces, and until
+   when; last/lastT/lastW: The Last Look, its strike on every brand, its moment and its bolts' width) and its looks (eyeS: the eye's size;
+   wan: how widely the gaze sweeps before it brands; runeR: the rune; mkS/mkC/mkH/pulse: the brands' size, colours (0: the old shared
+   ones) and pulse; hold: the cast lives as long as its brands do, where the old one ends at 8.4s, 1.2s before its brands). log(d) receives
+   the events for the tests. Without XO: exactly as before. */
+const BED={R:8,N:6,dur:8,mul:1.35,iv:.4,n:6,lash:1.5,w:1.3,br:2,moveN:0,moveT:4.1,last:0,lastT:4,lastW:2.6,eyeS:1.2,wan:1,runeR:1.6,mkS:1,mkC:0,mkH:0,pulse:.25,hold:0,log:null};
+function castBloodEye(t,list,P,o,XO){const D=XO?Object.assign({},BED,XO):BED,lg=D.log,ek=D.eyeS/1.2;const pool=enemies.filter(e=>!e.dead&&!e.fake),cand=list.filter(e=>!e.fake&&!e.dead),c=cand.length?densest(cand):(pool.length?densest(pool):list[0]);
   const cx=c.x,cz=c.z,mats=[],geos=[],E=beModel(mats,geos);E.g.position.set(cx,gy(cx,cz)+3.5,cz-2.8);E.g.scale.setScalar(.001);nsOwn(E.g);
-  const rune=makeRune(1.6,0xff2030,{star:7,step:3,glyphs:24,fill:.3,fillCol:0x2a0204,fillNormal:true});rune.position.set(cx,gy(cx,cz)+.03,cz);nsOwn(rune);rune.userData.fade(0);
+  const rune=makeRune(D.runeR,0xff2030,{star:7,step:3,glyphs:24,fill:.3,fillCol:0x2a0204,fillNormal:true});rune.position.set(cx,gy(cx,cz)+.03,cz);nsOwn(rune);rune.userData.fade(0);if(lg)lg({ev:'open',E,rune,cx,cz,D});
   const [bg1,bg2]=nsBeamGeos(),bM1=nsAM(mats,0xffb0a0,0),bM2=nsAM(mats,0xff1a30,0);
   cineLock=Math.max(cineLock,4.6);darkTarget=Math.max(darkTarget,.42);vigTarget=Math.max(vigTarget,.48);if(typeof sfxRumble==='function')sfxRumble(2.4,.35);
-  const look=new THREE.Vector3(cx,0,cz),tmp=new THREE.Vector3(),marks=[];let tt=0,marked=false,strikeT=0;
-  const mkMark=e=>{const g=new THREE.Group(),h=(e.hitY||.4)/(e.g.scale.y||1);g.add(new THREE.Mesh(ico(.05,1),GLOW(0xff2a3a)));g.add(new THREE.Mesh(ico(.14,1),haloMat(0xff2030)));g.position.y=h*2.5;e.g.add(g);
-    const b=new THREE.Group();b.add(new THREE.Mesh(bg1,bM1),new THREE.Mesh(bg2,bM2));nsOwn(b);marks.push({e,g,b});};
+  const look=new THREE.Vector3(cx,0,cz),tmp=new THREE.Vector3(),marks=[];let tt=0,marked=false,strikeT=0,nS=0,moved=0,swing=null,lastDone=false,freed=false;if(lg)lg({ev:'marks',marks,T:()=>tt});
+  /* a brand: its foe takes D.mul from everything until it runs out (the hurt wrapper below) */
+  const brand=e=>{e.eyeT=time+D.dur;e.eyeM=D.mul;};
+  const cM=D.mkC?new THREE.MeshPhongMaterial({color:D.mkC,emissive:D.mkC,emissiveIntensity:.9,flatShading:true,shininess:5}):null,hM=D.mkH?nsAM(mats,D.mkH,.36):null,oM=D.mkH?new THREE.MeshBasicMaterial({color:0x7a000e,transparent:true,opacity:.34,depthWrite:false}):null;if(cM)mats.push(cM);if(oM)mats.push(oM);
+  const mkMark=e=>{const g=new THREE.Group(),h=(e.hitY||.4)/(e.g.scale.y||1);g.add(new THREE.Mesh(ico(.05*D.mkS,1),cM||GLOW(0xff2a3a)));g.add(new THREE.Mesh(ico(.14*D.mkS,1),hM||haloMat(0xff2030)));if(oM)g.add(new THREE.Mesh(ico(.16*D.mkS,1),oM));g.position.y=h*2.5;e.g.add(g);
+    const b=new THREE.Group();b.add(new THREE.Mesh(bg1,bM1),new THREE.Mesh(bg2,bM2));nsOwn(b);const m={e,g,b};marks.push(m);return m;};
+  /* (D.moveN, The Gaze Moves On) a brand fell while the eye is open: the gaze swings from it to the strongest unbranded foe in reach */
+  const moveOn=d=>{let b=null;if(moved<D.moveN&&tt<D.moveT)for(const e of enemies){if(e.dead||e.fake||e.eyeT>time||(e.x-cx)**2+(e.z-cz)**2>=D.R*D.R)continue;if(!b||nsStrong(e)>nsStrong(b))b=e;}
+    if(lg)lg({ev:'fall',e:d,to:b,tt});if(!b)return;moved++;brand(b);const p=tpos2(d),m=mkMark(b);m.g.scale.setScalar(.001);m.sw={x:p.x,y:p.y,z:p.z,t:tt,hit:false};swing={e:b,t:tt};if(lg)lg({ev:'move',from:d,e:b,n:moved,m});};
   addFx(new THREE.Group(),8.4,(f,dt)=>{tt+=dt;const open=SMS(tt,.45,1.15)*(1-SMS(tt,4.1,4.7)),grow=SMS(tt,0,.6)*(1-SMS(tt,4.5,5.1)),EP=E.g.position;
-    E.g.scale.setScalar(Math.max(.001,1.2*grow));E.up.rotation.x=-1.15*open;E.lo.rotation.x=1*open;E.glow.material.opacity=(.06+.08*open+.03*Math.sin(tt*9))*grow;
+    const fl=D.last?SMS(tt,D.lastT-.35,D.lastT)*(1-SMS(tt,D.lastT,D.lastT+.5)):0;
+    E.g.scale.setScalar(Math.max(.001,D.eyeS*grow*(1+.06*fl)));E.up.rotation.x=-1.15*open;E.lo.rotation.x=1*open;E.glow.material.opacity=(.06+.08*open+.03*Math.sin(tt*9)+.08*fl)*grow;if(D.last)E.ball.material.emissiveIntensity=.5+1.1*fl;
     rune.userData.fade(Math.min(.7,tt/.6)*(1-SMS(tt,4.4,5.2)));rune.rotation.y-=dt*.35;
     /* the gaze wanders over the field, then settles on its marks in turn */
-    if(tt<1.6)look.set(cx+Math.sin(tt*3.1)*2.2,0,cz+Math.cos(tt*2.3)*1.6);else{const A=marks.filter(m=>!m.e.dead);if(A.length){const m=A[Math.floor(tt*1.6)%A.length].e;look.lerp(tmp.set(m.x,0,m.z),Math.min(1,dt*6));}}
+    if(tt<1.6)look.set(cx+Math.sin(tt*3.1)*2.2*D.wan,0,cz+Math.cos(tt*2.3)*1.6*D.wan);else if(swing&&tt-swing.t<.7&&!swing.e.dead)look.lerp(tmp.set(swing.e.x,0,swing.e.z),Math.min(1,dt*9));else{const A=marks.filter(m=>!m.e.dead);if(A.length){const m=A[Math.floor(tt*1.6)%A.length].e;look.lerp(tmp.set(m.x,0,m.z),Math.min(1,dt*6));}}
     if(grow>.01){tmp.copy(camera.position).lerp(look,.3);E.g.lookAt(tmp);}
-    if(!marked&&tt>=1.6){marked=true;const L=pool.filter(e=>!e.dead&&(e.x-cx)**2+(e.z-cz)**2<64).sort((a,b)=>nsStrong(b)-nsStrong(a)).slice(0,6);
-      for(const e of L){e.eyeT=time+8;mkMark(e);const p=tpos2(e);flash(p.x,p.y,p.z,0xff3040,.5,.2);sprayP(1,p.x,p.y,p.z,14,{c:0xff6a5a,c2:0x5a0008,sp:1.4,up:.5,s:.05,s2:0,life:.5,g:1});}
+    if(!marked&&tt>=1.6){marked=true;const L=pool.filter(e=>!e.dead&&(e.x-cx)**2+(e.z-cz)**2<D.R*D.R).sort((a,b)=>nsStrong(b)-nsStrong(a)).slice(0,D.N);if(lg)lg({ev:'brand',L:L.slice(),cx,cz,pool:pool.slice()});
+      for(const e of L){brand(e);mkMark(e);const p=tpos2(e);flash(p.x,p.y,p.z,0xff3040,.5,.2);sprayP(1,p.x,p.y,p.z,14,{c:0xff6a5a,c2:0x5a0008,sp:1.4,up:.5,s:.05,s2:0,life:.5,g:1});}
       camShake=Math.max(camShake,.18);flashA=Math.max(flashA,.24);flashCol='#6a0010';if(typeof sfxBoom==='function')sfxBoom(.35,true);}
     const gz=marked?SMS(tt,1.6,1.8)*(1-SMS(tt,3.9,4.3)):0;bM1.opacity=.75*gz;bM2.opacity=.22*gz;
-    if(marked&&tt<4&&dt>0){strikeT-=dt;if(strikeT<=0){strikeT=.4;for(const m of marks){if(m.e.dead)continue;const p=tpos2(m.e);
-        nsArc(new THREE.Vector3(EP.x,EP.y-.8,EP.z),new THREE.Vector3(p.x,p.y,p.z),{col:0xff5060,halo:0x8a0012,w:1.3,disp:.55,br:2,life:.18});hurt(m.e,P*1.5,'magic',o);sprayP(1,p.x,p.y,p.z,6,{c:0xff8a7a,c2:0x6a0008,sp:1.2,s:.04,s2:0,life:.3});}}}
-    /* marks ride on their foe until the 8s run out or it dies; the gaze beam follows them */
-    for(let i=marks.length-1;i>=0;i--){const m=marks[i];m.g.rotation.y+=dt*3;m.g.children[1].scale.setScalar(1+.25*Math.sin(tt*6+i));const p=tpos2(m.e);
-      if(gz>.01)nsBeamSet(m.b,EP.x,EP.y-.5,EP.z,p.x,p.y,p.z);m.b.visible=gz>.01&&!m.e.dead;
-      if(m.e.dead||!(m.e.eyeT>time)){if(m.g.parent)m.g.parent.remove(m.g);nsFree(m.b);marks.splice(i,1);}}
-    if(dt>0&&open>.3&&rnd()<dt*9)emit(0,{x:EP.x+(rnd()-.5)*.7,y:EP.y-1.05,z:EP.z+(rnd()-.5)*.5,vx:0,vy:-.2,vz:0,s:.07,s2:.03,c:0x9a0010,c2:0x3a0004,a:.95,life:1.2,g:6});
-    if(dt>0&&grow>.1&&rnd()<dt*12){const a=rnd()*6.28,r=1.4+rnd()*.7;emitS(0,{x:EP.x+Math.cos(a)*r,y:EP.y+(rnd()-.5)*1.4,z:EP.z+Math.sin(a)*r,vx:-Math.sin(a)*.5,vy:0,vz:Math.cos(a)*.5,s:.55,s2:1.5,c:0x3a0208,c2:0x12000a,a:.42,life:1.6,turb:.4});}
-    if(tt>4.6){darkTarget=Math.max(0,darkTarget-dt*.4);vigTarget=Math.max(0,vigTarget-dt*.4);}},
-    ()=>{nsFree(E.g);nsFree(rune);marks.forEach(m=>{if(m.g.parent)m.g.parent.remove(m.g);nsFree(m.b);});darkTarget=0;vigTarget=0;},{mats:mats.concat(rune.userData.mats),geos:geos.concat(rune.userData.geos)});}
-/* marked foes take 35% more damage from everything */
-{const h0=hurt;hurt=function(e,amt,kind,o){if(e&&e.eyeT>time&&!e.dead)amt*=1.35;return h0(e,amt,kind,o);};}
+    if(marked&&tt<4&&dt>0&&nS<D.n){strikeT-=dt;if(strikeT<=0){strikeT=D.iv;nS++;const H=lg?[]:null;for(const m of marks){if(m.e.dead)continue;const p=tpos2(m.e);
+        nsArc(new THREE.Vector3(EP.x,EP.y-.8*ek,EP.z),new THREE.Vector3(p.x,p.y,p.z),{col:0xff5060,halo:0x8a0012,w:D.w,disp:.55,br:D.br,life:.18});hurt(m.e,P*D.lash,'magic',o);if(H)H.push(m.e);sprayP(1,p.x,p.y,p.z,6,{c:0xff8a7a,c2:0x6a0008,sp:1.2,s:.04,s2:0,life:.3});}
+        if(lg)lg({ev:'lash',n:nS,H});}}
+    /* (D.last, The Last Look) before the lids close the iris flares, and one great lash runs from every brand to the eye and renews it */
+    if(D.last&&marked&&!lastDone&&tt>=D.lastT){lastDone=true;const H=[];for(const m of marks){if(m.e.dead)continue;const p=tpos2(m.e);
+        nsArc(new THREE.Vector3(p.x,p.y,p.z),new THREE.Vector3(EP.x,EP.y-.8*ek,EP.z),{col:0xff5060,halo:0x8a0012,w:D.lastW,disp:.55,br:D.br,life:.26});hurt(m.e,P*D.last,'magic',o);H.push(m.e);if(!m.e.dead)brand(m.e);
+        flash(p.x,p.y,p.z,0xff3040,.6,.24);sprayP(1,p.x,p.y,p.z,16,{c:0xff8a7a,c2:0x6a0008,sp:1.6,up:.6,s:.05,s2:0,life:.45,g:1});}
+      flash(EP.x,EP.y-.4*ek,EP.z,0xff4a30,1.1*ek,.3);camShake=Math.max(camShake,.2);flashA=Math.max(flashA,.2);flashCol='#6a0010';if(typeof sfxBoom==='function')sfxBoom(.3,true);if(lg)lg({ev:'last',H});}
+    /* marks ride on their foe until its brand runs out (8s) or it dies; the gaze beam follows them */
+    if(hM)hM.opacity=.36+.14*Math.sin(tt*6);
+    for(let i=marks.length-1;i>=0;i--){const m=marks[i];m.g.rotation.y+=dt*3;m.g.children[1].scale.setScalar(1+D.pulse*Math.sin(tt*6+i));if(oM)m.g.children[2].scale.setScalar(1+D.pulse*.7*Math.sin(tt*6+i-.9));const p=tpos2(m.e);
+      /* (a gaze that moved on swings its beam from the fallen brand to the new one, and the brand lights as it arrives) */
+      let q=p;if(m.sw){const k=SMS(tt,m.sw.t,m.sw.t+.3),w=m.sw;m.g.scale.setScalar(Math.max(.001,k));q={x:w.x+(p.x-w.x)*k,y:w.y+(p.y-w.y)*k,z:w.z+(p.z-w.z)*k};
+        if(k>=1&&!w.hit){w.hit=true;flash(p.x,p.y,p.z,0xff3040,.5,.2);sprayP(1,p.x,p.y,p.z,14,{c:0xff6a5a,c2:0x5a0008,sp:1.4,up:.5,s:.05,s2:0,life:.5,g:1});}}
+      if(gz>.01)nsBeamSet(m.b,EP.x,EP.y-.5*ek,EP.z,q.x,q.y,q.z);m.b.visible=gz>.01&&!m.e.dead;
+      if(m.e.dead||!(m.e.eyeT>time)){if(m.g.parent)m.g.parent.remove(m.g);nsFree(m.b);marks.splice(i,1);if(m.e.dead&&D.moveN)moveOn(m.e);}}
+    if(dt>0&&open>.3&&rnd()<dt*9)emit(0,{x:EP.x+(rnd()-.5)*.7*ek,y:EP.y-1.05*ek,z:EP.z+(rnd()-.5)*.5*ek,vx:0,vy:-.2,vz:0,s:.07,s2:.03,c:0x9a0010,c2:0x3a0004,a:.95,life:1.2,g:6});
+    if(dt>0&&grow>.1&&rnd()<dt*12){const a=rnd()*6.28,r=(1.4+rnd()*.7)*ek;emitS(0,{x:EP.x+Math.cos(a)*r,y:EP.y+(rnd()-.5)*1.4,z:EP.z+Math.sin(a)*r,vx:-Math.sin(a)*.5,vy:0,vz:Math.cos(a)*.5,s:.55,s2:1.5,c:0x3a0208,c2:0x12000a,a:.42,life:1.6,turb:.4});}
+    if(tt>4.6&&!freed){darkTarget=Math.max(0,darkTarget-dt*.4);vigTarget=Math.max(0,vigTarget-dt*.4);}
+    /* (D.hold) the eye, its rune and the darkness end at 8.4s as before; the cast lives on only while its brands do */
+    if(D.hold){if(!freed&&tt>=8.4){freed=true;nsFree(E.g);nsFree(rune);darkTarget=0;vigTarget=0;}if(f.life<.1&&marks.length)f.life=.1;}},
+    ()=>{if(!freed){nsFree(E.g);nsFree(rune);darkTarget=0;vigTarget=0;}marks.forEach(m=>{if(m.g.parent)m.g.parent.remove(m.g);nsFree(m.b);});},{mats:mats.concat(rune.userData.mats),geos:geos.concat(rune.userData.geos)});}
+/* marked foes take 35% more damage from everything (v467: e.eyeM, the brand's own, is 1.35 but for Bloodshot Brand) */
+{const h0=hurt;hurt=function(e,amt,kind,o){if(e&&e.eyeT>time&&!e.dead)amt*=e.eyeM||1.35;return h0(e,amt,kind,o);};}
 
 /* ---- Moonfall: the Blood Moon is pulled out of the sky, falls on the densest group and leaves a crater of molten blood ---- */
 let MF_TEX=null;
@@ -14579,6 +14606,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Eye of the Blood Moon: the gaze that marks',d:'3 Nov',v:'v467',li:[
+    'Eye of the Blood Moon (Secret) has five new masteries, for now in developer mode. Still one eye in the sky, its gaze branding the strongest foes and blood lightning lashing down at them: each mastery makes a part the spell already has stronger and draws that part richer.',
+    'Wider Gaze: the eye opens a tenth larger and brands 7 foes (6 before) within 10 tiles (8 before). Bloodshot Brand: branded foes take 40% more damage from everything (35% before) for 10s (8s before); the brands glow bigger and deeper red, and stay lit for as long as they last.',
+    'Lashing Storm: the lightning lashes every 0.34s, 7 times (6 before), 140% each (150% before), in thicker bolts with more branches. The Gaze Moves On: when a branded foe dies while the eye is open, the gaze swings to the strongest unbranded foe in reach and brands it (up to 6 more).',
+    'The Last Look: before the lids close, the iris flares and one great lash, twice as thick, runs from every brand up to the eye: 200%, renewing each brand. Still one eye and one gaze.']},
   {t:'Blood Needles: more of them, and sharper',d:'3 Nov',v:'v466',li:[
     'Blood Needles (Secret) has five new masteries, for now in developer mode. Still one crimson orbit round the hero and one hunt of guided needles: each mastery makes the swarm sharper or larger, and draws it a little richer.',
     'Barbed Points: each needle strikes 135% of the hero\u2019s attack (125% before), drawn a fifth longer with brighter sheens, bigger tips and longer trails. Bloodhound: the needles fly 25% faster, turn twice as tight and hunt a quarter further, so they strike in under a second instead of circling their mark; longer, brighter trails.',
@@ -34125,6 +34157,66 @@ function bnmOpts(c){const L=c.L,a=c.a,X={};
   X.log=BNM.dbg?bnmLog:null;bnmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
 const BNM_OLD=castBloodNeedles;
 castBloodNeedles=function(t,dmg,o,range,XO){const c=!XO?bnmC(o):null;return BNM_OLD(t,dmg,o,range,c?bnmOpts(c):XO);};
+/* ================= Eye of the Blood Moon's masteries (v467), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: a vast eye tears open in the sky; its gaze settles on the strongest foes and brands them (they take more from everything for a
+   while), and blood lightning lashes down from the eye at its brands. One eye, one gaze, brands, lightning from the eye. Simon, for every
+   Mythic, Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is preserved but their
+   visuals barely change and change only to better", and "new stuff CAN appear ... but just nothing that over shines the spell". So each
+   mastery strengthens one part the spell already has and draws that same part richer: no lances (Seraph Lance), no stars over the strongest
+   (Constellation), no more eyes (Crimson Purgatory).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Wider Gaze | what if the eye saw more of the field? | the gaze | more targets, wider reach |
+   | 2 | Bloodshot Brand | what if its mark cut deeper? | the brand | a stronger, longer debuff |
+   | 3 | Lashing Storm | what if the lightning never let up? | the lightning | more strikes |
+   | 4 | The Gaze Moves On | what if a fallen brand passed the gaze on? | the brands | retargeting |
+   | 5 | The Last Look | what if the eye struck once more before it closed? | the lightning's end | signature payoff |
+   - M1 Wider Gaze: it brands BEY.N foes (6 before) within BEY.R tiles of where it looks (8 before); the eye a tenth larger (1.32), its
+     first sweep over the field 1.3 times wider, a larger rune (1.85, 1.6 before).
+   - M2 Bloodshot Brand: branded foes take BEY.mul from everything (x1.35 before) for BEY.dur s (8 before); the hurt wrapper reads the
+     foe's own brand (e.eyeM). The brands are drawn a fifth larger, in deeper reds (a brighter core, a deeper red halo whose light pulses,
+     a see-through dark red glow round them) and pulse harder (45%, 25% before).
+   - M3 Lashing Storm: a lash every BEY.iv s, BEY.n of them (every 0.4s, 6 before), BEY.lash each (150% before), in thicker bolts (width
+     1.6, 1.3 before) with three branches (two).
+   - M4 The Gaze Moves On: while the eye is open (until its lids begin to close at 4.1s), a branded foe that dies passes the gaze to the
+     strongest unbranded foe within reach, which is branded like the first ones and lashed by the lashes still to come (up to BEY.moveN more).
+     The gaze beam swings from the fallen brand to the new one over 0.3s, the eye turns to it, and its brand lights as the beam arrives.
+   - M5 The Last Look: at 4s, after the last lash and before the lids close, the iris flares (its light 0.5 to 1.6) and one great lash runs
+     from every brand up to the eye, the same blood lightning twice as thick: BEY.last each, renewing each brand (BEY.dur s from then).
+   - Seen, not hidden: the old cast ends at 8.4s, so its brand marks vanished 1.2s before the brands (9.6s). Mastered casts (hold) keep the
+     marks for as long as the brands last; the eye, its rune and the darkness still end at 8.4s. Mastery 0 is unchanged.
+   Percentages are of the scroll's power. Every mastered cast runs castBloodEye with its XO (beyOpts); Mastery 0, echoes and other casters
+   cast exactly as before. Numbers trimmed from the approved table, which measured 1.10 / 1.18 / 1.38 / 1.38 / 1.71 on the ladder (factors
+   down to 0.79): the brand +40% (+45% approved), each lash at Lashing Storm 140% (150%), The Last Look 200% (250%).
+   The brand: the ladder sees only the Eye's own lightning, but the brand lifts everything that strikes a branded foe. Two good towers on
+   the brands around wave 25 deal about 2.2 times the scroll's power a second, so at Mastery 0 the brand adds about 8.5% to the cast's own
+   damage (a bot game to wave 40 measured 7.5-9.4%); 40% for 10s makes that 1.43 times as much (45% would have been 1.61), and The Last
+   Look's renewal 1.77 times. So the brand stays at the low end, and the factors leave the ladder 0.01-0.02 under each target from Mastery 2
+   up: with one or two towers on the brands the whole cast lands within 0.02 of every target. Not counted: The Gaze Moves On (its foes must
+   die), the longer brand. On the ladder (pack .6 / one .4, 6 casts 12s apart, 2 runs; the same with the foes put back before every cast:
+   the Eye moves no foe) with the factors below: 1.078 / 1.144 / 1.212 / 1.292 / 1.336 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35.
+   BEY.dbg (an array) logs the events. */
+const BEY={dbg:null,R:10,N:7,mul:1.4,dur:10,iv:.34,n:7,lash:1.4,moveN:6,last:2};
+const beyC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='bloodeye'&&c.L?c:null;};
+const beyLog=d=>{if(BEY.dbg){d.t=time;BEY.dbg.push(d);}};
+SM_D.bloodeye=[
+  {n:'Wider Gaze',d:'The eye opens a tenth larger and its gaze sweeps further: it brands 7 foes (6 before) within 10 tiles (8 before).'},
+  {n:'Bloodshot Brand',d:'Branded foes take {40}% more damage from everything (35% before), for 10s (8s before). The brands glow bigger and deeper red.'},
+  {n:'Lashing Storm',d:'Blood lightning lashes every brand every 0.34s: 7 times (6 before), {140}% each (150% before), in thicker bolts.'},
+  {n:'The Gaze Moves On',d:'When a branded foe dies while the eye is open, the gaze swings to the strongest unbranded foe in reach and brands it (up to 6 more).'},
+  {n:'The Last Look',d:'Before the lids close, the iris flares and one great lash strikes every brand at once: {200}%, renewing each brand.'}];
+SMF.bloodeye={m:1};
+SMA.bloodeye=[1,1,1,1,1];
+SMG.bloodeye=[.98,1.003,.976,1.04,.893];
+/* this cast's numbers and looks (castBloodEye's XO) */
+function beyOpts(c){const L=c.L,a=c.a,X={hold:1};
+  if(L>=1){X.R=BEY.R;X.N=BEY.N;X.eyeS=1.32;X.wan=1.3;X.runeR=1.85;}
+  if(L>=2){X.mul=BED.mul+(BEY.mul-BED.mul)*a[1];X.dur=BEY.dur;X.mkS=1.2;X.mkC=0xff1028;X.mkH=0xd8061c;X.pulse=.45;}
+  if(L>=3){X.iv=BEY.iv;X.n=BEY.n;X.lash=BED.lash+(BEY.lash-BED.lash)*a[2];X.w=1.6;X.br=3;}
+  if(L>=4)X.moveN=BEY.moveN;
+  if(L>=5){X.last=BEY.last*a[4];X.lastW=2*(X.w||BED.w);}
+  if(BEY.dbg)X.log=beyLog;beyLog({ev:'cast',L,X:Object.assign({},X)});return X;}
+const BEY_OLD=castBloodEye;
+castBloodEye=function(t,list,P,o,X){const c=!X?beyC(o):null;return BEY_OLD(t,list,P,o,c?beyOpts(c):X);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
