@@ -12085,14 +12085,15 @@ function bnTrail(len,w){const N=len,pos=new Float32Array(N*2*3),col=new Float32A
       pos.set([q.x+BN_S.x,q.y+BN_S.y,q.z+BN_S.z,q.x-BN_S.x,q.y-BN_S.y,q.z-BN_S.z],i*6);const k=(1-i/N)*(H.length>1?1:0);col.set([k,.08*k,.12*k,k,.08*k,.12*k],i*6);}
     g.attributes.position.needsUpdate=true;g.attributes.color.needsUpdate=true;}};}
 /* v466: XO (optional, Blood Needles' masteries): this cast's own numbers over BND (sub: the longest step a needle's flight takes, for every
-   cast: a longer frame is flown in several steps, see below; 0 flies each frame in one step, as before v466; K: each needle's strike, times the old 125% of the hero's
-   attack; spd/turn: the flight's speed and turning; reach: how far the needles hunt; let/letMax: a needle striking a foe this swarm has already
-   pierced strikes let harder per needle already in it, up to letMax; wait: how long past the hunt's end a needle with no prey waits in the
-   orbit for one, and rush: how many a second the waiting needles fly once one comes; N: the needles in the orbit; SH: the needles the hunt
-   looses one by one, F1: by when; halo: at haloT every needle still circling looses at once at the strongest prey) and its looks (len: the
-   needles' length; sheen; tip; trail/trailW/trailA/trailC: the trails; swoop: how sharp the swoop is; spray: the hit spray deepening as they
-   pile in; glow/wSpin: waiting needles glowing and the orbit spinning faster while they wait; spin: the orbit's own spin; blur/blurSpin: the
-   orbit spinning to a blur before the halo looses; smoke/smokeS: the red smoke), and log() for the tests. Without XO: exactly as before. */
+   cast, Mastery 0 too: a longer frame is flown in several steps, see the flight below; 0 flies each frame in one step, as before v466; K: each
+   needle's strike, times the old 125% of the hero's attack; spd/turn: the flight's speed and turning; reach: how far the needles hunt;
+   let/letMax: a needle striking a foe this swarm has already pierced strikes let harder per needle already in it, up to letMax; wait: how
+   long past the hunt's end a needle with no prey waits in the orbit for one, and rush: how many a second the waiting needles fly once one
+   comes; N: the needles in the orbit; SH: the needles the hunt looses one by one, F1: by when; halo: at haloT every needle still circling
+   looses at once at the strongest prey) and its looks (len: the needles' length; sheen; tip; trail/trailW/trailA/trailC: the trails; swoop/
+   swoopA: how sharp and wide the swoop is; spray: the hit spray deepening as they pile in; glow/wSpin: waiting needles glowing and the orbit
+   spinning faster while they wait; spin: the orbit's own spin; blur/blurSpin: the orbit spinning to a blur before the halo looses; smoke/
+   smokeS: the red smoke), and log() for the tests. Without XO: exactly as before (but for sub). */
 const BND={sub:.02,K:1,spd:1,turn:1,reach:1,let:0,letMax:0,wait:0,rush:32,N:8,SH:32,F1:4.35,halo:0,haloT:4.35,len:1,sheen:.3,tip:0,trail:14,trailW:.05,trailA:.55,trailC:0xb01020,swoop:1,swoopA:.9,spray:0,glow:0,wSpin:0,spin:0,blur:0,blurSpin:0,smoke:1,smokeS:1,log:null};
 const bnMix=(a,b,k)=>{const A=new THREE.Color(a),B=new THREE.Color(b);return A.lerp(B,k).getHex();};
 /* the orbit spun to a blur: a thin tube of light along the orbit (a torus, so it reads from the game's steep camera as well as from the
