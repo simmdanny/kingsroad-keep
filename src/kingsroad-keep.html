@@ -14223,6 +14223,12 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Blood Needles: more of them, and sharper',d:'3 Nov',v:'v466',li:[
+    'Blood Needles (Secret) has five new masteries, for now in developer mode. Still one crimson orbit round the hero and one hunt of guided needles: each mastery makes the swarm sharper or larger, and draws it a little richer.',
+    'Barbed Points: each needle strikes 135% of the hero’s attack (125% before), drawn a fifth longer with brighter sheens, bigger tips and longer trails. Bloodhound: the needles fly 25% faster, turn twice as tight and hunt a quarter further, so they strike in under a second instead of circling their mark; longer, brighter trails.',
+    'Bloodletting: a needle striking a foe the swarm has already pierced strikes 2% harder for every needle already in it (up to 20%), and the spray thickens as they pile in. Patient Swarm: a needle with no foe in reach waits in the orbit, glowing, and flies the moment one comes (up to 1.5s after the hunt), instead of being lost.',
+    'Crimson Halo: the orbit fills to 12 needles (8 before); after 24 have flown one by one it spins to a blur, and every needle still circling looses at once at the strongest foe: 36 needles in all (32 before).',
+    'A fix for every Blood Needles cast: below 50 frames a second, or at 2x game speed and up, most needles overshot their mark and circled it until they expired (at 20 frames a second only about a quarter struck). They now fly the same at any frame rate and speed; at 50 frames a second and up at 1x nothing changes.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -32011,7 +32017,44 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
 /* ================= Blood Needles' masteries (v466), designed with the framework (MASTERY_DESIGN.md) ================= */
-/* HEADER */
+/* Identity: a crimson orbit of eight needles circles the hero over a blood rune, then hunts for 4 seconds: guided blood darts leave it one
+   every eighth of a second, each going for the foe with the most life left after the darts already in flight. No splash, chains or bursts.
+   Simon (v447), the picture this scroll is closest to: "piercing judgment really cannot lose its identity so masteries should make it more
+   powerful but not by adding crazy effects but picture it like fern from frieren where she fires alot of em and just more powerful ones";
+   and for every Mythic, Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is
+   preserved but their visuals barely change and change only to better". So every mastery is the same swarm, with more needles or sharper
+   ones: nothing ricochets, pierces, bursts or bleeds (Murder of Crows, Frost Wolves, Vael, Seraph Lance).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Barbed Points | what if every needle bit deeper? | each needle | stronger needles |
+   | 2 | Bloodhound | what if they found their prey at once? | the flight | a faster hunt |
+   | 3 | Bloodletting | what if they piled into the same wound? | the focus | a stronger focus |
+   | 4 | Patient Swarm | what if no needle were wasted? | the orbit | no needle lost |
+   | 5 | Crimson Halo | what if the orbit itself loosed? | the orbit's end | signature payoff: Fern's volley |
+   - M1 Barbed Points: each needle strikes BNM.atk of the hero's attack (125% before), drawn a fifth longer in the orbit and in flight, with
+     a brighter sheen (0.45, 0.3 before), tips half again as large and longer trails (18 points, 14 before).
+   - M2 Bloodhound: the needles fly BNM.spd times as fast, turn BNM.turn times as tight and hunt BNM.reach times as far. Today most of them
+     circle their mark for 2-3s before they strike (they turn too slowly to meet a mark 0.2 wide at full speed), and one that is still
+     circling at 3.6s expires; at Mastery 2 they strike in about 0.8s on average (2.3s before). Turning only as much faster as they fly would
+     circle in the same loops, so the turn is doubled. Longer, brighter trails (22 points, a brighter red, 0.68) and a sharper swoop.
+   - M3 Bloodletting: a needle striking a foe this swarm has already pierced strikes BNM.let harder for each needle already in it, up to
+     BNM.letMax (from the 11th); the needles still spread by the life left, so it pays on the big foes that draw many. The hit spray thickens
+     and darkens as they pile in (9 red and 5 dark sparks at first, 16 and 14 once ten are in).
+   - M4 Patient Swarm: a needle with no foe in reach waits in its slot, glowing, the orbit spinning faster, instead of being lost; when one
+     comes, the waiting needles fly at BND.rush a second (32) until the hunt has caught up. They wait until BNM.wait s after the hunt's end
+     (4.35s), and the orbit with them.
+   - M5 Crimson Halo: the orbit fills to BNM.N needles (8 before); BNM.SH of them fly one by one at the hunt's old pace (by BNM.F1 s), then
+     the orbit spins to a blur (a thin torus of light streaked behind each needle) and at BNM.haloT s every needle still circling looses at
+     once at the strongest foe (the most life left after the needles in flight); thicker blood smoke. 36 needles in all (32 before). Built as
+     written (the 32 one by one, then 12 more) the halo added 41%: Mastery 5 measured 1.64 against 1.35, a factor of 0.82, so each needle
+     would have struck weaker than at Mastery 0. So the halo's twelve come out of the hunt's own count: 24 one by one, then 12 at once.
+   Every cast (v466, Mastery 0 too): a needle's flight is flown in steps of at most BND.sub (0.02s). Effects step by the frame's time times
+   the game speed, and in one long step a needle flew so far past its mark that it never met it: below 50 fps, or at 2x speed and up, most
+   needles circled until they expired (at 20 fps 6-11 of the 32 struck). At 50 fps and up at 1x a frame is still one step: nothing changes.
+   Percentages are of the hero's attack (the needles' own strike). Every mastered Blood Needles cast runs castBloodNeedles with its XO
+   (bnmOpts); Mastery 0, echoes and other casters cast as before. Bloodhound's speed and reach and Patient Swarm count for nothing on the
+   ladder (its foes stand in reach and never die, and every needle strikes), so their factors carry them. On the ladder (Secret, half steps;
+   pack .6 / lone foe .4, 12 casts 15s apart) with the factors below: 1.08 / 1.162 / 1.226 / 1.303 / 1.349 against 1.078 / 1.162 / 1.226 /
+   1.302 / 1.35; with the foes put back before every cast, 1.08 / 1.162 / 1.226 / 1.302 / 1.343. BNM.dbg (an array) logs the events. */
 const BNM={dbg:null,atk:1.35,spd:1.25,turn:2,reach:1.25,let:.02,letMax:.2,wait:1.5,N:12,SH:24,F1:3.35,haloT:3.85};
 const bnmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='bloodneedles'&&c.L?c:null;};
 const bnmLog=d=>{if(BNM.dbg){d.t=time;BNM.dbg.push(d);}};
