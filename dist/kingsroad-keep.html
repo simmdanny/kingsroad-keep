@@ -7829,7 +7829,7 @@ function castConstellation(t,list,P,o,XO){const D=XO?Object.assign({},CSL,XO):CS
       if(tt>=s.born&&tt-dt<s.born){sprayP(1,s.x,y,s.z,12,{c:0xffffff,c2:0x7fa8ff,sp:.8,s:.04,s2:0,life:.5});if(D.hold)hold(s);}
       /* (the halo tightens round a held foe and pulses; round a slowed boss a little less, and slower) */
       if(D.pulse&&s.held&&!s.shot)s.h.scale.setScalar(s.held===1?.66+.12*Math.sin(tt*15+s.i*1.3):.84+.08*Math.sin(tt*8+s.i));}
-    const vis=Math.min(1,tt*3/ts);starM.opacity=vis;haloM.opacity=(.28+.3*glowUp)*vis;flM.opacity=.55*vis;if(holdM)holdM.opacity=(.36+.16*Math.sin(tt*15)+.14*glowUp)*vis;
+    const vis=Math.min(1,tt*3/ts);starM.opacity=vis;haloM.opacity=(.28+.3*glowUp)*vis*(D.white?.85:1);flM.opacity=.55*vis;if(holdM)holdM.opacity=(.36+.16*Math.sin(tt*15)+.14*glowUp)*vis;
     const lk=SMS(tt,1.1*ts,1.8*ts);lineM.opacity=.9*lk;lineH.opacity=(.25+.35*glowUp)*lk;
     lines.forEach((L,i)=>{const A=L.a.g.position,B=L.b.g.position,d=Math.min(1,Math.max(0,lk*lines.length-i));L.g.visible=d>0&&!(fired&&tt>PL+.15*ts);if(!L.g.visible)return;nsBeamSet(L.g,A.x,A.y,A.z,A.x+(B.x-A.x)*d,A.y+(B.y-A.y)*d,A.z+(B.z-A.z)*d);});
     if(!fired&&tt>=PL){fired=true;stars.forEach((s,i)=>{s.fall=PL+i*.06*ts;});camShake=Math.max(camShake,.1);flashA=Math.max(flashA,.16);flashCol='#cfdcff';}
@@ -14236,6 +14236,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Constellation: a brighter sky, and it falls twice',d:'3 Nov',v:'v470',li:[
+    'Constellation (Secret) has five new masteries, for now in developer mode. Still one figure of stars over the strongest foes, joined by lines of light, that falls as lances and burns its lines into the ground: each mastery makes a part of it stronger, and draws it a little richer.',
+    'Brighter Stars: the stars burn a quarter larger and whiter, with longer flares, and fall as thicker lances: 1100% to the foe (1000% before) and 60% to the foes within 0.8 tiles of it (0.6 before). Each lands in a short column of light rising off the ground, inside a low wall of light, where a flat ring was. A Larger Figure: 8 stars (7 before), reaching foes within 10 tiles (9 before).',
+    'Burning Lines: 250% (200% before) to every foe within 0.75 tiles of a line (0.55 before). The lines stay alight 2s with a low band of light rising off them, and burn a foe that steps onto them later (once). Fixed Stars: a foe is held under its star from the moment it kindles until it falls (about 1.5-2s); bosses are slowed 50% instead. The halo tightens and pulses over its foe.',
+    'The Sky Falls Twice: when the lines have burnt, the figure kindles again over the strongest foes still standing, drawn faster, and falls a second time at 12% of the power.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -32024,7 +32029,43 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
 /* ================= Constellation's masteries (v470), designed with the framework (MASTERY_DESIGN.md) ================= */
-/* (header: written after calibration) */
+/* Identity: stars kindle one by one over the strongest foes and lines of light join them into one figure; then the whole figure falls, a lance
+   of light per star (1000% to its foe, 60% round it), and the lines burn into the ground beneath (200% once to every foe along them). Simon,
+   for every Mythic, Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is preserved
+   but their visuals barely change and change only to better"; and "new stuff CAN appear, for example the abyss having 3rd leviathan or
+   something but just nothing that over shines the spell". So every mastery strengthens a part the figure already has and draws it a little
+   richer, and the one new thing (a second fall) is the same figure again. The lances stay one a star (Lance of the Seraph owns lances
+   stacked on the strongest) and the lines stay on the ground between the impacts (Piercing Judgment owns beams across the field).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Brighter Stars | what if every star burnt brighter? | the stars and lances | stronger lances |
+   | 2 | A Larger Figure | what if the figure were larger? | the figure | one more star |
+   | 3 | Burning Lines | what if the lines kept burning? | the lines | a lasting burn |
+   | 4 | Fixed Stars | what if the stars held their foes? | the kindling | control |
+   | 5 | The Sky Falls Twice | what if the whole sky fell again? | the fall | signature payoff |
+   - M1 Brighter Stars: each lance strikes CSM.lance (1100%, 1000% before) and 60% to the foes within CSM.spl tiles of its foe (0.8, 0.6
+     before). The stars a quarter larger, a white core and a whiter halo, flares a tenth longer (so 1.4 times as long with the size), lances
+     half again as thick; each impact a short column of light rising off the ground round the foe inside a low wall of light racing out to the
+     splash's reach (csImpact): the impact's flat ring was its only explosion, so it is now 3D (the explosion rule).
+   - M2 A Larger Figure: CSM.N stars (8, 7 before) over the strongest foes within CSM.R tiles of the densest one (10, 9 before): one more
+     star and one more line, kindled the same way.
+   - M3 Burning Lines: CSM.line (250%, 200% before) to every foe within CSM.lineW tiles of a line (0.75, 0.55 before), and the lines stay
+     alight CSM.alight s (2, the streaks lasted 1.3s): a foe that steps onto one meanwhile is burnt too, once a figure (its path since the last
+     frame is checked in steps of at most 0.15 tiles, so a long frame at a high game speed cannot carry it across a line unburnt). Wider (0.3,
+     0.22 before) streaks with a white core and a low band of light rising off them (a standing ribbon, CS_BAND_FS), embers along them.
+   - M4 Fixed Stars: a non-boss foe is held under its star from its kindling until its star falls (stunT set directly, as the Dimensional
+     Slash's stillness: about 2.05s for the first star to 1.5s for the eighth); a boss is slowed CSM.bossSlow (50%) instead. The halo tightens
+     and pulses over a held foe (a little less over a slowed boss).
+   - M5 The Sky Falls Twice: 0.25s after the lines burn, the figure kindles again over the strongest foes still standing (the same rules) and
+     falls a second time at CSM.twice of the power (12%), drawn faster (its timings times CSM.twTs, 0.6: it falls 1.3s after it kindles), with
+     every mastery before it, its impacts a little softer; the sky stays dark until it has fallen. The cast then lasts about 6.6s, past its
+     cineLock, so the mastery preview waits for it (SMPV_BUSY). Approved at 40%: built so, Mastery 5 measured 1.79 against 1.35, a factor of
+     0.76 (each first-fall lance at about 830%, weaker than at Mastery 0); 12% keeps the factor at 0.945 (lances at 1040%).
+   Percentages are of the scroll's power. Every mastered Constellation cast runs castConstellation with its XO (csmOpts); Mastery 0, echoes
+   and other casters cast exactly as before. The ladder's foes stand still and never die, so Fixed Stars, the reach, the lines' later burns
+   and the second figure's choice of foes count for nothing there and their factors carry them; nothing in the cast flies at a target, so
+   nothing needs sub-stepping but the later burns. On the ladder (Secret, half steps; pack .6 / lone foe .4, 8 casts 8s apart) with the
+   factors below: 1.078 / 1.162 / 1.226 / 1.301 / 1.35 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35, and the same with the foes put back
+   before every cast. CSM.dbg (an array) logs the events. */
 const CSM={dbg:null,lance:11,spl:.8,N:8,R:10,line:2.5,lineW:.75,alight:2,bossSlow:.5,twice:.12,twTs:.6};
 const csmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='constellation'&&c.L?c:null;};
 const csmLog=d=>{if(CSM.dbg){d.t=time;CSM.dbg.push(d);}};
