@@ -110,6 +110,13 @@ try{
     ok('M5: its shockwave and ground waves 30% larger (9.75, 11.7 and 18.2)',S.sws.some(r=>near(r,9.75))&&S.vws.length===2&&near(S.vws[0],11.7)&&near(S.vws[1],18.2),S.sws.join(',')+' / '+S.vws.join(','));
     ok('M5: every mastery below it still at work (the grip at 3.2s, 5.8%, rocks)',pinned(S)[0]<3.26&&mhpH(S,S.T[0]).every(h=>near(h.amt,1e7*.058*.05))&&ev('rock').length>40);
     ok('M5: nothing left behind; the lights graded back exactly; the pin and lensing pass off; the preview waits for it, and not after',left(S.added)===0&&S.l1===S.l0&&S.sgl===0&&!S.gravOn&&S.busy.filter(q=>q[0]<13.7).every(q=>q[1])&&!S.busyAfter,leftL(S.added).map(o=>o.type).slice(0,6).join(' '));}
+  /* ---- the collapse's burst cut short: a world cleared, or a game ended, 0.3s into it leaves nothing behind (before v472 its flare, rays and
+     column stayed frozen in the scene: they hung on the scene itself, and their effect's end is skipped then) ---- */
+  {const res=[];for(const L of [0,5])for(const how of ['clear','over']){stage();const added=[];scene.add=function(...a){if(!/terTick|terRipple/.test(String(new Error().stack)))added.push(...a);return S0.apply(this,a);};
+      try{setL(L);castScrollNow('singularity',heroU,heroStats(),enemies.filter(e=>!e.dead),100,oF());run(11.8);
+        if(how==='clear')clearWorld();else{state='over';for(let i=0;i<60;i++)updFx(.05);state='playing';}}finally{scene.add=S0;setL(0);}
+      res.push('M'+L+' '+how+': '+left(added));if(how==='over')clearWorld();}
+    ok('the collapse\'s burst cut short (the world cleared, or the game ended, 0.3s into it) leaves nothing behind, at Mastery 0 and 5',res.every(r=>/: 0$/.test(r)),res.join(', '));}
   /* ---- other callers: a cast without the mastery hook (the developer cast map, echoes) is Mastery 0, whatever the account has ---- */
   {const S=trial(5,14.5,{direct:true}),T=S.T;ok('a direct castSingularity (no mastery context) casts Mastery 0 even at Mastery 5 on the account',!SGM.dbg.length&&pinned(S)[0]>3.99&&mhpH(S,T[0]).every(h=>near(h.amt,25000))&&!S.log.some(h=>near(h.amt,40)||near(h.amt,500)));}
   /* ---- the real path: fireScroll at every mastery (a Secret is cast a second later, with its power factor) ---- */

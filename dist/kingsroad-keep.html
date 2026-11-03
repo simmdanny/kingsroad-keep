@@ -4532,7 +4532,7 @@ function sgSound(){const c=sfxCtx();if(!c)return null;const t0=c.currentTime,out
    (Torn Earth: a rock with glowing broken edges tears up from beneath each pinned foe every ROCKIV s and strikes it as it rises, ROCK x
    the power; 0: none); COLL (the collapse strikes every foe, x the power; 0: only a picture, as before), CON (s the hole draws in longer
    before it breaks) and COLLK (the collapse's flare, rays and ground waves, x); LIFE. log(d) receives the events. Without XO: as before. */
-const SGX={GRIP:4,DPS:3,MHP:.05,MHPB:.03,SIZE:1,RB:14,ROUT:10.3,RING:1,DISK:1,SPARK:10,ACC:0,ACCMAX:.45,ROCK:0,ROCKIV:1.5,COLL:0,CON:0,COLLK:1,LIFE:13.8,log:null};
+const SGX={GRIP:4,DPS:3,MHP:.05,MHPB:.03,SIZE:1,RB:14,ROUT:10.3,RING:1,DISK:1,SPARK:10,ACC:0,ACCMAX:.45,ROCK:0,ROCKIV:1,COLL:0,CON:0,COLLK:1,LIFE:13.8,log:null};
 function castSingularity(t,P,o,XO){const D=XO?Object.assign({},SGX,XO):SGX,lg=D.log;
   const geos=[],mats=[],root=new THREE.Group();scene.add(root);
   const TOT=11.5,END=D.LIFE,CX=D.CON,CL=D.COLLK;cineLock=Math.max(cineLock,13);
@@ -4699,19 +4699,20 @@ function castSingularity(t,P,o,XO){const D=XO?Object.assign({},SGX,XO):SGX,lg=D.
         addFx(new THREE.Group(),1.3,null,()=>swG.dispose());
         shockwave(hole.x,hole.z,7.5*CL,0xffc070,.9,0x0a0602);
         /* ---- grand collapse: a blinding core burst, a horizon-wide flare, god rays, ground ring waves ---- */
-        {const hp=hole.clone(),R0=RS*1.2,bm=[],bg=[];
+        {const hp=hole.clone(),R0=RS*1.2,bm=[],bg=[],bG=new THREE.Group();scene.add(bG);
           const sgB=new THREE.SphereGeometry(1,32,20);bg.push(sgB);const sb1=new THREE.MeshBasicMaterial({color:0xfff6e4,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}),sb2=sb1.clone();sb2.color.setHex(0xff8a30);bm.push(sb1,sb2);
-          const b1=new THREE.Mesh(sgB,sb1),b2=new THREE.Mesh(sgB,sb2);b1.position.copy(hp);b2.position.copy(hp);scene.add(b1,b2);
+          const b1=new THREE.Mesh(sgB,sb1),b2=new THREE.Mesh(sgB,sb2);b1.position.copy(hp);b2.position.copy(hp);bG.add(b1,b2);
           const flG=new THREE.PlaneGeometry(1,1);bg.push(flG);const flM=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0xffd8a0,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}),flM2=flM.clone();flM2.color.setHex(0xffffff);bm.push(flM,flM2);
-          const fl=new THREE.Mesh(flG,flM),fl2=new THREE.Mesh(flG,flM2);[fl,fl2].forEach(m=>{m.position.copy(hp);m.quaternion.copy(camera.quaternion);scene.add(m);});
+          const fl=new THREE.Mesh(flG,flM),fl2=new THREE.Mesh(flG,flM2);[fl,fl2].forEach(m=>{m.position.copy(hp);m.quaternion.copy(camera.quaternion);bG.add(m);});
           const rayG=new THREE.PlaneGeometry(1,1);rayG.translate(0,.5,0);bg.push(rayG);const rays=[];for(let i=0;i<14;i++){const rm=new THREE.MeshBasicMaterial({map:softDiscTex(),color:i%2?0xffc070:0xfff0d0,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});bm.push(rm);
-            const holder=new THREE.Group();holder.position.copy(hp);holder.quaternion.copy(camera.quaternion);const r=new THREE.Mesh(rayG,rm);r.rotation.z=i/14*Math.PI*2+rnd()*.3;holder.add(r);scene.add(holder);rays.push({holder,r,m:rm,len:(4+rnd()*4)*CL,w:.18+rnd()*.25});}
-          const colG=new THREE.CylinderGeometry(1,1.5,1,24,1,true);colG.translate(0,-.5,0);bg.push(colG);const colM=new THREE.MeshBasicMaterial({color:0xffe2b0,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});bm.push(colM);const col=new THREE.Mesh(colG,colM);col.position.copy(hp);scene.add(col);const all=[b1,b2,fl,fl2,col,...rays.map(q=>q.holder)];let t=0;
-          addFx(new THREE.Group(),1.6,(f,dt)=>{t+=dt;const k=Math.min(1,t/1.6),e=1-Math.pow(1-Math.min(1,t/.35),3);
+            const holder=new THREE.Group();holder.position.copy(hp);holder.quaternion.copy(camera.quaternion);const r=new THREE.Mesh(rayG,rm);r.rotation.z=i/14*Math.PI*2+rnd()*.3;holder.add(r);bG.add(holder);rays.push({holder,r,m:rm,len:(4+rnd()*4)*CL,w:.18+rnd()*.25});}
+          const colG=new THREE.CylinderGeometry(1,1.5,1,24,1,true);colG.translate(0,-.5,0);bg.push(colG);const colM=new THREE.MeshBasicMaterial({color:0xffe2b0,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});bm.push(colM);const col=new THREE.Mesh(colG,colM);col.position.copy(hp);bG.add(col);let t=0;
+          /* (v472: its pieces hang under its own group, freed with it: before, a world cleared, or a game ended, during the burst left it frozen in the scene) */
+          addFx(bG,1.6,(f,dt)=>{t+=dt;const k=Math.min(1,t/1.6),e=1-Math.pow(1-Math.min(1,t/.35),3);
             b1.scale.setScalar(R0*(.4+6*e));sb1.opacity=Math.max(0,1-t/.45);b2.scale.setScalar(R0*(.6+10*e));sb2.opacity=Math.max(0,.75-t/.9);
             const fw=R0*(4+90*Math.min(1,t/.25))*CL;fl.scale.set(fw,R0*(1.6*(1-k)+.25),1);flM.opacity=Math.max(0,1-t/1.1);fl2.scale.set(fw*.7,R0*(.5*(1-k)+.08),1);flM2.opacity=Math.max(0,1-t/.7);
             rays.forEach(q=>{q.r.scale.set(R0*q.w*(1-k*.5),R0*q.len*(1+e*3),1);q.m.opacity=Math.max(0,.85-t/1.2);q.r.rotation.z+=dt*.25;});{const dn=Math.min(1,t/.12);col.scale.set(R0*(.5+2.5*e),hp.y*dn,R0*(.5+2.5*e));colM.opacity=Math.max(0,.8-t/.8);}if(SPACE_K<1)bm.forEach(m=>m.opacity*=SPACE_K);},
-            ()=>{all.forEach(o=>scene.remove(o));bm.forEach(m=>m.dispose());bg.forEach(g=>g.dispose());});}
+            null,{mats:bm,geos:bg});}
         const hp0x=hole.x,hp0z=hole.z;if(typeof vfWave==='function'){vfWave(hole.x,hole.z,9*CL,1,1,[[1,.85,.5],[.06,.04,.02],[1,1,.95],[1,.55,.2]]);addFx(new THREE.Group(),.18,null,()=>vfWave(hp0x,hp0z,14*CL,1.5,1.4,[[1,.7,.35],[.04,.03,.02],[1,.98,.9],[.9,.4,.15]]));}
         camShake=Math.max(camShake,.95);
         for(let i=0;i<46;i++){const a=rnd()*6.28,r2=rnd()*5*CL;emit(0,{x:hole.x+Math.cos(a)*r2,y:.06,z:hole.z+Math.sin(a)*r2*1.6,vx:Math.cos(a)*2,vy:.3+rnd()*.5,vz:Math.sin(a)*2,s:.3+rnd()*.2,s2:.7,c:0x7a6a55,c2:0x3a3028,a:.45,life:1.2+rnd()*.6,turb:.5,drag:1.5});}
@@ -14214,7 +14215,7 @@ const CLOG=[
     'Greater Mass: the hole takes hold at 3.2s (4s before), so every foe is pinned and drained for 8.3s (7.5s); it is drawn 15% larger, with a wider disk and a brighter ring of light. Tidal Drain: the drain takes 5.8% of a foe\u2019s max health a second (5% before), 3.5% of a boss\u2019s (3%), and twice as many gold sparks rise off the pinned.',
     'Accretion: every foe that dies while pinned feeds the hole, and the drain grows 2.5% stronger for each, up to 45%; its disk burns hotter and brighter as it feeds. Torn Earth: a rock with glowing broken edges tears up from beneath every pinned foe once a second and strikes it as it rises, for 40%.',
     'Last Light: the collapse strikes every foe on the map for 500%; the hole draws in a moment longer before it breaks, and its flare, rays and ground waves reach 30% further.',
-    'A fix: Singularity\u2019s card said foes are drained for 11.5 seconds. The pin and the drain last 7.5 seconds, and the card says so now.']},
+    'Fixes: Singularity\u2019s card said foes are drained for 11.5 seconds; the pin and the drain last 7.5 seconds, and the card says so now. And leaving a game in the moment the hole collapsed could leave its flash frozen over the next board: it no longer can.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -32038,6 +32039,8 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
    (the developer cast map) cast exactly as before. SGM.dbg (an array) logs the events. The mastery preview waits for the hole to close
    (SMPV_BUSY: SGL.n, and SGM.busy): two at once would grade the scene's lights twice and leave them tinted.
    A fix on the way: the scroll's card said the foes are drained for 11.5s; the pin and the drain last 7.5s (4s to 11.5s): it says so now.
+   A second: the collapse's burst (its core spheres, flare, god rays and column) hung on the scene itself, so a world cleared or a game
+   ended during its 1.6s left it frozen over the next board; its pieces hang under its own effect now (Mastery 0 too, drawn the same).
    Numbers, on the Secret ladder (pack .6 / one .4, 3 runs of 3 casts 17s apart), with foes that have REAL health and can die, put back
    before every cast (in play the cooldown is 110s: every cast meets fresh foes; the drain takes a share of max health and Accretion needs
    deaths, so the ladder's 1e9 keep foes cannot measure it): the pack is 8 light foes that die during the pin, spread over it as a bot game
