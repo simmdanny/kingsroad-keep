@@ -246,5 +246,86 @@
    "stare": 4,
    "last": 1
   }
+ },
+ "bloodneedles-0": {
+  "k": "bloodneedles",
+  "L": 0,
+  "len": 10.53,
+  "seed": 1,
+  "bytes": 1699841,
+  "note": ""
+ },
+ "bloodneedles-1": {
+  "k": "bloodneedles",
+  "L": 1,
+  "len": 10.53,
+  "seed": 1,
+  "bytes": 1764790,
+  "note": "Each needle strikes harder: longer, with brighter tips and trails.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "fire": 32,
+   "hit": 32
+  }
+ },
+ "bloodneedles-2": {
+  "k": "bloodneedles",
+  "L": 2,
+  "len": 10.53,
+  "seed": 1,
+  "bytes": 1633710,
+  "note": "The pack walks on: the needles fly faster and turn tighter, so few arrive late.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "fire": 32,
+   "hit": 32
+  }
+ },
+ "bloodneedles-3": {
+  "k": "bloodneedles",
+  "L": 3,
+  "len": 10.53,
+  "seed": 1,
+  "bytes": 1371019,
+  "note": "A needle striking a foe already pierced strikes harder for every needle in it.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "fire": 32,
+   "hit": 32
+  }
+ },
+ "bloodneedles-4": {
+  "k": "bloodneedles",
+  "L": 4,
+  "len": 12.03,
+  "seed": 1,
+  "bytes": 1401803,
+  "note": "One foe with 1 HP: the first needle kills it, the rest wait glowing in the orbit, and fly at the foes that come next.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "fire": 32,
+   "hit": 28,
+   "wait": 1,
+   "lost": 4
+  }
+ },
+ "bloodneedles-5": {
+  "k": "bloodneedles",
+  "L": 5,
+  "len": 11.53,
+  "seed": 1,
+  "bytes": 1434194,
+  "note": "The orbit fills to 12 and, after 24 have flown, looses all at once at the strongest foe (the ram).",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "fire": 36,
+   "hit": 36,
+   "halo": 1
+  }
  }
 }
