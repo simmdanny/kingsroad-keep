@@ -1348,7 +1348,7 @@ function vBolt(A,B,o){o=o||{};const w=o.w||1,ch=o.charge==null?.28:o.charge,life
     else{if(!struck){struck=true;V0.thin.visible=false;if(o.onStrike)o.onStrike();}
       const k=(T-ch)/life;fl-=dt;if(fl<=0){fl=.035+rnd()*.03;vi=1-vi;variants.forEach((v,i)=>v.g.visible=i===vi);}
       const f2=(1-k*k)*(rnd()<.18?.35:1);mCore.opacity=f2;mGlow.opacity=.85*f2;mHalo.opacity=.4*f2;}
-  },null,{mats,geos});}
+  },null,{mats,geos});return root;}
 /* impact: white-purple flash, ring, sparks, low-poly debris, dust */
 /* the damaged ground: a glowing, cracked, arcing patch that fills the blast area and fades */
 function vaelPatch(x,z,r,hold){const g=new THREE.Group();scene.add(g);const m=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0xb070ff,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false});const pg=new THREE.PlaneGeometry(1,1);pg.rotateX(-Math.PI/2);const d=new THREE.Mesh(pg,m);d.position.set(x,.09,z);d.scale.setScalar(r*2.3);g.add(d);
@@ -1377,7 +1377,18 @@ function vaelBlast(x,z,P,o){
 function vHit(x,z,R,dmg,o,kb){let n=0;for(const e of enemies){if(e.dead)continue;const d=Math.hypot(e.x-x,e.z-z);if(d>R+(e.boss?.3:0))continue;n++;hurt(e,dmg*(d<R*.45?1:.65),'magic',o);
     if(!e.dead){if(!e.boss)e.stunT=Math.max(e.stunT||0,kb?.9:.18);if(kb&&!e.boss)e.dist=Math.max(0,e.dist-kb*(1-d/(R+.01)));}}return n;}
 function vTip(t,v){const W=t.rig&&t.rig.W;if(W&&W.o){W.o.updateWorldMatrix(true,false);return W.o.localToWorld(v.set(0,.27,0));}return jdgHand(t,v);}
-function castVael(t,P,o,list){
+/* v458: XO (optional, Vael'Thoruun's masteries): this cast's own numbers over VAELD (WIN: the strikes each of the four bursts brings, about
+   that many each; arcP/arcN/arcR/arcK: the share of the strikes on a foe that arc on, into 1..arcN foes within arcR, for arcK of the strike;
+   netMax/netLinks/netK/netCap: the most foes the network takes, its links to a node, its share a tick and (when set) the most links drawn,
+   every node linked first; follow/followV/followDZ: the storm re-centres on the thickest foes at each burst and at 6s and glides after them
+   at up to followV tiles a second until the final strike, keeping within followDZ of them (still while they stay that close); finK/finR/
+   finKb: the final strike's share, reach and knockback; crater: how long the crater stays live, the cast ending with it) and its looks
+   (tipZ/tipSp: zaps and sparks at the staff tip; tintK/tintMax/tintUp: how fast the purple deepens; arcW/arcBr/arcSp/arcFl: the arcs'
+   width, branches, sparks and flash; netW: the network's width; apexK: the apex star's size; finW/finBr: the final bolt; craterS: the
+   crater's disc and crack nets). log(d) receives the events for the tests. Without XO: exactly as before. */
+const VAELD={WIN:[2,4,6,9],arcP:.4,arcN:2,arcR:1.8,arcK:.55,netMax:10,netLinks:3,netK:.6,netCap:0,follow:0,followV:1.5,followDZ:.5,finK:9,finR:2.6,finKb:1.1,crater:2.6,
+  tipZ:8,tipSp:0,tintK:.18,tintMax:.6,tintUp:.06,arcW:.55,arcBr:1,arcSp:6,arcFl:0,netW:1.05,apexK:1.8,finW:5.5,finBr:9,craterS:1,log:null};
+function castVael(t,P,o,list,XO){const D=XO?Object.assign({},VAELD,XO):VAELD,LG=D.log;
   const al0=enemies.filter(e=>!e.dead);const c0=list&&list.length?densest(list):(al0.length?densest(al0):{x:t.x,z:t.z-3});const C={x:c0.x,z:c0.z},R=3.2;
   const tip=new THREE.Vector3();vTip(t,tip);VAEL.on++;cineLock=Math.max(cineLock,9.4);
   const root=new THREE.Group();scene.add(root);const mats=[],geos=[];
@@ -1403,10 +1414,10 @@ function castVael(t,P,o,list){
   const pickTarget=()=>{if(rnd()<.35)moveFoc();const near=enemies.filter(e=>!e.dead&&Math.hypot(e.x-foc.x,e.z-foc.z)<2);const L=near.length?near:inArea();if(L.length&&rnd()<.78){const e=L[Math.floor(rnd()*L.length)];return{x:e.x+(rnd()-.5)*.15,z:e.z+(rnd()-.5)*.15,e};}return rnd()<.5?roadPt(foc.x,foc.z,2):offRoad(foc.x,foc.z,2);};
   const hitPts=[];
   const strike=(A,p,s,ch,dmg,chain)=>{const Bv=new THREE.Vector3(p.x,p.e&&!p.e.dead?p.e.y+p.e.hitY*.4:.02,p.z);
-    vBolt(A,Bv,{w:s,charge:ch,branches:Math.round(2+s*1.5),onStrike:()=>{vImpact(p.x,p.z,s);vHit(p.x,p.z,.55+.2*s,dmg,o);hitPts.push({x:p.x,z:p.z});camShake=Math.max(camShake,.12+.06*s);vaelTint(Math.min(.6,VAEL.tint+.18*s));
+    vBolt(A,Bv,{w:s,charge:ch,branches:Math.round(2+s*1.5),onStrike:()=>{vImpact(p.x,p.z,s);const n0=vHit(p.x,p.z,.55+.2*s,dmg,o);hitPts.push({x:p.x,z:p.z});camShake=Math.max(camShake,.12+.06*s);vaelTint(Math.min(D.tintMax,VAEL.tint+D.tintK*s));if(LG)LG({ev:'strike',x:p.x,z:p.z,s,R:.55+.2*s,dmg,e:p.e||null,chain,n:n0});
       /* arc from this enemy into its neighbours */
-      if(chain&&p.e){const nb=enemies.filter(e=>!e.dead&&e!==p.e&&Math.hypot(e.x-p.x,e.z-p.z)<1.8).sort(()=>rnd()-.5).slice(0,chain);let src=new THREE.Vector3(p.x,(p.e.y||0)+.25,p.z);
-        nb.forEach((e,i)=>{const B2=new THREE.Vector3(e.x,e.y+e.hitY*.5,e.z);vBolt(src,B2,{w:.55,charge:.07+i*.05,branches:1,depth:4,disp:.6,onStrike:()=>{vHit(e.x,e.z,.4,dmg*.55,o);sprayP(1,e.x,e.y+.2,e.z,6,{c:0xffffff,c2:0xa050ff,sp:1.6,s:.04,s2:0,life:.3,drag:2});}});});}}});};
+      if(chain&&p.e){const nb=enemies.filter(e=>!e.dead&&e!==p.e&&Math.hypot(e.x-p.x,e.z-p.z)<D.arcR).sort(()=>rnd()-.5).slice(0,chain);if(LG)LG({ev:'arcs',x:p.x,z:p.z,e:p.e,to:nb.slice(),chain});let src=new THREE.Vector3(p.x,(p.e.y||0)+.25,p.z);
+        nb.forEach((e,i)=>{const B2=new THREE.Vector3(e.x,e.y+e.hitY*.5,e.z);vBolt(src,B2,{w:D.arcW,charge:.07+i*.05,branches:D.arcBr,depth:4,disp:.6,onStrike:()=>{vHit(e.x,e.z,.4,dmg*D.arcK,o);sprayP(1,e.x,e.y+.2,e.z,D.arcSp,{c:0xffffff,c2:0xa050ff,sp:1.6,s:.04,s2:0,life:.3,drag:2});if(D.arcFl)flash(e.x,e.y+e.hitY*.5,e.z,0xd8b8ff,D.arcFl,.1);}});});}}});};
   /* --- schedule: 1 -> 3 -> 6 ... more and more chaotic --- */
   const ev=[];let ei=0;const at=(tm,fn)=>{ev.push({tm,fn});const rest=ev.splice(ei).sort((a,b)=>a.tm-b.tm);ev.push(...rest);};
   at(1.0,()=>{/* the circle bursts outward, the first giant bolt + an eruption in every direction */
@@ -1414,30 +1425,34 @@ function castVael(t,P,o,list){
     const p0={x:C.x,z:C.z};vBolt(tip.clone(),new THREE.Vector3(C.x,.02,C.z),{w:3,charge:.16,branches:7,life:.45,onStrike:()=>{vImpact(C.x,C.z,3.2);vaelBlast(C.x,C.z,0,o);debris(C.x,C.z,8,0x5a4a3a);vHit(C.x,C.z,1.6,P*4,o,.25);hitPts.push(p0);camShake=Math.max(camShake,.5);flashA=Math.max(flashA,.35);vaelTint(.7);}});
     const aC=Math.atan2(C.z-t.z,C.x-t.x);for(let i=0;i<7;i++){const a=aC+(rnd()-.5)*(i<2?1.4:2.8),far=i<2,L=far?7+rnd()*5:1.5+rnd()*2.5;const B=new THREE.Vector3(t.x+Math.cos(a)*L,far?.35+rnd()*.3:.02,t.z+Math.sin(a)*L);
       vBolt(tip.clone(),B,{w:far?1.1:.8,charge:.06+rnd()*.12,branches:far?5:2,disp:far?.25:.5,onStrike:()=>{if(!far){vImpact(B.x,B.z,.8);vHit(B.x,B.z,.5,P*.8,o);}else{for(const e of enemies){if(e.dead)continue;const px=e.x-t.x,pz=e.z-t.z,pr=px*Math.cos(a)+pz*Math.sin(a);if(pr<0||pr>L)continue;if(Math.abs(-px*Math.sin(a)+pz*Math.cos(a))<.35)hurt(e,P*.9,'magic',o);}}}});}});
-  const jt=()=>(rnd()-.5)*.8,w1=3+jt(),w2=4+jt(),w3=5+jt(),cn=q=>Math.max(1,Math.round(q*(.6+rnd()*.9)));const WIN=[[2,w1,cn(2)],[w1,w2,cn(4)],[w2,w3,cn(6)],[w3,6,cn(9)]];WIN.forEach(([a,b,n])=>{const gw=.65+rnd()*.9;for(let i=0;i<n;i++){const tm=a+Math.pow(Math.min(1,(i+rnd()*.8)/n),gw)*(b-a);at(tm,()=>{const p=pickTarget(),s=.9+rnd()*.7+(b-2)*.12;vTip(t,tip);
+  const jt=()=>(rnd()-.5)*.8,w1=3+jt(),w2=4+jt(),w3=5+jt(),cn=q=>Math.max(1,Math.round(q*(.6+rnd()*.9)));const WIN=[[2,w1,cn(D.WIN[0])],[w1,w2,cn(D.WIN[1])],[w2,w3,cn(D.WIN[2])],[w3,6,cn(D.WIN[3])]];if(LG)LG({ev:'bursts',W:WIN.map(w=>w.slice())});WIN.forEach(([a,b,n])=>{if(D.follow)at(a,reC);const gw=.65+rnd()*.9;for(let i=0;i<n;i++){const tm=a+Math.pow(Math.min(1,(i+rnd()*.8)/n),gw)*(b-a);at(tm,()=>{const p=pickTarget(),s=.9+rnd()*.7+(b-2)*.12;vTip(t,tip);
       if(rnd()<.18){/* a wild bolt racing across the battlefield */const a2=Math.atan2(p.z-t.z,p.x-t.x)+(rnd()-.5)*2,L=8+rnd()*5;strike(tip.clone(),{x:t.x+Math.cos(a2)*L,z:t.z+Math.sin(a2)*L},.9,.12,P*.6,0);}
-      strike(tip.clone(),p,s,Math.max(.12,.32-(b-3)*.06)+rnd()*.06,P*1.5,p.e&&rnd()<.4?1+Math.floor(rnd()*2):0);});}});
+      strike(tip.clone(),p,s,Math.max(.12,.32-(b-3)*.06)+rnd()*.06,P*1.5,p.e&&rnd()<D.arcP?1+Math.floor(rnd()*D.arcN):0);});}});
   /* overload: every strike point and foe starts connecting into one network */
   const net=[];let netOn=false;
-  at(6,()=>{netOn=true;vTip(t,tip);vBolt(tip.clone(),AP.clone(),{w:1.6,charge:.25,branches:4,life:2.1,disp:.3});
-    const nodes=inArea().slice(0,10).map(e=>({e,x:e.x,z:e.z}));hitPts.slice(-6).forEach(h=>nodes.push({x:h.x,z:h.z}));for(let i=0;i<7;i++){const a=i/7*6.28+rnd()*.4,r=R*(.45+rnd()*.4);nodes.push({x:C.x+Math.cos(a)*r,z:C.z+Math.sin(a)*r});}nodes.push({x:C.x,z:C.z});
-    const edges=[];nodes.forEach((a,i)=>{nodes.map((b,j)=>({j,d:Math.hypot(a.x-b.x,a.z-b.z)})).filter(q=>q.j!==i&&q.d<3.2).sort((p,q)=>p.d-q.d).slice(0,3).forEach(q=>{const k=i<q.j?i+'_'+q.j:q.j+'_'+i;if(!edges.includes(k))edges.push(k);});});
+  if(D.follow)at(6,reC);
+  at(6,()=>{netOn=true;vTip(t,tip);apB(tip.clone(),vBolt(tip.clone(),AP.clone(),{w:1.6,charge:.25,branches:4,life:2.1,disp:.3}));
+    const nodes=inArea().slice(0,D.netMax).map(e=>({e,x:e.x,z:e.z}));hitPts.slice(-6).forEach(h=>nodes.push({x:h.x,z:h.z}));for(let i=0;i<7;i++){const a=i/7*6.28+rnd()*.4,r=R*(.45+rnd()*.4);nodes.push({x:C.x+Math.cos(a)*r,z:C.z+Math.sin(a)*r});}nodes.push({x:C.x,z:C.z});
+    const edges=[],nn=nodes.map((a,i)=>nodes.map((b,j)=>({j,d:Math.hypot(a.x-b.x,a.z-b.z)})).filter(q=>q.j!==i&&q.d<3.2).sort((p,q)=>p.d-q.d).slice(0,D.netLinks)),eK=(i,j)=>i<j?i+'_'+j:j+'_'+i;
+    if(!D.netCap)nn.forEach((L,i)=>L.forEach(q=>{const k=eK(i,q.j);if(!edges.includes(k))edges.push(k);}));
+    else for(let r=0;r<D.netLinks;r++)nn.forEach((L,i)=>{const q=L[r];if(!q||(r&&edges.length>=D.netCap))return;const k=eK(i,q.j);if(!edges.includes(k))edges.push(k);});   /* every node its nearest first, then the next */
+    if(LG)LG({ev:'net',x:C.x,z:C.z,foes:nodes.filter(q=>q.e).map(q=>q.e),n:nodes.length,edges:edges.length,links:nn.map(L=>L.length),deg:nodes.map((q,i)=>edges.filter(k=>k.split('_').map(Number).includes(i)).length)});
     edges.forEach((k,n)=>{const [i,j]=k.split('_').map(Number),a=nodes[i],b=nodes[j];const y=q=>q.e&&!q.e.dead?q.e.y+q.e.hitY*.5:.06;
-      at(6.05+n*(1.1/Math.max(1,edges.length)),()=>{vBolt(new THREE.Vector3(a.x,y(a),a.z),new THREE.Vector3(b.x,y(b),b.z),{w:1.05,charge:.12,branches:2,depth:4,disp:.5,life:1.9-n*(1.1/Math.max(1,edges.length)),onStrike:()=>{net.push({a,b});}});});});
+      at(6.05+n*(1.1/Math.max(1,edges.length)),()=>{vBolt(new THREE.Vector3(a.x,y(a),a.z),new THREE.Vector3(b.x,y(b),b.z),{w:D.netW,charge:.12,branches:2,depth:4,disp:.5,life:1.9-n*(1.1/Math.max(1,edges.length)),onStrike:()=>{net.push({a,b});}});});});
     /* the network reaches up to the gathering apex */
-    nodes.filter((q,i)=>i%3===0).forEach((q,i)=>at(6.6+i*.12,()=>vBolt(new THREE.Vector3(q.x,.06,q.z),AP.clone(),{w:.6,charge:.1,branches:1,depth:4,disp:.4,life:1.3-i*.1})));});
+    nodes.filter((q,i)=>i%3===0).forEach((q,i)=>at(6.6+i*.12,()=>{const A=new THREE.Vector3(q.x,.06,q.z);apB(A,vBolt(A.clone(),AP.clone(),{w:.6,charge:.1,branches:1,depth:4,disp:.4,life:1.3-i*.1}));}));});
   let netT=0;
-  at(8,()=>{netOn=false;/* FINAL STRIKE */vBolt(AP.clone(),new THREE.Vector3(C.x,.02,C.z),{w:5.5,charge:.14,branches:9,life:.6,disp:.22,onStrike:()=>{
+  at(8,()=>{netOn=false;/* FINAL STRIKE */vBolt(AP.clone(),new THREE.Vector3(C.x,.02,C.z),{w:D.finW,charge:.14,branches:D.finBr,life:.6,disp:.22,onStrike:()=>{
       flashA=Math.max(flashA,.95);flashCol='#f0e0ff';camShake=Math.max(camShake,.9);vaelTint(1);
       vaelBlast(C.x,C.z,P,o);
-      const cn=crackNet(C.x,C.z,1.4,9,0xd090ff);cn.position.y=.012;scene.add(cn);addFx(cn,3,f=>{cn.material.opacity=Math.min(1,f.life/f.max*1.6);},null,{mats:[cn.material],geos:[cn.geometry]});
+      const cn=crackNet(C.x,C.z,1.4*D.craterS,Math.round(9*D.craterS),0xd090ff);cn.position.y=.012;scene.add(cn);addFx(cn,D.crater+.4,f=>{cn.material.opacity=Math.min(1,f.life/f.max*1.6);},null,{mats:[cn.material],geos:[cn.geometry]});
       for(let i=0;i<3;i++)debris(C.x+(rnd()-.5)*.8,C.z+(rnd()-.5)*.8,8,i%2?0x5a4a3a:0x6a6460);
       for(let i=0;i<16;i++){const a=rnd()*6.28;emitS(0,{x:C.x+Math.cos(a)*.3,y:.15,z:C.z+Math.sin(a)*.3,vx:Math.cos(a)*2.2,vy:.3+rnd()*.5,vz:Math.sin(a)*2.2,s:.5,s2:1.5,c:0x5a4e48,c2:0x2a2426,a:.55,life:1.8+rnd()*.8,turb:.6,drag:1.4});}
-      vHit(C.x,C.z,2.6,P*9,o,1.1);
+      const nF=vHit(C.x,C.z,D.finR,P*D.finK,o,D.finKb);if(LG)LG({ev:'final',x:C.x,z:C.z,R:D.finR,dmg:P*D.finK,kb:D.finKb,n:nF});
       /* the aftermath: the crater stays electrified, arcs crawl over the ground and snap upward */
-      {const lg=new THREE.Group();scene.add(lg);const dm=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0x8a40ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});const dg=new THREE.PlaneGeometry(1,1);dg.rotateX(-Math.PI/2);const disc=new THREE.Mesh(dg,dm);disc.position.set(C.x,.12,C.z);disc.scale.setScalar(5.2);lg.add(disc);
-        const cn2=crackNet(C.x,C.z,1.9,12,0xe0b0ff);cn2.position.y=.014;lg.add(cn2);let tick=0;
-        addFx(lg,2.6,(f,dt)=>{const k=1-f.life/f.max,fl=Math.random()<.25?.3:1;dm.opacity=.55*(1-k)*fl;cn2.material.opacity=(1-k*k)*(Math.random()<.3?.25:1);
+      {const lg=new THREE.Group();scene.add(lg);const dm=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0x8a40ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});const dg=new THREE.PlaneGeometry(1,1);dg.rotateX(-Math.PI/2);const disc=new THREE.Mesh(dg,dm);disc.position.set(C.x,.12,C.z);disc.scale.setScalar(5.2*D.craterS);lg.add(disc);
+        const cn2=crackNet(C.x,C.z,1.9*D.craterS,Math.round(12*D.craterS),0xe0b0ff);cn2.position.y=.014;lg.add(cn2);let tick=0;
+        addFx(lg,D.crater,(f,dt)=>{const k=1-f.life/f.max,fl=Math.random()<.25?.3:1;dm.opacity=.55*(1-k)*fl;cn2.material.opacity=(1-k*k)*(Math.random()<.3?.25:1);
           const rate=(1-k*.85)*26;let n=0;while(rnd()<dt*rate-n&&n<3){n++;const a=rnd()*6.28,r0=rnd()*1.2,r1=r0+.6+rnd()*1.8,ty=rnd();
             const A=new THREE.Vector3(C.x+Math.cos(a)*r0,.05,C.z+Math.sin(a)*r0);let B;
             if(ty<.55){const a2=a+(rnd()-.5)*1.2;B=new THREE.Vector3(C.x+Math.cos(a2)*r1,.04,C.z+Math.sin(a2)*r1);}
@@ -1446,26 +1461,37 @@ function castVael(t,P,o,list){
             vBolt(A,B,{w:.45+rnd()*.5*(1-k),charge:.02+rnd()*.04,life:.12+rnd()*.14,branches:1+Math.floor(rnd()*2),depth:4,disp:.55});
             sprayP(1,B.x,Math.max(.08,B.y),B.z,4,{c:0xffffff,c2:0xa050ff,sp:1.4,up:.6,s:.035,s2:0,life:.3,drag:1.5});}
           if(rnd()<.7){const a=rnd()*6.28,r=rnd()*2.4;emit(1,{x:C.x+Math.cos(a)*r,y:.06,z:C.z+Math.sin(a)*r,vx:(rnd()-.5)*.4,vy:.8+rnd()*1.4,vz:(rnd()-.5)*.4,s:.03,s2:0,c:0xf0e0ff,c2:0x8a40ff,life:.35,drag:1});}
-          tick-=dt;if(tick<=0){tick=.3;for(const e of enemies){if(!e.dead&&Math.hypot(e.x-C.x,e.z-C.z)<2.4){hurt(e,P*.25,'magic',o);if(!e.boss)e.stunT=Math.max(e.stunT||0,.25);}}}
+          tick-=dt;if(tick<=0){tick=.3;if(LG)LG({ev:'crater',x:C.x,z:C.z});for(const e of enemies){if(!e.dead&&Math.hypot(e.x-C.x,e.z-C.z)<2.4){hurt(e,P*.25,'magic',o);if(!e.boss)e.stunT=Math.max(e.stunT||0,.25);}}}
         },null,{mats:[dm,cn2.material],geos:[dg,cn2.geometry]});}
       }});});
-  const T_END=10.6;let T=0;const tmp=new THREE.Vector3(),UP=new THREE.Vector3(0,1,0);
-  let cdone=false;const cleanup=()=>{if(cdone)return;cdone=true;VAEL.on=Math.max(0,VAEL.on-1);if(!VAEL.on&&!DOM.on&&!PURG.on){hemi.color.copy(HEMI_C0);hemi.groundColor.copy(HEMI_G0);sun.color.copy(SUN_C0);VAEL.tint=0;}SG_ACTIVE.delete(cleanup);};SG_ACTIVE.add(cleanup);
+  /* the storm follows (XO.follow): re-centre on the thickest foes near it, glide after them until the final strike; the bolts that reach the
+     apex star are turned to keep reaching it as it glides */
+  let anc=null;const AB=[],q0=new THREE.Quaternion(),v0=new THREE.Vector3(),v1=new THREE.Vector3();
+  function apB(A,r){if(D.follow&&r)AB.push({r,A:A.clone(),B:AP.clone()});}
+  function reC(lost){const L=enemies.filter(e=>!e.dead&&!e.fake&&Math.hypot(e.x-C.x,e.z-C.z)<R+2);anc=L.length?densest(L):null;if(LG)LG({ev:lost?'reanchor':'recentre',T,x:C.x,z:C.z,e:anc,gx:anc?anc.x:C.x,gz:anc?anc.z:C.z});}
+  const T_END=8+D.crater;let T=0;const tmp=new THREE.Vector3(),UP=new THREE.Vector3(0,1,0);
+  let cdone=false;const cleanup=()=>{if(cdone)return;cdone=true;if(LG)LG({ev:'end',T});VAEL.on=Math.max(0,VAEL.on-1);if(!VAEL.on&&!DOM.on&&!PURG.on){hemi.color.copy(HEMI_C0);hemi.groundColor.copy(HEMI_G0);sun.color.copy(SUN_C0);VAEL.tint=0;}SG_ACTIVE.delete(cleanup);};SG_ACTIVE.add(cleanup);
   addFx(root,T_END,(f,dt)=>{T+=dt;vTip(t,tip);
     while(ei<ev.length&&ev[ei].tm<=T){try{ev[ei].fn();}catch(err){console.error(err);}ei++;}
+    if(D.follow&&T<8){if(anc&&anc.dead)reC(1);if(anc){const dx=anc.x-C.x,dz=anc.z-C.z,d=Math.hypot(dx,dz),st=Math.min(d-D.followDZ,D.followV*dt);
+        if(st>1e-6){const ux=dx/d*st,uz=dz/d*st;C.x+=ux;C.z+=uz;foc.x+=ux;foc.z+=uz;AP.x=C.x;AP.z=C.z;apex.position.copy(AP);aglow.position.set(C.x,.11,C.z);
+          for(const b of AB){if(!b.r.parent)continue;v0.subVectors(b.B,b.A);v1.subVectors(AP,b.A);const s=v1.length()/v0.length();q0.setFromUnitVectors(v0.normalize(),v1.normalize());
+            b.r.quaternion.copy(q0);b.r.scale.setScalar(s);b.r.position.copy(b.A).sub(v0.copy(b.A).applyQuaternion(q0).multiplyScalar(s));}}}}
     /* charge 0-1: rune forms at the tip, motes orbit, purple light gathers */
     const ck=SMS(T,0,.9),burst=SMS(T,.96,1.12);
     rune.position.copy(tip);rune.quaternion.copy(camera.quaternion);rune.rotation.z+=0;rune.rotateZ(T*2.2);rune.scale.setScalar(Math.max(.001,.5*ck*(1+burst*5)));rm.opacity=ck*(1-burst)*(.85+.15*Math.sin(T*40));
     rune2.position.copy(tip);rune2.quaternion.copy(camera.quaternion);rune2.rotateZ(-T*3.4);rune2.scale.setScalar(Math.max(.001,.3*SMS(T,.2,.9)*(1+burst*4)));r2m.opacity=SMS(T,.2,.9)*(1-burst);
     const orbOn=T<1.05||(T>5.9&&T<8);orb.forEach(q=>{q.a+=dt*q.sp*(T>5.9?2:1);q.m.visible=orbOn;const r=q.r*(T>5.9?1.6:1);q.m.position.set(tip.x+Math.cos(q.a)*r,tip.y+q.y+Math.sin(q.a)*r*q.tl,tip.z+Math.sin(q.a)*r);if(orbOn&&rnd()<.25)emit(1,{x:q.m.position.x,y:q.m.position.y,z:q.m.position.z,s:.025,s2:0,c:0xd0b0ff,c2:0x6a20d0,life:.25});});
     if(T>.75&&T<1&&rnd()<.6)zap(tip,{x:tip.x+(rnd()-.5)*.5,y:tip.y+(rnd()-.5)*.5,z:tip.z+(rnd()-.5)*.5},0xd0a0ff,.05);
-    if(T>2&&T<8&&rnd()<dt*8)zap(tip,{x:tip.x+(rnd()-.5)*.4,y:tip.y+(rnd()-.3)*.4,z:tip.z+(rnd()-.5)*.4},0xc090ff,.05);
+    if(D.tipSp&&T>1&&T<8){const w=D.tipSp*(.35+.65*SMS(T,1,6))*dt;for(let i=Math.floor(w)+(rnd()<w%1?1:0);i>0;i--){const a=rnd()*6.28,e2=rnd()*2-1,q=Math.sqrt(1-e2*e2),v=1.2+rnd()*1.4;
+      emit(1,{x:tip.x,y:tip.y,z:tip.z,vx:Math.cos(a)*q*v,vy:e2*v+.35,vz:Math.sin(a)*q*v,s:.06+rnd()*.05,s2:0,c:0xffffff,c2:rnd()<.5?0xc890ff:0x8a40ff,life:.3+rnd()*.25,drag:2.2});}}
+    if(T>2&&T<8&&rnd()<dt*D.tipZ)zap(tip,{x:tip.x+(rnd()-.5)*.4,y:tip.y+(rnd()-.3)*.4,z:tip.z+(rnd()-.5)*.4},0xc090ff,.05);
     gm.opacity=Math.min(.38,ck*.3+(T>1?.08:0))*(1-SMS(T,8.4,10));am.opacity=(.18*SMS(T,1,2)+.25*SMS(T,5,6))*(1-SMS(T,8.2,9.2))+(VAEL.tint>.5?.15:0);
     /* the light: decays back toward a level that rises with the chaos */
-    const base=T<1?.2*ck:T<6?.18+.06*(T-1):T<8?.5+.15*Math.sin(T*30):(1-SMS(T,8.3,10.4))*(.38+(rnd()<.3?.2:0));if(!DOM.on&&!PURG.on)vaelTint(Math.max(base,VAEL.tint-dt*2.2));
+    const base=T<1?.2*ck:T<6?.18+D.tintUp*(T-1):T<8?.5+.15*Math.sin(T*30):(1-SMS(T,8.3,10.4))*(.38+(rnd()<.3?.2:0));if(!DOM.on&&!PURG.on)vaelTint(Math.max(base,VAEL.tint-dt*2.2));
     /* overload: apex gathers, the network tears at everything inside it */
-    const ak=SMS(T,6,7.9)*(1-SMS(T,8,8.12));apex.quaternion.copy(camera.quaternion);apex.scale.setScalar(Math.max(.001,.4+1.8*ak+.3*Math.sin(T*35)*ak));sm.opacity=ak;
-    if(netOn){netT-=dt;if(netT<=0){netT=.4;const hitE=new Set();net.forEach(l=>{[l.a,l.b].forEach(q=>{if(q.e&&!q.e.dead&&!hitE.has(q.e)){hitE.add(q.e);hurt(q.e,P*.6,'magic',o);}});});}
+    const ak=SMS(T,6,7.9)*(1-SMS(T,8,8.12));apex.quaternion.copy(camera.quaternion);apex.scale.setScalar(Math.max(.001,.4+D.apexK*ak+.3*Math.sin(T*35)*ak));sm.opacity=ak;
+    if(netOn){netT-=dt;if(netT<=0){netT=.4;const hitE=new Set();net.forEach(l=>{[l.a,l.b].forEach(q=>{if(q.e&&!q.e.dead&&!hitE.has(q.e)){hitE.add(q.e);hurt(q.e,P*D.netK,'magic',o);}});});if(LG)LG({ev:'tick',L:[...hitE],dmg:P*D.netK});}
       if(rnd()<.6&&net.length){const l=net[Math.floor(rnd()*net.length)],u=rnd();emit(1,{x:l.a.x+(l.b.x-l.a.x)*u,y:.3,z:l.a.z+(l.b.z-l.a.z)*u,vx:(rnd()-.5)*1.5,vy:rnd()*1.5,vz:(rnd()-.5)*1.5,s:.04,s2:0,c:0xffffff,c2:0xa050ff,life:.3,drag:2});}}
   },cleanup,{mats,geos});}
 
@@ -14180,6 +14206,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Vael\u2019Thoruun: the storm that follows',d:'3 Nov',v:'v458',li:[
+    'Vael\u2019Thoruun (Mythic) has five new masteries, for now in developer mode. Still the hero as the source of a living storm, lightning from the staff and the apex star and never from clouds: each mastery makes a part the storm already has stronger and draws that part a little richer.',
+    'Wilder Storm: its four bursts bring about 3, 5, 7 and 10 strikes (2, 4, 6 and 9 before), some 26 in all instead of 22, with more sparks at the staff and the purple deepening faster. Living Current: every strike that lands on a foe arcs on (4 in 10 before), into 1-2 foes within 2.2 tiles (1.8 before), for 60% of the strike (55%), the arcs thicker and brighter.',
+    'The Great Circuit: every foe in the storm\u2019s area joins the network (at most 10 before), four links to a node (3), and it tears at them for 75% a tick (60%), under a bigger star. The Storm Follows: at each burst and as the network forms the storm re-centres on the thickest foes and glides after them at up to 1.5 tiles a second (keeping within half a tile of them), its glow and its star with it, so a walking pack stays inside it and the final strike falls where it is.',
+    'Wrath of the Ancient Sky: the final strike hits 1260% (900% before) within 3.2 tiles (2.6), hurls foes back harder (1.4, 1.1 before), and the crater stays live 4.5s (2.6s), under a larger star, with a wider bolt and a wider crater.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -31967,6 +31998,67 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
   dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
+/* ================= Vael'Thoruun's masteries (v458), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: the hero becomes the source of a living storm. Lightning erupts from the staff, wilder with every strike, arcs between the foes
+   until everything joins one network, and one final strike falls from the apex above it. Simon, for every Mythic, Ancient and Secret scroll:
+   "lets do the same way all the mythics ancients and secrets where their identity is preserved but their visuals barely change and change
+   only to better", and "new stuff CAN appear ... but just nothing that over shines the spell". So each mastery strengthens one part the storm
+   already has and draws that same part richer. The bolts still come only from the hero's staff and the apex star, never from clouds.
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Wilder Storm | what if it grew wilder faster? | the escalation | more strikes |
+   | 2 | Living Current | what if every strike ran on? | the arcs | stronger arcs |
+   | 3 | The Great Circuit | what if everything joined? | the network | a wider network |
+   | 4 | The Storm Follows | what if the storm kept up? | the storm's area | behaviour change |
+   | 5 | Wrath of the Ancient Sky | what if the last strike fell like the sky itself? | the final strike | signature payoff |
+   - M1 Wilder Storm: the four bursts bring VTM.win strikes (2, 4, 6 and 9 before, each about that many): some 26 instead of 22. The staff
+     tip spits sparks that thicken as the storm builds, zaps twice as often, and the purple deepens faster with every strike.
+   - M2 Living Current: every strike that lands on a foe arcs on (4 in 10 before), into 1 to VTM.arcN foes within VTM.arcR tiles (1.8
+     before), for VTM.arcK of the strike (55% before). The arcs are drawn thicker (0.8, 0.55 before) with two branches, brighter sparks
+     and a small flash where they land.
+   - M3 The Great Circuit: every foe in the storm's area joins the network (at most 10 before), with VTM.links links to a node (3 before; the
+     most links drawn VTM.netCap, every node linked to its nearest first), and the network tears at them for VTM.netK a tick (60% before).
+     Its edges are drawn thicker (1.3, 1.05 before) under a bigger apex star.
+   - M4 The Storm Follows: at each burst and at 6s the storm re-centres on the thickest foes near it and glides after them at up to
+     VTM.followV tiles a second, keeping within VTM.followDZ tiles of them (still while they stay that close), until the final strike falls
+     where they are. Its area glow, its focus and the apex star glide with it, and the bolts that climb to the star turn to keep reaching it.
+   - M5 Wrath of the Ancient Sky: the final strike hits VTM.finK (900% before) within VTM.finR tiles (2.6), knockback VTM.finKb (1.1), and
+     the crater stays live VTM.crater s (2.6s; still 25% every 0.3s within 2.4 tiles); the storm ends with it. The apex star peaks at 3
+     (2.2 before), the final bolt is wider (7, 5.5 before) with 12 branches (9), and the crater's disc and crack nets are a quarter larger.
+   Percentages are of the scroll's power. Every mastered Vael'Thoruun cast runs castVael with its XO (vtmOpts); Mastery 0, echoes and other
+   casters cast exactly as before; a Tempest Heart recast is a second storm with the same masteries. Stuns still write e.stunT (no Resolve,
+   never bosses), as the base storm always has. VTM.dbg (an array) logs the events.
+   Numbers: the approved Living Current (every strike into 1-3 foes within 2.2 for 70%) measured five times the old arcs and took Mastery 2
+   to 1.26 against 1.162 (a hidden factor of 0.92 would have made every strike and the final strike weaker than at Mastery 0), so it arcs
+   into 1-2 foes for 60%: every strike still arcs, further and harder. And on the ladder's standing foes (pushed back by every opening and
+   final strike, so they pile up) a storm that re-centres exactly onto the thickest foe moved the final strike's knockback and left later
+   casts about 12% weaker; keeping within half a tile of them is neutral there and still keeps a walking pack inside. Deep in a pack the
+   arcs and the network grow with it; a lone foe gains only the strikes, the network's share and the final strike.
+   On the Mythic ladder (pack .6 / one .4, `ladder.js vael <reps> 6 13.6`, six casts a run; pooled from five runs, 240 to 470 casts a mode,
+   since knockback piles make one run swing by about 3%), without the factors: 1.087 / 1.181 / 1.207 / 1.207 / 1.345; with SMG.vael below:
+   1.087 / 1.181 / 1.226 / 1.302 / 1.350 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35 (Masteries 1 and 2 keep a factor of 1, so no part of a
+   mastered storm strikes weaker than Mastery 0; The Storm Follows is worth nothing on standing foes, so its factor carries it). */
+const VTM={dbg:null,win:[3,5,7,10],arcN:2,arcR:2.2,arcK:.6,links:4,netCap:64,netK:.75,followV:1.5,followDZ:.5,finK:12.6,finR:3.2,finKb:1.4,crater:4.5};
+const vtmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='vael'&&c.L?c:null;};
+const vtmLog=d=>{if(VTM.dbg){d.t=time;VTM.dbg.push(d);}};
+SM_D.vael=[
+  {n:'Wilder Storm',d:'The storm grows wilder faster: its four bursts bring about 3, 5, 7 and 10 strikes (2, 4, 6 and 9 before), some 26 in all instead of 22. More sparks crackle at the staff and the purple deepens faster.'},
+  {n:'Living Current',d:'Every strike that lands on a foe arcs on (4 in 10 before), into 1-2 foes within 2.2 tiles (1.8 before), for {60}% of the strike (55% before). The arcs run thicker and brighter.'},
+  {n:'The Great Circuit',d:'Every foe in the storm\'s area joins the network (at most 10 before), four links to a node (3), and it tears at them for {75}% a tick (60% before), under a bigger star.'},
+  {n:'The Storm Follows',d:'At each burst and as the network forms, the storm re-centres on the thickest foes and glides after them at up to 1.5 tiles a second (it keeps still while they stay within half a tile): a walking pack stays inside it, and the final strike falls where it is.'},
+  {n:'Wrath of the Ancient Sky',d:'The final strike hits {1260}% (900% before) within 3.2 tiles (2.6) and hurls foes back harder (1.4, 1.1 before), and the crater stays live 4.5s (2.6s). A larger star, a wider bolt, a wider crater.'}];
+SMF.vael={m:1};
+SMA.vael=[1,1,1,1,1];
+SMG.vael=[1,1,1.015,1.078,1.004];
+/* this storm's numbers and looks (castVael's XO), cumulative: Mastery L has masteries 1..L */
+function vtmOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.WIN=VTM.win.slice();X.tipZ=16;X.tipSp=70;X.tintK=.26;X.tintMax=.66;X.tintUp=.075;}
+  if(L>=2){X.arcP=1;X.arcN=VTM.arcN;X.arcR=VTM.arcR;X.arcK=VTM.arcK*a[1];X.arcW=.8;X.arcBr=2;X.arcSp=10;X.arcFl=.3;}
+  if(L>=3){X.netMax=Infinity;X.netLinks=VTM.links;X.netCap=VTM.netCap;X.netK=VTM.netK*a[2];X.netW=1.3;X.apexK=2.2;}
+  if(L>=4){X.follow=1;X.followV=VTM.followV;X.followDZ=VTM.followDZ;}
+  if(L>=5){X.finK=VTM.finK*a[4];X.finR=VTM.finR;X.finKb=VTM.finKb;X.crater=VTM.crater;X.apexK=2.6;X.finW=7;X.finBr=12;X.craterS=1.25;}
+  X.log=vtmLog;vtmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+const VTM_OLD=castVael;
+castVael=function(t,P,o,list,X){const c=!X?vtmC(o):null;return VTM_OLD(t,P,o,list,c?vtmOpts(c):X);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
