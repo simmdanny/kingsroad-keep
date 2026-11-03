@@ -51,5 +51,60 @@
    "brand": 1,
    "lash": 6
   }
+ },
+ "bloodeye-4": {
+  "k": "bloodeye",
+  "L": 4,
+  "len": 5.87,
+  "seed": 1,
+  "bytes": 976644,
+  "note": "Three foes are low on health: when a branded foe dies the gaze swings to the strongest unbranded one.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "marks": 1,
+   "brand": 1,
+   "lash": 7,
+   "fall": 3,
+   "move": 3
+  }
+ },
+ "bloodeye-5": {
+  "k": "bloodeye",
+  "L": 5,
+  "len": 13.53,
+  "seed": 1,
+  "bytes": 1850743,
+  "note": "Before the lids close, one great lash strikes every brand at once.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "marks": 1,
+   "brand": 1,
+   "lash": 7,
+   "last": 1
+  }
+ },
+ "moonfall-0": {
+  "k": "moonfall",
+  "L": 0,
+  "len": 11.1,
+  "seed": 1,
+  "bytes": 1213718,
+  "note": ""
+ },
+ "moonfall-1": {
+  "k": "moonfall",
+  "L": 1,
+  "len": 11.1,
+  "seed": 1,
+  "bytes": 1256340,
+  "note": "The foes are spread out: the fuller moon’s impact reaches 4.6 tiles.",
+  "ev": {
+   "cast": 1,
+   "impact": 1,
+   "shard": 16,
+   "end": 1
+  }
  }
 }
