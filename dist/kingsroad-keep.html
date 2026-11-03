@@ -7727,16 +7727,16 @@ function mfTex(){if(MF_TEX)return MF_TEX;const cv=document.createElement('canvas
   x.fillStyle='#7a0e16';x.fillRect(0,0,512,256);for(let i=0;i<260;i++){const px=R()*512,py=R()*256,r=4+R()*26,g=x.createRadialGradient(px,py,0,px,py,r);const d=R()<.5;g.addColorStop(0,d?'rgba(40,0,6,.45)':'rgba(220,60,50,.3)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(px-r,py-r,r*2,r*2);}
   for(let i=0;i<46;i++){const px=R()*512,py=20+R()*216,r=5+R()*20;x.fillStyle='rgba(30,0,4,.55)';x.beginPath();x.arc(px,py,r,0,6.283);x.fill();x.strokeStyle='rgba(255,120,90,.45)';x.lineWidth=1.5+r*.08;x.beginPath();x.arc(px-r*.12,py-r*.12,r,3.4,5.8);x.stroke();}
   MF_TEX=new THREE.CanvasTexture(cv);return MF_TEX;}
-/* v468: XO (optional, Moonfall's masteries): this cast's numbers over MFL (R, DMG, STUN and BSTUN: the impact's reach, damage and stuns;
-   PR, TICK and BURN: the crater's radius, damage a tick and how long it burns; RM, COR and COR2, SHADOW, GLOW, SHOP and GLOP: the moon's
-   size and coronas, its shadow's and red glow's radius and darkness; SEAMS, SEAMR, SEAMW, SEAMC and seamO: the crater's cracks, how many,
-   how far out (x PR), how wide, their colour and nsSeamFx's options (up, so they are seen at last, at every mastery; k, how bright); EMB, SMK and SMKC: the crater's embers and smoke a second and the smoke's colours; SHARD
-   and SHARD_R: what each moon shard strikes where it lands, the nearest foe within SHARD_R (0: only a picture, as before); SLOW: how much the
-   falling moon's shadow slows the ground foes under it at most; WAVE: what the far blood wave strikes each ground foe it passes (0: only a
-   picture, as before); LIFE), and its looks and log: aim(shards) (throws them; a shard it marks ex flies an exact arc), fx.build/fall/
-   impact/frame/land/end (the masteries' looks),
-   onImpact(foes), onShard(shard, foe or null), onSlow(foe, slow), onWave(foe) and onEnd. Without XO: exactly as before, but the crater's
-   cracks face the sky (drawn facing the ground, they were never seen). */
+/* v468: XO (optional, Moonfall's masteries): this cast's numbers over MFL: R, DMG, STUN and BSTUN (the impact's reach, damage and stuns);
+   PR, TICK and BURN (the crater's radius, damage a tick and how long it burns); RM, COR and COR2 (the moon's size and coronas); SHADOW,
+   GLOW, SHOP and GLOP (its shadow's and red glow's radius and darkness); SEAMS, SEAMR, SEAMW, SEAMC and seamO (the crater's cracks: how
+   many, how far out (x PR), how wide, their colour, and nsSeamFx's options: up, so they are seen at last, at every mastery, and k, how
+   bright); EMB, SMK and SMKC (the crater's embers and smoke a second, the smoke's colours); SHARD and SHARD_R (each moon shard strikes the
+   nearest foe within SHARD_R of where it lands; 0: only a picture, as before); SLOW (how much the falling moon's shadow slows the ground
+   foes under it at most); WAVE, WAVE_R and WAVE_T (what the far blood wave strikes each ground foe it passes, 0: only a picture, as before;
+   its reach x R and how long it rolls); LIFE. And its looks and log: aim(shards) (throws them; a shard it marks ex flies an exact arc),
+   fx.fall/impact/frame/land/end (the masteries' looks), onImpact(foes), onShard(shard, foe or null), onSlow(foe, slow), onWave(foe) and
+   onEnd. Without XO: exactly as before, but the crater's cracks face the sky (drawn facing the ground, they were never seen). */
 const MFL={R:4.2,DMG:26,STUN:1.4,BSTUN:.5,PR:2.6,TICK:.6,BURN:6,RM:2.4,COR:.26,COR2:.1,SHADOW:3.6,GLOW:3.1,SHOP:.55,GLOP:.6,SEAMS:12,SEAMR:.75,SEAMW:.025,SEAMC:0xff3a20,EMB:14,SMK:5,SMKC:[0x3a0606,0x140202,.4],
   SHARD:0,SHARD_R:.5,SLOW:0,WAVE:0,WAVE_R:2.3,WAVE_T:1.9,LIFE:9.2,seamO:{up:true,k:.4}};
 function castMoonfall(t,list,P,o,XO){const D=XO?Object.assign({},MFL,XO):MFL,F=D.fx||null;const pool=enemies.filter(e=>!e.dead&&!e.fake),c0=pool.length?densest(pool):list[0],TI=2.6,L=nsLead(c0,TI),tx=L.x,tz=L.z,ty=gy(tx,tz),mats=[],geos=[];
@@ -7747,7 +7747,7 @@ function castMoonfall(t,list,P,o,XO){const D=XO?Object.assign({},MFL,XO):MFL,F=D
   const shadow=nsDecal(tx,tz,D.SHADOW,0x000000,0,D.LIFE,{manual:true}),glow=nsDecal(tx,tz,D.GLOW,0xff2a1a,0,D.LIFE,{manual:true,add:true});
   cineLock=Math.max(cineLock,5);darkTarget=Math.max(darkTarget,.5);vigTarget=Math.max(vigTarget,.5);if(typeof sfxRumble==='function')sfxRumble(3.2,.5);
   let tt=0,hit=false,burnT=0;const R=D.R,PR=D.PR,shards=[],BX=D.BURN-6,KL=(TI-1)/TI,waved=D.WAVE>0?new Set():null;
-  const C=F?{moon,cor,cor2,mm,shadow,glow,tx,tz,ty,TI,R,PR,mats,geos,shards}:null;if(F&&F.build)F.build(C);
+  const C=F?{moon,cor,cor2,mm,shadow,glow,tx,tz,ty,TI,R,PR,mats,geos,shards}:null;
   const impact=()=>{moon.visible=false;worldSlow=.3;slowT=.3;camShake=Math.max(camShake,.7);flashA=Math.max(flashA,.55);flashCol='#ff3020';if(typeof sfxBoom==='function')sfxBoom(.8,true);
     flash(tx,ty+.5,tz,0xffd0a0,2.6,.45);bmWave(tx,tz,R*1.4,1.2,1.3);bmWave(tx,tz,R*D.WAVE_R,D.WAVE_T,.8);shockwave(tx,tz,R,0xff4030,.6,0x2a0204);shockwave(tx,tz,R*.6,0xffd0a0,.45,0x3a0a04);
     const HI=D.onImpact?[]:null;for(const e of enemies){if(e.dead)continue;if((e.x-tx)**2+(e.z-tz)**2<R*R){hurt(e,P*D.DMG,'magic',o);if(HI)HI.push(e);if(!e.dead)e.stunT=Math.max(e.stunT||0,e.boss?D.BSTUN:D.STUN);}}
@@ -32017,7 +32017,7 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
    - M3 Shattered Moon: at the impact the 16 shards are thrown (mfmAim) at foes between MFM.aim0 and MFM.aim1 from it, one each, the foes the
      impact did not reach first, then the nearest (so a lone foe at its heart gets one back); each lands where its foe will be (a stunned or
      slowed foe is led less) on an exact arc, and strikes the nearest foe within MFM.shardR of where it lands, MFM.shard (x100%). Shards with
-     no foe to go to fly as before. They are drawn a quarter smaller, glowing hotter with a short trail of embers; where each lands, a little
+     no foe to go to fly as before. Those thrown at foes are drawn a quarter smaller; all glow hotter with a short trail of embers; where each lands, a little
      burst of sparks and dust (with blood on a foe), and it cools darker and crumbles away (the base shards lay on the road for 3.5s).
    - M4 Under Its Shadow: while the moon falls, every ground foe under its shadow is slowed MFM.slow x min(1, (k / k1)^2), k the fall
      (0-1) and k1 where its last second starts: so 60% in that last second (a slow, set directly: it works on Unstoppable foes too). The
@@ -32085,7 +32085,7 @@ function mfmOpts(c){const L=c.L,a=c.a,X={},S={};
   if(L>=4){X.SLOW=MFM.slow;X.SHOP=.74;X.GLOP=.86;}
   if(L>=5){X.DMG=MFL.DMG*(1+MFM.hard*a[4]);X.WAVE=MFM.wave*a[4];}
   X.LIFE=MFL.LIFE+(X.BURN||MFL.BURN)-MFL.BURN;
-  X.fx={impact:C=>mfmImpact(C,L,S),fall:(C,k,dt)=>mfmFall(C,L,S,k,dt),frame:(C,tt,dt,hit)=>mfmFrame(C,L,S,tt,dt,hit),land:(C,s,q)=>mfmLand(C,L,s,q),end:C=>{if(S.wall)nsFree(S.wall);}};
+  X.fx={impact:C=>mfmImpact(C,L,S),fall:(C,k,dt)=>mfmFall(C,L,S,k,dt),frame:(C,tt,dt,hit)=>mfmFrame(C,L,S,tt,dt,hit),land:(C,s,q)=>mfmLand(C,L,s,q),end:C=>{if(S.wv)nsFree(S.wv);}};
   X.onImpact=H=>mfmLog({ev:'impact',H:H.slice(),x:S.tx,z:S.tz});X.onShard=(s,q)=>mfmLog({ev:'shard',q,aim:s.aim||null,x:s.m.position.x,z:s.m.position.z,goal:s.goal||null});
   if(L>=4){S.slowed=new Map();X.onSlow=(e,v)=>{if(!(S.slowed.get(e)>=v))S.slowed.set(e,v);};}X.onWave=e=>mfmLog({ev:'wave',e,d:Math.hypot(e.x-S.tx,e.z-S.tz)});
   X.onEnd=()=>{if(S.slowed)mfmLog({ev:'slow',S:[...S.slowed]});mfmLog({ev:'end'});};
@@ -32093,8 +32093,8 @@ function mfmOpts(c){const L=c.L,a=c.a,X={},S={};
 function mfmImpact(C,L,S){S.tx=C.tx;S.tz=C.tz;
   /* M3: the shards glow hotter */
   if(L>=3){const hm=mfmHotMat(C);S.cool=mfmHotMat(C,true);C.cool=S.cool;for(const s of C.shards)s.m.material=hm;}
-  /* M5: the wall of blood rides the far wave */
-  if(L>=5){S.wall=mfmWave(C);if(typeof sfxBoom==='function')sfxBoom(.45,false);}}
+  /* M5: the wave of blood, with height, rides the far wave */
+  if(L>=5){S.wv=mfmWave(C);if(typeof sfxBoom==='function')sfxBoom(.45,false);}}
 /* M4: the falling moon's shadow presses down on the foes under it: dust kicked up at their feet */
 function mfmFall(C,L,S,k,dt){if(L<4||!(dt>0)||!S.slowed)return;for(const [e,v] of S.slowed){if(e.dead||rnd()>dt*7*v)continue;const a=rnd()*6.28;
   emit(0,{x:e.x+Math.cos(a)*.15,y:gy(e.x,e.z)+.04,z:e.z+Math.sin(a)*.15,vx:Math.cos(a)*.5,vy:.15+rnd()*.2,vz:Math.sin(a)*.5,s:.08,s2:.24,c:0x7a5a4a,c2:0x3a2620,a:.5,life:.6,turb:.3});}}
@@ -32102,7 +32102,7 @@ function mfmFrame(C,L,S,tt,dt,hit){
   /* M3: short ember trails behind the hot shards while they fly */
   if(L>=3&&hit&&dt>0)for(const s of C.shards){if(s.land){const u=s.t-s.lt;if(u>.35&&s.m.scale.x>.004){s.m.scale.multiplyScalar(Math.max(0,1-dt*4.5));if(rnd()<dt*5){const p=s.m.position;emitS(0,{x:p.x,y:p.y,z:p.z,vx:0,vy:.25,vz:0,s:.12,s2:.35,c:0x3a1410,c2:0x140806,a:.35,life:.8,lift:.2,turb:.4});}}continue;}if(s.t>2)continue;const p=s.m.position;emit(1,{x:p.x,y:p.y,z:p.z,vx:-s.v.x*.08,vy:.2-s.v.y*.08,vz:-s.v.z*.08,s:.09,s2:0,c:0xffc890,c2:0xa01008,life:.28+rnd()*.1});}
   /* M5: the wave rolls out on bmWave's front, highest as it leaves the impact, lower as it spends itself */
-  if(L>=5&&hit&&S.wall){const a=tt-C.TI,T=MFL.WAVE_T,W=S.wall,U=W.material.uniforms;if(a>T+.25){nsFree(W);S.wall=null;return;}const k=Math.min(1,a/T),r=C.R*MFL.WAVE_R*Math.min(1,.97*(1-Math.pow(1-k,3))+.05),h=.95*(1-.5*k)*Math.min(1,a/.12);
+  if(L>=5&&hit&&S.wv){const a=tt-C.TI,T=MFL.WAVE_T,W=S.wv,U=W.material.uniforms;if(a>T+.25){nsFree(W);S.wv=null;return;}const k=Math.min(1,a/T),r=C.R*MFL.WAVE_R*Math.min(1,.97*(1-Math.pow(1-k,3))+.05),h=.95*(1-.5*k)*Math.min(1,a/.12);
     U.uR.value=Math.max(.05,r-.3*h);U.uH.value=Math.max(.01,h);U.uT.value=a;U.uA.value=Math.min(1,a/.1)*(1-SMS(a,T*.6,T+.2));
     /* blood thrown off its crest */
     if(dt>0&&a<T*.8)for(let i=0;i<8;i++){const b=rnd()*6.283,x=C.tx+Math.cos(b)*r,z=C.tz+Math.sin(b)*r,y=gy(x,z)+h*(.8+rnd()*.3);
