@@ -6,5 +6,18 @@
   "seed": 1,
   "bytes": 2298504,
   "note": "The neutron star rises and its beam sweeps its ring (the first 11 seconds of the cast)."
+ },
+ "pulsar-1": {
+  "k": "pulsar",
+  "L": 1,
+  "len": 11.33,
+  "seed": 1,
+  "bytes": 2277136,
+  "note": "Every beam hit strikes harder; the beams burn thicker.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "hit": 80
+  }
  }
 }
