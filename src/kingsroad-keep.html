@@ -14471,6 +14471,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Never-Never Land: the hour that is the hero\u2019s',d:'3 Nov',v:'v463',li:[
+    'Never-Never Land (Ancient) has five new masteries, for now in developer mode. Still one dome of night over the whole field where time stands still and then crawls, stars falling on the leaders, a whip of four stars and every star falling at the end: each mastery makes a part the domain already has stronger and draws that part richer.',
+    'Falling Stars: a shooting star every 0.36s (0.45s before), about 39 in a cast (31), splashing 0.6 tiles (0.5), with larger heads, halos and tails and a bigger glint where they strike. The Stopped Hour: time stands still for 2.6s (1.8s before), bosses at 15% (25%), and foes held in it take 50% more from everything (25%), so the first lash lands inside it; while it holds the stars stop twinkling, Sylph\u2019s wind stands still and the dome\u2019s meridians glow.',
+    'Lash of Stars: four stars lash every 2.8s (3.5s before), 5 lashes (4), over a wider square (radius 1.6, 1.35 before), holding foes 0.8s (0.6s); a wider ribbon, a whiter snap and larger glints at its corners. Sylph\u2019s Hour: foes move 50% slower (40% before; bosses 25%, 20% before) and towers attack 35% faster (25%); the sky wheels faster and Sylph\u2019s wings beat faster.',
+    'Rain of Stars: the last fall strikes 1300% (1000% before), and the great stars that fall in it, only a picture before, land for real, all of them before the last strike: up to 36 (18 before), two a foe, 220% each. The dome\u2019s falling stars swell larger and the great stars\u2019 glints are bigger.']},
   {t:'The Eldritch Tree: the world in bloom',d:'2 Nov',v:'v462',li:[
     'The Eldritch Tree (Ancient) has five new masteries, for now in developer mode. Still one trunk older than the stars, roots bursting up under the thickest knots of foes, and one bloom over the whole field: each mastery makes a part the Tree already has stronger and draws that part richer.',
     'Long Roots: each eruption reaches 1.65 tiles (1.35 before), with 8 root spikes (6 before) a fifth taller round a wider ring. Thirst: the roots drink 2% of each foe\u2019s max health (1% before; bosses 0.7%, 0.4% before); twice the motes of life fly to the trunk, and its sap veins flash as each draught reaches it.',
@@ -19601,7 +19606,15 @@ SPELL_EL.never='light';
 SPELL_FX.never='14s domain over the whole field. Time stands still for 1.8s (bosses move at 25%), then foes move 40% slower (bosses 20%) and take 25% more damage from everything. Towers attack 25% faster. A shooting star hits the foes nearest the keep every 0.45s: 220%, and 100% to foes within half a tile. Every 3.5s four stars link round the thickest crowd and lash it: 500% and held 0.6s. At the end every star falls: 1000% to every foe';
 ANIM_D.never=21.5;
 ANC_EP.never='The sky where time does not move';
-const NVR={ACT0:3,STOP:1.8,END:17,LIFE:21.5,slow:.4,slowB:.2,stopB:.25,vuln:1.25,rate:1.25,star:2.2,spl:1,splR:.5,starP:.45,lash:5,lashP:3.5,hold:.6,holdB:.2,fin:10,S:null};
+/* v463: castNever takes an optional XO (the domain's masteries) over these numbers; the keys after fin are new, and their values here are the
+   old cast: vulnS (the damage taken while time stands still; 0: vuln), lashR (the whip's radius), finStar (each great star of the finale strikes
+   this much; 0: only a picture, on real time, as before), finN (how many great stars at most), and the looks: starS (a shooting star's size),
+   glS/glB (the glint where a star strikes, a great star's), stopFx (while time stands still the stars stop twinkling, the wind stands still
+   and the meridians glow), lashW/lashSnap/lashG (the whip's ribbon, its snap, its corner glints), skyW (how fast the sky wheels), flap
+   (Sylph's wingbeat), swell (how much the dome's stars swell as they fall), gPool (glints from a pool of this many instead of one material
+   each). log(d) receives the events for the tests. Per-cast numbers live on NVR.S.K, where the wrappers below read them. */
+const NVR={ACT0:3,STOP:1.8,END:17,LIFE:21.5,slow:.4,slowB:.2,stopB:.25,vuln:1.25,rate:1.25,star:2.2,spl:1,splR:.5,starP:.45,lash:5,lashP:3.5,hold:.6,holdB:.2,fin:10,S:null,
+  vulnS:0,lashR:1.35,finStar:0,finN:18,starS:1,glS:1.6,glB:2.4,stopFx:0,lashW:.11,lashSnap:1,lashG:1.1,skyW:.035,flap:9,swell:1.4,gPool:0,log:null};
 /* the hero: both arms raised as the dome opens, then one hand guides the stars while the other holds the sky; both sweep down as the stars fall */
 POSES.never=k=>{const s=k*NVR.LIFE,up=SMS(s,.15,1.3)*(1-SMS(s,2.6,3.4)),act=SMS(s,2.8,3.6)*(1-SMS(s,16.6,17.1)),fin=SMS(s,16.8,17.2)*(1-SMS(s,17.6,18.8)),off=1-SMS(s,19.5,21);
   const sw=Math.sin(s*1.3)*.08*act;
@@ -19637,26 +19650,26 @@ function nvrChime(n,vol,low){const c=typeof sfxCtx==='function'&&sfxCtx();if(!c|
   if(low){const o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.value=196;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol*1.6,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+2.8);o.connect(g);g.connect(SFX.master);o.start(t);o.stop(t+2.9);}}
 let NVR_TING=0;function nvrTing(){if(time-NVR_TING<.12)return;NVR_TING=time;nvrChime(1,.035);}
 
-function castNever(t,PW,o){
+function castNever(t,PW,o,XO){
   if(ANC.live.never&&ANC.live.never.refresh()){toast('The stars of Never-Never Land burn on','lvl');return;}
-  const K=NVR,C=ancBegin('never'),{root,reg,regM}=C,L=C.L,TAU=Math.PI*2;
+  const K=XO?Object.assign({},NVR,XO):NVR,lg=K.log,C=ancBegin('never'),{root,reg,regM}=C,L=C.L,TAU=Math.PI*2;
   ancIntro('never','#cfeaff');if(typeof sfxWind==='function')sfxWind(3,.14);nvrChime(5,.05);
   const V=ancView(),O=V.c.clone(),R=clamp(Math.hypot(V.hw,V.hh)*.92,7,15),DH=R*.5;
   const hero=t&&t.g?t:heroU,H0=hero&&hero.g?new THREE.Vector3(hero.x!=null?hero.x:hero.g.position.x,0,hero.z!=null?hero.z:hero.g.position.z):O.clone();
   /* the night of the stars: a deep indigo sky, silver-blue starlight */
   L.hc.setHex(0x6c84cc);L.hg.setHex(0x0c1030);L.sc.setHex(0xb4c8ff);L.bg.setHex(0x050920);L.hemi=.3;L.sun=.2;L.sunOff=new THREE.Vector3(-4,16,6);
   const pool=ancPool(root,1800,reg,regM,48);const alive=()=>enemies.filter(e=>!e.dead);
-  const S={T:0,O,R};NVR.S=S;
+  const S={T:0,O,R,K};NVR.S=S;
   const mB=(m,c,a)=>regM(new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:a==null?1:a,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
   const sky=new THREE.Group();sky.position.copy(O);root.add(sky);/* everything that turns with the sky */
   /* ---- the dome: a glass of night, its rim glowing where it meets the ground, meridians and parallels, stars on its skin ---- */
-  const domeM=regM(new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+  const domeM=regM(new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:0},uMer:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
     vertexShader:'varying vec3 vN;varying vec3 vV;varying vec3 vP;void main(){vP=position;vec4 mv=modelViewMatrix*vec4(position,1.);vV=-mv.xyz;vN=normalMatrix*normal;gl_Position=projectionMatrix*mv;}',
-    fragmentShader:'uniform float uA,uT;varying vec3 vN;varying vec3 vV;varying vec3 vP;float hh(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,37.719)))*43758.5453);}'+
+    fragmentShader:'uniform float uA,uT,uMer;varying vec3 vN;varying vec3 vV;varying vec3 vP;float hh(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,37.719)))*43758.5453);}'+
       'void main(){vec3 n=normalize(vN);float fr=pow(1.-abs(dot(n,normalize(vV))),2.2);vec3 d=normalize(vP);float lon=atan(d.z,d.x),lat=asin(clamp(d.y,-1.,1.));'+
-      'float mer=smoothstep(.992,1.,abs(cos(lon*8.+uT*.08))),par=smoothstep(.985,1.,abs(cos(lat*9.)));vec3 g=d*70.,q=floor(g);float s=hh(q);float st=step(.986,s)*smoothstep(.32,.08,length(fract(g)-.5))*(.55+.45*sin(uT*2.6+s*60.));'+
-      'float base=smoothstep(.0,.08,d.y);vec3 c=vec3(.5,.82,1.)*fr+vec3(.75,.6,1.)*fr*fr*.5+vec3(.7,.85,1.)*(mer+par)*.35+vec3(1.)*st;'+
-      'float a=uA*(fr*.5+(mer+par)*(.05+fr*.25)+st*.55+.015)*base;gl_FragColor=vec4(c,a);}'}));
+      'float cm=abs(cos(lon*8.+uT*.08)),mer=smoothstep(.992,1.,cm),par=smoothstep(.985,1.,abs(cos(lat*9.))),mg=uMer>0.?pow(smoothstep(.96,1.,cm),3.):0.;vec3 g=d*70.,q=floor(g);float s=hh(q);float st=step(.986,s)*smoothstep(.32,.08,length(fract(g)-.5))*(.55+.45*sin(uT*2.6+s*60.));'+
+      'float base=smoothstep(.0,.08,d.y);vec3 c=vec3(.5,.82,1.)*fr+vec3(.75,.6,1.)*fr*fr*.5+vec3(.7,.85,1.)*(mer+par)*.35+vec3(1.)*st+vec3(.85,.94,1.)*(mer*.7+mg*.3+par*.15)*uMer;'+
+      'float a=uA*(fr*.5+(mer+par)*(.05+fr*.25)+st*.55+.015+(mer*.12+mg*.03+par*.015)*uMer)*base;gl_FragColor=vec4(c,a);}'}));
   const dome=new THREE.Mesh(reg(new THREE.SphereGeometry(1,72,24,0,TAU,0,Math.PI/2)),domeM);dome.scale.set(R,DH,R);dome.renderOrder=49;const domeG=new THREE.Group();domeG.add(dome);root.add(domeG);
   /* ---- the nebula and the river of light, high under the dome ---- */
   const nebM=regM(new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:0},uR:{value:R}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
@@ -19673,10 +19686,10 @@ function castNever(t,PW,o){
     sp[i*3]=Math.cos(a)*rr;sp[i*3+1]=y;sp[i*3+2]=Math.sin(a)*rr;const br=rnd()<.09;sb[i]=br?1:0;ss[i]=(br?.24:.08)+rnd()*.08;sph[i]=rnd();cc.setHex(SCOL[Math.floor(rnd()*SCOL.length)]);sc[i*3]=cc.r;sc[i*3+1]=cc.g;sc[i*3+2]=cc.b;}
   const starG=reg(new THREE.BufferGeometry());starG.setAttribute('position',new THREE.BufferAttribute(sp,3));starG.setAttribute('aS',new THREE.BufferAttribute(ss,1));starG.setAttribute('aPh',new THREE.BufferAttribute(sph,1));
   starG.setAttribute('aC',new THREE.BufferAttribute(sc,3));starG.setAttribute('aB',new THREE.BufferAttribute(sb,1));
-  const starM=regM(new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:0},uScale:{value:uScaleNow()},uFall:{value:0},uGrow:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
-    vertexShader:'attribute float aS;attribute float aPh;attribute vec3 aC;attribute float aB;uniform float uT,uA,uScale,uFall,uGrow;varying vec3 vC;varying float vA;varying float vB;'+
+  const starM=regM(new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:0},uScale:{value:uScaleNow()},uFall:{value:0},uGrow:{value:0},uSwell:{value:K.swell}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+    vertexShader:'attribute float aS;attribute float aPh;attribute vec3 aC;attribute float aB;uniform float uT,uA,uScale,uFall,uGrow,uSwell;varying vec3 vC;varying float vA;varying float vB;'+
       'void main(){vec3 p=position;float d=fract(aPh*7.31);float f=clamp(uFall*1.7-d*.7,0.,1.);f=f*f;p.y=mix(p.y,.08,f);float vis=1.-smoothstep(uGrow-1.2,uGrow,length(p.xz));'+
-      'vec4 mv=modelViewMatrix*vec4(p,1.);float tw=.62+.38*sin(uT*(1.3+aPh*2.4)+aPh*31.);gl_PointSize=max(1.,aS*(1.+f*1.4)*uScale/-mv.z);gl_Position=projectionMatrix*mv;'+
+      'vec4 mv=modelViewMatrix*vec4(p,1.);float tw=.62+.38*sin(uT*(1.3+aPh*2.4)+aPh*31.);gl_PointSize=max(1.,aS*(1.+f*uSwell)*uScale/-mv.z);gl_Position=projectionMatrix*mv;'+
       'vC=aC;vB=aB;vA=uA*tw*vis*(1.-step(.999,f));}',
     fragmentShader:'varying vec3 vC;varying float vA;varying float vB;void main(){vec2 d=gl_PointCoord-.5;float r=length(d)*2.;float core=exp(-r*r*7.);'+
       'float spk=vB*(exp(-abs(d.x)*38.)*exp(-abs(d.y)*4.5)+exp(-abs(d.y)*38.)*exp(-abs(d.x)*4.5));float a=(core+spk*.9)*vA;if(a<.004)discard;gl_FragColor=vec4(vC*(core*1.15+spk),a);}'}));
@@ -19736,46 +19749,54 @@ function castNever(t,PW,o){
       'float dg=exp(-abs(d.x-d.y)*45.)*exp(-length(d)*9.)+exp(-abs(d.x+d.y)*45.)*exp(-length(d)*9.);gl_FragColor=vec4(vec3(.85,.93,1.)+core,(core+spk+dg*.5)*uA);}'}));
   const glintG=reg(new THREE.PlaneGeometry(1,1));
   const SHOTS=[],GLINTS=[];const up=new THREE.Vector3(0,1,0),dv=new THREE.Vector3();
-  const glint=(x,y,z,size,life)=>{const m=new THREE.Mesh(glintG,glintM.clone());regM(m.material);m.rotation.x=-Math.PI/2;m.position.set(x,y,z);m.renderOrder=55;root.add(m);GLINTS.push({m,t:0,life,size});};
+  /* (K.gPool: glints from a pool made with the cast, each with its own material, reused; when every one is lit the oldest is lit again) */
+  const GP=[];for(let i=0;i<K.gPool;i++){const m=new THREE.Mesh(glintG,regM(glintM.clone()));m.rotation.x=-Math.PI/2;m.renderOrder=55;m.visible=false;root.add(m);GP.push({m,t:0,life:1,size:1,p:1,on:false});}
+  const glint=(x,y,z,size,life,a)=>{if(GP.length){let G=GP.find(q=>!q.on);if(!G)G=GP.reduce((a,b)=>b.t/b.life>a.t/a.life?b:a);if(!G.on){G.on=true;GLINTS.push(G);}
+      G.t=0;G.life=life;G.size=size;G.a=a||1;G.m.position.set(x,y,z);G.m.rotation.z=0;G.m.visible=true;return;}
+    const m=new THREE.Mesh(glintG,glintM.clone());regM(m.material);m.rotation.x=-Math.PI/2;m.position.set(x,y,z);m.renderOrder=55;root.add(m);GLINTS.push({m,t:0,life,size});};
   const shoot=(e,big,fin)=>{const a=rnd()*TAU,rr=R*(.25+rnd()*.5),sx=O.x+Math.cos(a)*rr,sz=O.z+Math.sin(a)*rr,sy=DH*(.75+rnd()*.2);
     const g=new THREE.Group();root.add(g);const tr=new THREE.Mesh(trailG,trailM);tr.renderOrder=54;g.add(tr);const hd=new THREE.Mesh(headG,headM);g.add(hd);const ha=new THREE.Mesh(haloG,haloM);g.add(ha);
-    if(big){hd.scale.setScalar(1.6);ha.scale.setScalar(1.6);tr.scale.x=tr.scale.z=1.6;}
-    const tp=tpos2(e);SHOTS.push({g,tr,hd,ha,e,sx,sy,sz,tx:tp.x,ty:tp.y,tz:tp.z,t:0,d:big?.42:.32+rnd()*.06,big,fin});};
+    const sk=big?1.6:K.starS;if(sk!==1){hd.scale.setScalar(sk);ha.scale.setScalar(sk);tr.scale.x=tr.scale.z=sk;}
+    const tp=tpos2(e);SHOTS.push({g,tr,hd,ha,e,sx,sy,sz,tx:tp.x,ty:tp.y,tz:tp.z,t:0,d:big?.42:.32+rnd()*.06,big,fin,gt:big&&!fin});};
   /* ---- the whip of four stars ---- */
   const LASH=[];
   const lashAt=()=>{const A=alive();if(!A.length)return false;let best=A[0],bn=-1;for(const e of A){let n=0;for(const q of A)if((q.x-e.x)**2+(q.z-e.z)**2<2.25)n++;if(n>bn){bn=n;best=e;}}
-    let cx=0,cz=0,cn=0;for(const q of A)if((q.x-best.x)**2+(q.z-best.z)**2<2.25){cx+=q.x;cz+=q.z;cn++;}cx/=cn;cz/=cn;const rot=rnd()*TAU,Rq=1.35,y=.16;
+    let cx=0,cz=0,cn=0;for(const q of A)if((q.x-best.x)**2+(q.z-best.z)**2<2.25){cx+=q.x;cz+=q.z;cn++;}cx/=cn;cz/=cn;const rot=rnd()*TAU,Rq=K.lashR,y=.16;
     const P=[0,1,2,3].map(i=>[cx+Math.cos(rot+i*Math.PI/2)*Rq,y,cz+Math.sin(rot+i*Math.PI/2)*Rq]);
     const m=regM(new THREE.ShaderMaterial({uniforms:{uDraw:{value:0},uA:{value:1},uT:{value:0},uSnap:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
       vertexShader:'attribute float aK;varying float vK;void main(){vK=aK;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
       fragmentShader:'uniform float uDraw,uA,uT,uSnap;varying float vK;void main(){float on=smoothstep(uDraw,uDraw-.03,vK);float head=exp(-pow((vK-uDraw)*16.,2.))*step(uDraw,1.);'+
         'float w=.7+.3*sin(vK*60.-uT*14.);gl_FragColor=vec4(mix(vec3(.7,.88,1.),vec3(1.),head+uSnap),uA*(on*(.6*w+uSnap*1.2)+head));}'}));
-    const me=new THREE.Mesh(reg(nvrRibbons([[P[0],P[1]],[P[1],P[2]],[P[2],P[3]],[P[3],P[0]]],.11)),m);me.renderOrder=56;root.add(me);
-    for(const q of P)glint(q[0],q[1]+.02,q[2],1.1,1.3);LASH.push({me,m,t:0,cx,cz,rot,h:Rq/Math.SQRT2,P,hit:false});nvrChime(4,.045);return true;};
+    const me=new THREE.Mesh(reg(nvrRibbons([[P[0],P[1]],[P[1],P[2]],[P[2],P[3]],[P[3],P[0]]],K.lashW)),m);me.renderOrder=56;root.add(me);
+    for(const q of P)glint(q[0],q[1]+.02,q[2],K.lashG,1.3);LASH.push({me,m,t:0,cx,cz,rot,h:Rq/Math.SQRT2,P,hit:false});nvrChime(4,.045);return true;};
   /* ---- the frame ---- */
-  let starT=K.starP,lashT=K.ACT0+1.8,finDone=false,finHit=false,lastHit=new Map(),stopToast=false,born=false,wave=false;
+  let starT=K.starP,lashT=K.ACT0+1.8,finDone=false,finHit=false,lastHit=new Map(),stopToast=false,born=false,wave=false,skyA=0,tOff=0,tFrz=null;const FINQ=[];
+  if(lg)lg({ev:'cast',S,K,root,GP,O,R});
   const live=ancRun(C,K.LIFE,(T,dt,dtR)=>{S.T=T;const tt=time;
+    /* (K.stopFx: while time stands still the sky's own clock stands still too, and goes on from there) */
+    const still=!!K.stopFx&&T>=K.ACT0&&T<K.ACT0+K.STOP;if(still){if(tFrz==null)tFrz=tt-tOff;}else if(tFrz!=null){tOff=tt-tFrz;tFrz=null;}const ts=tFrz!=null?tFrz:tt-tOff;
     const open=SMS(T,.9,K.ACT0),act=T>=K.ACT0&&T<K.END,fold=SMS(T,K.END+1.1,K.END+3.2);
     L.k=SMS(T,.6,2.6)*(1-SMS(T,K.END+1.2,K.END+3.6));darkTarget=Math.max(darkTarget,.34*L.k);vigTarget=Math.max(vigTarget,.5*L.k);
     /* Sylph: appears over the hero, hovers, flaps; at the finale she rises and sounds her horn */
     const hp=hero&&hero.g?hero.g.position:H0,sa=SMS(T,.1,.9)*(1-SMS(T,K.END+2.6,K.END+4)),rise=SMS(T,K.END-.4,K.END+.4)*(1-SMS(T,K.END+2.2,K.END+3.6));
     syl.position.set(hp.x,2.15+Math.sin(tt*2.1)*.08+rise*1.4,hp.z+.1);syl.visible=sa>.01;syl.scale.setScalar(1.25*sa);sylB.rotation.y=Math.sin(tt*.7)*.4;
-    const flap=Math.sin(tt*(act?9:6));for(const W of WING)W.piv.rotation.z=W.sd*(.25+flap*.35);wingM.uniforms.uA.value=sa*.72;wingM.uniforms.uT.value=tt;C.halo.scale.setScalar(1+.15*Math.sin(tt*3));
+    const flap=Math.sin(tt*(act?K.flap:6));for(const W of WING)W.piv.rotation.z=W.sd*(.25+flap*.35);wingM.uniforms.uA.value=sa*.72;wingM.uniforms.uT.value=tt;C.halo.scale.setScalar(1+.15*Math.sin(tt*3));
     if(sa>.5&&rnd()<dtR*24){const a=rnd()*TAU;pool.sp(syl.position.x+Math.cos(a)*.4,syl.position.y+(rnd()-.5)*.4,syl.position.z+Math.sin(a)*.4,(rnd()-.5)*.3,-.15,(rnd()-.5)*.3,rnd()<.5?0xbffff0:0xffffff,.8,.05+rnd()*.04,1,1);}
     /* Sylph is born in a burst of starlight; a wave of starlight runs out as the dome unfolds */
     if(!born&&T>=.12){born=true;for(let i=0;i<70;i++){const a=rnd()*TAU,e=rnd()*2-1,q=Math.sqrt(1-e*e),v=1.2+rnd()*1.6;pool.sp(syl.position.x,syl.position.y,syl.position.z,Math.cos(a)*q*v,e*v,Math.sin(a)*q*v,rnd()<.5?0xffffff:0xbffff0,.95,.05+rnd()*.05,.7+rnd()*.5,2.2);}nvrChime(3,.04);}
     if(!wave&&T>=1){wave=true;shockwave(O.x,O.z,R,0xcfe6ff,2);if(typeof sfxWind==='function')sfxWind(1.8,.1);}
     /* the dome unfolds from Sylph over the field, then folds back into her */
     const gS=Math.max(.02,open*(1-fold));const cxm=O.x+(syl.position.x-O.x)*(1-open)+(syl.position.x-O.x)*fold,czm=O.z+(syl.position.z-O.z)*(1-open)+(syl.position.z-O.z)*fold;
-    domeG.position.set(cxm,0,czm);domeG.scale.setScalar(gS);domeM.uniforms.uA.value=SMS(T,.9,1.6)*(1-SMS(T,K.END+2.4,K.END+3.4));domeM.uniforms.uT.value=tt;
-    starM.uniforms.uGrow.value=R*open+(fold>0?R*(1-fold)-R:0);starM.uniforms.uA.value=SMS(T,1.2,2.6)*(1-SMS(T,K.END+2.8,K.END+3.6));starM.uniforms.uT.value=tt;starM.uniforms.uScale.value=uScaleNow();
-    nebM.uniforms.uA.value=SMS(T,1.8,3.4)*(1-SMS(T,K.END+.6,K.END+2.2));nebM.uniforms.uT.value=tt;
-    windM.uniforms.uA.value=SMS(T,.4,2)*(1-SMS(T,K.END+1.5,K.END+3));windM.uniforms.uT.value=tt;
+    domeG.position.set(cxm,0,czm);domeG.scale.setScalar(gS);domeM.uniforms.uA.value=SMS(T,.9,1.6)*(1-SMS(T,K.END+2.4,K.END+3.4));domeM.uniforms.uT.value=ts;
+    if(K.stopFx)domeM.uniforms.uMer.value=SMS(T,K.ACT0,K.ACT0+.25)*(.4+.6*Math.exp(-Math.max(0,T-K.ACT0-.25)*2.2))*(1-SMS(T,K.ACT0+K.STOP-.25,K.ACT0+K.STOP+.35));
+    starM.uniforms.uGrow.value=R*open+(fold>0?R*(1-fold)-R:0);starM.uniforms.uA.value=SMS(T,1.2,2.6)*(1-SMS(T,K.END+2.8,K.END+3.6));starM.uniforms.uT.value=ts;starM.uniforms.uScale.value=uScaleNow();
+    nebM.uniforms.uA.value=SMS(T,1.8,3.4)*(1-SMS(T,K.END+.6,K.END+2.2));nebM.uniforms.uT.value=ts;
+    windM.uniforms.uA.value=SMS(T,.4,2)*(1-SMS(T,K.END+1.5,K.END+3));windM.uniforms.uT.value=ts;
     mapM.opacity=.75*SMS(T,1.4,3)*(1-SMS(T,K.END+1.4,K.END+3));mapMesh.rotation.y=-T*.03;
-    sky.rotation.y=T*.035;for(const W of WIND)W.rotation.y=dt?W.rotation.y+dt*.25:W.rotation.y;
-    for(const c of CON){c.dv=Math.max(c.dv||0,clamp((T-c.d0)/1.6,0,1.05));c.m.uniforms.uDraw.value=c.dv;/* drawn once: a rewound domain keeps its constellations */c.m.uniforms.uA.value=SMS(T,c.d0,c.d0+.3)*(1-SMS(T,K.END+.2,K.END+1.2));c.m.uniforms.uT.value=tt;}
+    skyA+=still?0:dt*K.skyW;sky.rotation.y=K.stopFx?skyA:T*K.skyW;for(const W of WIND)W.rotation.y=dt&&!still?W.rotation.y+dt*.25:W.rotation.y;
+    for(const c of CON){c.dv=Math.max(c.dv||0,clamp((T-c.d0)/1.6,0,1.05));c.m.uniforms.uDraw.value=c.dv;/* drawn once: a rewound domain keeps its constellations */c.m.uniforms.uA.value=SMS(T,c.d0,c.d0+.3)*(1-SMS(T,K.END+.2,K.END+1.2));c.m.uniforms.uT.value=ts;}
     /* wind streams round the dome near the ground */
-    if(open>.5&&fold<.5&&rnd()<dtR*40){const a=rnd()*TAU,r=R*(.3+rnd()*.65);pool.sp(O.x+Math.cos(a)*r,.2+rnd()*.8,O.z+Math.sin(a)*r,-Math.sin(a)*2.2,.1,Math.cos(a)*2.2,rnd()<.6?0xc8fff0:0xffffff,.5,.04+rnd()*.03,.9,.5);}
+    if(!still&&open>.5&&fold<.5&&rnd()<dtR*40){const a=rnd()*TAU,r=R*(.3+rnd()*.65);pool.sp(O.x+Math.cos(a)*r,.2+rnd()*.8,O.z+Math.sin(a)*r,-Math.sin(a)*2.2,.1,Math.cos(a)*2.2,rnd()<.6?0xc8fff0:0xffffff,.5,.04+rnd()*.03,.9,.5);}
     /* time stands still: a hush, the sign on screen */
     if(T>=K.ACT0&&!stopToast){stopToast=true;toast('Never-Never Land: time stands still','big');nvrChime(6,.05);flashA=Math.max(flashA,.18*SPACE_K+.06);flashCol='#cfe6ff';flashDecay=2;}
     ANC.fs.never=1;
@@ -19787,37 +19808,42 @@ function castNever(t,PW,o){
       if(T>=lashT){lashT+=K.lashP;if(lashT>K.END-.6)lashT=1e9;lashAt();}}
     /* the finale: every star falls */
     if(T>=K.END&&!finDone){finDone=true;starM.uniforms.uFall.value=0;nvrChime(6,.06,true);if(typeof sfxWind==='function')sfxWind(2.2,.16);
-      const A=alive();for(let i=0;i<Math.min(18,A.length*2);i++){const e=A[i%A.length];setTimeout(()=>{if(!e.dead&&NVR.S===S)shoot(e,true,true);},i*55);}}
+      const A=alive();if(K.finStar){const n=Math.min(K.finN,A.length*2),gp=n>1?Math.min(.055,.6/(n-1)):0;for(let i=0;i<n;i++)FINQ.push({at:T+i*gp,e:A[i%A.length]});if(lg)lg({ev:'fin',A:A.slice(),n,gp});}
+      else for(let i=0;i<Math.min(18,A.length*2);i++){const e=A[i%A.length];setTimeout(()=>{if(!e.dead&&NVR.S===S)shoot(e,true,true);},i*55);}}
+    while(FINQ.length&&T>=FINQ[0].at-1e-9){const q=FINQ.shift();if(!q.e.dead)shoot(q.e,true,false);}
     if(finDone){starM.uniforms.uFall.value=clamp((T-K.END)/1.2,0,1);
       if(!finHit&&T>=K.END+1.05){finHit=true;flashA=Math.max(flashA,.5*SPACE_K+.15);flashCol='#e8f2ff';flashDecay=1.5;camShake=Math.max(camShake,.45*SPACE_K+.1);if(typeof sfxBoom==='function')sfxBoom(.55,true);
         for(let i=0;i<4;i++)setTimeout(()=>shockwave(O.x,O.z,R*.25+i*R*.22,0xcfe6ff,.9),i*150);
         for(let i=0;i<260;i++){const a=rnd()*TAU,r=rnd()*R*.9;pool.sp(O.x+Math.cos(a)*r,.15,O.z+Math.sin(a)*r,Math.cos(a)*1.4,1+rnd()*2.4,Math.sin(a)*1.4,rnd()<.5?0xffffff:0xbfe0ff,.95,.06+rnd()*.06,1+rnd(),1.4,1.2);}
-        for(const e of alive())hurt(e,PW*K.fin,'magic',o);}}
+        const A=alive();for(const e of A)hurt(e,PW*K.fin,'magic',o);if(lg)lg({ev:'finHit',A});}}
     /* move the shooting stars; land them */
-    for(let i=SHOTS.length-1;i>=0;i--){const s=SHOTS[i];s.t+=dtR;const k=Math.min(1,s.t/s.d),kk=k*k;if(!s.e.dead&&!s.fin){const tp=tpos2(s.e);s.tx=tp.x;s.ty=tp.y;s.tz=tp.z;}
-      const x=s.sx+(s.tx-s.sx)*kk,y=s.sy+(s.ty-s.sy)*kk,z=s.sz+(s.tz-s.sz)*kk;s.hd.position.set(x,y,z);s.ha.position.set(x,y,z);
+    for(let i=SHOTS.length-1;i>=0;i--){const s=SHOTS[i];s.t+=s.gt?dt:dtR;const k=Math.min(1,s.t/s.d),kk=k*k;if(!s.e.dead&&!s.fin){const tp=tpos2(s.e);s.tx=tp.x;s.ty=tp.y;s.tz=tp.z;}
+      const x=s.sx+(s.tx-s.sx)*kk,y=s.sy+(s.ty-s.sy)*kk,z=s.sz+(s.tz-s.sz)*kk;s.hd.position.set(x,y,z);s.ha.position.set(x,y,z);if(s.gt)s.ha.scale.setScalar(1.6*(1-.65*kk));
       dv.set(s.tx-s.sx,s.ty-s.sy,s.tz-s.sz);const len=dv.length()||1;dv.normalize();s.tr.position.set(x,y,z);s.tr.quaternion.setFromUnitVectors(up,dv);s.tr.scale.y=Math.min(len*.55,len*kk+.4);
       if(rnd()<dtR*60)pool.sp(x,y,z,(rnd()-.5)*.3,(rnd()-.5)*.3,(rnd()-.5)*.3,0xdfeeff,.8,.04+rnd()*.03,.45,1);
-      if(k>=1){root.remove(s.g);SHOTS.splice(i,1);glint(s.tx,Math.max(.12,s.ty*.4),s.tz,s.big?2.4:1.6,.45);
-        for(let j=0;j<(s.big?18:10);j++)pool.sp(s.tx,s.ty,s.tz,(rnd()-.5)*2.4,rnd()*1.8,(rnd()-.5)*2.4,rnd()<.5?0xffffff:0xbfd8ff,.9,.05+rnd()*.04,.5+rnd()*.4,2,1.5);
-        if(!s.fin&&NVR.S===S){if(!s.e.dead){hurt(s.e,PW*K.star,'magic',o);}for(const q of alive())if(q!==s.e&&(q.x-s.tx)**2+(q.z-s.tz)**2<K.splR*K.splR)hurt(q,PW*K.spl,'magic',o);nvrTing();}}}
+      if(k>=1){root.remove(s.g);SHOTS.splice(i,1);let ga=1;if(s.gt){let n=0;for(const G of GLINTS)if(G.t<G.life&&(G.m.position.x-s.tx)**2+(G.m.position.z-s.tz)**2<2.56)n++;ga=Math.max(.12,1/(1+n*1.2));}
+        glint(s.tx,Math.max(.12,s.ty*.4),s.tz,s.big?K.glB:K.glS,.45,ga);
+        for(let j=0;j<(s.gt?12:s.big?18:10);j++)pool.sp(s.tx,s.ty,s.tz,(rnd()-.5)*2.4,rnd()*1.8,(rnd()-.5)*2.4,rnd()<.5?0xffffff:0xbfd8ff,.9,.05+rnd()*.04,.5+rnd()*.4,2,1.5);
+        if(!s.fin&&NVR.S===S){if(s.big){const hit=!s.e.dead;if(hit)hurt(s.e,PW*K.finStar,'magic',o);if(lg)lg({ev:'great',e:s.e,hit});}
+          else{const Hs=lg?[]:null;if(!s.e.dead){hurt(s.e,PW*K.star,'magic',o);}for(const q of alive())if(q!==s.e&&(q.x-s.tx)**2+(q.z-s.tz)**2<K.splR*K.splR){hurt(q,PW*K.spl,'magic',o);if(Hs)Hs.push(q);}if(lg)lg({ev:'star',e:s.e,x:s.tx,z:s.tz,H:Hs});}nvrTing();}}}
     /* the whips: drawn star to star, then they snap */
     for(let i=LASH.length-1;i>=0;i--){const Q=LASH[i];Q.t+=dtR;Q.m.uniforms.uDraw.value=clamp(Q.t/.45,0,1.05);Q.m.uniforms.uT.value=tt;
-      if(!Q.hit&&Q.t>=.5){Q.hit=true;Q.m.uniforms.uSnap.value=1;camShake=Math.max(camShake,.14*SPACE_K+.04);if(typeof sfxBoom==='function')sfxBoom(.18,true);
+      if(!Q.hit&&Q.t>=.5){Q.hit=true;Q.m.uniforms.uSnap.value=K.lashSnap;camShake=Math.max(camShake,.14*SPACE_K+.04);if(typeof sfxBoom==='function')sfxBoom(.18,true);
         const c=Math.cos(-Q.rot-Math.PI/4),sn=Math.sin(-Q.rot-Math.PI/4),h=Q.h+.38;
-        for(const e of alive()){const dx=e.x-Q.cx,dz=e.z-Q.cz,u=dx*c-dz*sn,v=dx*sn+dz*c;if(Math.abs(u)<=h&&Math.abs(v)<=h){hurt(e,PW*K.lash,'magic',o);if(!e.dead)stunE(e,e.boss?K.holdB:K.hold);}}
-        for(let j=0;j<4;j++){const a=Q.P[j],b=Q.P[(j+1)%4];for(let n=0;n<12;n++){const f=n/12;pool.sp(a[0]+(b[0]-a[0])*f,.2,a[2]+(b[2]-a[2])*f,(rnd()-.5)*.8,.6+rnd()*.8,(rnd()-.5)*.8,0xffffff,.9,.05+rnd()*.03,.6,2,1);}}}
-      if(Q.hit)Q.m.uniforms.uSnap.value=Math.max(0,1-(Q.t-.5)*2.2);Q.m.uniforms.uA.value=1-SMS(Q.t,.9,1.4);if(Q.t>1.45){root.remove(Q.me);LASH.splice(i,1);}}
-    for(let i=GLINTS.length-1;i>=0;i--){const G=GLINTS[i];G.t+=dtR;const k=G.t/G.life;G.m.scale.setScalar(G.size*(.4+1.1*Math.sin(Math.min(1,k)*Math.PI*.6)));G.m.material.uniforms.uA.value=Math.max(0,1-k)*1.2;G.m.rotation.z+=dtR*1.2;if(k>=1){root.remove(G.m);GLINTS.splice(i,1);}}
+        const Hl=lg?[]:null,XZ=lg?alive().map(e=>[e,e.x,e.z]):null;for(const e of alive()){const dx=e.x-Q.cx,dz=e.z-Q.cz,u=dx*c-dz*sn,v=dx*sn+dz*c;if(Math.abs(u)<=h&&Math.abs(v)<=h){hurt(e,PW*K.lash,'magic',o);if(!e.dead)stunE(e,e.boss?K.holdB:K.hold);if(Hl)Hl.push(e);}}
+        if(lg)lg({ev:'lash',cx:Q.cx,cz:Q.cz,rot:Q.rot,h,H:Hl,St:Hl.map(e=>e.stunT),XZ,T:S.T,me:Q.me});
+        const nS=Math.round(12*K.lashR/1.35);for(let j=0;j<4;j++){const a=Q.P[j],b=Q.P[(j+1)%4];for(let n=0;n<nS;n++){const f=n/nS;pool.sp(a[0]+(b[0]-a[0])*f,.2,a[2]+(b[2]-a[2])*f,(rnd()-.5)*.8,.6+rnd()*.8,(rnd()-.5)*.8,0xffffff,.9,.05+rnd()*.03,.6,2,1);}}}
+      if(Q.hit)Q.m.uniforms.uSnap.value=Math.max(0,1-(Q.t-.5)*2.2)*K.lashSnap;Q.m.uniforms.uA.value=1-SMS(Q.t,.9,1.4);if(Q.t>1.45){root.remove(Q.me);LASH.splice(i,1);}}
+    for(let i=GLINTS.length-1;i>=0;i--){const G=GLINTS[i];G.t+=dtR;const k=G.t/G.life;G.m.scale.setScalar(G.size*(.4+1.1*Math.sin(Math.min(1,k)*Math.PI*.6)));G.m.material.uniforms.uA.value=Math.max(0,1-k)*1.2*(G.a||1);G.m.rotation.z+=dtR*1.2;if(k>=1){if(G.p){G.on=false;G.m.visible=false;}else root.remove(G.m);GLINTS.splice(i,1);}}
     pool.step(dtR);
   },()=>{if(NVR.S===S)NVR.S=null;delete ANC.fs.never;for(const s of SHOTS)root.remove(s.g);SHOTS.length=0;},K.END);
   return live;}
-/* inside the dome the hero holds time: it stands still, then crawls for every foe */
-{const f0=ancF;ancF=function(e){let f=f0(e);const S=NVR.S;if(S&&S.T>=NVR.ACT0&&S.T<NVR.END+1.05){const b=!!(e&&e.boss);f*=S.T<NVR.ACT0+NVR.STOP?(b?NVR.stopB:0):1-(b?NVR.slowB:NVR.slow);}return f;};}
-/* every foe inside takes more damage from everything */
-{const h0=hurt;hurt=function(e,amt,kind,o){const S=NVR.S;if(S&&e&&!e.dead&&S.T>=NVR.ACT0&&S.T<NVR.END+1.2&&amt>0)amt*=NVR.vuln;return h0.call(this,e,amt,kind,o);};}
+/* inside the dome the hero holds time: it stands still, then crawls for every foe (the numbers are the cast's own, S.K: NVR unless masteries) */
+{const f0=ancF;ancF=function(e){let f=f0(e);const S=NVR.S,K=S&&S.K||NVR;if(S&&S.T>=K.ACT0&&S.T<K.END+1.05){const b=!!(e&&e.boss);f*=S.T<K.ACT0+K.STOP?(b?K.stopB:0):1-(b?K.slowB:K.slow);}return f;};}
+/* every foe inside takes more damage from everything (K.vulnS: another share while time stands still) */
+{const h0=hurt;hurt=function(e,amt,kind,o){const S=NVR.S,K=S&&S.K||NVR;if(S&&e&&!e.dead&&S.T>=K.ACT0&&S.T<K.END+1.2&&amt>0)amt*=K.vulnS&&S.T<K.ACT0+K.STOP?K.vulnS:K.vuln;return h0.call(this,e,amt,kind,o);};}
 /* the towers fight in a quicker time of their own */
-{const ts=tStats;tStats=function(t,P){const s=ts.apply(this,arguments);const S=NVR.S;if(s&&s.rate&&S&&S.T>=NVR.ACT0&&S.T<NVR.END&&t&&!t.isHero)s.rate*=NVR.rate;return s;};}
+{const ts=tStats;tStats=function(t,P){const s=ts.apply(this,arguments);const S=NVR.S,K=S&&S.K||NVR;if(s&&s.rate&&S&&S.T>=K.ACT0&&S.T<K.END&&t&&!t.isHero)s.rate*=K.rate;return s;};}
 /* ================= v362 (Simon): artifact sets stay with their element; Never-Never Land turns purple when a dark scroll is cast inside it =================
    "dark artifacts and the synergy of using 3 artifacts and its bonuses should ONLY applied to the scrolls of its corresponding element" and
    "for never-never land to turn purple, any dark spell needs to be cast inside it".
@@ -33545,6 +33571,67 @@ const ETM_OLD=castFirstTree;
 castFirstTree=function(t,PW,o,XO){const c=!XO?etmC(o):null;return ETM_OLD(t,PW,o,c?etmOpts(c):XO);};
 /* a foe being dragged under (e.swal) shows no health bar over the ground it sinks into (the batched bars of v446 skip it too) */
 {const u0=updBar;updBar=function(e){u0(e);if(e.swal&&e.bar)e.bar.visible=false;};}
+/* ================= Never-Never Land's masteries (v463), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: Sylph's dome of night sky over the whole field, where the hero owns time. Time stops, then crawls; every foe takes more and the
+   towers fight faster. Stars fall on the leaders, a whip of four stars lashes the thickest crowd, and at the end every star falls. Simon, for
+   every Mythic, Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is preserved but
+   their visuals barely change and change only to better", and "new stuff CAN appear ... but just nothing that over shines the spell". So each
+   mastery strengthens one part the domain already has and draws that same part richer. The stillness stays map-wide (a zone of stopped time
+   is Chronostasis), the constellations stay a picture (stars joined into a figure that fall as lances are the secret scroll Constellation).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Falling Stars | what if more stars fell? | the shooting stars | more, wider hits |
+   | 2 | The Stopped Hour | what if time stood still for longer? | the stillness | a longer stop that pays off |
+   | 3 | Lash of Stars | what if the whip cracked more often? | the whip | more lashes, wider, longer holds |
+   | 4 | Sylph's Hour | what if the hero took more of their time? | the crawl and the towers | stronger control and towers |
+   | 5 | Rain of Stars | what if every star that falls struck? | the finale | signature payoff |
+   - M1 Falling Stars: a star every NVM.starP s (0.45 before): about 39 in a cast (31), splashing NVM.splR tiles (0.5). Heads, halos and tails a
+     quarter larger, a bigger glint where they strike (2.0, 1.6 before).
+   - M2 The Stopped Hour: time stands still NVM.stop s (1.8 before), bosses at NVM.stopB (0.25). Foes held in it take 50% more (25% before)
+     from everything, so the first lash lands inside the stillness. While it holds, the stars stop twinkling, Sylph's wind stands still and the
+     dome's meridians glow.
+   - M3 Lash of Stars: a lash every NVM.lashP s (3.5 before): 5 lashes (4), over a wider square (radius NVM.lashR, 1.35 before), holding foes
+     NVM.hold s (0.6; bosses 0.2 as before, Resolve applies). A wider ribbon (0.15, 0.11 before), a whiter snap, larger glints at the corners.
+   - M4 Sylph's Hour: foes NVM.slow slower (0.4 before; bosses NVM.slowB, 0.2), towers NVM.rate faster (1.25). The sky wheels faster and
+     Sylph's wings beat faster.
+   - M5 Rain of Stars: the last fall strikes NVM.fin (1000% before), and the great stars that fall in it (only a picture before, on real-time
+     timers) land for real, in game time: up to NVM.finN (18 before), two a foe, NVM.finStar each, all of them before the last strike. The dome's
+     falling stars swell larger (2.4x, 1.4x before), the great stars' glints are bigger (3, 2.4 before); a great star's halo draws in as it
+     strikes, and where several land on one crowd their glints share the light, so they never pile into a white sheet over the foes.
+   Percentages are of the scroll's power. Every mastered cast runs castNever with its XO (nvmOpts); Mastery 0, echoes and other casters cast
+   exactly as before. Its numbers live on the cast (NVR.S.K), where the stillness, the crawl, the damage taken and the towers read them.
+   Mastered casts take their glints from a pool of 32 (one material each, made with the cast) instead of a new material for every glint.
+   The stillness, the crawl and the towers count for nothing on the ladder (its foes stand still and it has no towers), and every number here
+   also lifts every other spell and tower on the field while the dome is up; the factors carry that.
+   Two names of the approved set were already taken and were changed: Stolen Time is Chronostasis' fourth mastery (Sylph's Hour here;
+   Borrowed Hours, tried first, sat too close to the Aeon Dial's Borrowed Years, also towers fighting faster), and Starfall is the world
+   event (Rain of Stars here).
+   Ladder (Ancient, half steps; the standing pack and the lone foe, .6 / .4, 3 casts 22 s apart), calibrated with the foes put back where
+   they stood before every cast (in play the cooldown is 160 s, so every cast meets fresh foes); nothing here throws or kills a ladder foe,
+   so the standard ladder (which casts again at the same foes) reads the same. With the factors below: put back (4 runs) 1.078 / 1.168 /
+   1.231 / 1.308 / 1.357, standard (4 runs) 1.076 / 1.164 / 1.23 / 1.306 / 1.356, against 1.078 / 1.162 / 1.226 / 1.302 / 1.35. Without
+   the factors (all 1): 1.13 / 1.163 / 1.274 / 1.274 / 1.42. NVM.dbg (an array) logs the events. */
+const NVM={dbg:null,starP:.36,splR:.6,stop:2.6,stopB:.15,vulnS:1.5,lashP:2.8,lashR:1.6,hold:.8,slow:.5,slowB:.25,rate:1.35,fin:13,finStar:2.2,finN:36,gPool:32};
+const nvmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='never'&&c.L?c:null;};
+const nvmLog=d=>{if(NVM.dbg){d.t=time;NVM.dbg.push(d);}};
+SM_D.never=[
+  {n:'Falling Stars',d:'A shooting star falls every 0.36s (0.45s before), about 39 in a cast (31), splashing 0.6 tiles (0.5). Larger stars, a bigger glint where they strike.'},
+  {n:'The Stopped Hour',d:'Time stands still for 2.6s (1.8s before), bosses at 15% (25%). Foes held in it take {50}% more from everything (25% before), so the first lash lands inside it.'},
+  {n:'Lash of Stars',d:'Four stars lash every 2.8s (3.5s before): 5 lashes (4), over a wider square, holding foes 0.8s (0.6s).'},
+  {n:'Sylph\u2019s Hour',d:'Foes move 50% slower (40% before; bosses 25%, 20% before), and towers attack 35% faster (25% before).'},
+  {n:'Rain of Stars',d:'The last fall strikes {1300}% (1000% before), and the great stars that fall in it land for real: up to 36, {220}% each.'}];
+SMF.never={m:1};
+SMA.never=[1,1,1,1,1];
+SMG.never=[.954,.999,.962,1.022,.951];
+/* this cast's numbers and looks (castNever's XO), cumulative: Mastery L has masteries 1..L */
+function nvmOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.starP=NVM.starP;X.splR=NVM.splR;X.starS=1.25;X.glS=2;X.gPool=NVM.gPool;}
+  if(L>=2){X.STOP=NVM.stop;X.stopB=NVM.stopB;X.vulnS=1+(NVM.vulnS-1)*a[1];X.stopFx=1;}
+  if(L>=3){X.lashP=NVM.lashP;X.lashR=NVM.lashR;X.hold=NVM.hold;X.lashW=.15;X.lashSnap=1.5;X.lashG=1.5;}
+  if(L>=4){X.slow=NVM.slow;X.slowB=NVM.slowB;X.rate=NVM.rate;X.skyW=.06;X.flap=13;}
+  if(L>=5){X.fin=NVM.fin*a[4];X.finStar=NVM.finStar*a[4];X.finN=NVM.finN;X.swell=2.4;X.glB=3;}
+  X.log=nvmLog;nvmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+const NVM_OLD=castNever;
+castNever=function(t,PW,o,XO){const c=!XO?nvmC(o):null;return NVM_OLD.call(this,t,PW,o,c?nvmOpts(c):XO);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.

@@ -14,6 +14,8 @@ const foes=(n,o)=>{o=o||{};for(const e of enemies.slice())removeEnemy(e);enemies
 const run=s=>{for(let i=0;i<s/.05;i++){update(.05);updFx(.05);}};
 const cast=()=>{heroU.anim={k:'never',t:0,d:ANIM_D.never};castSN0('never');worldSlow=1;slowT=0;};
 const runTo=T=>{let n=0;while(NVR.S&&NVR.S.T<T&&n++<2000){update(.05);updFx(.05);}};
+/* (the checks are of the domain itself: no mastery, v463, whatever the dev account has earned; the account is put back afterwards) */
+meta.smast=meta.smast||{};delete meta.smast.never;
 const errs0=[];const ce=console.error;let errs=0;console.error=function(){errs++;errs0.push([].slice.call(arguments).join(' ').slice(0,200));return ce.apply(console,arguments);};
 try{
   /* ---- registries ---- */
