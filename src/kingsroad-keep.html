@@ -32023,7 +32023,7 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
    | 4 | Swallowed | what if the roots took what they had drunk dry? | the roots | an execute |
    | 5 | The World in Bloom | what if all they drank came back as the bloom? | the bloom | signature payoff |
    (the table of numbers and the ladder follow when calibrated) */
-const ETM={dbg:null,reach:1.65,drink:.02,drinkB:.007,gap:.45,lock:3,swallow:.2,bloom:13.5,bloomPer:.03,bloomMax:.45};
+const ETM={dbg:null,reach:1.65,drink:.02,drinkB:.007,gap:.45,lock:3,swallow:.2,bloom:11,bloomPer:.03,bloomMax:.45};
 const etmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='firsttree'&&c.L?c:null;};
 const etmLog=d=>{if(ETM.dbg){d.t=time;ETM.dbg.push(d);}};
 SM_D.firsttree=[
@@ -32031,10 +32031,10 @@ SM_D.firsttree=[
   {n:'Thirst',d:'The roots drink 2% of each foe\u2019s max health (1% before; bosses 0.7%, 0.4% before). Twice the motes of life fly to the trunk, and its sap veins flash with each draught.'},
   {n:'Restless Roots',d:'The roots burst every 0.45s (0.6s before), about 31 times instead of 24, and may strike the same foe again after 3s (4s before).'},
   {n:'Swallowed',d:'A foe (not a boss) the roots leave under 20% of its health is dragged under the earth: the spikes clench round it and sink.'},
-  {n:'The World in Bloom',d:'The bloom strikes {1350}% (900% before), and 3% more for every foe the roots drank from (up to 45% more). Twice the blossoms, a thicker wave of pollen and a blazing surge of sap up the trunk. Still 3 lives.'}];
+  {n:'The World in Bloom',d:'The bloom strikes {1100}% (900% before), and 3% more for every foe the roots drank from (up to 45% more). Twice the blossoms, a thicker wave of pollen and a blazing surge of sap up the trunk. Still 3 lives.'}];
 SMF.firsttree={m:1};
 SMA.firsttree=[1,1,1,1,1];
-SMG.firsttree=[1,1,1,1,1];
+SMG.firsttree=[1.083,1.108,.987,1.056,.952];
 /* the sap veins (castFirstTree's veinX): Thirst's draughts climb them as bright beads (uD: when each of the last four reached the trunk), and
    The World in Bloom makes them glow brighter for every foe the roots drank from (uK) and blaze as the surge climbs (uS: its front, uE: its light) */
 const ETM_VEIN='uniform vec4 uD;uniform float uS,uE,uK;void veinX(float u,inout vec3 c,inout float k){k*=uK;'+
