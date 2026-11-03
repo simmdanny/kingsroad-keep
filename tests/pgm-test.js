@@ -56,10 +56,10 @@ try{
   /* ---- the card ---- */
   ok('the five masteries: Closer Still, Swifter Judgment, The Watching Eyes, Execution, The Last Judgment (v464)',SM_D.purgatory.map(x=>x.n).join('|')==='Closer Still|Swifter Judgment|The Watching Eyes|Execution|The Last Judgment',SM_D.purgatory.map(x=>x.n).join('|'));
   const d=i=>smDesc('purgatory',i);
-  ok('the numbers on the card are the ones in the code (3 tiles; 13s, 7%; 1.5 and 2.5 tiles; 8% up to 20%; 0.8s, 150% up to 480%)',
-    /3 tiles/.test(d(0))&&/2\.8 before/.test(d(0))&&/13s/.test(d(1))&&/14s before/.test(d(1))&&/7% faster/.test(d(1))&&/1\.5 tiles/.test(d(2))&&/2\.5 tiles/.test(d(2))&&/8%/.test(d(3))&&/20%/.test(d(3))&&/not bosses/.test(d(3))
+  ok('the numbers on the card are the ones in the code (3 tiles; 13s, 7%; 1.5 and 2.75 tiles; 8% up to 20%; 0.8s, 150% up to 480%)',
+    /3 tiles/.test(d(0))&&/2\.8 before/.test(d(0))&&/13s/.test(d(1))&&/14s before/.test(d(1))&&/7% faster/.test(d(1))&&/1\.5 tiles/.test(d(2))&&/2\.75 tiles/.test(d(2))&&/8%/.test(d(3))&&/20%/.test(d(3))&&/not bosses/.test(d(3))
     &&/0\.8s/.test(d(4))&&/0\.32s before/.test(d(4))&&/150%/.test(d(4))&&/480%/.test(d(4))
-    &&PGM.fall===3&&PGM.judg===13&&PGM.b2===1.6&&near(PGM.b2/1.5,1.07,.01)&&PGM.stareR===1.5&&PGM.stareD===2.5&&PGM.ex0===.08&&PGM.exK===.12&&near(.08+.12,.2)&&PGM.sil===.8&&PGM.last===1.5&&near(1.5*3.2,4.8),d(1)+' / '+d(4));
+    &&PGM.fall===3&&PGM.judg===13&&PGM.b2===1.6&&near(PGM.b2/1.5,1.07,.01)&&PGM.stareR===1.5&&PGM.stareD===2.75&&PGM.ex0===.08&&PGM.exK===.12&&near(.08+.12,.2)&&PGM.sil===.8&&PGM.last===1.5&&near(1.5*3.2,4.8),d(1)+' / '+d(4));
   ok('no hooks of their own (the masteries live in the cast); calibrated with hidden factors',!SMF.purgatory.hit&&!SMF.purgatory.cast&&SMA.purgatory.every(x=>x===1)&&SMG.purgatory.length===5&&SMG.purgatory.every(x=>x>=.9&&x<=1.1),SMG.purgatory.join());
   ok('the defaults table is the old cast (2.8 tiles; stages at 0.45, 0.8 and 1.5 from 14s; the second stare at 11.2s; a 0.32s silence ending at 17.5s; no stares, executions or last cut; the old aura)',
     PURGD.fall===2.8&&PURGD.JUDG===14&&PURGD.END===17.5&&PURGD.sil===.32&&PURGD.b0===.45&&PURGD.b1===.8&&PURGD.b2===1.5&&PURGD.focus2===11.2&&!PURGD.stare&&!PURGD.exK&&!PURGD.ex0&&!PURGD.last&&PURGD.auraK===1&&PURGD.glowR===1.7&&PURGD.swell===.06&&!PURGD.flareK&&!PURGD.wide&&!PURGD.bladeN);
@@ -100,10 +100,10 @@ try{
     ok('M2: the rest as Mastery 1 (3 tiles; the old silence and slow; no stares, executions or last cut)',c.D.fall===3&&!C.some(q=>q.st||q.ex)&&!ev('last').length&&!slowOk(W,c.D).length);}
   /* ---- M3 The Watching Eyes ---- */
   {const F=stage();PGM.dbg=[];log=[];let c=null,fl=[];wrapHurt();try{cast(3);c=ev('cast')[0];for(let i=0;i<420;i++){const n0=ev('stare').length;run(.05);if(ev('stare').length>n0)fl.push(Math.min(...c.EYES.map(E=>E.flare)));}run(1);}finally{hurt=H0;setL(0);}
-    const K=cutsOk(c.D,F,100),C=ev('cut'),S=C.filter(q=>q.st),look=K.look,kS=Math.exp(-2.5/3);
-    ok('M3: while the eyes stare, foes within 1.5 tiles of where they look are cut as if they stood 2.5 tiles from the hero (closeness exp(-2.5/3)), as the model says',near(c.D.stareK,kS,1e-12)&&K.ok&&S.length>0,K.n+' cuts, '+S.length+' given by a stare, worst '+K.worst.toFixed(2)+' '+K.bad.slice(0,4).join(' '));
+    const K=cutsOk(c.D,F,100),C=ev('cut'),S=C.filter(q=>q.st),look=K.look,kS=Math.exp(-2.75/3);
+    ok('M3: while the eyes stare, foes within 1.5 tiles of where they look are cut as if they stood 2.75 tiles from the hero (closeness exp(-2.75/3)), as the model says',near(c.D.stareK,kS,1e-12)&&K.ok&&S.length>0,K.n+' cuts, '+S.length+' given by a stare, worst '+K.worst.toFixed(2)+' '+K.bad.slice(0,4).join(' '));
     const win=K.M.win,inW=T=>win.some(w=>Math.abs(w-T)<.026);
-    ok('M3: only in the four stares, only near where they look (the densest foe), only foes further than 2.5 tiles, never in the silence (the frame the world returns in still cuts, as before)',S.every(q=>inW(q.T)&&!(q.T>=17.18-1e-9&&q.T<17.5)&&(q.e.x-look.x)**2+(q.e.z-look.z)**2<=2.25+1e-9&&kOf(q.e,3)<kS)&&S.some(q=>q.T<8.3)&&S.some(q=>q.T>13.2&&q.T<14.6),S.length+' stare cuts, from '+(S.length?S[0].T.toFixed(2):'-'));
+    ok('M3: only in the four stares, only near where they look (the densest foe), only foes further than 2.75 tiles, never in the silence (the frame the world returns in still cuts, as before)',S.every(q=>inW(q.T)&&!(q.T>=17.18-1e-9&&q.T<17.5)&&(q.e.x-look.x)**2+(q.e.z-look.z)**2<=2.25+1e-9&&kOf(q.e,3)<kS)&&S.some(q=>q.T<8.3)&&S.some(q=>q.T>13.2&&q.T<14.6),S.length+' stare cuts, from '+(S.length?S[0].T.toFixed(2):'-'));
     const far=F.filter(e=>K.M.S.get(e)>0);
     ok('M3: those foes take more cuts in the stares (each one within one cut of the model)',far.length>0&&far.every(e=>Math.abs(C.filter(q=>q.e===e).length-K.M.E.get(e))<1),far.length+' foes near the gaze');
     ok('M3: the eyes flare at each stare (all six), and their links',fl.length===4&&fl.every(f=>f>.9)&&c.D.flareK===.5,fl.map(f=>f.toFixed(2)).join(','));
