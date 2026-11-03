@@ -48,5 +48,59 @@
    "star": 25,
    "lash": 3
   }
+ },
+ "never-5": {
+  "k": "never",
+  "L": 5,
+  "len": 6,
+  "seed": 1,
+  "bytes": 1162664,
+  "note": "The last fall: the great stars land for real (the clip joins it there).",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "star": 38,
+   "lash": 5,
+   "fin": 1,
+   "great": 12,
+   "finHit": 1
+  }
+ },
+ "never-4": {
+  "k": "never",
+  "L": 4,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 1995433,
+  "note": "Foes move 50% slower, and the archer towers attack 35% faster.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "star": 25,
+   "lash": 3
+  }
+ },
+ "tempest-1": {
+  "k": "tempest",
+  "L": 1,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 5076098,
+  "note": "The crown bolt strikes every foe on the field and leaves them Charged.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "crown": 6,
+   "volley": 9,
+   "leap": 27
+  }
+ },
+ "tempest-0": {
+  "k": "tempest",
+  "L": 0,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 4894397,
+  "note": "The hurricane forms round the hero, its eye wall rising (the first 13 seconds of the cast)."
  }
 }
