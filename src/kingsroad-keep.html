@@ -14067,12 +14067,13 @@ function treeRootMat(regM,r0){return regM(new THREE.ShaderMaterial({uniforms:{uG
     'c+=vec3(.75,1.,.35)*vein*(.25+1.6*pulse)*uSap;float tip=smoothstep(uGrow-.025,uGrow,vU.x)*step(uGrow,.995);c+=vec3(.9,1.,.5)*tip*1.4;gl_FragColor=vec4(c,1.);}'}));}
 /* v462: XO (optional, the Eldritch Tree's masteries): this cast's own numbers over TRD (reach: how far an eruption strikes from its knot;
    drink/drinkB: the share of max health the roots drink (bosses); gap: seconds between eruptions; lock: seconds before the roots may strike
-   a foe again; swallow: a foe that is not a boss left under this share of its health is dragged under; bloom: the bloom's strike; bloomPer/
+   a foe again; spare: the roots hold a foe only if its Resolve can take the whole hold, so they never make it Unstoppable; swallow: a foe that is not a boss left under this share of its health is dragged under; bloom: the bloom's strike; bloomPer/
    bloomMax: its bonus for every foe the roots drank from, and the most) and its looks (spikes/spikeH: an eruption's root spikes and their
-   height; motes: motes of life per foe; draught: the sap veins flash with each draught; veinX: GLSL for the veins' flashes and surge; flw:
-   blossoms per root, instanced; waveK: the pollen wave's density; surge: the sap surge up the trunk; pool: the particle pool), and a log.
+   height; motes: motes of life per foe; draught: the sap veins flash with each draught; veinX: GLSL for the veins' flashes and surge; veinR:
+   the veins' thickness; flw/flwG:
+   blossoms per root (instanced) and their shape; waveK/waveH/waveS: the pollen wave's density, height and grain; surge: the sap surge up the trunk; pool: the particle pool), and a log.
    Without XO the cast is exactly the old one. */
-const TRD={reach:1.35,drink:.01,drinkB:.004,gap:.6,lock:4,swallow:0,bloom:9,bloomPer:0,bloomMax:0,spikes:6,spikeH:1,motes:6,draught:0,veinX:'',flw:0,waveK:1,surge:0,pool:1700,log:null};
+const TRD={reach:1.35,drink:.01,drinkB:.004,gap:.6,lock:4,spare:0,swallow:0,bloom:9,bloomPer:0,bloomMax:0,spikes:6,spikeH:1,motes:6,draught:0,veinX:'',veinR:.045,flw:0,flwG:null,waveK:1,waveH:1,waveS:1,surge:0,pool:1700,log:null};
 function castFirstTree(t,PW,o,XO){
   if(ANC.live.firsttree&&ANC.live.firsttree.refresh()){toast('The Eldritch Tree drinks deeper','lvl');return;}
   const D=XO?Object.assign({},TRD,XO):TRD,lg=D.log;
@@ -14105,7 +14106,7 @@ function castFirstTree(t,PW,o,XO){
     fragmentShader:'uniform float uT,uA;varying float vU;'+D.veinX+'void main(){float p=fract(vU*3.-uT*.45);float k=.3+1.2*smoothstep(0.,.08,p)*smoothstep(.3,.08,p);'+
       (D.veinX?'vec3 c=vec3(.7,1.,.4);veinX(vU,c,k);gl_FragColor=vec4(c*k,uA*min(k,2.5));}':'gl_FragColor=vec4(vec3(.7,1.,.4)*k,uA*k);}')}));
   for(let v=0;v<7;v++){const a0=v/7*TAU+.3,pts=[];for(let y=.15;y<12;y+=.7){const a=a0+Math.sin(y*.6+v)*.18,r=trR(a,y)*1.03,aa=a+y*.05;pts.push(new THREE.Vector3(Math.cos(aa)*r,y,Math.sin(aa)*r));}
-    tree.add(new THREE.Mesh(reg(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),60,.045,4,false)),veinM));}
+    tree.add(new THREE.Mesh(reg(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),60,D.veinR,4,false)),veinM));}
   /* a ring of torn earth round its foot */
   const crackM=regM(new THREE.MeshBasicMaterial({color:0x1a120a,transparent:true,opacity:0,depthWrite:false}));{const m=new THREE.Mesh(reg(new THREE.RingGeometry(1.2,3.6,40)),crackM);m.rotation.x=-Math.PI/2;m.position.set(P.x,P.y+.03,P.z);m.renderOrder=28;root.add(m);}
   /* ---- the roots: buttresses curling off the foot, then giant roots that crawl down the field, diving under and surfacing ---- */
@@ -14140,7 +14141,8 @@ function castFirstTree(t,PW,o,XO){
   const flowerM=[0xffd8ec,0xffffff,0xffb8d8].map(c=>regM(new THREE.MeshBasicMaterial({color:c}))),flowerG=reg(new THREE.IcosahedronGeometry(.16,0));
   function erupt(){const A=alive().filter(e=>!(lastHit.get(e)>time-D.lock));if(!A.length)return;const c=densest(A)||A[0];const E=ERU[eruI++%ERU.length];letGo(E);E.t=0;E.g.position.set(c.x,0,c.z);E.g.rotation.y=rnd()*6;E.g.visible=true;
     const hits=lg?[]:null;let dr=0;
-    for(const e of A){if((e.x-c.x)**2+(e.z-c.z)**2>D.reach*D.reach)continue;lastHit.set(e,time);hurt(e,PW*4,'magic',o);if(hits)hits.push(e);if(e.dead)continue;hurt(e,e.maxHp*(e.boss?D.drinkB:D.drink),'magic',{src:o.src});drank.add(e);dr++;if(!e.dead)stunE(e,e.boss?.4:1.2);
+    for(const e of A){if((e.x-c.x)**2+(e.z-c.z)**2>D.reach*D.reach)continue;lastHit.set(e,time);hurt(e,PW*4,'magic',o);if(hits)hits.push(e);if(e.dead)continue;hurt(e,e.maxHp*(e.boss?D.drinkB:D.drink),'magic',{src:o.src});drank.add(e);dr++;
+      {const hd=e.boss?.4:1.2;if(!e.dead&&!(D.spare&&rsvLeft(e)<=hd-Math.max(0,e.stunT||0)+1e-4))stunE(e,hd);}
       /* Swallowed: the spikes clench round a foe the roots leave too weak to stand, and drag it under (it is held while it sinks; towers let it go) */
       if(D.swallow&&!e.dead&&!e.boss&&e.hp<e.maxHp*D.swallow){e.stunT=Math.max(e.stunT||0,1.1);e.burrow=1;(E.sw=E.sw||[]).push({e,h:e.fly?e.y+.9:Math.max(.6,(e.hitY||.45)*2.2)});lg&&lg({ev:'swallow',e,hp:e.hp/e.maxHp});}
       for(let i=0;i<D.motes;i++){const y=e.y+e.hitY*.6;pool.sp(e.x,y,e.z,(P.x-e.x)/1.3,(2.4-y)/1.3,(P.z-e.z)/1.3,rnd()<.5?0xc8ff8a:0xffe88a,.9,.06+rnd()*.04,1.3,0,0);}}
@@ -14161,11 +14163,13 @@ function castFirstTree(t,PW,o,XO){
       for(let i=0;i<16;i++){const a=rnd()*TAU;pool.sp(x+Math.cos(a)*.3,.1,z+Math.sin(a)*.3,Math.cos(a)*(.5+rnd()*1.2),1.2+rnd()*1.8,Math.sin(a)*(.5+rnd()*1.2),rnd()<.6?0x5a4028:0x3a5a24,.9,.07+rnd()*.06,.7+rnd()*.4,1,3.5);}
       for(let i=0;i<10;i++)pool.sp(x+(rnd()-.5)*.3,.15,z+(rnd()-.5)*.3,(P.x-x)/1.3,(2.4-.15)/1.3,(P.z-z)/1.3,rnd()<.5?0xc8ff8a:0xffe88a,.9,.07+rnd()*.04,1.3,0,0);}
     if(t>=.9){E.g.visible=false;E.t=1.5;}}
-  /* The World in Bloom: twice the blossoms along every root, three instanced draws (one a colour) instead of a mesh each */
-  const fM=new THREE.Matrix4(),fQ=new THREE.Quaternion(),fS=new THREE.Vector3();
-  function blossoms(){const per=[[],[],[]];for(const R2 of ROOTS)for(let k=0;k<D.flw;k++){const p=R2.pts[1+Math.floor(rnd()*(R2.pts.length-1))];per[k%3].push({p:new THREE.Vector3(p.x+(rnd()-.5)*.36,Math.max(.12,p.y+.25),p.z+(rnd()-.5)*.36),d:rnd()*.7});}
-    FI=per.map((L2,j)=>{const im=new THREE.InstancedMesh(flowerG,flowerM[j],Math.max(1,L2.length));im.frustumCulled=false;root.add(im);L2.forEach((F,i)=>{F.im=im;F.i=i;FLW.push(F);});return im;});}
-  function blossomFx(T,tt){for(const F of FLW){const k=SMS(T,END+F.d,END+F.d+.4)*(1-SMS(T,END+1.2,END+2.2));fS.setScalar(Math.max(.001,k*(1.3+.2*Math.sin(tt*4+F.d*9))));fM.compose(F.p,fQ,fS);F.im.setMatrixAt(F.i,fM);}
+  /* The World in Bloom: twice the blossoms along every root, each a blossom of D.flwG (petals round a gold heart) in the old three colours,
+     all in one instanced draw instead of a mesh each */
+  const fM=new THREE.Matrix4(),fS=new THREE.Vector3();
+  function blossoms(){const im=new THREE.InstancedMesh(reg(D.flwG()),regM(new THREE.MeshBasicMaterial({vertexColors:true})),Math.max(1,ROOTS.length*D.flw)),eu=new THREE.Euler();im.frustumCulled=false;root.add(im);FI=[im];let i=0;
+    for(const R2 of ROOTS)for(let k=0;k<D.flw;k++){const p=R2.pts[1+Math.floor(rnd()*(R2.pts.length-1))];FLW.push({im,i,p:new THREE.Vector3(p.x+(rnd()-.5)*.36,Math.max(.12,p.y+.25),p.z+(rnd()-.5)*.36),q:new THREE.Quaternion().setFromEuler(eu.set((rnd()-.5)*.6,rnd()*TAU,(rnd()-.5)*.6)),d:rnd()*.7});
+      im.setColorAt(i++,flowerM[k%3].color);}}
+  function blossomFx(T,tt){for(const F of FLW){const k=SMS(T,END+F.d,END+F.d+.4)*(1-SMS(T,END+1.2,END+2.2));fS.setScalar(Math.max(.001,k*(1.3+.2*Math.sin(tt*4+F.d*9))));fM.compose(F.p,F.q,fS);F.im.setMatrixAt(F.i,fM);}
     for(const im of FI)im.instanceMatrix.needsUpdate=true;}
   /* The World in Bloom: the veins glow brighter for every foe the roots drink from, and as the Tree blooms what they drank surges up the trunk */
   function surgeFx(T,U){const u=T-END;U.uK.value=1+.8*Math.min(1,drank.size*D.bloomPer/Math.max(1e-6,D.bloomMax));
@@ -14200,7 +14204,7 @@ function castFirstTree(t,PW,o,XO){
       if(D.flw)blossoms();else for(const R2 of ROOTS)for(let k=0;k<10;k++){const p=R2.pts[1+Math.floor(rnd()*(R2.pts.length-1))];const m=new THREE.Mesh(flowerG,flowerM[k%3]);m.position.set(p.x+(rnd()-.5)*.3,Math.max(.12,p.y+.25),p.z+(rnd()-.5)*.3);m.scale.setScalar(.001);root.add(m);FLW.push({m,d:rnd()*.7});}
       for(let i=0;i<420;i++)pool.sp(V.c.x+(rnd()-.5)*V.hw*2.4,4+rnd()*4,V.c.z+(rnd()-.5)*V.hh*2.4,(rnd()-.5)*.8,-.4-rnd()*.6,(rnd()-.5)*.8,rnd()<.6?0xffd0e8:0xffffff,.9,.06+rnd()*.05,3+rnd()*2,.2,.05);}
     if(FI)blossomFx(T,tt);else for(const F of FLW){const k=SMS(T,END+F.d,END+F.d+.4)*(1-SMS(T,END+1.2,END+2.2));F.m.scale.setScalar(Math.max(.001,k*(1.3+.2*Math.sin(tt*4+F.d*9))));}
-    if(waveR>=0){waveR+=dt*16;if(waveR<40)for(let i=0;i<14*D.waveK;i++){const a=rnd()*TAU;pool.sp(P.x+Math.cos(a)*waveR,.25+rnd()*.4,P.z+Math.sin(a)*waveR,Math.cos(a)*1.2,.3+rnd()*.5,Math.sin(a)*1.2,rnd()<.5?0xfff0a0:0xffd8ec,.85,.07+rnd()*.05,.9,1,.2);}
+    if(waveR>=0){waveR+=dt*16;if(waveR<40)for(let i=0;i<14*D.waveK;i++){const a=rnd()*TAU;pool.sp(P.x+Math.cos(a)*waveR,.25+rnd()*.4*D.waveH,P.z+Math.sin(a)*waveR,Math.cos(a)*1.2,.3+rnd()*.5,Math.sin(a)*1.2,rnd()<.5?0xfff0a0:0xffd8ec,.85,(.07+rnd()*.05)*D.waveS,.9,1,.2);}
       const all=T>END+2.2;for(const e of alive()){if(waveHit.has(e))continue;if(all||(e.x-P.x)**2+(e.z-P.z)**2<waveR*waveR){waveHit.add(e);hurt(e,PW*D.bloom*bloomK,'magic',o);if(!e.dead)stunE(e,e.boss?.5:1.5);}}}
     pool.step(dtR);
   },()=>{delete ANC.fs.firsttree;for(const E of ERU)letGo(E);if(FI)for(const im of FI)im.dispose();},END);}
@@ -32029,24 +32033,34 @@ const etmLog=d=>{if(ETM.dbg){d.t=time;ETM.dbg.push(d);}};
 SM_D.firsttree=[
   {n:'Long Roots',d:'Each eruption reaches 1.65 tiles (1.35 before), its ring wider, with 8 root spikes (6 before) a fifth taller.'},
   {n:'Thirst',d:'The roots drink 2% of each foe\u2019s max health (1% before; bosses 0.7%, 0.4% before). Twice the motes of life fly to the trunk, and its sap veins flash with each draught.'},
-  {n:'Restless Roots',d:'The roots burst every 0.45s (0.6s before), about 31 times instead of 24, and may strike the same foe again after 3s (4s before).'},
+  {n:'Restless Roots',d:'The roots burst every 0.45s (0.6s before), about 31 times instead of 24, and may strike the same foe again after 3s (4s before). They hold a foe only while its Resolve allows the whole hold, so they never make it Unstoppable and the bloom still holds it.'},
   {n:'Swallowed',d:'A foe (not a boss) the roots leave under 20% of its health is dragged under the earth: the spikes clench round it and sink.'},
   {n:'The World in Bloom',d:'The bloom strikes {1100}% (900% before), and 3% more for every foe the roots drank from (up to 45% more). Twice the blossoms, a thicker wave of pollen and a blazing surge of sap up the trunk. Still 3 lives.'}];
 SMF.firsttree={m:1};
 SMA.firsttree=[1,1,1,1,1];
 SMG.firsttree=[1.083,1.108,.987,1.056,.952];
-/* the sap veins (castFirstTree's veinX): Thirst's draughts climb them as bright beads (uD: when each of the last four reached the trunk), and
-   The World in Bloom makes them glow brighter for every foe the roots drank from (uK) and blaze as the surge climbs (uS: its front, uE: its light) */
+/* the sap veins (castFirstTree's veinX): Thirst's draughts climb them as bright beads (uD: when each of the last four reached the trunk)
+   and flash the whole network as each one arrives; The World in Bloom makes them glow brighter for every foe the roots drank from (uK) and blaze
+   as the surge climbs (uS: its front, uE: its light) */
 const ETM_VEIN='uniform vec4 uD;uniform float uS,uE,uK;void veinX(float u,inout vec3 c,inout float k){k*=uK;'+
-  'vec4 q=(vec4(uT)-uD)*.85+.19,x=vec4(u)-q,b=(exp(-x*x*900.)*1.9+exp(-x*x*90.)*.45)*step(.19,q)*(1.-smoothstep(.85,1.1,q));float B=dot(b,vec4(1.));'+
-  'float s=u-uS,H=uE*(exp(-s*s*160.)*2.6+step(s,0.)*exp(s*2.5)*1.1);k+=B+H;c=mix(c,vec3(1.,1.,.72),clamp(B*.45+H*.35,0.,.85));}';
+  'vec4 a=vec4(uT)-uD,q=a*.85+.19,x=vec4(u)-q,b=(exp(-x*x*260.)*1.6+exp(-x*x*40.)*.35)*step(.19,q)*(1.-smoothstep(.85,1.1,q)),f=exp(-a*7.)*step(0.,a);'+
+  'float B=dot(b,vec4(1.)),F=dot(f,vec4(1.))*.8;'+
+  'float s=u-uS,H=uE*(exp(-s*s*160.)*2.6+step(s,0.)*exp(s*2.5)*1.1);k+=B+F+H;c=mix(c,vec3(1.,1.,.72),clamp(B*.45+F*.2+H*.35,0.,.85));}';
+/* a blossom (The World in Bloom): five cupped petals round a gold heart, about the size of the old blossom, shaded in its vertex colours
+   (the instance colour tints it with the old three pinks) */
+function etmBlossom(){const P=[],C=[],m=new THREE.Matrix4(),r=new THREE.Matrix4(),t=new THREE.Matrix4(),sc=new THREE.Matrix4(),n=new THREE.Vector3();
+  const add=(g,M,c)=>{const q=g.clone().applyMatrix4(M),A=q.attributes.position,N=q.attributes.normal;for(let i=0;i<A.count;i++){P.push(A.getX(i),A.getY(i),A.getZ(i));n.fromBufferAttribute(N,i).normalize();const k=.66+.34*Math.max(0,n.y);C.push(c[0]*k,c[1]*k,c[2]*k);}q.dispose();};
+  const pet=new THREE.OctahedronGeometry(1,0),mid=new THREE.IcosahedronGeometry(.05,0);
+  for(let k=0;k<5;k++){m.makeRotationY(k/5*Math.PI*2).multiply(r.makeRotationZ(.38)).multiply(t.makeTranslation(.09,0,0)).multiply(sc.makeScale(.09,.026,.056));add(pet,m,[1,1,1]);}
+  add(mid,m.makeTranslation(0,.028,0),[1,.84,.34]);pet.dispose();mid.dispose();
+  const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.Float32BufferAttribute(P,3));G.setAttribute('color',new THREE.Float32BufferAttribute(C,3));return G;}
 /* this cast's numbers and looks (castFirstTree's XO), cumulative: Mastery L has masteries 1..L */
 function etmOpts(c){const L=c.L,a=c.a,X={};
   if(L>=1){X.reach=ETM.reach;X.spikes=8;X.spikeH=1.2;}
-  if(L>=2){X.drink=ETM.drink;X.drinkB=ETM.drinkB;X.motes=12;X.draught=1;X.veinX=ETM_VEIN;}
-  if(L>=3){X.gap=ETM.gap;X.lock=ETM.lock;}
+  if(L>=2){X.drink=ETM.drink;X.drinkB=ETM.drinkB;X.motes=12;X.draught=1;X.veinX=ETM_VEIN;X.veinR=.06;}
+  if(L>=3){X.gap=ETM.gap;X.lock=ETM.lock;X.spare=1;}
   if(L>=4){X.swallow=ETM.swallow;}
-  if(L>=5){X.bloom=ETM.bloom*a[4];X.bloomPer=ETM.bloomPer;X.bloomMax=ETM.bloomMax;X.flw=20;X.waveK=2;X.surge=1;X.pool=3000;}
+  if(L>=5){X.bloom=ETM.bloom*a[4];X.bloomPer=ETM.bloomPer;X.bloomMax=ETM.bloomMax;X.flw=20;X.flwG=etmBlossom;X.waveK=2;X.waveH=2;X.waveS=1.3;X.surge=1;X.pool=3400;}
   X.log=etmLog;etmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
 const ETM_OLD=castFirstTree;
 castFirstTree=function(t,PW,o,XO){const c=!XO?etmC(o):null;return ETM_OLD(t,PW,o,c?etmOpts(c):XO);};
