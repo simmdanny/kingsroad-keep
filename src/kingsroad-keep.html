@@ -8029,39 +8029,97 @@ function castMoonfall(t,list,P,o,XO){const D=XO?Object.assign({},MFL,XO):MFL,F=D
     ()=>{nsFree(moon);shards.forEach(s=>nsFree(s.m));darkTarget=0;vigTarget=0;if(F&&F.end)F.end(C);if(D.onEnd)D.onEnd();},{mats,geos});}
 
 /* ---- Constellation: stars above the strongest foes join into a constellation, then the whole figure falls ---- */
-function nsLance(x0,y0,z0,tx,tz){const mats=[],ty=gy(tx,tz),[bg1,bg2]=nsBeamGeos(),g=new THREE.Group(),m1=nsAM(mats,0xffffff,1),m2=nsAM(mats,0x7fa8ff,.26);g.add(new THREE.Mesh(bg1,m1));const h=new THREE.Mesh(bg2,m2);h.scale.set(1.7,1.7,1);g.add(h);
-  nsBeamSet(g,x0,y0,z0,tx,ty,tz);scene.add(g);addFx(g,.45,f=>{const k=f.life/f.max;m1.opacity=k;m2.opacity=.26*k;g.scale.x=g.scale.y=1+(1-k)*1.5;},null,{mats});}
-function nsStreak(ax,az,bx,bz){const L=Math.hypot(bx-ax,bz-az);if(L<.1)return;const mats=[],geo=new THREE.PlaneGeometry(L,.22);geo.rotateX(-Math.PI/2);const m=nsAM(mats,0xcfe0ff,.9),me=new THREE.Mesh(geo,m);
+/* v470: w (optional, Constellation's Brighter Stars): the lance's thickness, 1 as before */
+function nsLance(x0,y0,z0,tx,tz,w){w=w||1;const mats=[],ty=gy(tx,tz),[bg1,bg2]=nsBeamGeos(),g=new THREE.Group(),m1=nsAM(mats,0xffffff,1),m2=nsAM(mats,0x7fa8ff,.26);g.add(new THREE.Mesh(bg1,m1));const h=new THREE.Mesh(bg2,m2);h.scale.set(1.7,1.7,1);g.add(h);
+  nsBeamSet(g,x0,y0,z0,tx,ty,tz);g.scale.x=g.scale.y=w;scene.add(g);addFx(g,.45,f=>{const k=f.life/f.max;m1.opacity=k;m2.opacity=.26*k;g.scale.x=g.scale.y=w*(1+(1-k)*1.5);},null,{mats});}
+/* v470: X (optional, Constellation's Burning Lines): w the streak's width, life how long it stays alight (bright as it burns in, settling to
+   0.7 of it, fading over its last 0.7s), op its brightness, band the height of a low band of light rising off it (a standing ribbon, CS_BAND_FS), with a white core and embers
+   rising along it while it burns. Without X as before. */
+const CS_BAND_VS='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+const CS_BAND_FS='varying vec2 vUv;uniform float uA,uT,uL;uniform vec3 uC;void main(){float h=vUv.y,x=vUv.x*uL,e=smoothstep(0.,.3,x)*smoothstep(uL,uL-.3,x);'+
+  'float s=.55+.45*sin(x*4.7+uT*2.3+sin(x*1.6-uT*1.2)*2.),r=.62+.38*sin(h*13.-uT*6.5+x*1.3);float a=uA*e*pow(1.-h,1.7)*s*r;if(a<.004)discard;gl_FragColor=vec4(mix(uC,vec3(1.),pow(1.-h,3.)*.75),min(1.,a));}';
+function nsStreak(ax,az,bx,bz,X){const L=Math.hypot(bx-ax,bz-az);if(L<.1)return;const mats=[],geos=[],geo=new THREE.PlaneGeometry(L,X?X.w:.22);geo.rotateX(-Math.PI/2);geos.push(geo);const m=nsAM(mats,X?0xc0d4ff:0xcfe0ff,X?X.op:.9),me=new THREE.Mesh(geo,m);
   me.position.set((ax+bx)/2,gy((ax+bx)/2,(az+bz)/2)+.05,(az+bz)/2);me.rotation.y=-Math.atan2(bz-az,bx-ax);me.renderOrder=3;scene.add(me);
   for(let i=0;i<Math.ceil(L*6);i++){const u=rnd();emit(1,{x:ax+(bx-ax)*u,y:.1,z:az+(bz-az)*u,vx:0,vy:.3+rnd()*.4,vz:0,s:.05,s2:0,c:0xffffff,c2:0x5a7aff,life:.7});}
-  addFx(me,1.3,f=>{const k=f.life/f.max;m.opacity=.9*k*(.8+.2*Math.sin(f.life*40));me.scale.z=1+(1-k)*.8;},null,{mats,geos:[geo]});}
-function castConstellation(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.fake),cand=list.filter(e=>!e.fake&&!e.dead),c=cand.length?densest(cand):(pool.length?densest(pool):list[0]);
-  let T=pool.filter(e=>(e.x-c.x)**2+(e.z-c.z)**2<81).sort((a,b)=>nsStrong(b)-nsStrong(a)).slice(0,7);if(!T.length)T=[c];
+  let cm=null,bm=null,tt=0;
+  if(X){const cg=new THREE.PlaneGeometry(L,X.w*.22);cg.rotateX(-Math.PI/2);geos.push(cg);cm=nsAM(mats,0xffffff,0);const cr=new THREE.Mesh(cg,cm);cr.position.y=.006;cr.renderOrder=4;me.add(cr);
+    if(X.band){const bg=new THREE.PlaneGeometry(L,X.band);bg.translate(0,X.band/2,0);geos.push(bg);bm=new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:rnd()*9},uL:{value:L},uC:{value:new THREE.Color(0x6a90ff)}},vertexShader:CS_BAND_VS,fragmentShader:CS_BAND_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
+      mats.push(bm);const bd=new THREE.Mesh(bg,bm);bd.renderOrder=4;me.add(bd);}}
+  addFx(me,X?X.life:1.3,(f,dt)=>{const k=f.life/f.max;if(!X){m.opacity=.9*k*(.8+.2*Math.sin(f.life*40));me.scale.z=1+(1-k)*.8;return;}
+    tt+=dt;const a=Math.min(1,f.life/.7)*Math.min(1,tt/.08)*(1-.3*SMS(tt,.15,.6)),fl=.86+.14*Math.sin(f.life*40);m.opacity=X.op*a*fl;cm.opacity=.55*a*fl;me.scale.z=1+(1-k)*.35;
+    if(bm){bm.uniforms.uT.value+=dt;bm.uniforms.uA.value=.95*a*Math.min(1,tt/.3);}
+    if(dt>0&&rnd()<dt*L*4*a){const u=rnd(),x=ax+(bx-ax)*u,z=az+(bz-az)*u;emit(1,{x,y:gy(x,z)+.08,z,vx:0,vy:.45+rnd()*.5,vz:0,s:.045,s2:0,c:0xffffff,c2:0x6a8aff,life:.7});}},null,{mats,geos});}
+/* v470 (Brighter Stars): where a star falls, a short column of light rises off the ground round its foe (open, brightest at its edges and its
+   foot, streaked, thinning as it climbs) inside a low wall of light racing out to the lance's splash (R); K: its brightness (the second
+   figure's are a little softer). The impact's flat ring made 3D (the explosion rule), quick and see-through */
+const CS_COL_VS='varying vec2 vUv;varying float vF;void main(){vUv=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vF=abs(dot(normalize(normalMatrix*normal),normalize(-mv.xyz)));gl_Position=projectionMatrix*mv;}';
+const CS_COL_FS='varying vec2 vUv;varying float vF;uniform float uA,uH,uT;uniform vec3 uC;void main(){float h=vUv.y,top=1.-smoothstep(uH-.3,uH,h),s=.68+.32*sin(vUv.x*31.42+h*5.-uT*15.);'+
+  'float a=uA*top*pow(1.-h,1.2)*(.28+.72*pow(1.-vF,1.3))*s;if(a<.004)discard;gl_FragColor=vec4(mix(uC,vec3(1.),.6*(1.-h)),min(1.,a));}';
+const csColGeo=()=>gget('csCol',()=>{const g=new THREE.CylinderGeometry(.32,.25,1.05,24,6,true);g.translate(0,.525,0);return g;}),
+  csWallGeo=()=>gget('csWall',()=>{const g=new THREE.CylinderGeometry(1,1,.32,40,1,true);g.translate(0,.16,0);return g;});
+function csImpact(tx,tz,R,K){K=K||1;const y=gy(tx,tz),mats=[],mk=c=>{const m=new THREE.ShaderMaterial({uniforms:{uA:{value:0},uH:{value:.3},uT:{value:rnd()*5},uC:{value:new THREE.Color(c)}},vertexShader:CS_COL_VS,fragmentShader:CS_COL_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});mats.push(m);return m;};
+  const g=new THREE.Group(),cm=mk(0x8aacff),wm=mk(0xa8c0ff),col=new THREE.Mesh(csColGeo(),cm),wall=new THREE.Mesh(csWallGeo(),wm);g.position.set(tx,y,tz);g.add(col,wall);wall.scale.set(.2,1,.2);scene.add(g);let tt=0;
+  for(let i=0;i<10;i++){const a=rnd()*6.28,r=.08+rnd()*.12;emit(1,{x:tx+Math.cos(a)*r,y:y+.05+rnd()*.2,z:tz+Math.sin(a)*r,vx:Math.cos(a)*.2,vy:1.6+rnd()*1.6,vz:Math.sin(a)*.2,s:.05,s2:0,c:0xffffff,c2:0x7a9aff,life:.45+rnd()*.25,drag:.6});}
+  addFx(g,.6,(f,dt)=>{tt+=dt;const k=f.life/f.max,rise=Math.min(1,tt/.12),w=SMS(tt,0,.36);cm.uniforms.uT.value+=dt;cm.uniforms.uH.value=.3+1.05*rise;cm.uniforms.uA.value=1.05*K*Math.min(1,k*1.8);col.scale.set(1+tt*.7,1+tt*.8,1+tt*.7);
+    wall.scale.set(R*(.2+.8*w),1.1-.5*w,R*(.2+.8*w));wm.uniforms.uH.value=1.3;wm.uniforms.uT.value+=dt;wm.uniforms.uA.value=1.25*K*(1-w);},null,{mats});}
+/* v470: XO (optional, Constellation's masteries): this cast's own numbers over CSL (N: the stars, R: how far from the figure's heart they reach;
+   lance: a lance's strike, spl/splK: the foes it strikes round its foe, within spl, for splK; line/lineW: the burning lines' strike and reach;
+   alight: how long they stay alight, and late: a foe stepping onto a line while it burns is burnt too, once a figure; hold: a non-boss foe is
+   held under its star from kindling until its star falls, a boss slowed bossSlow instead; twice/twGap/twTs: twGap s after the lines burn the
+   figure kindles again over the strongest foes still standing and falls a second time, at twice of the power, its timings times twTs (ts: this
+   figure's timings, second: it is that second figure)) and its looks (starK: the stars' size, white: whiter stars, flK: their flares' length,
+   lanceW: the lances' thickness, col: each impact a rising column of light in a low wall of light (csImpact) instead of the flat ring, streak:
+   the burning lines' looks (nsStreak's X), pulse: the halo tightening and pulsing over a held foe), and log() for the tests. Without XO:
+   exactly as before. */
+const CSL={N:7,R:9,lance:10,spl:.6,splK:.6,line:2,lineW:.55,alight:0,late:0,hold:0,bossSlow:.5,twice:0,twGap:.25,twTs:.6,ts:1,second:0,starK:1,white:0,flK:1,lanceW:1,col:0,streak:null,pulse:0,log:null};
+function castConstellation(t,list,P,o,XO){const D=XO?Object.assign({},CSL,XO):CSL,lg=D.log,ts=D.ts;
+  const pool=enemies.filter(e=>!e.dead&&!e.fake),cand=list.filter(e=>!e.fake&&!e.dead),c=cand.length?densest(cand):(pool.length?densest(pool):list[0]);
+  let T=pool.filter(e=>(e.x-c.x)**2+(e.z-c.z)**2<D.R*D.R).sort((a,b)=>nsStrong(b)-nsStrong(a)).slice(0,D.N);if(!T.length)T=[c];
   const ord=[T[0]],rest=T.slice(1);while(rest.length){const l=ord[ord.length-1];let bi=0,bd=1e9;rest.forEach((e,i)=>{const d=(e.x-l.x)**2+(e.z-l.z)**2;if(d<bd){bd=d;bi=i;}});ord.push(rest.splice(bi,1)[0]);}
-  const mats=[],geos=[],SY=3,starM=nsAM(mats,0xf4f8ff,0),haloM=nsAM(mats,0x5a8aff,0),flM=nsAM(mats,0xa8c8ff,0),lineM=nsAM(mats,0xd8e8ff,0),lineH=nsAM(mats,0x6a8aff,0),[bg1,bg2]=nsBeamGeos();
-  const flG=new THREE.PlaneGeometry(.62,.035);geos.push(flG);
-  const stars=ord.map((e,i)=>{const g=new THREE.Group();g.add(new THREE.Mesh(ico(.075,1),starM));const h=new THREE.Mesh(ico(.2,1),haloM);g.add(h);const fl=new THREE.Group(),f2=new THREE.Mesh(flG,flM);f2.rotation.z=Math.PI/2;fl.add(new THREE.Mesh(flG,flM),f2);g.add(fl);
-    g.scale.setScalar(.001);nsOwn(g);return{e,g,h,fl,i,x:e.x,z:e.z,ox:0,oz:0,shot:false,born:.15+i*.14,fall:0};});
+  const mats=[],geos=[],SY=3,starM=nsAM(mats,D.white?0xffffff:0xf4f8ff,0),haloM=nsAM(mats,D.white?0x6c98ff:0x5a8aff,0),flM=nsAM(mats,D.white?0xd0e0ff:0xa8c8ff,0),lineM=nsAM(mats,0xd8e8ff,0),lineH=nsAM(mats,0x6a8aff,0),[bg1,bg2]=nsBeamGeos();
+  const holdM=D.pulse?nsAM(mats,0x7aa4ff,0):null;
+  const flG=new THREE.PlaneGeometry(.62*D.flK,.035);geos.push(flG);
+  const stars=ord.map((e,i)=>{const g=new THREE.Group();g.add(new THREE.Mesh(ico(.075,1),starM));const h=new THREE.Mesh(ico(.2,D.white?2:1),haloM);g.add(h);const fl=new THREE.Group(),f2=new THREE.Mesh(flG,flM);f2.rotation.z=Math.PI/2;fl.add(new THREE.Mesh(flG,flM),f2);g.add(fl);
+    g.scale.setScalar(.001);nsOwn(g);return{e,g,h,fl,i,x:e.x,z:e.z,ox:0,oz:0,shot:false,born:(.15+i*.14)*ts,fall:0};});
   const lines=[];for(let i=0;i<stars.length-1;i++){const g=new THREE.Group();g.add(new THREE.Mesh(bg1,lineM),new THREE.Mesh(bg2,lineH));g.visible=false;nsOwn(g);lines.push({g,a:stars[i],b:stars[i+1]});}
-  cineLock=Math.max(cineLock,4);darkTarget=Math.max(darkTarget,.45);vigTarget=Math.max(vigTarget,.4);if(typeof sfxWind==='function')sfxWind(2.2,.12);
-  let tt=0,fired=false,streaked=false;const PL=2.2;
-  addFx(new THREE.Group(),5,(f,dt)=>{tt+=dt;const glowUp=SMS(tt,PL-.4,PL);
+  cineLock=Math.max(cineLock,4*ts);darkTarget=Math.max(darkTarget,.45);vigTarget=Math.max(vigTarget,.4);if(typeof sfxWind==='function')sfxWind(2.2*ts,.12);
+  let tt=0,fired=false,streaked=false,keep=!!D.twice,twT=0,twD=false,burnt=null,segs=null,lastP=null;const PL=2.2*ts;
+  if(lg)lg({ev:'cast',second:!!D.second,N:stars.length,T:ord.slice(),c,P,stars});
+  /* Fixed Stars: a non-boss foe is held from its star's kindling until the star falls (stunT set directly, as the Dimensional Slash's
+     stillness: Resolve does not shorten it); a boss is slowed instead */
+  const hold=s=>{const e=s.e;if(e.dead)return;const sec=PL+s.i*.06*ts-tt+.05;if(!e.boss)e.stunT=Math.max(e.stunT||0,sec);else{e.slow=Math.max(e.slow||0,D.bossSlow);e.slowT=Math.max(e.slowT||0,sec);}
+    s.held=e.boss?2:1;if(holdM&&!e.boss)s.h.material=holdM;if(lg)lg({ev:'hold',e,i:s.i,sec,boss:!!e.boss,T:tt});};
+  /* the lines burn: every foe within lineW of one, once */
+  const burn=(q,late)=>{burnt.add(q);hurt(q,P*D.line,'magic',o);if(lg)lg({ev:'burn',e:q,T:tt,late});};
+  addFx(new THREE.Group(),5*ts,(f,dt)=>{tt+=dt;const glowUp=SMS(tt,PL-.4*ts,PL);
     for(const s of stars)if(!s.shot&&!s.e.dead){s.bx=s.e.x;s.bz=s.e.z;}else if(s.bx==null){s.bx=s.x;s.bz=s.z;}
     for(let it=0;it<4;it++)for(let i=0;i<stars.length;i++)for(let j=i+1;j<stars.length;j++){const a=stars[i],b=stars[j];if(a.shot||b.shot)continue;let dx=(b.bx+b.ox)-(a.bx+a.ox),dz=(b.bz+b.oz)-(a.bz+a.oz);const d=Math.hypot(dx,dz);if(d<1.05){if(d<1e-3){dx=Math.cos(i*2.4);dz=Math.sin(i*2.4);}const m=(1.05-d)/2/(d||1);a.ox-=dx*m;a.oz-=dz*m;b.ox+=dx*m;b.oz+=dz*m;}}
     for(const s of stars){if(!s.shot){s.ox*=Math.max(0,1-dt*.5);s.oz*=Math.max(0,1-dt*.5);s.x=s.bx+s.ox;s.z=s.bz+s.oz;}const k=SMS(tt,s.born,s.born+.25),y=gy(s.x,s.z)+SY+Math.sin(tt*2+s.i)*.08;s.g.position.set(s.x,y,s.z);
-      if(!s.shot)s.g.scale.setScalar(Math.max(.001,nsBackE(k)*(1+.35*glowUp*(.7+.3*Math.sin(tt*30+s.i)))));s.fl.lookAt(camera.position);s.fl.rotateZ(tt*.6+s.i);s.fl.scale.setScalar(1+.3*Math.sin(tt*3+s.i*2)+.5*glowUp);
-      if(tt>=s.born&&tt-dt<s.born)sprayP(1,s.x,y,s.z,12,{c:0xffffff,c2:0x7fa8ff,sp:.8,s:.04,s2:0,life:.5});}
-    const vis=Math.min(1,tt*3);starM.opacity=vis;haloM.opacity=(.28+.3*glowUp)*vis;flM.opacity=.55*vis;
-    const lk=SMS(tt,1.1,1.8);lineM.opacity=.9*lk;lineH.opacity=(.25+.35*glowUp)*lk;
-    lines.forEach((L,i)=>{const A=L.a.g.position,B=L.b.g.position,d=Math.min(1,Math.max(0,lk*lines.length-i));L.g.visible=d>0&&!(fired&&tt>PL+.15);if(!L.g.visible)return;nsBeamSet(L.g,A.x,A.y,A.z,A.x+(B.x-A.x)*d,A.y+(B.y-A.y)*d,A.z+(B.z-A.z)*d);});
-    if(!fired&&tt>=PL){fired=true;stars.forEach((s,i)=>{s.fall=PL+i*.06;});camShake=Math.max(camShake,.1);flashA=Math.max(flashA,.16);flashCol='#cfdcff';}
+      if(!s.shot)s.g.scale.setScalar(Math.max(.001,nsBackE(k)*(1+.35*glowUp*(.7+.3*Math.sin(tt*30+s.i)))*D.starK));s.fl.lookAt(camera.position);s.fl.rotateZ(tt*.6+s.i);s.fl.scale.setScalar(1+.3*Math.sin(tt*3+s.i*2)+.5*glowUp);
+      if(tt>=s.born&&tt-dt<s.born){sprayP(1,s.x,y,s.z,12,{c:0xffffff,c2:0x7fa8ff,sp:.8,s:.04,s2:0,life:.5});if(D.hold)hold(s);}
+      /* (the halo tightens round a held foe and pulses; round a slowed boss a little less, and slower) */
+      if(D.pulse&&s.held&&!s.shot)s.h.scale.setScalar(s.held===1?.66+.12*Math.sin(tt*15+s.i*1.3):.84+.08*Math.sin(tt*8+s.i));}
+    const vis=Math.min(1,tt*3/ts);starM.opacity=vis;haloM.opacity=(.28+.3*glowUp)*vis*(D.white?.85:1);flM.opacity=.55*vis;if(holdM)holdM.opacity=(.36+.16*Math.sin(tt*15)+.14*glowUp)*vis;
+    const lk=SMS(tt,1.1*ts,1.8*ts);lineM.opacity=.9*lk;lineH.opacity=(.25+.35*glowUp)*lk;
+    lines.forEach((L,i)=>{const A=L.a.g.position,B=L.b.g.position,d=Math.min(1,Math.max(0,lk*lines.length-i));L.g.visible=d>0&&!(fired&&tt>PL+.15*ts);if(!L.g.visible)return;nsBeamSet(L.g,A.x,A.y,A.z,A.x+(B.x-A.x)*d,A.y+(B.y-A.y)*d,A.z+(B.z-A.z)*d);});
+    if(!fired&&tt>=PL){fired=true;stars.forEach((s,i)=>{s.fall=PL+i*.06*ts;});camShake=Math.max(camShake,.1);flashA=Math.max(flashA,.16);flashCol='#cfdcff';}
     for(const s of stars){if(s.fall&&!s.shot&&tt>=s.fall){s.shot=true;let e=s.e;if(e.dead){let b=null,bd=2.5;for(const q of enemies){if(q.dead)continue;const d=Math.hypot(q.x-s.x,q.z-s.z);if(d<bd){bd=d;b=q;}}e=b;}
-        const tx=e?e.x:s.x,tz=e?e.z:s.z;nsLance(s.x,s.g.position.y,s.z,tx,tz);if(e)hurt(e,P*10,'magic',o);for(const q of enemies){if(q.dead||q===e)continue;if((q.x-tx)**2+(q.z-tz)**2<.6*.6)hurt(q,P*.6,'magic',o);}
-        s.g.visible=false;s.tx=tx;s.tz=tz;flash(tx,.5,tz,0xdfe8ff,.8,.2);ringFx(tx,.08,tz,1,0xa8c8ff,.4);sprayP(1,tx,gy(tx,tz)+.1,tz,24,{c:0xffffff,c2:0x6a8aff,sp:2,up:1,s:.05,s2:0,life:.6,g:2});camShake=Math.max(camShake,.08);}}
-    if(!streaked&&fired&&stars.every(s=>s.shot)){streaked=true;const burnt=new Set();for(const L of lines){const ax=L.a.tx,az=L.a.tz,bx=L.b.tx,bz=L.b.tz;nsStreak(ax,az,bx,bz);for(const q of enemies){if(q.dead||burnt.has(q))continue;if(nsSegDist(q.x,q.z,ax,az,bx,bz)<.55){burnt.add(q);hurt(q,P*2,'magic',o);}}}}
-    if(dt>0&&tt<PL+.3&&rnd()<dt*30){const s=stars[Math.floor(rnd()*stars.length)];if(!s.shot)emit(1,{x:s.x+(rnd()-.5)*1.5,y:gy(s.x,s.z)+SY+(rnd()-.5)*1.2,z:s.z+(rnd()-.5)*1.5,vx:0,vy:-.4,vz:0,s:.04,s2:0,c:0xffffff,c2:0x8aa8ff,life:1.2});}
-    if(tt>PL+1){darkTarget=Math.max(0,darkTarget-dt*.45);vigTarget=Math.max(0,vigTarget-dt*.45);}},
-    ()=>{stars.forEach(s=>nsFree(s.g));lines.forEach(L=>nsFree(L.g));darkTarget=0;vigTarget=0;},{mats,geos});}
+        const tx=e?e.x:s.x,tz=e?e.z:s.z;nsLance(s.x,s.g.position.y,s.z,tx,tz,D.lanceW);if(e)hurt(e,P*D.lance,'magic',o);for(const q of enemies){if(q.dead||q===e)continue;if((q.x-tx)**2+(q.z-tz)**2<D.spl*D.spl)hurt(q,P*D.splK,'magic',o);}
+        if(lg)lg({ev:'fall',i:s.i,e,own:e===s.e,tx,tz,T:tt});
+        s.g.visible=false;s.tx=tx;s.tz=tz;flash(tx,.5,tz,0xdfe8ff,D.second?.6:.8,.2);if(D.col)csImpact(tx,tz,D.spl,D.second?.75:1);else ringFx(tx,.08,tz,1,0xa8c8ff,.4);sprayP(1,tx,gy(tx,tz)+.1,tz,24,{c:0xffffff,c2:0x6a8aff,sp:2,up:1,s:.05,s2:0,life:.6,g:2});camShake=Math.max(camShake,.08);}}
+    if(!streaked&&fired&&stars.every(s=>s.shot)){streaked=true;twT=tt;burnt=new Set();segs=[];for(const L of lines){const ax=L.a.tx,az=L.a.tz,bx=L.b.tx,bz=L.b.tz;nsStreak(ax,az,bx,bz,D.streak);segs.push([ax,az,bx,bz]);for(const q of enemies){if(q.dead||burnt.has(q))continue;if(nsSegDist(q.x,q.z,ax,az,bx,bz)<D.lineW)burn(q,0);}}
+      if(D.late&&segs.length){f.life=Math.max(f.life,D.alight+.1);lastP=new Map();}}
+    /* Burning Lines: while they stay alight a foe stepping onto one burns too, once (its path since the last frame is checked in steps of at
+       most 0.15 tiles, so a long frame at a high game speed cannot carry it across a line unburnt) */
+    if(lastP&&tt<twT+D.alight)for(const q of enemies){if(q.dead)continue;const p0=lastP.get(q);lastP.set(q,[q.x,q.z]);if(burnt.has(q))continue;let hit=false;
+      const d=p0?Math.hypot(q.x-p0[0],q.z-p0[1]):0,n=p0&&d<2.5?Math.max(1,Math.ceil(d/.15)):1;
+      for(let j=1;j<=n&&!hit;j++){const u=j/n,px=p0&&d<2.5?p0[0]+(q.x-p0[0])*u:q.x,pz=p0&&d<2.5?p0[1]+(q.z-p0[1])*u:q.z;for(const S of segs)if(nsSegDist(px,pz,S[0],S[1],S[2],S[3])<D.lineW){hit=true;break;}}
+      if(hit)burn(q,1);}
+    /* The Sky Falls Twice: the figure kindles again over the strongest foes still standing, drawn faster, and falls a second time */
+    if(D.twice&&streaked&&!twD&&tt>=twT+D.twGap){twD=true;if(state==='playing'&&enemies.some(e=>!e.dead&&!e.fake)){if(lg)lg({ev:'twice',T:tt});castConstellation(t,list,P*D.twice,o,Object.assign({},XO,{twice:0,second:1,ts:D.twTs}));}else keep=false;}
+    if(dt>0&&tt<PL+.3*ts&&rnd()<dt*30){const s=stars[Math.floor(rnd()*stars.length)];if(!s.shot)emit(1,{x:s.x+(rnd()-.5)*1.5,y:gy(s.x,s.z)+SY+(rnd()-.5)*1.2,z:s.z+(rnd()-.5)*1.5,vx:0,vy:-.4,vz:0,s:.04,s2:0,c:0xffffff,c2:0x8aa8ff,life:1.2});}
+    if(tt>PL+1*ts&&!keep){darkTarget=Math.max(0,darkTarget-dt*.45);vigTarget=Math.max(0,vigTarget-dt*.45);}},
+    ()=>{stars.forEach(s=>nsFree(s.g));lines.forEach(L=>nsFree(L.g));if(!keep){darkTarget=0;vigTarget=0;}if(lg)lg({ev:'end',second:!!D.second,T:tt});},XO?{mats,geos,csFig:1}:{mats,geos});}
 
 /* ---- Wormhole: twin wormholes, one ahead of the enemy and one far back up the road; whatever walks into the first comes out of the second ---- */
 let WH_TEX=null;
@@ -14632,6 +14690,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Constellation: a brighter sky, and it falls twice',d:'3 Nov',v:'v470',li:[
+    'Constellation (Secret) has five new masteries, for now in developer mode. Still one figure of stars over the strongest foes, joined by lines of light, that falls as lances and burns its lines into the ground: each mastery makes a part of it stronger, and draws it a little richer.',
+    'Brighter Stars: the stars burn a quarter larger and whiter, with longer flares, and fall as thicker lances: 1100% to the foe (1000% before) and 60% to the foes within 0.8 tiles of it (0.6 before). Each lands in a short column of light rising off the ground, inside a low wall of light, where a flat ring was. A Larger Figure: 8 stars (7 before), reaching foes within 10 tiles (9 before).',
+    'Burning Lines: 250% (200% before) to every foe within 0.75 tiles of a line (0.55 before). The lines stay alight 2s with a low band of light rising off them, and burn a foe that steps onto them later (once). Fixed Stars: a foe is held under its star from the moment it kindles until it falls (about 1.5-2s); bosses are slowed 50% instead. The halo tightens and pulses over its foe.',
+    'The Sky Falls Twice: when the lines have burnt, the figure kindles again over the strongest foes still standing, drawn faster, and falls a second time at 12% of the power.']},
   {t:'Moonfall: the moon breaks',d:'3 Nov',v:'v468',li:[
     'Moonfall (Secret) has five masteries, for now in developer mode. Still one moon, one fall, one impact and one crater: each mastery makes a part of it stronger and draws that part richer.',
     'Fuller Moon: the impact reaches 4.6 tiles (4.2 before); the moon is a tenth larger with a brighter corona, its shadow and waves wider. Molten Crater: the crater of molten blood spreads to 3 tiles (2.6), burns 7s (6s) and 65% a tick (60%), with more and brighter cracks, more embers and darker smoke.',
@@ -34372,6 +34435,68 @@ const MFM_OLD=castMoonfall;
 castMoonfall=function(t,list,P,o,XO){const c=!XO?mfmC(o):null,X=c?mfmOpts(c):XO;MFM.busy=Math.max(MFM.busy>time+15?0:MFM.busy,time+((X&&X.LIFE)||MFL.LIFE));return MFM_OLD(t,list,P,o,X);};
 /* the mastery preview waits for the crater to cool (the cast outlives its cineLock) */
 SMPV_BUSY.push(()=>MFM.busy>time&&MFM.busy-time<15);
+/* ================= Constellation's masteries (v470), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: stars kindle one by one over the strongest foes and lines of light join them into one figure; then the whole figure falls, a lance
+   of light per star (1000% to its foe, 60% round it), and the lines burn into the ground beneath (200% once to every foe along them). Simon,
+   for every Mythic, Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is preserved
+   but their visuals barely change and change only to better"; and "new stuff CAN appear, for example the abyss having 3rd leviathan or
+   something but just nothing that over shines the spell". So every mastery strengthens a part the figure already has and draws it a little
+   richer, and the one new thing (a second fall) is the same figure again. The lances stay one a star (Lance of the Seraph owns lances
+   stacked on the strongest) and the lines stay on the ground between the impacts (Piercing Judgment owns beams across the field).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Brighter Stars | what if every star burnt brighter? | the stars and lances | stronger lances |
+   | 2 | A Larger Figure | what if the figure were larger? | the figure | one more star |
+   | 3 | Burning Lines | what if the lines kept burning? | the lines | a lasting burn |
+   | 4 | Fixed Stars | what if the stars held their foes? | the kindling | control |
+   | 5 | The Sky Falls Twice | what if the whole sky fell again? | the fall | signature payoff |
+   - M1 Brighter Stars: each lance strikes CSM.lance (1100%, 1000% before) and 60% to the foes within CSM.spl tiles of its foe (0.8, 0.6
+     before). The stars a quarter larger, a white core and a whiter halo, flares a tenth longer (so 1.4 times as long with the size), lances
+     half again as thick; each impact a short column of light rising off the ground round the foe inside a low wall of light racing out to the
+     splash's reach (csImpact): the impact's flat ring was its only explosion, so it is now 3D (the explosion rule).
+   - M2 A Larger Figure: CSM.N stars (8, 7 before) over the strongest foes within CSM.R tiles of the densest one (10, 9 before): one more
+     star and one more line, kindled the same way.
+   - M3 Burning Lines: CSM.line (250%, 200% before) to every foe within CSM.lineW tiles of a line (0.75, 0.55 before), and the lines stay
+     alight CSM.alight s (2, the streaks lasted 1.3s): a foe that steps onto one meanwhile is burnt too, once a figure (its path since the last
+     frame is checked in steps of at most 0.15 tiles, so a long frame at a high game speed cannot carry it across a line unburnt). Wider (0.3,
+     0.22 before) streaks with a white core and a low band of light rising off them (a standing ribbon, CS_BAND_FS), embers along them.
+   - M4 Fixed Stars: a non-boss foe is held under its star from its kindling until its star falls (stunT set directly, as the Dimensional
+     Slash's stillness: about 2.05s for the first star to 1.5s for the eighth); a boss is slowed CSM.bossSlow (50%) instead. The halo tightens
+     and pulses over a held foe (a little less over a slowed boss).
+   - M5 The Sky Falls Twice: 0.25s after the lines burn, the figure kindles again over the strongest foes still standing (the same rules) and
+     falls a second time at CSM.twice of the power (12%), drawn faster (its timings times CSM.twTs, 0.6: it falls 1.3s after it kindles), with
+     every mastery before it, its impacts a little softer; the sky stays dark until it has fallen. The cast then lasts about 6.6s, past its
+     cineLock, so the mastery preview waits for it (SMPV_BUSY). Approved at 40%: built so, Mastery 5 measured 1.79 against 1.35, a factor of
+     0.76 (each first-fall lance at about 830%, weaker than at Mastery 0); 12% keeps the factor at 0.945 (lances at 1040%).
+   Percentages are of the scroll's power. Every mastered Constellation cast runs castConstellation with its XO (csmOpts); Mastery 0, echoes
+   and other casters cast exactly as before. The ladder's foes stand still and never die, so Fixed Stars, the reach, the lines' later burns
+   and the second figure's choice of foes count for nothing there and their factors carry them; nothing in the cast flies at a target, so
+   nothing needs sub-stepping but the later burns. On the ladder (Secret, half steps; pack .6 / lone foe .4, 8 casts 8s apart) with the
+   factors below: 1.078 / 1.162 / 1.226 / 1.301 / 1.35 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35, and the same with the foes put back
+   before every cast. CSM.dbg (an array) logs the events. */
+const CSM={dbg:null,lance:11,spl:.8,N:8,R:10,line:2.5,lineW:.75,alight:2,bossSlow:.5,twice:.12,twTs:.6};
+const csmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='constellation'&&c.L?c:null;};
+const csmLog=d=>{if(CSM.dbg){d.t=time;CSM.dbg.push(d);}};
+SM_D.constellation=[
+  {n:'Brighter Stars',d:'The stars burn a quarter larger and whiter, with longer flares, and fall as thicker lances: {1100}% to the foe (1000% before) and 60% to foes within 0.8 tiles of it (0.6 before). Each lands in a rising column of light.'},
+  {n:'A Larger Figure',d:'One more star and one more line: the figure kindles over the 8 strongest foes (7 before), reaching foes within 10 tiles (9 before).'},
+  {n:'Burning Lines',d:'The lines burn wider and brighter: {250}% (200% before) to every foe within 0.75 tiles of them (0.55 before). They stay alight 2s, burning a foe that steps onto them later (once).'},
+  {n:'Fixed Stars',d:'A foe is held under its star from the moment it kindles until it falls (about 1.5-2s); bosses are slowed 50% instead. The halo tightens and pulses over its foe.'},
+  {n:'The Sky Falls Twice',d:'When the lines have burnt, the figure kindles again over the strongest foes still standing, drawn faster, and falls a second time at 12% of the power.'}];
+SMF.constellation={m:1};
+SMA.constellation=[1,1,1,1,1];
+SMG.constellation=[.955,.943,.961,1.02,.945];
+/* this cast's numbers and looks (castConstellation's XO), cumulative: Mastery L has masteries 1..L */
+function csmOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.lance=CSL.lance+(CSM.lance-CSL.lance)*a[0];X.spl=CSM.spl;X.starK=1.25;X.white=1;X.flK=1.1;X.lanceW=1.5;X.col=1;}
+  if(L>=2){X.N=CSM.N;X.R=CSM.R;}
+  if(L>=3){X.line=CSL.line+(CSM.line-CSL.line)*a[2];X.lineW=CSM.lineW;X.alight=CSM.alight;X.late=1;X.streak={w:.3,life:CSM.alight,op:.45,band:.5};}
+  if(L>=4){X.hold=1;X.bossSlow=CSM.bossSlow;X.pulse=1;}
+  if(L>=5){X.twice=CSM.twice*a[4];X.twTs=CSM.twTs;}
+  X.log=CSM.dbg?csmLog:null;csmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+const CSM_OLD=castConstellation;
+castConstellation=function(t,list,P,o,XO){const c=!XO?csmC(o):null;return CSM_OLD(t,list,P,o,c?csmOpts(c):XO);};
+/* (the second figure outlives the cast's cineLock: the mastery preview waits for it) */
+SMPV_BUSY.push(()=>fx.some(f=>f.csFig));
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
