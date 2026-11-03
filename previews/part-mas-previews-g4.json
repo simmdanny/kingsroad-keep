@@ -12,5 +12,41 @@
    "star": 25,
    "lash": 3
   }
+ },
+ "never-2": {
+  "k": "never",
+  "L": 2,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 2028394,
+  "note": "Time stands still longer, and the foes held in it take 50% more.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "star": 25,
+   "lash": 3
+  }
+ },
+ "never-0": {
+  "k": "never",
+  "L": 0,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 2087545,
+  "note": ""
+ },
+ "never-3": {
+  "k": "never",
+  "L": 3,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 2105627,
+  "note": "Four stars lash more often, over a wider square.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "star": 25,
+   "lash": 3
+  }
  }
 }
