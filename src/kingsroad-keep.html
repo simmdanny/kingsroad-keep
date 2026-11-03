@@ -12004,7 +12004,7 @@ function castBloodCurse(t,P,o,XO){const D=XO?Object.assign({},BCD,XO):BCD,lg=D.l
   const spikes=new THREE.Group();circ.add(spikes);const spk=[];const darkM=BMA(0x0e0002,0,false),edgeM=BMA(0xff1a28,0,false);mats.push(darkM,edgeM);
   for(let i=0;i<24;i++){const a=i/24*6.2832+(rnd()-.5)*.18,len=(1.1+rnd()*1.1)*(i%6===0?1.35:1)*(i%7===3?.7:1)*D.spk,w=.1+rnd()*.07,geo=bmSpikeGeo(len,w,i*31+7);geos.push(geo);const s=new THREE.Group();s.rotation.y=-a;spikes.add(s);
     const tilt=new THREE.Group();tilt.position.x=R*(.5+rnd()*.15);tilt.position.y=.25+rnd()*.35;tilt.rotation.z=.12+rnd()*.42;s.add(tilt);const dm=new THREE.Mesh(geo,darkM);dm.rotation.x=-Math.PI/2;dm.renderOrder=7;tilt.add(dm);const em=new THREE.Mesh(geo,edgeM);em.rotation.x=-Math.PI/2;em.scale.set(1.05,1.7,1);em.position.set(-len*.025,-.003,0);em.renderOrder=6;tilt.add(em);
-    spk.push({s,tilt,ph:rnd()*6,amp:.04+rnd()*.06,base:tilt.rotation.z,dm,em});}
+    spk.push({s,tilt,ph:rnd()*6,amp:.04+rnd()*.06,base:tilt.rotation.z,dm,em,len});}
   /* the crest above the caster: a flattened circle of blades around a shining red star (from the reference) */
   const sig=new THREE.Group();sig.position.set(0,3.4,-1.2);sig.visible=false;root.add(sig);const spg=new THREE.PlaneGeometry(1,1);geos.push(spg);
   const squash=new THREE.Group();squash.scale.set(1,.34,1);sig.add(squash);const spin=new THREE.Group();squash.add(spin);
@@ -12057,6 +12057,7 @@ function castBloodCurse(t,P,o,XO){const D=XO?Object.assign({},BCD,XO):BCD,lg=D.l
     plBeam(PL.b1,PL.top,PL.p,.17*w);plBeam(PL.b2,PL.top,PL.p,.06*w*(PL.done?1:1.4));
     if(u>=1&&!PL.done){PL.done=1;PL.T1=T;PL.s1.visible=PL.s2.visible=false;flash(PL.c.x,.8,PL.c.z,0xff3040,2.4,.3);if(lg)lg({ev:'land',T});}
     if(PL.done&&w<=0)PL.g.visible=false;};
+  if(lg)lg({ev:'cast',D,root,spk,crestB,star,star2,starM,ring1,PL,eK,bladeK,starK,cx,cz,T:()=>T});
   addFx(root,E1+1.6,(f,dt)=>{T+=dt;const sTime=T;
     /* 0-0.5 silence, 0.5-1.5 ignition */
     if(T<.5){CURSE.k=Math.max(CURSE.k,.05*T/.5);if(rnd()<.5)emit(1,{x:cx+(rnd()-.5)*.8,y:.1+rnd()*.5,z:cz+(rnd()-.5)*.8,vx:0,vy:.2,vz:0,s:.03,s2:0,c:0xff3040,c2:0x400008,life:.6});}
@@ -14217,6 +14218,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Curse of the Blood Moon: the price of blood',d:'3 Nov',v:'v469',li:[
+    'Curse of the Blood Moon (Secret) has five new masteries, for now in developer mode. Still the same ritual round the hero: an opening blast of fire and darkness, a vast spiked blood seal with a crest of blades overhead, crimson eruptions under the enemy escalating in four stages to one enormous final eruption, and the price: the hero’s greater magic sealed while it burns. Each mastery makes a part the curse already has stronger and draws that part richer; none adds eruptions, they only grow.',
+    'Wider Seal: the opening blast reaches 5 tiles (4.4 before) and strikes 650% fire and 650% dark (600% each); a wider dome and wave, the seal’s 24 blade spikes 15% longer. Hotter Blood: every eruption strikes 10% harder; its fire columns rise a tenth taller with hotter cores and the red lightning inside burns brighter.',
+    'Rising Fury: each stage of the escalation grows the eruptions 18% (12% before), so the last stage’s are half again as large; the seal’s rings spin faster and the crest’s star pulses harder each stage. Blood Price: each greater scroll the curse seals on the hero feeds it, every eruption 4% harder for each, up to 3; the crest’s blades lengthen and its star brightens for each.',
+    'The Great Eruption: the final eruption is half again as large and as hard (it reaches 4.9 tiles), and the blast after it strikes 1500% within 4.2 tiles (1000% within 2.8); the crest’s star plunges down a shaft of light into it as it bursts, over a wider web of cracks.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -32015,11 +32021,11 @@ SM_D.bloodcurse=[
   {n:'Wider Seal',d:'The opening blast reaches 5 tiles (4.4 before) and strikes {650}% fire and {650}% dark (600% each before). A wider dome and wave; the seal’s 24 blade spikes are 15% longer.'},
   {n:'Hotter Blood',d:'Every eruption strikes {10}% harder. Its fire columns rise a tenth taller with hotter cores, and the red lightning inside burns brighter.'},
   {n:'Rising Fury',d:'Each stage of the escalation grows the eruptions 18% (12% before): the last stage’s are half again as large. The seal’s rings spin faster and the crest’s star pulses harder each stage.'},
-  {n:'Blood Price',d:'Each greater scroll the curse seals on the hero feeds it: every eruption strikes {8}% harder for each, up to 3. The crest’s blades lengthen and its star brightens for each.'},
+  {n:'Blood Price',d:'Each greater scroll the curse seals on the hero feeds it: every eruption strikes {4}% harder for each, up to 3. The crest’s blades lengthen and its star brightens for each.'},
   {n:'The Great Eruption',d:'The final eruption is half again as large and half again as hard: the blast after it strikes {1500}% within 4.2 tiles (1000% within 2.8). The crest’s star plunges down its shaft into it; a wider web of cracks.'}];
 SMF.bloodcurse={m:1};
 SMA.bloodcurse=[1,1,1,1,1];
-SMG.bloodcurse=[1,1,1,1,1];
+SMG.bloodcurse=[1.07,1.065,.982,.992,.965];
 /* this cast's numbers and looks (castBloodCurse's XO), cumulative: Mastery L has masteries 1..L */
 function bcmOpts(c){const L=c.L,a=c.a,X={};
   if(L>=1){X.blR=BCM.blR;X.blF=X.blD=BCM.bl*a[0];X.blK=BCM.blR/4.4;X.spk=1.15;}
