@@ -14231,6 +14231,12 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Pulsar: the star spins up',d:'3 Nov',v:'v471',li:[
+    'Pulsar (Secret) has five new masteries, for now in developer mode. Still one neutron star over the road, its beam sweeping a ring of ground for 15s and burning it, then one stellar blast: each mastery makes a part the spell already has stronger and draws that part richer.',
+    'Hard Radiation: every beam hit strikes 95% fire + 95% light (90% + 90% before) and sears a little further off its path; the beams burn a fifth thicker, with a whiter core. Spin-Up: every phase of the star comes 10% sooner and it spins 5% faster, so its beams pass, and strike, 5% more often.',
+    'Both Poles: the second beam, which pointed at the sky, tips down and sweeps a second ring at 60% of the radius, half a turn behind: 20% fire + 20% light a hit. Scorched Ring: ground the beams burnt in the last 2s sears every foe standing on it, 15% fire every 0.5s; fresh embers glow hotter and longer.',
+    'Supernova: a longer implosion (0.6s) draws the burnt rings into the star, and the blast strikes 650% fire + 650% light out to 8.5 tiles (500% + 500% within 6.5 before).',
+    'A fix for every Pulsar cast: at high game speed or a low frame rate its beam swept a short cut across its ring and missed most of the foes on it. It now follows the ring at any speed.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -32019,7 +32025,51 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
 /* ================= Pulsar's masteries (v471), designed with the framework (MASTERY_DESIGN.md) ================= */
-/* (header: to be written with the ladder results) */
+/* Identity: a tiny, impossibly bright neutron star hangs over the road and spins itself into a frenzy; its beam sweeps a ring of ground like a
+   lighthouse for 15s, burning it, then the star implodes into one stellar blast. One star, a fixed sweeping ring (aimed beams belong to Basic
+   Beam and Soul Lantern), burnt ground, one blast. Simon, for every Mythic, Ancient and Secret scroll: "lets do the same way all the mythics
+   ancients and secrets where their identity is preserved but their visuals barely change and change only to better", and "new stuff CAN
+   appear ... but just nothing that over shines the spell". So each mastery strengthens one part the spell already has and draws it richer.
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Hard Radiation | what if the beam burned harder? | the beam | a stronger, wider hit |
+   | 2 | Spin-Up | what if the star spun up sooner and faster? | the spin | timing, more passes |
+   | 3 | Both Poles | what if the second pole's beam reached the ground? | the second beam | a second ring |
+   | 4 | Scorched Ring | what if the burnt ground stayed dangerous? | the burnt ground | a lingering hazard |
+   | 5 | Supernova | what if the collapse drew it all in and burst wider? | the implosion and blast | signature payoff |
+   - M1 Hard Radiation: every beam hit PSM.hit fire + PSM.hit light (90% + 90% before), searing PSM.rad tiles further off its path (round its
+     ground spot and along the beam). Its layers a fifth thicker, a wider, brighter white core (0.07 wide at 1.3; 0.045 at 1 before) and a
+     whiter inner layer (0xa6e8ff, 0x6fd8ff before).
+   - M2 Spin-Up: every phase's ramp PSM.ph times as soon (ignition 0-1.8s, active 1.8-4.5s, frenzy 4.5-9s, critical 9-12.6s; the convergence
+     still 14-15s) and the star spins PSM.spin times as fast. A beam may strike a foe again 0.22s / PSM.spin on, so the faster passes strike as
+     often: before, a faster star could not strike more, since at the top of the spin a pass comes every 0.17-0.2s and a foe can be struck only
+     every 0.22s (every other pass). The wind arcs whirl faster and the field loops brighten sooner, with the spin and the phases.
+   - M3 Both Poles: the second beam pointed at the sky and struck nothing (the card promised two beams); it tips down and sweeps its own ring at
+     PSM.b2 times the radius, half a turn behind the first: PSM.hit2 fire + PSM.hit2 light a hit. The same beam with its ground glow and burn;
+     its burn ribbon PSM.b2w times as wide and a quarter lighter, fading 2s sooner, and none in the convergence (where its spiral filled the
+     disc between the rings with soot). The burn pool is raised to PSM.BN quads (900): one beam already wraps 900 at the top of the spin.
+   - M4 Scorched Ring: every 0.25s each foe standing on ground the beams burnt in the last 2s (a quarter-tile cell whose centre lies within the
+     burn's half width of a burn stroke) takes PSM.sear fire, at most every 0.5s (not flyers; bosses: the cells round theirs too); embers kick
+     up round its feet. It runs while there is such ground, the blast's scorch too. Fresh burns glow a dull red, their embers brighter and longer.
+   - M5 Supernova: the implosion lasts PSM.IMP s (0.35s before): light streams up off both burnt rings into the star (three motes a stream),
+     and the rings' embers fade into it, coming back over 2s after the blast. The blast strikes PSM.blast fire + PSM.blast light within
+     PSM.blastR tiles (+1 bosses; 500% + 500% within 6.5 before); its shells and rings a third wider, its ground shockwave out to the new
+     reach, its screen waves 15% wider, its sparks and scorch a third further. cineLock 16.75s (16.5s).
+   Every cast (v471, Mastery 0 too): each frame's sweep is flown in steps of at most PSD.sub (0.02s) along the spin. One long frame used to
+   sweep a straight chord across the ring, inside it: at a 0.1s step (2x speed at 20 fps) a foe on the ring took 6-11 strikes where it takes
+   about 32 at 60 fps (26-28 at the ladder's 0.05s). Now it takes about 30 at any step. A frame of 0.02s or less is one step, as before. The hit
+   checks look only at foes inside the box round the star and the frame's ground spots (a sweep between two downward directions lands on
+   the straight line between their spots).
+   Percentages are of the scroll's power. Every mastered cast runs castPulsar with its XO (psmOpts); Mastery 0, echoes and other casters cast
+   exactly as before (but for the sweep's steps). Numbers trimmed from the approved table, which measured 1.186 / 1.402 / 1.72 / 1.797 /
+   1.895 before any factor (the second ring alone added two fifths on a pack): Hard Radiation 95% (100%) and 0.04 tiles (0.06); Spin-Up 10%
+   sooner (25%) and 5% faster (25%), its strikes following the spin (added); Both Poles 20% + 20% (45% + 45%); Supernova 650% + 650% (750%).
+   Ladder (Secret, half steps; pack .6 / one .4, 3 casts 24.5s apart), calibrated on fresh foes: every foe is put back before every cast (the
+   cooldown is 150s), and each cast's random placement, recorded at Mastery 0, is used again at every mastery. The star's ring always crosses
+   its target foe and the road, so the foes stand where it can cross them: the kit's pack (12 foes 0.3 tiles apart) and the same pack spread
+   0.9 apart along the road (a wave walking it); the factors are set from the mean of the two. 32 runs each, with the factors below:
+   pack 1.084 / 1.186 / 1.249 / 1.330 / 1.375, spread 1.074 / 1.153 / 1.228 / 1.304 / 1.356, mean 1.079 / 1.170 / 1.239 / 1.317 / 1.366;
+   the kit's standard ladder (foes reused, 12 runs) 1.088 / 1.188 / 1.214 / 1.303 / 1.344; targets 1.078 / 1.162 / 1.226 / 1.302 / 1.35.
+   PSM.dbg (an array) logs the events. */
 const PSM={dbg:null,hit:.95,rad:.04,ph:.9,spin:1.05,b2:.6,hit2:.2,b2w:.7,BN:1500,sear:.15,IMP:.6,blast:6.5,blastR:8.5,nova:4/3};
 const psmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='pulsar'&&c.L?c:null;};
 const psmLog=d=>{if(PSM.dbg){d.t=time;PSM.dbg.push(d);}};
@@ -32031,7 +32081,7 @@ SM_D.pulsar=[
   {n:'Supernova',d:'A longer implosion (0.6s) draws the burnt rings into the star, and the blast strikes {650}% fire + {650}% light out to 8.5 tiles (500% + 500% within 6.5 before).'}];
 SMF.pulsar={m:1};
 SMA.pulsar=[1,1,1,1,1];
-SMG.pulsar=[1.078,1.162,1.226,1.302,1.35];
+SMG.pulsar=[.988,.978,.962,.977,.965];
 /* this cast's numbers and looks (castPulsar's XO) */
 function psmOpts(c){const L=c.L,a=c.a,X={};
   if(L>=1){X.hit=PSD.hit+(PSM.hit-PSD.hit)*a[0];X.rad=PSM.rad;X.lw=1.2;X.core=1;}
