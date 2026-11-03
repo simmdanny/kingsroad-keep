@@ -1,0 +1,236 @@
+{
+ "pulsar-0": {
+  "k": "pulsar",
+  "L": 0,
+  "len": 11.33,
+  "seed": 1,
+  "bytes": 2298504,
+  "note": "The neutron star rises and its beam sweeps its ring (the first 11 seconds of the cast)."
+ },
+ "pulsar-1": {
+  "k": "pulsar",
+  "L": 1,
+  "len": 11.33,
+  "seed": 1,
+  "bytes": 2277136,
+  "note": "Every beam hit strikes harder; the beams burn thicker.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "hit": 80
+  }
+ },
+ "pulsar-2": {
+  "k": "pulsar",
+  "L": 2,
+  "len": 11.33,
+  "seed": 1,
+  "bytes": 2397657,
+  "note": "Every phase comes sooner and the star spins faster.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "hit": 86
+  }
+ },
+ "pulsar-3": {
+  "k": "pulsar",
+  "L": 3,
+  "len": 11.33,
+  "seed": 1,
+  "bytes": 3169311,
+  "note": "The second beam tips down and sweeps a second, smaller ring.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "hit": 218
+  }
+ },
+ "pulsar-5": {
+  "k": "pulsar",
+  "L": 5,
+  "len": 6.5,
+  "seed": 1,
+  "bytes": 1373442,
+  "note": "Supernova: the implosion draws the rings in, and the blast reaches 8.5 tiles (the clip joins it there).",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "hit": 258,
+   "sear": 50,
+   "imp": 1,
+   "blast": 1
+  }
+ },
+ "pulsar-4": {
+  "k": "pulsar",
+  "L": 4,
+  "len": 11.33,
+  "seed": 1,
+  "bytes": 2984187,
+  "note": "The pack walks on over the burnt ground: it sears them.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "hit": 162,
+   "sear": 21
+  }
+ },
+ "singularity-1": {
+  "k": "singularity",
+  "L": 1,
+  "len": 15.8,
+  "seed": 1,
+  "bytes": 3147364,
+  "note": "The hole takes hold sooner and holds longer, drawn larger.",
+  "ev": {
+   "cast": 1,
+   "grip": 1,
+   "end": 1
+  }
+ },
+ "singularity-0": {
+  "k": "singularity",
+  "L": 0,
+  "len": 16.13,
+  "seed": 1,
+  "bytes": 3134025,
+  "note": ""
+ },
+ "singularity-3": {
+  "k": "singularity",
+  "L": 3,
+  "len": 8.37,
+  "seed": 1,
+  "bytes": 1551779,
+  "note": "Three foes are low on health: each that dies while pinned feeds the hole.",
+  "ev": {
+   "cast": 1,
+   "grip": 1,
+   "feed": 3
+  }
+ },
+ "singularity-2": {
+  "k": "singularity",
+  "L": 2,
+  "len": 16.3,
+  "seed": 1,
+  "bytes": 3367204,
+  "note": "The drain tears harder at the pinned foes.",
+  "ev": {
+   "cast": 1,
+   "grip": 1,
+   "end": 1
+  }
+ },
+ "singularity-4": {
+  "k": "singularity",
+  "L": 4,
+  "len": 16.27,
+  "seed": 1,
+  "bytes": 3431688,
+  "note": "Rocks tear up from beneath every pinned foe, one a second.",
+  "ev": {
+   "cast": 1,
+   "grip": 1,
+   "rock": 48,
+   "end": 1
+  }
+ },
+ "singularity-5": {
+  "k": "singularity",
+  "L": 5,
+  "len": 16.53,
+  "seed": 1,
+  "bytes": 3785380,
+  "note": "The collapse strikes every foe on the map for 500%.",
+  "ev": {
+   "cast": 1,
+   "grip": 1,
+   "rock": 72,
+   "collapse": 1,
+   "end": 1
+  }
+ },
+ "wormhole-0": {
+  "k": "wormhole",
+  "L": 0,
+  "len": 12.7,
+  "seed": 1,
+  "bytes": 1512310,
+  "note": ""
+ },
+ "wormhole-1": {
+  "k": "wormhole",
+  "L": 1,
+  "len": 13.13,
+  "seed": 1,
+  "bytes": 1734864,
+  "note": "Foes at the road’s edges: the first wormhole yawns wider and draws in every foe within 1.6 tiles.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cross": 6,
+   "collapse": 2,
+   "end": 1
+  }
+ },
+ "wormhole-2": {
+  "k": "wormhole",
+  "L": 2,
+  "len": 13.33,
+  "seed": 1,
+  "bytes": 1657312,
+  "note": "The wormholes stay open longer, so the foes further back walk in too.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cross": 8,
+   "collapse": 3,
+   "end": 1
+  }
+ },
+ "wormhole-3": {
+  "k": "wormhole",
+  "L": 3,
+  "len": 13.27,
+  "seed": 1,
+  "bytes": 1891534,
+  "note": "Every foe that goes through is struck and thrown 16 tiles back.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cross": 6,
+   "end": 1
+  }
+ },
+ "wormhole-4": {
+  "k": "wormhole",
+  "L": 4,
+  "len": 13.2,
+  "seed": 1,
+  "bytes": 1791825,
+  "note": "The boss (an Ogre) goes through too, and comes out 5 tiles back, slowed.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cross": 6,
+   "end": 1
+  }
+ },
+ "wormhole-5": {
+  "k": "wormhole",
+  "L": 5,
+  "len": 13.87,
+  "seed": 1,
+  "bytes": 1714802,
+  "note": "Slow foes still short of the mouth as it closes: it swallows them, then both wormholes collapse.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cross": 3,
+   "last": 1,
+   "end": 1
+  }
+ }
+}

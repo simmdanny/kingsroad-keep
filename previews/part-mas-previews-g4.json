@@ -1,0 +1,331 @@
+{
+ "never-1": {
+  "k": "never",
+  "L": 1,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 2094568,
+  "note": "A shooting star every 0.36s, splashing wider.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "star": 25,
+   "lash": 3
+  }
+ },
+ "never-2": {
+  "k": "never",
+  "L": 2,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 2028394,
+  "note": "Time stands still longer, and the foes held in it take 50% more.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "star": 25,
+   "lash": 3
+  }
+ },
+ "never-0": {
+  "k": "never",
+  "L": 0,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 2087545,
+  "note": ""
+ },
+ "never-3": {
+  "k": "never",
+  "L": 3,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 2105627,
+  "note": "Four stars lash more often, over a wider square.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "star": 25,
+   "lash": 3
+  }
+ },
+ "never-5": {
+  "k": "never",
+  "L": 5,
+  "len": 6,
+  "seed": 1,
+  "bytes": 1162664,
+  "note": "The last fall: the great stars land for real (the clip joins it there).",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "star": 38,
+   "lash": 5,
+   "fin": 1,
+   "great": 12,
+   "finHit": 1
+  }
+ },
+ "never-4": {
+  "k": "never",
+  "L": 4,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 1995433,
+  "note": "Foes move 50% slower, and the archer towers attack 35% faster.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "star": 25,
+   "lash": 3
+  }
+ },
+ "tempest-1": {
+  "k": "tempest",
+  "L": 1,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 5076098,
+  "note": "The crown bolt strikes every foe on the field and leaves them Charged.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "crown": 6,
+   "volley": 9,
+   "leap": 27
+  }
+ },
+ "tempest-0": {
+  "k": "tempest",
+  "L": 0,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 4894397,
+  "note": "The hurricane forms round the hero, its eye wall rising (the first 13 seconds of the cast)."
+ },
+ "tempest-2": {
+  "k": "tempest",
+  "L": 2,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 5480728,
+  "note": "Every volley locks onto one more foe.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "crown": 11,
+   "volley": 9,
+   "leap": 38
+  }
+ },
+ "tempest-5": {
+  "k": "tempest",
+  "L": 5,
+  "len": 5.5,
+  "seed": 1,
+  "bytes": 2768825,
+  "note": "The last thunder, and the hero’s fall rolls out over the whole field (the clip joins it there).",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "wall": 68,
+   "crown": 9,
+   "volley": 13,
+   "leap": 58,
+   "fin": 1,
+   "fallwave": 9
+  }
+ },
+ "tempest-3": {
+  "k": "tempest",
+  "L": 3,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 5361073,
+  "note": "Each precise strike leaps on further and harder.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "crown": 6,
+   "volley": 9,
+   "leap": 31
+  }
+ },
+ "tempest-4": {
+  "k": "tempest",
+  "L": 4,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 5382458,
+  "note": "The lightning racing round the eye wall strikes the foes it passes.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "wall": 12,
+   "crown": 6,
+   "volley": 9,
+   "leap": 31
+  }
+ },
+ "purgatory-0": {
+  "k": "purgatory",
+  "L": 0,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 2783630,
+  "note": "The judgment gathers round the hero and its cuts begin (the first 13 seconds of the cast)."
+ },
+ "purgatory-1": {
+  "k": "purgatory",
+  "L": 1,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 3021930,
+  "note": "The foes are spread along the road: the judgment reaches further.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cut": 73,
+   "stare": 2
+  }
+ },
+ "purgatory-2": {
+  "k": "purgatory",
+  "L": 2,
+  "len": 10.5,
+  "seed": 1,
+  "bytes": 2758305,
+  "note": "The last stage begins at 13s and cuts faster (the clip joins it there).",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cut": 169,
+   "stare": 4
+  }
+ },
+ "purgatory-3": {
+  "k": "purgatory",
+  "L": 3,
+  "len": 12,
+  "seed": 1,
+  "bytes": 2955113,
+  "note": "The six eyes stare: foes where they look are cut as if they stood close to the hero.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cut": 164,
+   "stare": 3
+  }
+ },
+ "purgatory-4": {
+  "k": "purgatory",
+  "L": 4,
+  "len": 7,
+  "seed": 1,
+  "bytes": 1796982,
+  "note": "Three foes are worn down: a cut that leaves them under 8% cuts them down.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cut": 98,
+   "stare": 3,
+   "exec": 3
+  }
+ },
+ "purgatory-5": {
+  "k": "purgatory",
+  "L": 5,
+  "len": 6.5,
+  "seed": 1,
+  "bytes": 1251349,
+  "note": "The silence holds, then every foe takes one last cut (the clip joins it there).",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "cut": 167,
+   "stare": 4,
+   "last": 1
+  }
+ },
+ "bloodneedles-0": {
+  "k": "bloodneedles",
+  "L": 0,
+  "len": 10.53,
+  "seed": 1,
+  "bytes": 1699841,
+  "note": ""
+ },
+ "bloodneedles-1": {
+  "k": "bloodneedles",
+  "L": 1,
+  "len": 10.53,
+  "seed": 1,
+  "bytes": 1764790,
+  "note": "Each needle strikes harder: longer, with brighter tips and trails.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "fire": 32,
+   "hit": 32
+  }
+ },
+ "bloodneedles-2": {
+  "k": "bloodneedles",
+  "L": 2,
+  "len": 10.53,
+  "seed": 1,
+  "bytes": 1633710,
+  "note": "The pack walks on: the needles fly faster and turn tighter, so few arrive late.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "fire": 32,
+   "hit": 32
+  }
+ },
+ "bloodneedles-3": {
+  "k": "bloodneedles",
+  "L": 3,
+  "len": 10.53,
+  "seed": 1,
+  "bytes": 1371019,
+  "note": "A needle striking a foe already pierced strikes harder for every needle in it.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "fire": 32,
+   "hit": 32
+  }
+ },
+ "bloodneedles-4": {
+  "k": "bloodneedles",
+  "L": 4,
+  "len": 12.03,
+  "seed": 1,
+  "bytes": 1401803,
+  "note": "One foe with 1 HP: the first needle kills it, the rest wait glowing in the orbit, and fly at the foes that come next.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "fire": 32,
+   "hit": 28,
+   "wait": 1,
+   "lost": 4
+  }
+ },
+ "bloodneedles-5": {
+  "k": "bloodneedles",
+  "L": 5,
+  "len": 11.53,
+  "seed": 1,
+  "bytes": 1434194,
+  "note": "The orbit fills to 12 and, after 24 have flown, looses all at once at the strongest foe (the ram).",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "fire": 36,
+   "hit": 36,
+   "halo": 1
+  }
+ }
+}
