@@ -14181,7 +14181,7 @@ const CLOG=[
   {t:'Never-Never Land: the hour that is the hero\u2019s',d:'3 Nov',v:'v463',li:[
     'Never-Never Land (Ancient) has five new masteries, for now in developer mode. Still one dome of night over the whole field where time stands still and then crawls, stars falling on the leaders, a whip of four stars and every star falling at the end: each mastery makes a part the domain already has stronger and draws that part richer.',
     'Falling Stars: a shooting star every 0.36s (0.45s before), about 39 in a cast (31), splashing 0.6 tiles (0.5), with larger heads, halos and tails and a bigger glint where they strike. The Stopped Hour: time stands still for 2.6s (1.8s before), bosses at 15% (25%), and foes held in it take 50% more from everything (25%), so the first lash lands inside it; while it holds the stars stop twinkling, Sylph\u2019s wind stands still and the dome\u2019s meridians glow.',
-    'Lash of Stars: four stars lash every 2.8s (3.5s before), 5 lashes (4), over a wider square (radius 1.6, 1.35 before), holding foes 0.8s (0.6s); a wider ribbon, a whiter snap and larger glints at its corners. Borrowed Hours: foes move 50% slower (40% before; bosses 25%, 20% before) and towers attack 35% faster (25%); the sky wheels faster and Sylph\u2019s wings beat faster.',
+    'Lash of Stars: four stars lash every 2.8s (3.5s before), 5 lashes (4), over a wider square (radius 1.6, 1.35 before), holding foes 0.8s (0.6s); a wider ribbon, a whiter snap and larger glints at its corners. Sylph\u2019s Hour: foes move 50% slower (40% before; bosses 25%, 20% before) and towers attack 35% faster (25%); the sky wheels faster and Sylph\u2019s wings beat faster.',
     'Rain of Stars: the last fall strikes 1300% (1000% before), and the great stars that fall in it, only a picture before, land for real, all of them before the last strike: up to 36 (18 before), two a foe, 220% each. The dome\u2019s falling stars swell larger and the great stars\u2019 glints are bigger.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
@@ -32002,7 +32002,7 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
    | 1 | Falling Stars | what if more stars fell? | the shooting stars | more, wider hits |
    | 2 | The Stopped Hour | what if time stood still for longer? | the stillness | a longer stop that pays off |
    | 3 | Lash of Stars | what if the whip cracked more often? | the whip | more lashes, wider, longer holds |
-   | 4 | Borrowed Hours | what if the hero took more of their time? | the crawl and the towers | stronger control and towers |
+   | 4 | Sylph's Hour | what if the hero took more of their time? | the crawl and the towers | stronger control and towers |
    | 5 | Rain of Stars | what if every star that falls struck? | the finale | signature payoff |
    - M1 Falling Stars: a star every NVM.starP s (0.45 before): about 39 in a cast (31), splashing NVM.splR tiles (0.5). Heads, halos and tails a
      quarter larger, a bigger glint where they strike (2.0, 1.6 before).
@@ -32011,7 +32011,7 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
      dome's meridians glow.
    - M3 Lash of Stars: a lash every NVM.lashP s (3.5 before): 5 lashes (4), over a wider square (radius NVM.lashR, 1.35 before), holding foes
      NVM.hold s (0.6; bosses 0.2 as before, Resolve applies). A wider ribbon (0.15, 0.11 before), a whiter snap, larger glints at the corners.
-   - M4 Borrowed Hours: foes NVM.slow slower (0.4 before; bosses NVM.slowB, 0.2), towers NVM.rate faster (1.25). The sky wheels faster and
+   - M4 Sylph's Hour: foes NVM.slow slower (0.4 before; bosses NVM.slowB, 0.2), towers NVM.rate faster (1.25). The sky wheels faster and
      Sylph's wings beat faster.
    - M5 Rain of Stars: the last fall strikes NVM.fin (1000% before), and the great stars that fall in it (only a picture before, on real-time
      timers) land for real, in game time: up to NVM.finN (18 before), two a foe, NVM.finStar each, all of them before the last strike. The dome's
@@ -32022,8 +32022,9 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
    Mastered casts take their glints from a pool of 32 (one material each, made with the cast) instead of a new material for every glint.
    The stillness, the crawl and the towers count for nothing on the ladder (its foes stand still and it has no towers), and every number here
    also lifts every other spell and tower on the field while the dome is up; the factors carry that.
-   Two names of the approved set were already taken and were changed: Stolen Time is Chronostasis' fourth mastery (Borrowed Hours here),
-   and Starfall is the world event (Rain of Stars here).
+   Two names of the approved set were already taken and were changed: Stolen Time is Chronostasis' fourth mastery (Sylph's Hour here;
+   Borrowed Hours, tried first, sat too close to the Aeon Dial's Borrowed Years, also towers fighting faster), and Starfall is the world
+   event (Rain of Stars here).
    Ladder (Ancient, half steps; the standing pack and the lone foe, .6 / .4, 3 casts 22 s apart), calibrated with the foes put back where
    they stood before every cast (in play the cooldown is 160 s, so every cast meets fresh foes); nothing here throws or kills a ladder foe,
    so the standard ladder (which casts again at the same foes) reads the same. With the factors below: put back (4 runs) 1.078 / 1.168 /
@@ -32036,7 +32037,7 @@ SM_D.never=[
   {n:'Falling Stars',d:'A shooting star falls every 0.36s (0.45s before), about 39 in a cast (31), splashing 0.6 tiles (0.5). Larger stars, a bigger glint where they strike.'},
   {n:'The Stopped Hour',d:'Time stands still for 2.6s (1.8s before), bosses at 15% (25%). Foes held in it take {50}% more from everything (25% before), so the first lash lands inside it.'},
   {n:'Lash of Stars',d:'Four stars lash every 2.8s (3.5s before): 5 lashes (4), over a wider square, holding foes 0.8s (0.6s).'},
-  {n:'Borrowed Hours',d:'Foes move 50% slower (40% before; bosses 25%, 20% before), and towers attack 35% faster (25% before).'},
+  {n:'Sylph\u2019s Hour',d:'Foes move 50% slower (40% before; bosses 25%, 20% before), and towers attack 35% faster (25% before).'},
   {n:'Rain of Stars',d:'The last fall strikes {1300}% (1000% before), and the great stars that fall in it land for real: up to 36, {220}% each.'}];
 SMF.never={m:1};
 SMA.never=[1,1,1,1,1];

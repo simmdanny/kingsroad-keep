@@ -62,7 +62,7 @@ const finOk=k=>{const f=ev('finHit')[0];if(!f)return{ok:false};const at=log.filt
 const vulnAt=e=>{const h=e.hp;hurt(e,100,'magic',{src:null});return Math.round((h-e.hp)*1e4)/1e4;};
 try{
   /* ---- the card ---- */
-  ok('the five masteries: Falling Stars, The Stopped Hour, Lash of Stars, Borrowed Hours, Rain of Stars (v463)',SM_D.never.map(x=>x.n).join('|')==='Falling Stars|The Stopped Hour|Lash of Stars|Borrowed Hours|Rain of Stars',SM_D.never.map(x=>x.n).join('|'));
+  ok('the five masteries: Falling Stars, The Stopped Hour, Lash of Stars, Sylph\'s Hour, Rain of Stars (v463)',SM_D.never.map(x=>x.n).join('|')==='Falling Stars|The Stopped Hour|Lash of Stars|Sylph\u2019s Hour|Rain of Stars',SM_D.never.map(x=>x.n).join('|'));
   const d=i=>smDesc('never',i);
   ok('the numbers on the card are the ones in the code (0.36s, 39, 0.6 tiles; 2.6s, 15%, 50%; 2.8s, 5 lashes, 0.8s; 50%, 25%, 35%; 1300%, 36, 220%)',
     /0\.36s/.test(d(0))&&/0\.45s before/.test(d(0))&&/39/.test(d(0))&&/0\.6 tiles/.test(d(0))&&/2\.6s/.test(d(1))&&/1\.8s before/.test(d(1))&&/15%/.test(d(1))&&/50%/.test(d(1))&&/25% before/.test(d(1))
@@ -112,7 +112,7 @@ try{
     ok('M3: each over a wider square (radius 1.6, 1.35 before), 500% to the foes inside it and only those, holding them 0.8s (0.6s; bosses 0.2s)',La.ok,La.inside+' struck '+La.bad.slice(0,4).join(' ')+(La.holds?'':' holds '+ev('lash')[0].St.join(',')));
     ok('M3: a wider ribbon (0.15, 0.11 before), a whiter snap (x1.5), larger glints at the corners (1.5, 1.1 before)',W.ribW.size===1&&W.ribW.has(.15)&&c.K.lashSnap===1.5&&W.gs.has(1.5)&&!W.gs.has(1.1),[...W.ribW].join(',')+' glints '+[...W.gs].join(','));
     ok('M3: the rest as Mastery 2 (stillness 2.6s, 39 stars, 1000% at the end)',c.K.STOP===2.6&&starsOk(.6,220,100).ok&&finOk(1000).ok);}
-  /* ---- M4 Borrowed Hours ---- */
+  /* ---- M4 Sylph's Hour ---- */
   {const F=stage();F[2].boss=true;let best=null,bd=1e9;for(let r=0;r<H;r++)for(let cc=0;cc<W;cc++){if(grid[r][cc]!==0)continue;const p=tw(cc,r),dd=(p.x-F[0].x)**2+(p.z-F[0].z)**2;if(dd<bd&&dd>1){bd=dd;best=[cc,r];}}
     gold+=buildCost('archer');placeTower('archer',best[0],best[1]);const Tw=towers[towers.length-1];const r0=tStats(Tw).rate;NVM.dbg=[];let c=null,f=[],rr=0,sk=[];
     try{cast(4);c=ev('cast')[0];runTo(7);f.push(ancF(F[0]),ancF(F[2]));rr=tStats(Tw).rate/r0;const P=parts(c);sk.push(P.stars.parent.rotation.y);run(1);sk.push(P.stars.parent.rotation.y);runOut();}finally{setL(0);}
