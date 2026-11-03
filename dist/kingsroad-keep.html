@@ -14230,6 +14230,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Infinite Void: reality, erased',d:'3 Nov',v:'v461',li:[
+    'Infinite Void (Ancient) has five new masteries, for now in developer mode. Still the hero erasing the battlefield into an endless starry void where every foe crawls and blinding white cuts tear through everything until reality snaps back: each mastery makes a part the domain already has stronger and draws that part a little richer.',
+    'Blinding Edge: every cut on a foe strikes 88% and 2.2% of its max health (81% and 2.03% before; bosses 1.1%, 1.01% before), the ground cuts 66% (60%) within half a tile (0.42), and every stroke is a fifth wider with a whiter core. Ceaseless Cuts: the stream of cuts aimed at foes brings a tenth more a second (4.4 and 0.33 for each foe, up to 11; 4 and 0.3, up to 10, before).',
+    'Denser Space: every foe crawls at 15% of its speed (a fifth before), and the motes of dense space round them are thicker and brighter. Erasure: a foe a cut leaves under 15% of its health is erased (not bosses): its cross of strokes doubles and it dissolves behind the same white-rimmed edge the world dissolved behind.',
+    'Reality Returns: in the last 3 seconds a great screen-wide cut comes every 0.8s, each bringing three cuts, and as reality returns one last screen-wide cut strikes every foe for 300%, bosses too (the snap back struck nothing before). The pinch before the snap is longer (0.6s, 0.35s before) and its ripple stronger.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
   {t:'Dimensional Slash: the same cut, deeper',d:'1 Nov',v:'v448',li:[
@@ -32018,7 +32023,38 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
 /* ================= Infinite Void's masteries (v461), designed with the framework (MASTERY_DESIGN.md) ================= */
-/* IVM_HEADER */
+/* Identity: the hero erases the battlefield. The world dissolves into an endless starry void, every foe crawls at a fifth of its speed, and
+   blinding white cuts tear through everything until reality snaps back. Simon, for every Mythic, Ancient and Secret scroll: "lets do the
+   same way all the mythics ancients and secrets where their identity is preserved but their visuals barely change and change only to
+   better", and "new stuff CAN appear ... but just nothing that over shines the spell". So each mastery strengthens one part the domain
+   already has and draws that same part richer; the void, its timing (strain 0-4s, the snap at 4s, the cuts until 23.55s, the snap back at
+   24s) and its cuts stay as they are, and nothing scales with distance from the hero (that is Crimson Purgatory) or stills the world grey
+   (Dimensional Slash).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Blinding Edge | what if every cut cut deeper? | every cut | stronger cuts |
+   | 2 | Ceaseless Cuts | what if the cuts never let up? | the stream of cuts | more cuts |
+   | 3 | Denser Space | what if space grew denser still? | the crawl | stronger control |
+   | 4 | Erasure | what if the void finished what it cut? | the cuts | behaviour change |
+   | 5 | Reality Returns | what if the return itself cut? | the snap back | signature payoff |
+   - M1 Blinding Edge: a cut on a foe strikes IVM.enK of the power + IVM.enH of its max health (81% + 2.03% before; bosses IVM.enHB, 1.01%
+     before), a ground cut IVM.grK (60% before) + 1% within IVM.grR of its line (0.42 before). Every stroke is a fifth wider with a whiter
+     core (the core exponent of the strokes' shader 4, 6 before).
+   - M2 Ceaseless Cuts: the focused stream brings IVM.foc0 + IVM.focN a foe cuts a second, up to IVM.foc0 + IVM.focM (4 + 0.3, up to 10).
+   - M3 Denser Space: DOM.f is IVM.domF (0.2 before; every foe, bosses too, as the base domain), and the four kinds of dense-space motes on
+     each foe come 1.5x as often, larger (1.25x) and brighter.
+   - M4 Erasure: a non-boss foe a cut (on a foe, on the ground, or the last cut) leaves under IVM.erase of its health is erased: a killing
+     blow, its cross of strokes twice as large, and its own meshes, kept a moment, dissolve behind the white-rimmed edge the world dissolved
+     behind (castExpanse's erMat: one clone per material a cast, a shared uniform array of up to 8 fronts; with all 8 busy it simply goes).
+   - M5 Reality Returns: in the last 3s a great screen-wide cut every IVM.finGap s (x0.85-1.15), each bringing three cuts on the domain's own
+     clock (the base big cut's three come on timers); they flare the light rather than blink the silhouette, so the finale does not strobe.
+     As reality returns (0.12s before the snap) one last cut, the same screen-wide stroke, strikes every foe for IVM.finK, bosses too (the
+     snap back struck nothing before). The pinch before the snap runs 0.6s (0.35), and its ripple, colour split, shake and burst of light
+     are 30% stronger. The screen flash of the snap is full white already, so it is not made stronger or longer.
+   Percentages are of the scroll's power. Every mastered Infinite Void cast runs castExpanse with its XO (ivmOpts); Mastery 0 and other
+   casters cast exactly as before; a renewed domain keeps the masteries it was cast with and cuts again as it ends. Its strokes are now
+   pooled (the base cast made a geometry and a material for each). The max-health shares carry the hidden factor too (ivmOpts), so
+   SMG.expanse scales the whole cut and not only its share of the power. IVM.dbg (an array) logs the events.
+   LADDER_NOTES */
 const IVM={dbg:null,enK:.88,enH:.022,enHB:.011,grK:.66,grR:.5,foc0:4.4,focN:.33,focM:6.6,domF:.15,erase:.15,finK:3,finGap:.8};
 const ivmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='expanse'&&c.L?c:null;};
 const ivmLog=d=>{if(IVM.dbg){d.t=time;IVM.dbg.push(d);}};
