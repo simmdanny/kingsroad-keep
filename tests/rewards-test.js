@@ -7,7 +7,8 @@ try{
   meta.arenas=Object.assign({},meta.arenas,{snow:1,tundra:1});
   /* v330: waves pay half the gems (rounded, at least 1); gem carriers stay at 2% of foes (Simon) */
   {let t=0;for(let w=1;w<=200;w++)t+=waveGems(w);ok('waves pay half: 1, 4, 17, 32 gems at waves 1, 10, 100, 200; 1350 over 200 waves (was 2600)',waveGems(1)===1&&waveGems(10)===4&&waveGems(100)===17&&waveGems(200)===32&&t===1350,t);
-   ok('gem carriers unchanged: 1 foe in 50',typeof GEM_CARRIER_CH==='undefined'&&[...document.scripts].some(q=>q.textContent.includes('forceGem||rnd()<.02)')));}
+   /* 3 Nov dev Scroll Bearer fix: a forced scroll skips the gem roll (forceScroll), so the 2% chance sits behind !forceScroll; ordinary foes still roll 1 in 50 */
+   ok('gem carriers unchanged: 1 foe in 50',typeof GEM_CARRIER_CH==='undefined'&&[...document.scripts].some(q=>q.textContent.includes('forceGem||(!forceScroll&&rnd()<.02))')));}
   meta.arena='plains';ok('Plains: gems unchanged',arenaGems(7)===7&&arenaGems(1)===1&&arenaGemTag()==='');
   meta.arena='snow';{const m=avg(4,40000)/4;ok('Frostvale: gems x1.25 on average',Math.abs(m-1.25)<.01,m.toFixed(4));ok('Frostvale: whole numbers only',[...Array(200)].every(()=>Number.isInteger(arenaGems(3))));}
   ok('Frostvale: the toast says why',arenaGemTag().indexOf('Frostvale')>=0,arenaGemTag());
