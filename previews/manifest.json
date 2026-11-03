@@ -3112,6 +3112,34 @@
     "hit": 36,
     "shatter": 1
    }
+  },
+  "embertitan-4": {
+   "k": "embertitan",
+   "L": 4,
+   "len": 11.87,
+   "seed": 1,
+   "bytes": 1780301,
+   "note": "Foes under the blade are stunned 1.2s; the boss (an Ogre) 0.4s.",
+   "ev": {
+    "cast": 1,
+    "blow": 1,
+    "geyser": 30,
+    "end": 1
+   }
+  },
+  "embertitan-5": {
+   "k": "embertitan",
+   "L": 5,
+   "len": 12.53,
+   "seed": 1,
+   "bytes": 1974376,
+   "note": "The whole fissure tears open as the sword lands: every geyser bursts at once.",
+   "ev": {
+    "cast": 1,
+    "blow": 1,
+    "geyser": 30,
+    "end": 1
+   }
   }
  },
  "made": "2026-10-29"
