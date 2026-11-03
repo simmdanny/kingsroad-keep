@@ -14240,6 +14240,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Wrath of Gaia: the forest takes them down',d:'2 Nov',v:'v455',li:[
+    'Wrath of Gaia (Mythic) has five new masteries, for now in developer mode. Still the forest that tears up along every road from the keep outward: each mastery makes a part the forest already has stronger and draws that part a little richer.',
+    'Heartwood: each tree strikes for 650% (500% before) and reaches foes up to 1.05 tiles away (0.9 before); the trees pop up harder and the earth bursts wider at every trunk. Rooted Fast: struck foes are pinned 1.6s (1s before; bosses 0.6s, 0.4s before; Resolve applies) and Held 2.1s; thick roots splay from every trunk, the ground darker beneath.',
+    'The Forest Stands: until the forest sheds, a foe that walks into a standing tree\u2019s reach is struck and pinned by it too (once per foe), and the tree heaves up again as it strikes; the leaves fall twice as thick. The Keep Drinks Deep: the keep mends 3 lives (2 before), and the green column at the keep rises twice as tall.',
+    'Return to the Earth: every tree sheds its leaves (every second tree before), 375% to every foe (300% before), in a storm of leaves twice as thick. Then the forest sinks, heavier and faster and all the way under, and each tree drags the foes in its reach down with it: 150% and pinned 0.5s (once per foe), the earth bursting in clods at every trunk.']},
   {t:'The Aeon Dial: twelve strokes at midnight',d:'2 Nov',v:'v454',li:[
     'The Aeon Dial (Mythic) has five new masteries, for now in developer mode. Still the great clock laid over the field: each mastery makes a part the dial already has stronger and draws that part a little richer.',
     'The Toll of Years: each pass of the hand takes 2% of a foe\u2019s max health (1% before; bosses 0.5%, 0.3% before), and its trail burns longer and brighter. Deep Age: each pass ages foes 12.5% slower, up to 50% (10%, up to 40% before), and aged foes shed thicker, paler dust.',
@@ -18903,7 +18908,7 @@ function nfxBurst(x,z,R,o){o=o||{};const F=nfxKit(),y=gy(x,z),root=new THREE.Gro
   const md=new THREE.Mesh(F.moundG,F.dirt);md.scale.set(.001,.001,.001);md.rotation.y=rnd()*6;md.visible=o.mound!==0;root.add(md);natDirt(x,z,o.n||14,o.s||1);
   sprayP(0,x,y+.05,z,Math.round((o.n||14)/3),{c:0x8a8478,c2:0x5a5650,sp:1.4*(o.s||1),up:1.3,s:.035*(o.s||1),s2:.02,life:.7,g:7});let tt=0;
   addFx(root,life,(f,dt)=>{tt+=dt;cr.grow(Math.min(1,tt/.25));cr.gm.opacity=.65*Math.min(1,tt/.1)*Math.min(1,f.life/.6);const k=Math.min(1,tt/.14),sh=Math.min(1,f.life/.5),rr=R*.42*(.7+.3*k);
-    md.scale.set(rr,Math.max(.001,.13*R*k*sh*(1+.15*Math.sin(tt*30)*Math.max(0,1-tt*3))),rr);},null,{mats:[cr.gm],geos:cr.geos});return root;}
+    md.scale.set(rr,Math.max(.001,.13*R*k*sh*(o.mh||1)*(1+.15*Math.sin(tt*30)*Math.max(0,1-tt*3))),rr);},null,{mats:[cr.gm],geos:cr.geos});return root;}
 /* leaves (green, dry or red) or petals, with any mix of materials */
 function nfxLeaves(x,y,z,n,mats,geo,spread){const K=natKit(),g=new THREE.Group();scene.add(g);const L=[];geo=geo||K.leafG;
   for(let i=0;i<n;i++){const m=new THREE.Mesh(geo,mats[i%mats.length]);m.position.set(x+(rnd()-.5)*(spread||0),y,z+(rnd()-.5)*(spread||0));m.rotation.set(rnd()*6,rnd()*6,rnd()*6);
@@ -19036,12 +19041,15 @@ function nfxPollenHaze(x,z,R,cl){const g=new THREE.Group();scene.add(g);if(cl)cl
     for(const s of sp){s.material.opacity=.22*k*(.8+.2*Math.sin(tt*1.5+s.userData.ph));s.material.rotation+=dt*.15;s.position.y+=Math.sin(tt+s.userData.ph)*.002;}},null,{mats:sp.map(s=>s.material)});}
 
 /* ---------- Wrath of Gaia: four kinds of tree ---------- */
-function nfxTreeRaw(x,z,s){const K=natKit(),F=nfxKit(),g=new THREE.Group();g.position.set(x,gy(x,z)-1.3*s,z);g.rotation.y=rnd()*6.28;const kind=rnd();
-  const flare=(m)=>{for(let i=0;i<3;i++){const c=new THREE.Mesh(F.coneS,m);c.rotation.set(Math.PI/2-.5,i/3*6.28,0);c.position.set(Math.cos(i/3*6.28)*.06,.04,Math.sin(i/3*6.28)*.06);c.scale.set(1.2,1,1.2);g.add(c);}};
+/* R (v455, Wrath of Gaia's Rooted Fast): thicker, longer roots, splayed out from the trunk's foot and down into the ground, on every kind of tree */
+function nfxTreeRaw(x,z,s,R){const K=natKit(),F=nfxKit(),g=new THREE.Group();g.position.set(x,gy(x,z)-1.3*s,z);g.rotation.y=rnd()*6.28;const kind=rnd();
+  const flare=R?(m)=>{for(let i=0;i<R.n;i++){const a=(i+(rnd()-.5)*.5)/R.n*6.28,c=new THREE.Mesh(F.coneS,m),d=R.r*(.85+rnd()*.3);c.rotation.order='YXZ';c.rotation.set(Math.PI/2+R.tilt,Math.PI/2-a,0);
+      c.position.set(Math.cos(a)*d,R.y,Math.sin(a)*d);c.scale.set(R.sx,R.sy*(.85+rnd()*.3),R.sx);g.add(c);}}
+    :(m)=>{for(let i=0;i<3;i++){const c=new THREE.Mesh(F.coneS,m);c.rotation.set(Math.PI/2-.5,i/3*6.28,0);c.position.set(Math.cos(i/3*6.28)*.06,.04,Math.sin(i/3*6.28)*.06);c.scale.set(1.2,1,1.2);g.add(c);}};
   if(kind<.4){g.add(new THREE.Mesh(K.trG,K.bark));flare(K.bark2);const pm=F.pine[Math.floor(rnd()*2)];g.add(new THREE.Mesh(K.cnG1,pm));const c2=new THREE.Mesh(K.cnG2,pm);g.add(c2);const c3=new THREE.Mesh(K.cnG2,F.pine[1]);c3.scale.setScalar(.7);c3.position.y=.42;g.add(c3);}
   else if(kind<.75){const tr=new THREE.Mesh(K.trG,K.bark);tr.scale.set(1.35,1.1,1.35);g.add(tr);flare(K.bark2);
     [[0,.86,0,1.2],[-.2,.74,.06,.85],[.2,.76,-.05,.9],[.04,.8,-.2,.8],[.06,1.02,.12,.7]].forEach(([px,py,pz,ps],i)=>{const m=new THREE.Mesh(K.crG,K.crown[i%3]);m.position.set(px,py,pz);m.scale.set(ps*1.5,ps*1.2,ps*1.5);g.add(m);});}
-  else if(kind<.9){const tr=new THREE.Mesh(K.trG,F.birch);tr.scale.set(.75,1.3,.75);g.add(tr);for(let i=0;i<3;i++){const r=new THREE.Mesh(K.trG,F.ring);r.scale.set(.8,.03,.8);r.position.y=.15+i*.17;g.add(r);}
+  else if(kind<.9){const tr=new THREE.Mesh(K.trG,F.birch);tr.scale.set(.75,1.3,.75);g.add(tr);if(R)flare(K.bark2);for(let i=0;i<3;i++){const r=new THREE.Mesh(K.trG,F.ring);r.scale.set(.8,.03,.8);r.position.y=.15+i*.17;g.add(r);}
     [[0,.9,0,1],[-.12,.78,.08,.75],[.13,.82,-.06,.8]].forEach(([px,py,pz,ps],i)=>{const m=new THREE.Mesh(K.crG,F.birchL[i%2]);m.position.set(px,py,pz);m.scale.set(ps*1.1,ps*1.4,ps*1.1);g.add(m);});}
   else{const tr=new THREE.Mesh(K.trG,K.bark);tr.scale.set(1.1,1,1.1);g.add(tr);flare(K.bark2);
     [[0,.82,0,1.1],[-.18,.72,.05,.8],[.18,.74,-.04,.85],[.02,.95,.1,.7]].forEach(([px,py,pz,ps],i)=>{const m=new THREE.Mesh(K.crG,F.blos[i%2]);m.position.set(px,py,pz);m.scale.set(ps*1.4,ps*1.15,ps*1.4);g.add(m);});g.userData.blossom=1;}
@@ -19052,23 +19060,32 @@ function nfxMergeTree(g){const F=nfxKit(),P=[],C=[],v=new THREE.Vector3(),c=new 
     for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i).applyMatrix4(m.matrix);P.push(v.x,v.y,v.z);C.push(c.r,c.g,c.b);}if(q!==m.geometry)q.dispose();}
   const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.Float32BufferAttribute(P,3));G.setAttribute('color',new THREE.Float32BufferAttribute(C,3));G.computeVertexNormals();nfxRemapVC(G.attributes.color);
   for(const m of g.children.slice())g.remove(m);g.add(new THREE.Mesh(G,F.vc));g.userData.geo=G;}
-natTree=function(x,z,s){const g=typeof asOffRun==='function'?asOffRun(()=>nfxTreeRaw(x,z,s)):nfxTreeRaw(x,z,s);nfxMergeTree(g);scene.add(g);return g;};
-castGaia=function(t,P,o){const K=natKit(),F=nfxKit(),big=!!(ANC&&ANC.live&&ANC.live.firsttree),S=big?1.5:1,DM=big?2:1;if(big)comboFire('worldroot',heroU||t);
+natTree=function(x,z,s,R){const g=typeof asOffRun==='function'?asOffRun(()=>nfxTreeRaw(x,z,s,R)):nfxTreeRaw(x,z,s,R);nfxMergeTree(g);scene.add(g);return g;};
+/* v455: castGaia takes an optional last argument XO (a mastered cast's numbers and looks, over GAIAD; its fx builds the masteries' own
+   pieces and hooks into the forest). Without it the forest is exactly as before. */
+const GAIAD={STRIKE:5,REACH:.9,STUN:1,STUNB:.4,HELD:1.5,FIN:3,MEND:2,SHED:2,ovP:1.12,ovD:.12,bR:.42,bC:4,bN:7,bS:.8,bL:1,bH:1,motes:3,decal:.55,roots:null,leafT:.12,colH:6,colR:4,fx:null,log:null};
+castGaia=function(t,P,o,XO){const D=XO?Object.assign({},GAIAD,XO):GAIAD,K=natKit(),F=nfxKit(),big=!!(ANC&&ANC.live&&ANC.live.firsttree),S=big?1.5:1,DM=big?2:1;if(big)comboFire('worldroot',heroU||t);
   const spots=[],seen=new Set();for(const rt of ROUTES)for(let d=rt.len-.5;d>0;d-=.85){const p=posAt(d,rt),key=Math.round(p[0]*2)+','+Math.round(p[1]*2);if(seen.has(key))continue;seen.add(key);
     spots.push({x:p[0]+(rnd()-.5)*.3,z:p[1]+(rnd()-.5)*.3,at:Math.min(4,(rt.len-d)/9),done:false,g:null,s:(.95+rnd()*.35)*S});}
-  const cp=tw(MAP.cc,H-1.4);nfxRune(cp.x,cp.z,1.9,6.4);{const yy=gy(cp.x,cp.z),pc=new THREE.CylinderGeometry(.5,.9,6,18,1,true);pc.translate(0,3,0);const pm=new THREE.MeshBasicMaterial({color:0x9ae060,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
-    const pl=new THREE.Mesh(pc,pm);pl.position.set(cp.x,yy,cp.z);scene.add(pl);let pt=0;addFx(pl,1.6,(f,dt)=>{pt+=dt;pl.scale.set(1+pt*.6,Math.min(1,pt*4),1+pt*.6);pm.opacity=.5*Math.min(1,f.life/.6);},null,{geo:pc,mat:pm});}
+  const END=5.6,LIFE=6.6,hitOnce=new Set(),cp=tw(MAP.cc,H-1.4);
+  /* the strike of a tree (as it rises, or, with The Forest Stands, on a foe walking into a standing tree): once per foe */
+  const hit=(q,e,ev)=>{hitOnce.add(e);hurt(e,P*D.STRIKE*DM,'magic',o);if(!e.dead){stunE(e,e.boss?D.STUNB:D.STUN);e.heldT=Math.max(e.heldT||0,D.HELD);ovgApply(e,4);}if(D.log)D.log({ev,e,q});};
+  const X=D.fx?D.fx({D,spots,hit,hitOnce,cp,P,o,DM,END}):null;
+  nfxRune(cp.x,cp.z,1.9,6.4);{const yy=gy(cp.x,cp.z),pc=new THREE.CylinderGeometry(.5,.9,D.colH,18,1,true);pc.translate(0,D.colH/2,0);const pm=new THREE.MeshBasicMaterial({color:0x9ae060,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+    if(X&&X.column)X.column(pc,pm);const pl=new THREE.Mesh(pc,pm);pl.position.set(cp.x,yy,cp.z);scene.add(pl);let pt=0;addFx(pl,1.6,(f,dt)=>{pt+=dt;pl.scale.set(1+pt*.6,Math.min(1,pt*D.colR),1+pt*.6);pm.opacity=.5*Math.min(1,f.life/.6);},null,{geo:pc,mat:pm});}
   shockwave(cp.x,cp.z,2.2,0x8ad24a,.6);
-  const hitOnce=new Set(),root=new THREE.Group(),TG=[];scene.add(root);let tt=0,fin=false,lf=0;const END=5.6,LIFE=6.6;
+  const root=new THREE.Group(),TG=[];scene.add(root);let tt=0,fin=false,lf=0;
   addFx(root,LIFE,(f,dt)=>{tt+=dt;
-    for(const q of spots){if(!q.done&&tt>=q.at){q.done=true;q.g=natTree(q.x,q.z,q.s);root.add(q.g);TG.push(q.g.userData.geo);q.t0=tt;nfxBurst(q.x,q.z,.42*q.s,{cracks:4,n:7,s:.8,life:1});nsDecal(q.x,q.z,.55,0x2c4a16,.55,END-tt+1,{fout:.8});
-        for(let i=0;i<3;i++)emit(1,{x:q.x+(rnd()-.5)*.4,y:gy(q.x,q.z)+.1,z:q.z+(rnd()-.5)*.4,vx:0,vy:.8+rnd()*.6,vz:0,s:.05,s2:0,c:0xd8ffa0,c2:0x4a9a2a,life:.7});
-        for(const e of enemies){if(e.dead||hitOnce.has(e)||(e.x-q.x)**2+(e.z-q.z)**2>.9*.9)continue;hitOnce.add(e);hurt(e,P*5*DM,'magic',o);if(!e.dead){stunE(e,e.boss?.4:1);e.heldT=Math.max(e.heldT||0,1.5);ovgApply(e,4);}}}
-      if(q.g){const k=Math.min(1,(tt-q.t0)/.28),ov=k<1?k*1.12:1.12-.12*Math.min(1,(tt-q.t0-.28)/.2),y=gy(q.x,q.z);
-        q.g.position.y=tt<END?y-(1-k)*1.3*q.s:y-Math.min(1,(tt-END)/.9)*1.4*q.s;q.g.scale.setScalar(q.s*Math.max(.01,ov));q.g.rotation.z=Math.sin(tt*2+q.x)*.03*(tt<END?1:0);}}
-    lf-=dt;if(lf<=0&&tt>.8&&tt<END){lf=.12;const q=spots[Math.floor(rnd()*spots.length)];if(q&&q.g)nfxLeaves(q.x,gy(q.x,q.z)+1*q.s,q.z,1,q.g.userData.blossom?[F.blos[0],F.blos[1]]:[K.leaf,K.leaf2],q.g.userData.blossom?K.petG:null);}
-    if(!fin&&tt>=END){fin=true;for(let i=0;i<spots.length;i+=2){const q=spots[i];if(q.g)nfxLeaves(q.x,gy(q.x,q.z)+1*q.s,q.z,4,q.g.userData.blossom?[F.blos[0],F.blos[1]]:[K.leaf,K.leaf2,F.leafD],q.g.userData.blossom?K.petG:null,.6);}
-      for(const e of enemies){if(e.dead)continue;hurt(e,P*3*DM,'magic',o);ovgApply(e,6);}natMend(2,'Wrath of Gaia');camShake=Math.max(camShake,.1);shockwave(cp.x,cp.z,3,0xb8f08a,.7);}
+    for(const q of spots){if(!q.done&&tt>=q.at){q.done=true;q.g=natTree(q.x,q.z,q.s,D.roots);root.add(q.g);TG.push(q.g.userData.geo);q.t0=tt;nfxBurst(q.x,q.z,D.bR*q.s,{cracks:D.bC,n:D.bN,s:D.bS,life:D.bL,mh:D.bH});nsDecal(q.x,q.z,.55,0x2c4a16,D.decal,END-tt+1,{fout:.8});
+        for(let i=0;i<D.motes;i++)emit(1,{x:q.x+(rnd()-.5)*.4,y:gy(q.x,q.z)+.1,z:q.z+(rnd()-.5)*.4,vx:0,vy:.8+rnd()*.6,vz:0,s:.05,s2:0,c:0xd8ffa0,c2:0x4a9a2a,life:.7});
+        for(const e of enemies){if(e.dead||hitOnce.has(e)||(e.x-q.x)**2+(e.z-q.z)**2>D.REACH*D.REACH)continue;hit(q,e,'strike');}if(X&&X.rise)X.rise(q);}
+      if(q.g){const k=Math.min(1,(tt-q.t0)/.28),ov=k<1?k*D.ovP:D.ovP-D.ovD*Math.min(1,(tt-q.t0-.28)/.2),y=gy(q.x,q.z);
+        q.g.position.y=tt<END?y-(1-k)*1.3*q.s:y-Math.min(1,(tt-END)/.9)*1.4*q.s;q.g.scale.setScalar(q.s*Math.max(.01,ov));q.g.rotation.z=Math.sin(tt*2+q.x)*.03*(tt<END?1:0);if(X&&X.tree)X.tree(q,tt,y);}}
+    lf-=dt;if(lf<=0&&tt>.8&&tt<END){lf=D.leafT;const q=spots[Math.floor(rnd()*spots.length)];if(q&&q.g)nfxLeaves(q.x,gy(q.x,q.z)+1*q.s,q.z,1,q.g.userData.blossom?[F.blos[0],F.blos[1]]:[K.leaf,K.leaf2],q.g.userData.blossom?K.petG:null);}
+    if(!fin&&tt>=END){fin=true;for(let i=0;i<spots.length;i+=D.SHED){const q=spots[i];if(q.g){if(X&&X.shed)X.shed(q);else nfxLeaves(q.x,gy(q.x,q.z)+1*q.s,q.z,4,q.g.userData.blossom?[F.blos[0],F.blos[1]]:[K.leaf,K.leaf2,F.leafD],q.g.userData.blossom?K.petG:null,.6);}}
+      if(X&&X.fin)X.fin();let n=0;for(const e of enemies){if(e.dead)continue;n++;hurt(e,P*D.FIN*DM,'magic',o);ovgApply(e,6);}const ma=natMend(D.MEND,'Wrath of Gaia');if(D.log)D.log({ev:'fin',n,mend:ma});if(X&&X.mend)X.mend(ma);
+      camShake=Math.max(camShake,.1);shockwave(cp.x,cp.z,3,0xb8f08a,.7);}
+    if(X&&X.frame)X.frame(tt,dt);
     if(tt>END&&rnd()<.5){const q=spots[Math.floor(rnd()*spots.length)];if(q&&q.g)natDirt(q.x,q.z,3,.7);}
     if(tt<4&&rnd()<.3)camShake=Math.max(camShake,.04);},null,{geos:TG});};
 /* ================= v359 (Simon): an ANCIENT lightning domain, the Primordial Tempest, and the synergy that feeds it, the Gathering Storm =================
@@ -32648,6 +32665,135 @@ function aemFx(K){const{root,reg,regM,pool,O,R,TAU,spinG,gem,D}=K,GL=[],RG=[],FL
       nMesh.visible=pMesh.visible=any;gp=Math.max(0,gp-dt*3.2);if(gem)gem.scale.setScalar(1+.9*gp);}};}
 const AEM_OLD=castAeon;
 castAeon=function(t,PW,o,X){const c=!X?aemC(o):null;return AEM_OLD(t,PW,o,c?aemOpts(c):X);};
+/* ================= Wrath of Gaia's masteries (v455), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: from the keep outward a forest tears up along every road, each tree striking and pinning the foes it rises through; then it
+   sheds its leaves over the whole field and the keep drinks the life of the green. Simon, for every Mythic, Ancient and Secret scroll: "lets
+   do the same way all the mythics ancients and secrets where their identity is preserved but their visuals barely change and change only to
+   better", and "new stuff CAN appear ... but just nothing that over shines the spell". So each mastery strengthens one part the forest already
+   has and draws that same part richer; nothing new walks, coils or blooms (Treant, Entangling Roots, Bramble Patch and the Bloom own those).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Heartwood | what if each tree struck harder? | each tree's strike | stronger strike |
+   | 2 | Rooted Fast | what if the roots held on? | the pin | stronger control |
+   | 3 | The Forest Stands | what if the forest stayed dangerous? | the standing forest | a new use of what stands |
+   | 4 | The Keep Drinks Deep | what if the keep drank deeper? | the mend | stronger support |
+   | 5 | Return to the Earth | what if the forest took them down with it? | the leaf-fall and the sink | signature payoff |
+   - M1 Heartwood: each tree strikes WGM.strike (500% before) and reaches WGM.reach tiles (0.9 before). The trees pop up harder (their overshoot
+     1.22, 1.12 before) and the earth bursts wider at every trunk (7 longer cracks, 4 before; a mound more than twice as tall; more clods and
+     motes). The trees are not taller (World Root owns that). The approved table had 575%: see the ladder below.
+   - M2 Rooted Fast: foes are pinned WGM.pin s (1 before), bosses WGM.pinB (0.4 before), Resolve still applying (stunE); Held lasts WGM.held
+     (1.5 before). Five thick roots splay out from every trunk's foot and down into the ground (three thin ones before, and none on a birch);
+     the ground under each tree darker (0.75, 0.55 before).
+   - M3 The Forest Stands: until it sheds, a foe that walks into a standing tree's reach is struck by it too, with the same strike and pin
+     (once per foe, the same once as the rise: a foe struck as a tree rose is not struck again). That tree replays its rise pop (a heave, a burst
+     of earth at its foot, a few leaves shaken loose); the leaves fall twice as thick (a leaf every 0.06s, 0.12s before). The trees are kept by
+     tile, so a foe only looks at the trees round it.
+   - M4 The Keep Drinks Deep: the keep mends WGM.mend lives (2 before). The green column at the keep rises twice as tall (12, 6 before), fading
+     softly toward its top, and the mend's spray is thicker: more sparks, a stream of green climbing the keep, more leaves.
+   - M5 Return to the Earth: every tree sheds (every second tree before), for WGM.fin to every foe (300% before), in a storm of leaves twice as
+     thick (five leaves a tree, drawn in batches: a few draws for the whole storm instead of one per leaf). Then the forest sinks, heavier and
+     faster (0.62s, accelerating and leaning, 0.9s before, and all the way under); as it goes, each tree drags the ground foes in its reach down
+     with it: WGM.drag and pinned WGM.dragPin s (bosses WGM.dragPinB; Resolve applies; once per foe), the earth bursting at every trunk as it
+     goes under: a low heave of soil, clods and stones thrown out in arcs (three instanced meshes for the whole forest) and dust.
+   Percentages are of the scroll's power. Every mastered Wrath of Gaia cast runs castGaia with its XO (wgmOpts); Mastery 0, echoes and other
+   casters cast exactly as before. World Root (the Eldritch Tree standing) still makes the trees bigger and every strike, the shed and the drag
+   twice as hard. The ladder's foes stand still where the forest rises, so Rooted Fast (a hold), The Forest Stands (foes walking in) and The Keep
+   Drinks Deep (lives) count for nothing there: their factors carry them. With the approved 575% strike the factors would have had to climb to
+   1.19 at Mastery 4 (a fifth of every mastered cast hidden in the factor), so the strike is 650%: on the Mythic ladder (pack .6 / one .4,
+   3 casts 10s apart, 2 runs) the masteries alone measure 1.184 at Mastery 1-4 and 1.48 at Mastery 5, and the factors below bring them to
+   1.078 / 1.161 / 1.226 / 1.302 / 1.349 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35 (the foes stand still where every tree reaches them and
+   nothing there is random, so the factors follow from the sums: a cast is a 500% strike and the 300% shed, about 330% with Overgrown; Heartwood
+   adds 150%, Return to the Earth 75% to the shed and the 150% drag). Rooted Fast's longer Held also lets Deep Roots (+40% to nature on a
+   Held foe) catch the shed and the drag on foes struck in the last half second of the rise. WGM.dbg (an array) logs the events. */
+const WGM={dbg:null,strike:6.5,reach:1.05,pin:1.6,pinB:.6,held:2.1,mend:3,fin:3.75,drag:1.5,dragPin:.5,dragPinB:.2,dragAt:.15,sinkT:.62};
+const wgmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='gaia'&&c.L?c:null;};
+const wgmLog=d=>{if(WGM.dbg){d.t=time;WGM.dbg.push(d);}};
+SM_D.gaia=[
+  {n:'Heartwood',d:'Each tree tears up harder: it strikes for {650}% (500% before) and reaches foes up to 1.05 tiles away (0.9 before). The earth bursts wider at every trunk.'},
+  {n:'Rooted Fast',d:'Foes a tree strikes are pinned 1.6s (1s before; bosses 0.6s, 0.4s before; Resolve applies) and Held 2.1s. Thick roots splay from every trunk, the ground darker beneath.'},
+  {n:'The Forest Stands',d:'Until the forest sheds, a foe that walks into a standing tree\'s reach is struck and pinned by it too (once per foe). The leaves fall twice as thick.'},
+  {n:'The Keep Drinks Deep',d:'The keep mends 3 lives (2 before). The green column at the keep rises twice as tall.'},
+  {n:'Return to the Earth',d:'Every tree sheds its leaves (every second tree before): {375}% to every foe (300% before). As the forest sinks, each tree drags the foes in its reach down with it: {150}% and pinned 0.5s (once per foe).'}];
+SMF.gaia={m:1};
+SMA.gaia=[1,1,1,1,1];
+SMG.gaia=[.911,.981,1.035,1.1,.912];
+/* this forest's numbers and looks (castGaia's XO), cumulative: Mastery L has masteries 1..L */
+function wgmOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.STRIKE=WGM.strike*a[0];X.REACH=WGM.reach;X.ovP=1.22;X.ovD=.22;X.bR=.5;X.bC=7;X.bN=12;X.bS=1.05;X.bL=1.25;X.bH=2.4;X.motes=6;}
+  if(L>=2){X.STUN=WGM.pin;X.STUNB=WGM.pinB;X.HELD=WGM.held;X.decal=.75;X.roots={n:5,r:.15,y:.07,tilt:.62,sx:1.8,sy:1.7};}
+  if(L>=3){X.stand=1;X.leafT=.06;}
+  if(L>=4){X.MEND=WGM.mend;X.colH=12;X.colR=2.5;X.colFade=1;X.mendFx=1;}
+  if(L>=5){X.SHED=1;X.FIN=WGM.fin*a[4];X.drag=WGM.drag*a[4];X.dragPin=WGM.dragPin;X.dragPinB=WGM.dragPinB;X.storm=1;X.sink=1;}
+  X.fx=wgmFx;X.log=wgmLog;wgmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+/* the leaf storm of Return to the Earth: the same leaves and petals as nfxLeaves, falling the same way, but drawn in batches (one instanced
+   mesh per shape and colour) instead of a mesh a leaf: a whole field shedding at once is a few draws */
+function wgmStorm(){const B=new Map(),M4=new THREE.Matrix4(),Q=new THREE.Quaternion(),SV=new THREE.Vector3();let g=null,tok=null;
+  return{n:0,
+    add(x,y,z,n,mats,geo,spread){for(let i=0;i<n;i++){const mat=mats[i%mats.length],k=geo.uuid+'|'+mat.uuid;let b=B.get(k);if(!b)B.set(k,b={geo,mat,L:[],im:null});const a=rnd()*6.28,v=.35+rnd()*.9;
+      b.L.push({p:new THREE.Vector3(x+(rnd()-.5)*spread,y,z+(rnd()-.5)*spread),r:new THREE.Euler(rnd()*6,rnd()*6,rnd()*6),v:new THREE.Vector3(Math.cos(a)*v,.5+rnd()*1.1,Math.sin(a)*v),s:rnd()*8,sc:.7+rnd()*.6,life:1.7+rnd()*.4});this.n++;}},
+    go(){if(!this.n)return null;g=new THREE.Group();scene.add(g);const ims=[];for(const b of B.values()){b.im=new THREE.InstancedMesh(b.geo,b.mat,b.L.length);b.im.frustumCulled=false;g.add(b.im);ims.push(b.im);}
+      tok=new THREE.BufferGeometry();tok.addEventListener('dispose',()=>{for(const m of ims)m.dispose();});
+      const step=dt=>{for(const b of B.values()){const L=b.L;for(let i=0;i<L.length;i++){const q=L[i];q.life-=dt;const v=q.v,p=q.p;
+          if(q.life>0){v.y-=2.2*dt;v.multiplyScalar(Math.max(0,1-1.6*dt));p.addScaledVector(v,dt);p.x+=Math.sin(time*5+q.s)*.006;q.r.x+=dt*4;q.r.z+=dt*3;const fl=gy(p.x,p.z)+.02;if(p.y<fl){p.y=fl;v.set(0,0,0);}}
+          const sc=q.life>0?q.sc*Math.min(1,q.life/.4):0;M4.compose(p,Q.setFromEuler(q.r),SV.set(sc,sc,sc));b.im.setMatrixAt(i,M4);}b.im.instanceMatrix.needsUpdate=true;}};
+      step(0);addFx(g,2.2,(f,dt)=>step(dt),null,{geos:[tok]});return g;}};}
+/* the masteries' own pieces of the forest (castGaia's fx): C has the cast's options D, its spots, its strike (hit) and the foes it struck,
+   the keep (cp), its power P, o and World Root's DM, and END (when it sheds) */
+function wgmFx(C){const{D,spots,hit,hitOnce,cp,P,o,DM,END}=C,K=natKit(),F=nfxKit();
+  /* the trees by tile (cells as wide as a tree's reach): a foe only looks at the trees in the nine cells round it */
+  const cs=D.REACH,r2=D.REACH*D.REACH,G=new Map(),cell=v=>Math.floor(v/cs),key=(i,j)=>i*8192+j;
+  const near=(e)=>{const ci=cell(e.x),cj=cell(e.z);let best=null,bd=r2;for(let i=ci-1;i<=ci+1;i++)for(let j=cj-1;j<=cj+1;j++){const L=G.get(key(i,j));if(!L)continue;
+      for(const q of L){const d=(e.x-q.x)**2+(e.z-q.z)**2;if(d<=bd){bd=d;best=q;}}}return best;};
+  let dragged=false,storm=null;
+  const dirt=(x,z,n,s)=>{const y=gy(x,z);sprayP(0,x,y+.05,z,n,{c:0x6a4a2a,c2:0x2a1a0a,sp:1.25*s,up:1.5,s:.05*s,s2:.01,life:.75,g:6});sprayP(0,x,y+.05,z,Math.ceil(n/3),{c:0x8a8478,c2:0x5a5650,sp:1.1*s,up:1.7,s:.035*s,s2:.02,life:.8,g:8});
+    emitS(0,{x,y:y+.12,z,vx:0,vy:.25,vz:0,s:.22*s,s2:.6*s,c:0x7a6a4a,c2:0x3a3020,a:.3,life:1.1,lift:.2});};
+  return{
+    /* M4: the taller column fades softly toward its top (it is lit through vertex colours, so the set colours never reach it: nature) */
+    column(pc,pm){if(!D.colFade)return;const ps=pc.attributes.position,cc=new Float32Array(ps.count*3);for(let i=0;i<ps.count;i++){const k=ps.getY(i)>D.colH*.5?.12:1;cc[i*3]=cc[i*3+1]=cc[i*3+2]=k;}
+      pc.setAttribute('color',new THREE.BufferAttribute(cc,3));pm.vertexColors=true;pm.needsUpdate=true;},
+    rise(q){if(!(D.stand||D.drag))return;const k=key(cell(q.x),cell(q.z));let L=G.get(k);if(!L)G.set(k,L=[]);L.push(q);},
+    tree(q,tt,y){const g=q.g;
+      /* M3: a tree that strikes a foe walking in replays its rise pop: a heave up and a swell to the rise's overshoot, and back */
+      if(q.pop!=null&&tt<END){const u=(tt-q.pop)/.42;if(u<1){const b=Math.sin(Math.PI*u);g.scale.multiplyScalar(1+(D.ovP-1)*1.3*b);g.position.y+=.22*q.s*b*(1-u*.5);g.rotation.z+=Math.sin(u*25)*.07*(1-u);}else q.pop=null;}
+      /* M5: the forest goes down heavier and faster: a shudder, then an accelerating plunge, leaning as it goes, all the way under */
+      if(D.sink&&tt>=END){const u=tt-END,v=Math.min(1,u/WGM.sinkT);g.position.y=y-v*v*1.85*q.s+(u<.12?Math.sin(u*80)*.025*q.s:0);g.rotation.x=(q.lean||0)*v;g.rotation.z=(q.leanZ||0)*v;}},
+    pop(q,e){const y=gy(q.x,q.z);nfxBurst(q.x,q.z,D.bR*q.s*.85,{cracks:5,n:10,s:.95,life:1,mh:D.bH*.9});for(let i=0;i<7;i++)emit(1,{x:q.x+(rnd()-.5)*.4,y:y+.1,z:q.z+(rnd()-.5)*.4,vx:0,vy:.8+rnd()*.6,vz:0,s:.05,s2:0,c:0xd8ffa0,c2:0x4a9a2a,life:.7});
+      nfxLeaves(q.x,y+1*q.s,q.z,4,q.g.userData.blossom?[F.blos[0],F.blos[1]]:[K.leaf,K.leaf2],q.g.userData.blossom?K.petG:null,.4);natDirt(e.x,e.z,5,.8);camShake=Math.max(camShake,.03);},
+    frame(tt,dt){
+      /* M3: the standing forest strikes the foes that walk into it (the same strike and pin, once per foe) */
+      if(D.stand&&tt<END&&G.size){for(const e of enemies){if(e.dead||hitOnce.has(e))continue;const q=near(e);if(!q)continue;hit(q,e,'stand');q.pop=tt;this.pop(q,e);}}
+      /* M5: as the forest sinks each tree drags the ground foes in its reach down with it (once per foe); the earth bursts at every trunk */
+      if(D.drag&&!dragged&&tt>=END+WGM.dragAt){dragged=true;const k=Math.min(1,90/Math.max(1,spots.length));
+        for(const q of spots)if(q.g)dirt(q.x,q.z,Math.max(3,Math.round(7*k)),.95*Math.min(1.3,q.s));
+        const done=new Set();for(const e of enemies){if(e.dead||e.fly||done.has(e))continue;const q=near(e);if(!q)continue;done.add(e);hurt(e,P*D.drag*DM,'magic',o);
+          if(!e.dead)stunE(e,e.boss?D.dragPinB:D.dragPin);dirt(e.x,e.z,6,.8);wgmLog({ev:'drag',e,q});}}
+      },
+    /* M5: every tree sheds into one storm, drawn in batches */
+    shed(q){if(!storm)storm=wgmStorm();storm.add(q.x,gy(q.x,q.z)+1*q.s,q.z,5,q.g.userData.blossom?[F.blos[0],F.blos[1]]:[K.leaf,K.leaf2,F.leafD],q.g.userData.blossom?K.petG:K.leafG,.75);},
+    fin(){const n=spots.filter(q=>q.g).length;wgmLog({ev:'shed',n:storm?storm.n:0,trees:n,of:spots.length});if(storm)storm.go();
+      if(!D.sink)return;for(const q of spots){q.lean=(rnd()-.5)*.5;q.leanZ=(rnd()-.5)*.3;}
+      /* the earth bursts at every trunk as the tree plunges into it: a low heave of soil that swells and settles, and clods and stones thrown
+         out in arcs that fall back (three instanced meshes for the whole forest) */
+      const T=spots.filter(q=>q.g),g=new THREE.Group(),tok=new THREE.BufferGeometry(),M4=new THREE.Matrix4(),Q=new THREE.Quaternion(),SV=new THREE.Vector3(),UP=new THREE.Vector3(0,1,0);
+      const nc=Math.max(3,Math.min(6,Math.round(480/Math.max(1,T.length)))),md=new THREE.InstancedMesh(F.moundG,F.dirt,T.length),cd=new THREE.InstancedMesh(F.moundG,F.dirt,T.length*nc),cs=new THREE.InstancedMesh(F.moundG,F.stone,T.length*2);
+      const ims=[md,cd,cs];for(const m of ims){m.frustumCulled=false;g.add(m);}scene.add(g);tok.addEventListener('dispose',()=>{for(const m of ims)m.dispose();});
+      const R=T.map(q=>({x:q.x,z:q.z,y:gy(q.x,q.z),s:Math.min(1.3,q.s),a:rnd()*6.28})),C=[];
+      for(const r of R)for(let i=0;i<nc+2;i++){const a=rnd()*6.28,v=(.7+rnd()*1.1)*r.s,st=i>=nc;C.push({im:st?cs:cd,n:0,x:r.x+Math.cos(a)*.12*r.s,y:r.y+.04,z:r.z+Math.sin(a)*.12*r.s,vx:Math.cos(a)*v,vy:(1.6+rnd()*1.4)*r.s,vz:Math.sin(a)*v,
+        t0:WGM.dragAt-.05+rnd()*.12,life:.55+rnd()*.3,sc:(st?.03:.04+rnd()*.03)*r.s,ax:new THREE.Vector3(rnd()-.5,rnd()-.5,rnd()-.5).normalize(),sp:6+rnd()*10,ang:rnd()*6,rest:false});}
+      {let a=0,b=0;for(const c of C)c.n=c.im===cs?b++:a++;}
+      const PV=new THREE.Vector3(),set=u=>{const h=u<.08?0:u<.3?Math.sin((u-.08)/.22*Math.PI/2):Math.max(0,1-(u-.3)/.45);
+        for(let i=0;i<R.length;i++){const r=R[i];Q.setFromAxisAngle(UP,r.a);M4.compose(PV.set(r.x,r.y,r.z),Q,SV.set(r.s*.2*h,Math.max(.001,r.s*.09*h),r.s*.2*h));md.setMatrixAt(i,M4);}
+        for(const c of C){const k=u-c.t0;let sc=0;if(k>0&&k<c.life){sc=c.sc*Math.min(1,(c.life-k)/.2);Q.setFromAxisAngle(c.ax,c.ang);M4.compose(PV.set(c.x,c.y,c.z),Q,SV.set(sc,sc*.8,sc));}else M4.makeScale(0,0,0);c.im.setMatrixAt(c.n,M4);}
+        for(const m of ims)m.instanceMatrix.needsUpdate=true;};
+      const step=dt=>{for(const c of C){const k=u-c.t0;if(k<=0||c.rest)continue;c.ang+=c.sp*dt;c.vy-=9*dt;c.x+=c.vx*dt;c.y+=c.vy*dt;c.z+=c.vz*dt;const fl=gy(c.x,c.z)+c.sc*.5;if(c.y<fl){c.y=fl;c.vx*=.3;c.vz*=.3;c.vy=0;c.rest=true;}}};
+      let u=0;set(0);addFx(g,1.25,(f,dt)=>{u+=dt;step(dt);set(u);},null,{geos:[tok]});},
+    /* M4: the keep drinks deeper: a thicker spray, a stream of green climbing the keep, more leaves */
+    mend(add){if(!(add>0)||!D.mendFx)return;const y=gy(cp.x,cp.z);
+      /* (the keep's own mend sprays from its heart, inside the walls: the deeper draught climbs the walls outside and bursts over the roof) */
+      for(let i=0;i<56;i++){const a=rnd()*6.28,r=1.2+rnd()*.35;emit(1,{x:cp.x+Math.cos(a)*r,y:y+.05+rnd()*.3,z:cp.z+Math.sin(a)*r,vx:-Math.sin(a)*.55-Math.cos(a)*.18,vy:1.5+rnd()*1.2,vz:Math.cos(a)*.55-Math.sin(a)*.18,
+        s:.08+rnd()*.05,s2:.02,c:rnd()<.5?0xeaffc0:0xb0f070,c2:0x4a9a2a,life:1.3+rnd()*.6,drag:.4});}
+      sprayP(1,cp.x,y+2.3,cp.z,40,{c:0xd8ffa0,c2:0x4a9a2a,sp:1.7,up:1,s:.055,s2:0,life:1.1,g:-.4});natLeaves(cp.x,y+2.3,cp.z,8);}};}
+const WGM_OLD=castGaia;
+castGaia=function(t,P,o,XO){const c=!XO?wgmC(o):null;return WGM_OLD(t,P,o,c?wgmOpts(c):XO);};
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
