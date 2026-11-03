@@ -21,6 +21,8 @@ const ev=n=>SGM.dbg.filter(d=>d.ev===n);
 const leftL=added=>added.filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}),left=added=>leftL(added).length;
 const hole=()=>{let m=null;scene.traverse(o=>{if(!m&&o.isMesh&&o.material&&o.material.fragmentShader===SG_BH_FS)m=o;});return m;};
 const lights=()=>[hemi.color.getHex(),hemi.groundColor.getHex(),sun.color.getHex()].join(',');
+/* Singularity's own preview-wait entries (SGL.n, and the module's SGM.busy), found by their text: other scrolls push theirs after it */
+const MINE=SMPV_BUSY.filter(f=>/SGL\.n|SGM\.busy/.test(String(f))),mineBusy=()=>MINE.some(f=>f());
 /* the stage: 6 tough foes by the hero, a boss and a flyer among them, a tough foe far down the road that walks, and (x.light) light foes */
 const stage=x=>{x=x||{};const G=go(),R=G.R,d0=G.d0,F=[];for(let i=0;i<6;i++)F.push(foe(R,d0+(i-2.5)*.3));
   const S={G,F};S.B=foe(R,d0+.15,1e7,{boss:true});S.Fl=foe(R,d0-.15,1e7,{fly:true});S.W=foe(R,Math.min(R.len-6,d0+9),1e7);S.W.spd=1;S.T=F.slice();F.push(S.B,S.Fl,S.W);
@@ -34,11 +36,11 @@ const trial=(L,s,x)=>{x=x||{};const S=stage(x);SGM.dbg=[];const log=[];const sws
   const at={},walk=[],grav=[],busy=[];S.l0=lights();S.t0=time;
   try{setL(L);if(x.direct)castSingularity(heroU,100,oF());else castScrollNow('singularity',heroU,heroStats(),S.F.filter(e=>!e.dead),100,oF());
     const n=Math.round((s||14.5)/.05);for(let i=0;i<n;i++){run(.05);const tt=time-S.t0;walk.push([tt,S.W.dist]);grav.push([tt,GRAV.on]);
-      if(i%20===10){cineLock=0;busy.push([tt,smPvBusy()]);}
+      if(i%20===10){cineLock=0;busy.push([tt,smPvBusy()&&MINE.every(f=>f())]);}
       for(const a of x.at||[])if(!at[a]&&tt>=a-1e-6){const h=hole();at[a]=h?Object.fromEntries(Object.entries(h.material.uniforms).filter(([k,v])=>typeof v.value==='number').map(([k,v])=>[k,v.value])):null;}
       if(x.each)x.each(S,tt);}}
   finally{hurt=H0;scene.add=S0;shockwave=SW0;vfWave=VW0;setL(0);}
-  cineLock=0;Object.assign(S,{log,added,at,walk,grav,busy,sws,vws,l1:lights(),busyAfter:smPvBusy(),sgl:SGL.n,gravOn:GRAV.on});return S;};
+  cineLock=0;Object.assign(S,{log,added,at,walk,grav,busy,sws,vws,l1:lights(),busyAfter:mineBusy(),sgl:SGL.n,gravOn:GRAV.on});return S;};
 const of=(S,e,f)=>S.log.filter(h=>h.e===e&&(!f||f(h)));
 const drainH=(S,e)=>of(S,e,h=>h.sp&&!near(h.amt,40)&&!near(h.amt,500)),mhpH=(S,e)=>of(S,e,h=>!h.sp&&h.src);
 const span=a=>a.length?[Math.min(...a.map(h=>h.t)),Math.max(...a.map(h=>h.t))]:[NaN,NaN];
@@ -69,7 +71,7 @@ try{
     ok('Mastery 0: the contraction starts at 11.15s, as before (the hole holds its size at 11.1s)',S.at[10.85]&&S.at[11.1]&&near(S.at[11.1].uRs,S.at[10.85].uRs,1e-6),S.at[11.1]&&(S.at[11.1].uRs/S.at[10.85].uRs).toFixed(4));
     ok('Mastery 0: the collapse\'s shockwave 7.5 wide, its ground waves 9 and 14',S.sws.some(r=>near(r,7.5))&&S.vws.length===2&&near(S.vws[0],9)&&near(S.vws[1],14),S.sws.join(',')+' / '+S.vws.join(','));
     ok('Mastery 0: nothing is left behind; the lights are graded back exactly; the pin and the lensing pass are off',left(S.added)===0&&S.l1===S.l0&&S.sgl===0&&!S.gravOn,leftL(S.added).map(o=>o.type).slice(0,6).join(' ')+' lights '+S.l0+' -> '+S.l1);
-    ok('Mastery 0: the mastery preview waits for it (smPvBusy) through the whole cast, and not after',S.busy.filter(q=>q[0]<13.7).every(q=>q[1])&&S.busy.length>=6&&!S.busyAfter,S.busy.map(q=>q[0].toFixed(1)+':'+(q[1]?1:0)).join(' '));
+    ok('Mastery 0: the mastery preview waits for it through the whole cast (smPvBusy, and both of its own entries: SGL.n and SGM.busy), and they let go after',MINE.length>=2&&S.busy.filter(q=>q[0]<13.7).every(q=>q[1])&&S.busy.length>=6&&!S.busyAfter,S.busy.map(q=>q[0].toFixed(1)+':'+(q[1]?1:0)).join(' '));
     S.m0=S;window.__sgm0=S;}
   /* ---- M1 Greater Mass ---- */
   {const S=trial(1,14.5,{at:[9]}),T=S.T,dr=drainH(S,T[0]),[a,b]=span(dr),pn=pinned(S),A=S.at[9],B=window.__sgm0.at[9];
