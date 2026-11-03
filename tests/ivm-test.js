@@ -64,7 +64,7 @@ const groundExact=(L,K)=>{const g=ev('cut').filter(d=>d.k==='ground');const by=n
 const amounts=k=>HL.filter(h=>h.k===k);
 try{
   /* ---- the card ---- */
-  ok('the five masteries: Blinding Edge, Ceaseless Cuts, Denser Space, Erasure, Reality Returns (v461)',SM_D.expanse.map(x=>x.n).join('|')==='Blinding Edge|Ceaseless Cuts|Denser Space|Erasure|Reality Returns',SM_D.expanse.map(x=>x.n).join('|'));
+  ok('the five masteries: Blinding Edge, Ceaseless Cuts, The Void Holds, Erasure, Reality Returns (v461)',SM_D.expanse.map(x=>x.n).join('|')==='Blinding Edge|Ceaseless Cuts|The Void Holds|Erasure|Reality Returns',SM_D.expanse.map(x=>x.n).join('|'));
   {const D=i=>smDesc('expanse',i);
     ok('the numbers on the card are the ones in the code (88% + 2.2%, 1.1%, 66% within half a tile; 4.4 + 0.33 up to 11; 15%; 15%; every 0.8s, 300%)',
       /88%/.test(D(0))&&/2\.2%/.test(D(0))&&/1\.1%/.test(D(0))&&/81% \+ 2\.03%/.test(D(0))&&/1\.01%/.test(D(0))&&/66%/.test(D(0))&&/60%/.test(D(0))&&/half a tile/.test(D(0))&&/0\.42/.test(D(0))
@@ -93,7 +93,7 @@ try{
     ok('M2: every cut still exact (88% + 2.2%), nothing is left behind',!cutsExact(2,{en:88,h:.022*G(2),hb:.011*G(2)})&&W2.left===0,W2.left);
     const W2b=watch(2,stage(24));const c3=enemyCuts().filter(q=>q.d.src===1).length;
     ok('M2: up to 11 a second (10 before) with a crowd of 24',Math.abs(c3-11*19.55)<=1.5,c3+' (want '+(11*19.55).toFixed(0)+')');}
-  /* ---- M3 Denser Space ---- */
+  /* ---- M3 The Void Holds ---- */
   {const Ww2=watch(2,stage(8,{walk:1}),{walkers:1});const Ww3=watch(3,stage(8,{walk:1}),{walkers:1});
     const mv=W=>W.walk[0]&&W.walk[1]?W.F.map((e,i)=>W.walk[1][i]-W.walk[0][i]):[],m2=mv(Ww2),m3=mv(Ww3),r=m3.reduce((s,v)=>s+v,0)/Math.max(1e-9,m2.reduce((s,v)=>s+v,0));
     ok('M3: every foe crawls at 15% of its speed (a fifth before): a walking pack covers three quarters of the ground',near(Ww3.f,.15)&&near(Ww2.f,.2)&&Ww3.fEnd===1&&m2.length===8&&m2.every(v=>v>0)&&Math.abs(r-.75)<.03,'DOM.f '+Ww2.f+' / '+Ww3.f+', ground covered x'+r.toFixed(3));

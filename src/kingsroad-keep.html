@@ -14235,7 +14235,7 @@ const CLOG=[
   {t:'Infinite Void: reality, erased',d:'3 Nov',v:'v461',li:[
     'Infinite Void (Ancient) has five new masteries, for now in developer mode. Still the hero erasing the battlefield into an endless starry void where every foe crawls and blinding white cuts tear through everything until reality snaps back: each mastery makes a part the domain already has stronger and draws that part a little richer.',
     'Blinding Edge: every cut on a foe strikes 88% and 2.2% of its max health (81% and 2.03% before; bosses 1.1%, 1.01% before), the ground cuts 66% (60%) within half a tile (0.42), and every stroke is a fifth wider with a whiter core. Ceaseless Cuts: the stream of cuts aimed at foes brings a tenth more a second (4.4 and 0.33 for each foe, up to 11; 4 and 0.3, up to 10, before).',
-    'Denser Space: every foe crawls at 15% of its speed (a fifth before), and the motes of dense space round them are thicker and brighter. Erasure: a foe a cut leaves under 15% of its health is erased (not bosses): its cross of strokes doubles and it dissolves behind the same white-rimmed edge the world dissolved behind.',
+    'The Void Holds: every foe crawls at 15% of its speed (a fifth before), and the motes of dense space round them are thicker and brighter. Erasure: a foe a cut leaves under 15% of its health is erased (not bosses): its cross of strokes doubles and it dissolves behind the same white-rimmed edge the world dissolved behind.',
     'Reality Returns: in the last 3 seconds a great screen-wide cut comes every 0.8s, each bringing three cuts, and as reality returns one last screen-wide cut strikes every foe for 300%, bosses too (the snap back struck nothing before). The pinch before the snap is longer (0.6s, 0.35s before) and its ripple stronger.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
@@ -32035,14 +32035,14 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
    | # | Mastery | Question | Part of the spell | Kind |
    | 1 | Blinding Edge | what if every cut cut deeper? | every cut | stronger cuts |
    | 2 | Ceaseless Cuts | what if the cuts never let up? | the stream of cuts | more cuts |
-   | 3 | Denser Space | what if space grew denser still? | the crawl | stronger control |
+   | 3 | The Void Holds | what if the void held them tighter? | the crawl | stronger control |
    | 4 | Erasure | what if the void finished what it cut? | the cuts | behaviour change |
    | 5 | Reality Returns | what if the return itself cut? | the snap back | signature payoff |
    - M1 Blinding Edge: a cut on a foe strikes IVM.enK of the power + IVM.enH of its max health (81% + 2.03% before; bosses IVM.enHB, 1.01%
      before), a ground cut IVM.grK (60% before) + 1% within IVM.grR of its line (0.42 before). Every stroke is a fifth wider with a whiter
      core (the core exponent of the strokes' shader 4, 6 before).
    - M2 Ceaseless Cuts: the focused stream brings IVM.foc0 + IVM.focN a foe cuts a second, up to IVM.foc0 + IVM.focM (4 + 0.3, up to 10).
-   - M3 Denser Space: DOM.f is IVM.domF (0.2 before; every foe, bosses too, as the base domain), and the four kinds of dense-space motes on
+   - M3 The Void Holds: DOM.f is IVM.domF (0.2 before; every foe, bosses too, as the base domain), and the four kinds of dense-space motes on
      each foe come 1.5x as often, larger (1.25x) and brighter.
    - M4 Erasure: a non-boss foe a cut (on a foe, on the ground, or the last cut) leaves under IVM.erase of its health is erased: a killing
      blow, its cross of strokes twice as large, and its own meshes, kept a moment, dissolve behind the white-rimmed edge the world dissolved
@@ -32058,7 +32058,7 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
    SMG.expanse scales the whole cut and not only its share of the power. IVM.dbg (an array) logs the events.
    Numbers: built as approved (90% + 2.25%; 5 + 0.4 a foe up to 13) the domain measured 1.11 / 1.384 / 1.37 / 1.361 / 1.559 against
    1.078 / 1.162 / 1.226 / 1.302 / 1.35: the cuts are the whole of its damage, so 30% more of them is 25% more domain. So the cuts strike
-   88% + 2.2% (bosses 1.1%) and the stream brings a tenth more cuts (4.4 + 0.33 a foe, up to 11); every mechanic is kept. Denser Space and
+   88% + 2.2% (bosses 1.1%) and the stream brings a tenth more cuts (4.4 + 0.33 a foe, up to 11); every mechanic is kept. The Void Holds and
    Erasure count for nothing on the ladder's standing foes (they never move and never drop under 15%), so their factors carry them; Reality
    Returns is worth what it should as built (its great cuts' three cuts each land on game time, as the base big cut's do on timers in play).
    On the Ancient ladder (pack .6 / one .4, `ladder.js expanse <reps> 3 28`, three casts 28s apart; three runs, 8 reps a mode, pooled),
@@ -32070,7 +32070,7 @@ const ivmLog=d=>{if(IVM.dbg){d.t=time;IVM.dbg.push(d);}};
 SM_D.expanse=[
   {n:'Blinding Edge',d:'Every cut strikes harder: 88% + 2.2% of its max health on a foe (81% + 2.03% before; bosses 1.1%, 1.01% before), and the ground cuts 66% (60%) within half a tile (0.42). The strokes are a fifth wider, with whiter cores.'},
   {n:'Ceaseless Cuts',d:'A tenth more cuts a second: the stream aimed at foes brings 4.4 a second and 0.33 more for each foe, up to 11 (4 and 0.3, up to 10, before).'},
-  {n:'Denser Space',d:'Space grows denser still: every foe crawls at 15% of its speed (a fifth before), and the motes of dense space round them are thicker and brighter.'},
+  {n:'The Void Holds',d:'The void holds them tighter still: every foe crawls at 15% of its speed (a fifth before), and the motes of dense space round them are thicker and brighter.'},
   {n:'Erasure',d:'A foe a cut leaves under 15% of its health is erased (not bosses): its cross of strokes doubles and it dissolves behind the same white-rimmed edge the world did.'},
   {n:'Reality Returns',d:'In the last 3 seconds a great screen-wide cut comes every 0.8s, each bringing three cuts, and as reality returns one last cut strikes every foe for 300%, bosses too. A longer pinch before the snap, a stronger ripple.'}];
 SMF.expanse={m:1};
