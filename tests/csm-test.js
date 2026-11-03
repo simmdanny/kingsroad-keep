@@ -130,7 +130,7 @@ try{
     ok('M4: at Mastery 3 the foes walk on under their stars',g3.dk.every(q=>q.dd>.3)&&!g3.hold.length,g3.dk.map(q=>q.dd.toFixed(2)).join());
     ok('M4: the halo tightens and pulses over a held foe (its own brighter halo), a little less over the slowed boss',g4.hs.filter(h=>!h[2]).every(h=>h[0]<.8&&h[0]>.5&&h[1]===g4.hs.find(x=>!x[2])[1])&&g4.hs.filter(h=>h[2]).every(h=>h[0]>.75&&h[0]<.93&&h[1]!==g4.hs.find(x=>!x[2])[1])&&g3.hs.every(h=>h[0]===1),g4.hs.map(h=>h[0].toFixed(2)).join());}
   /* ---- M5 The Sky Falls Twice ---- */
-  {const F=stage(9,.5,OFFS),top=F[8];CSM.dbg=[];log=[];const added=track();let E1=null,E2=null,tw=null,dk=[],busy=[],ends=[];wrapHurt();const busyF=SMPV_BUSY[SMPV_BUSY.length-1];
+  {const F=stage(9,.5,OFFS),top=F[8];CSM.dbg=[];log=[];const added=track();let E1=null,E2=null,tw=null,dk=[],busy=[],ends=[];wrapHurt();const busyF=SMPV_BUSY.find(f=>String(f).indexOf('csFig')>=0)||(()=>false);
     try{E1=expectFig(F,mD(5),100);cast(5,F.slice());const t0=time;
       /* the strongest foe falls just after the first figure (before the second kindles) */
       while(!ev('burn').length&&time-t0<4)run(.05);removeEnemy(top);run(.05);
