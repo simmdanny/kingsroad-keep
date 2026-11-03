@@ -3056,6 +3056,62 @@
     "geyser": 24,
     "end": 1
    }
+  },
+  "embertitan-3": {
+   "k": "embertitan",
+   "L": 3,
+   "len": 12.37,
+   "seed": 1,
+   "bytes": 1749050,
+   "note": "The blast at the blade’s tip strikes harder and wider.",
+   "ev": {
+    "cast": 1,
+    "blow": 1,
+    "geyser": 30,
+    "end": 1
+   }
+  },
+  "embertitan-2": {
+   "k": "embertitan",
+   "L": 2,
+   "len": 12.53,
+   "seed": 1,
+   "bytes": 1783589,
+   "note": "Foes far back up the road: the fissure tears 14 tiles down it and burns longer.",
+   "ev": {
+    "cast": 1,
+    "blow": 1,
+    "geyser": 30,
+    "end": 1
+   }
+  },
+  "eclipse-5": {
+   "k": "eclipse",
+   "L": 5,
+   "len": 13.23,
+   "seed": 1,
+   "bytes": 4620131,
+   "note": "The sun breaks: the shatter strikes every foe on the map, the ones further back too.",
+   "ev": {
+    "cast": 1,
+    "beam": 36,
+    "hit": 36,
+    "shatter": 1
+   }
+  },
+  "eclipse-4": {
+   "k": "eclipse",
+   "L": 4,
+   "len": 13.23,
+   "seed": 1,
+   "bytes": 4718238,
+   "note": "Eleven foes: each star picks a foe no star has struck yet and lands on it.",
+   "ev": {
+    "cast": 1,
+    "beam": 36,
+    "hit": 36,
+    "shatter": 1
+   }
   }
  },
  "made": "2026-10-29"
