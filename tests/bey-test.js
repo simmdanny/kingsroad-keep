@@ -38,7 +38,8 @@ const lashT=amt=>[...new Set(log.filter(h=>h.spell==='bloodeye'&&near(h.amt,amt)
 /* the brand marks on a foe (they ride on its model): what its model gained since it was made */
 const marksOn=e=>({length:e.g.children.length-e.k0});
 const mainFx=()=>fx.find(q=>q.max===8.4&&q.fn);
-/* how far the rune reaches: its farthest vertex from its centre */
+/* how far the rune reaches: its farthest vertex from its centre (its rings are drawn a jittered width outward from their radius, plus a
+   small wobble: 0.95 to about 1.09 times the radius it is built with) */
 const runeR=g=>{let r=0;g.traverse(m=>{const P=m.geometry&&m.geometry.attributes.position;if(P)for(let i=0;i<P.count;i++)r=Math.max(r,Math.hypot(P.getX(i),P.getY(i),P.getZ(i)));});return r;};
 /* one whole cast stepped frame by frame from now; samples the eye's size, the iris's light and the marks; ends when the cast's fx is gone */
 function watch(o,maxT,tBase){const W={eyeMax:0,emis:[],fxEnd:null,mk:[]};const t0=tBase==null?time:tBase,f=mainFx();
@@ -88,7 +89,7 @@ try{
     const X=ev('cast')[0].X,B=ev('brand')[0].L,rw=runeR(ev('open')[0].rune);
     ok('Mastery 1: it brands the 7 strongest within 10 tiles: the strong foes 8-10 tiles off now among them, those past 10 still not',ring.length>=1&&same(B,W10)&&ring.some(e=>B.includes(e))&&B.every(e=>(e.x-c.x)**2+(e.z-c.z)**2<100)&&!F.some(e=>(e.x-c.x)**2+(e.z-c.z)**2>=100&&e.eyeM),B.length+' branded, '+ring.length+' in the 8-10 ring');
     ok('Mastery 1: the brand is still 35% for 8s; the lashes still 6 of 150%',B.every(e=>e.eyeM===1.35&&near(e.eyeT,tb+8,1e-9))&&lashT(150).length===6&&ev('lash').length===6);
-    ok('Mastery 1: the eye a tenth larger (1.32), its gaze sweeping wider (x1.3), a larger rune (1.85)',near(W.eyeMax,1.32,1e-6)&&X.eyeS===1.32&&X.wan===1.3&&X.runeR===1.85&&ev('open')[0].D.runeR===1.85&&rw/1.85>.95&&rw/1.85<1.08&&M0.runeW/1.6>.95&&M0.runeW/1.6<1.08&&rw/M0.runeW>1.08,W.eyeMax+' rune '+rw.toFixed(3)+' (Mastery 0: '+M0.runeW.toFixed(3)+')');
+    ok('Mastery 1: the eye a tenth larger (1.32), its gaze sweeping wider (x1.3), a larger rune (1.85)',near(W.eyeMax,1.32,1e-6)&&X.eyeS===1.32&&X.wan===1.3&&X.runeR===1.85&&ev('open')[0].D.runeR===1.85&&rw/1.85>.95&&rw/1.85<1.12&&M0.runeW/1.6>.95&&M0.runeW/1.6<1.12&&rw/M0.runeW>1.04,W.eyeMax+' rune '+rw.toFixed(3)+' (Mastery 0: '+M0.runeW.toFixed(3)+')');
     const k79=W.mk.find(q=>q[0]>=7.9),k81=W.mk.find(q=>q[0]>=8.1);
     ok('Mastery 1: the brand marks last as long as the brands do (to 8s after branding, past the old 8.4s cast), then go',k79&&k79[1].every(n=>n===1)&&k81&&k81[1].every(n=>n===0),k79&&k79[1].join(''));
     ok('Mastery 1: nothing left behind',left(added)===0&&F.every(e=>!marksOn(e).length),left(added));}
@@ -103,7 +104,8 @@ try{
     ok('Mastery 2: each lash (still 150%) takes 210 off a brand',lashT(150).length===6&&log.filter(h=>h.spell==='bloodeye').every(h=>near(h.lost,210)),[...new Set(log.filter(h=>h.spell==='bloodeye').map(h=>h.lost))].join(','));
     ok('Mastery 2: for everything else too: 100 takes 140 off a brand at 9.8s and 100 at 10.15s (an unbranded foe 100 both times)',hit.a&&near(hit.a[0],140)&&near(hit.a[1],100)&&hit.b&&near(hit.b[0],100)&&near(hit.b[1],100),JSON.stringify(hit));
     ok('Mastery 2: the brand marks stay all 10s and go with the brand',hit.a&&hit.a[2]===1&&hit.b&&hit.b[2]===0&&F.every(e=>!marksOn(e).length));
-    ok('Mastery 2: brands drawn bigger (x1.2) in deeper reds, with a dark red glow round them, pulsing harder (x0.55-1.45)',sz&&near(sz[0][0],.06)&&sz[0][1]===0xff1028&&near(sz[1][0],.168)&&sz[1][1]===0xd8061c&&sz[1][2]===THREE.AdditiveBlending&&sz[2]&&near(sz[2][0],.192)&&sz[2][1]===0x7a000e&&sz[2][2]===THREE.NormalBlending&&pulse[0]<.6&&pulse[1]>1.4,JSON.stringify(sz)+' '+pulse.map(v=>v.toFixed(2)));
+    /* (the radii within 1%: ico() shares its geometries by radius to 3 decimals, so another spell's 0.1676 can serve for 0.168) */
+    ok('Mastery 2: brands drawn bigger (x1.2) in deeper reds, with a dark red glow round them, pulsing harder (x0.55-1.45)',sz&&near(sz[0][0],.06,.01)&&sz[0][1]===0xff1028&&near(sz[1][0],.168,.01)&&sz[1][1]===0xd8061c&&sz[1][2]===THREE.AdditiveBlending&&sz[2]&&near(sz[2][0],.192,.01)&&sz[2][1]===0x7a000e&&sz[2][2]===THREE.NormalBlending&&pulse[0]<.6&&pulse[1]>1.4,JSON.stringify(sz)+' '+pulse.map(v=>v.toFixed(2)));
     ok('Mastery 2: the eye, its rune and the darkness end at 8.4s as before (the brands still on); the cast itself once its brands are gone; nothing left behind',eg85&&!eg85[0]&&!eg85[1]&&eg85[2]===7&&eg85[3]===0&&eg85[4]===0&&left(added)===0&&!mainFx()&&!o.E.g.parent&&!o.rune.parent,JSON.stringify(eg85)+' '+left(added));}
   /* ---- Mastery 3: Lashing Storm ---- */
   {const F=stage();BEY.dbg=[];log=[];arcs=[];wrapHurt();wrapArc();const t0=time;try{cast(3);run(14);}finally{hurt=H0;nsArc=ARC0;}
