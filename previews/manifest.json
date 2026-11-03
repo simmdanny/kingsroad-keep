@@ -3161,6 +3161,34 @@
     "frost": 6,
     "shatter": 6
    }
+  },
+  "eternalwinter-2": {
+   "k": "eternalwinter",
+   "L": 2,
+   "len": 9.3,
+   "seed": 1,
+   "bytes": 1425575,
+   "note": "The Heart gathers itself longer: the foes stay frozen, then slowed, longer.",
+   "ev": {
+    "cast": 1,
+    "frost": 6,
+    "shatter": 6
+   }
+  },
+  "eternalwinter-3": {
+   "k": "eternalwinter",
+   "L": 3,
+   "len": 9.3,
+   "seed": 1,
+   "bytes": 1459685,
+   "note": "When the Heart bursts, six shards fly at the nearest foes.",
+   "ev": {
+    "cast": 1,
+    "frost": 6,
+    "aim": 1,
+    "shatter": 6,
+    "shard": 6
+   }
   }
  },
  "made": "2026-10-29"
