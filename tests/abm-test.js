@@ -52,11 +52,11 @@ try{
     const L=ev('lunge'),g=gaps(L);tot0=F.map(e=>log.filter(h=>h.e===e).reduce((a,h)=>a+h.amt,0));
     ok('the defaults: six lunges 2.6s apart, the two leviathans in turn',L.length===6&&g.every(x=>Math.abs(x-2.6)<.06)&&L.every((d,i)=>d.i===i%2&&!d.eld),L.map(d=>d.i).join('')+' '+g.map(x=>x.toFixed(2)).join(','));
     ok('the defaults: bites of 600% within 1.26 of the lunge, a 1000% backwash once on every foe, 0.6% of max health every 0.5s (a boss 0.2%)',ev('bite').every(d=>d.k===6&&d.r2<1.6)&&ev('bite').length>=6&&F.concat([F.far]).every(e=>hits(e,1000,true).length===1&&drowns(e).every(h=>near(h.amt,e.boss?2000:6000)))&&same(F.concat([F.far])),ev('bite').length+' bites, '+nTick(F[0])+' ticks');}
-  {const F=stage(),B=F[11];B.boss=true;ABM.dbg=[];log=[];let sl=null;const added=track();wrapHurt();try{cast(0);runTo(10);sl=ancF(F[3]);runOut();}finally{hurt=H0;scene.add=S0;}
+  {const F=stage(),B=F[11];B.boss=true;ABM.dbg=[];log=[];let sl=null,fm0=-1;const added=track();wrapHurt();try{cast(0);runTo(10);sl=ancF(F[3]);fm0=rootOf(added).children.filter(g=>g.isGroup&&g.userData.fm).length;runOut();}finally{hurt=H0;scene.add=S0;}
     const tot=F.map(e=>log.filter(h=>h.e===e).reduce((a,h)=>a+h.amt,0));
     ok('Mastery 0: exactly the old sea (every foe takes what it took from the defaults with a log)',tot.every((v,i)=>near(v,tot0[i],1e-9)),tot.slice(0,4).map(v=>v.toFixed(0)).join(','));
     ok('Mastery 0: 60% slow, a boss drowns 0.2% a tick, bites of 600%, a 1000% backwash, no mastery events',near(sl,.4,.05)&&drowns(B).every(h=>near(h.amt,2000))&&log.filter(h=>h.sp&&!h.dot).every(h=>near(h.amt,600)||near(h.amt,1000))&&!ABM.dbg.length,sl&&sl.toFixed(3));
-    ok('Mastery 0: nothing is left behind',left(added)===0&&!ANC.live.abyss&&!ANC.on);}
+    ok('Mastery 0: nothing is left behind, and its leviathans never fade (their segments share their materials)',left(added)===0&&!ANC.live.abyss&&!ANC.on&&fm0===0,fm0);}
   /* ---- M1 Drowning Depths ---- */
   {const F=stage(),B=F[11];B.boss=true;ABM.dbg=[];log=[];const added=track();let bp=0;wrapHurt();try{cast(1);runTo(9);bp=pts(rootOf(added),46);runOut();}finally{hurt=H0;scene.add=S0;setL(0);}
     ok('M1: foes drown 0.8% of their max health every 0.5s (1.6% a second; a boss 0.25%), the bites and the backwash unchanged',same(F)&&F.every(e=>drowns(e).every(h=>near(h.amt,e.boss?2500:8000)))&&log.filter(h=>h.sp&&!h.dot).every(h=>near(h.amt,600)||near(h.amt,1000)),drowns(F[0]).length);
@@ -74,7 +74,7 @@ try{
     ok('M3: seven lunges 2.2s apart (six 2.6s apart before)',L.length===7&&g.every(x=>Math.abs(x-2.2)<.06),L.length+' '+g.map(x=>x.toFixed(2)).join(','));
     ok('M3: every bite 650% (no 600%), each the bite of a logged lunge',B.length>=7&&B.every(d=>d.k===6.5&&hits(d.e,650,true).length>=1)&&!log.some(h=>near(h.amt,600)),B.length);
     ok('M3: the bites reach 1.35 tiles from the lunge, and some land beyond the old 1.26',B.every(d=>d.r2<1.35*1.35+1e-9)&&B.some(d=>d.r2>1.6),B.map(d=>Math.sqrt(d.r2).toFixed(2)).sort().slice(-3).join(','));
-    {const c=ev('opts')[0];ok('M3: both leviathans 15% larger, spots larger, eyes and spots glowing (one glow layer), twice the spray',c&&c.X.levS===1.15&&c.X.spotS===1.3&&c.X.spray===2&&hp===1,hp);}}
+    {const c=ev('opts')[0];ok('M3: both leviathans 8% larger, spots larger, eyes and spots glowing (one glow layer), twice the spray',c&&c.X.levS===1.08&&c.X.spotS===1.3&&c.X.spray===2&&hp===1,hp);}}
   {const F=stage();ABM.dbg=[];log=[];wrapHurt();try{cast(2);runOut();}finally{hurt=H0;setL(0);}ok('M3 needs Mastery 3 (at Mastery 2: six lunges, 600%)',ev('lunge').length===6&&ev('bite').every(d=>d.k===6));}
   /* ---- M4 Blood in the Water ---- */
   {const F=stage();ABM.dbg=[];log=[];wrapHurt();try{cast(4);runOut();}finally{hurt=H0;setL(0);}
@@ -86,9 +86,17 @@ try{
     ok('M4: the foe no leviathan reaches never bleeds',!B.some(b=>b.e===F.far)&&drowns(F.far).every(h=>near(h.amt,8000)));}
   /* ---- M5 The Third Leviathan ---- */
   {const F=stage();ABM.dbg=[];log=[];const added=track();let E=null,z0=null,z1=null,y0=null,vis=null,tr=null;wrapHurt();
-    try{cast(5);E=ev('elder')[0]&&ev('elder')[0].lev;vis=E&&E.segs.some(s=>s.visible);runTo(11.9);tr=ev('rise').length;runTo(20.4);z0=E.pos.z;y0=E.pos.y;runTo(21.1);z1=E.pos.z;y0=Math.min(y0,E.pos.y);runOut();}finally{hurt=H0;scene.add=S0;setL(0);}
+    /* (the fade: sampled through the hunt, every body segment of the three; the eldest's head whenever it lunges) */
+    let thin=0,bad=0,hd=1,segN=0;
+    try{cast(5);E=ev('elder')[0]&&ev('elder')[0].lev;vis=E&&E.segs.some(s=>s.visible);
+      for(let i=0;i<300&&T()<11.9;i++){run(.05);}tr=ev('rise').length;
+      for(let i=0;i<400&&T()<20.4;i++){run(.05);const G=rootOf(added).children.filter(g=>g.isGroup&&g.userData.fm);segN=G.length;
+        for(const g of G){const u=g.userData;if(u.op<.6)thin++;for(const m of u.fm)if(Math.abs(m.material.opacity-u.op)>1e-9||m.material.depthWrite!==(u.op>.99))bad++;}
+        if(E.lunge&&E.up)hd=Math.min(hd,E.segs[0].userData.op);}
+      z0=E.pos.z;y0=E.pos.y;runTo(21.1);z1=E.pos.z;y0=Math.min(y0,E.pos.y);runOut();}finally{hurt=H0;scene.add=S0;setL(0);}
+    ok('M5: the bodies thin out over the foes (half seen through, no shadow) and the eldest\'s head stays solid while it lunges',segN===72&&thin>50&&!bad&&hd===1,segN+' segments, '+thin+' thinned samples, '+bad+' wrong, head '+hd);
     const L=ev('lunge'),R=ev('rise')[0],k=L.findIndex(d=>d.eld),t0=ev('opts')[0].t;
-    ok('M5: the eldest waits unseen in the deep until halfway, larger than the two (1.32x their size at Mastery 0)',E&&!vis&&tr===0&&near(E.segs[0].scale.x,.58*1.32,1e-9)&&E.eld,E&&E.segs[0].scale.x.toFixed(3));
+    ok('M5: the eldest waits unseen in the deep until halfway, larger than the two (1.2x their size at Mastery 0)',E&&!vis&&tr===0&&near(E.segs[0].scale.x,.58*1.2,1e-9)&&E.eld,E&&E.segs[0].scale.x.toFixed(3));
     ok('M5: it bursts up out of the deep at the first lunge after 12s',R&&k>0&&L[k].t-t0>=12&&L[k].t-t0<14.5&&R.t>=L[k].t&&R.t-L[k].t<1.5,R&&(R.t-t0).toFixed(2));
     ok('M5: from then on it takes every other lunge (the two still in turn between)',L.slice(k).every((d,i)=>d.eld===(i%2===0))&&L.filter(d=>d.eld).length===2&&L.length===7,L.map(d=>d.eld?'E':d.i).join(''));
     ok('M5: the eldest bites 900%, the two 650%',ev('bite').every(d=>d.k===(d.eld?9:6.5))&&ev('bite').some(d=>d.eld)&&ev('bite').filter(d=>d.eld).every(d=>hits(d.e,900,true).length>=1),ev('bite').filter(d=>d.eld).length+' bites by the eldest');

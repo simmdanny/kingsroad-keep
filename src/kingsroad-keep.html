@@ -13782,11 +13782,12 @@ function ancRun(C,LIFE,frame,end,refreshT){let T=0,killed=false,done=false;const
    sqrt(reach2); blood/bloodT/bloodK: a bitten foe drowns bloodK times as fast for bloodT s; elder: the eldest leviathan rises at the first
    lunge after elderT and takes every other lunge from then on, biting elderBite, then rides the backwash; wave/band: the backwash strikes
    wave x the power within band of its crest) and its looks (surf: the height of the sea; deep: deeper light; cauK/rayK: caustics and light shafts; snow: marine snow; levS/spotS/
-   spray: the two leviathans' size, their spots, their spray; elderS: the eldest's size; crestR/foam: the crest and its foam; pool: particles;
+   spray: the two leviathans' size, their spots, their spray; elderS: the eldest's size; fade: their bodies thin out over the foes under
+   them; crestR/foam: the crest and its foam; pool: particles;
    fx: the masteries' own pieces, abmFx). log(d) receives the events for the tests. A recast while the sea is up only extends it: the first
    cast's options rule. Without XO: exactly as before. */
 const ABYD={drown:.006,drownB:.002,slow:.6,surf:2.2,deep:0,cauK:1,rayK:1,snow:1,gap:2.6,bite:6,reach2:1.6,levS:1,spotS:1,spray:1,
-  blood:0,bloodT:4,bloodK:2,elder:0,elderT:12,elderBite:9,elderS:1.32,wave:10,crestR:1.3,band:1.1,foam:1,pool:1600,fx:null,log:null};
+  blood:0,bloodT:4,bloodK:2,elder:0,elderT:12,elderBite:9,elderS:1.2,wave:10,crestR:1.3,band:1.1,foam:1,fade:0,pool:1600,fx:null,log:null};
 function castAbyss(t,PW,o,XO){const D=XO?Object.assign({},ABYD,XO):ABYD,lg=D.log;
   if(ANC.live.abyss&&ANC.live.abyss.refresh()){toast('The first sea rises again','lvl');return;}
   const C=ancBegin('abyss'),{root,reg,regM}=C,L=C.L;const RISE=4,END=20,LIFE=24,SURF=D.surf,TAU=Math.PI*2;
@@ -13891,6 +13892,8 @@ function castAbyss(t,PW,o,XO){const D=XO?Object.assign({},ABYD,XO):ABYD,lg=D.log
       s.scale.setScalar(SC);s.userData.r=r*SC;segs.push(s);}
     const hd=segs[0];for(const sd of[-1,1]){const e=new THREE.Mesh(spotG,gM);e.scale.setScalar(1.6);e.position.set(sd*.42,.25,.5);hd.add(e);SP.push([hd,e,1]);const h=new THREE.Mesh(finG,regM(new THREE.MeshPhongMaterial({color:0xd8e8e0,flatShading:true})));h.scale.set(.12,.7,.12);h.position.set(sd*.3,.5,.1);h.rotation.x=-1.1;hd.add(h);}
     const jaw=new THREE.Mesh(segG,bel);jaw.scale.set(.5,.16,.66);jaw.position.set(0,-.36,.32);hd.add(jaw);
+    /* fade: every segment gets its own copy of its materials (the glowing spots excepted), so it can thin out where it lies over foes */
+    if(D.fade)for(const s of segs){const fm=[];s.traverse(m=>{if(m.isMesh&&m.material!==gM){m.material=regM(m.material.clone());m.material.transparent=true;fm.push(m);}});s.userData.fm=fm;s.userData.op=1;}
     const lev={segs,ph,jaw,lunge:null,hit:new Set(),pos:new THREE.Vector3(0,-6,0),SP,eld:!!X.eld};segs.forEach((s,i)=>s.position.set(0,-6-i*.1,0));LEV.push(lev);return lev;}
   leviathan(0,0x1e4a5e,0x9ad8d0);leviathan(2.4,0x2a3a6a,0xb0c8e8);
   /* M5: the eldest, larger and older, waits unseen in the deep until halfway (then every other lunge is its, and it rides the backwash) */
@@ -14210,7 +14213,7 @@ const CLOG=[
   {t:'Abyssal Genesis: the eldest wakes',d:'2 Nov',v:'v459',li:[
     'Abyssal Genesis (Ancient) has five new masteries, for now in developer mode. Still the first sea, with the hero on its anchor: each mastery makes a part the sea already has stronger and draws that part a little richer.',
     'Drowning Depths: foes drown 1.6% of their max health a second (1.2% before; bosses 0.5%, 0.4% before), and streams of bubbles rise off every foe through thicker marine snow. The Weight of the Sea: foes move 70% slower (60% before); the sea stands higher, its light a deeper teal, its caustics and shafts of light brighter.',
-    'Leviathan\u2019s Hunger: the leviathans lunge every 2.2s (2.6s before), 7 times instead of 6, biting 650% (600% before) and reaching 1.35 tiles (1.26). They grow 15% larger, their eyes and spots burning, with twice the spray. Blood in the Water: a foe a leviathan bites drowns 50% faster for 4s, and a heavy column of bubbles rises from it.',
+    'Leviathan\u2019s Hunger: the leviathans lunge every 2.2s (2.6s before), 7 times instead of 6, biting 650% (600% before) and reaching 1.35 tiles (1.26). They grow 8% larger, their eyes and spots burning, with twice the spray. Blood in the Water: a foe a leviathan bites drowns 50% faster for 4s, and a heavy column of bubbles rises from it.',
     'The Third Leviathan: halfway through, the eldest leviathan bursts up out of the seabed, larger and older, scarred and crusted with barnacles, its spots a pale glow. It joins the hunt, taking every other lunge and biting 900%, and at the end it rides the backwash up the field: the backwash strikes 1300% (1000% before), its crest standing twice as tall, foam pouring off it.']},
   {t:'Masteries count in play for every scroll',d:'2 Nov',v:'v450',li:[
     'A fix for the masteries of Epic, Legendary, Mythic, Ancient and Secret scrolls (for now in developer mode): in play their casts left out each mastery\u2019s own power factor, so they struck weaker than they were tuned to. They now get it, once, as Common to Rare scrolls always did.']},
@@ -32019,17 +32022,21 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
      hero still rides above it), the light turns a deeper teal, the water over the field a little deeper, and the caustics (1.5x) and the
      shafts of light (1.35x) burn brighter.
    - M3 Leviathan's Hunger: a lunge every ABM.gap s (2.6 before): 7 lunges instead of 6, biting ABM.bite (600% before) within ABM.reach
-     tiles (1.26 before). Both leviathans 15% larger, their spots 30% larger, every eye and spot burning with a glow (one draw for all of
-     them), twice the spray.
+     tiles (1.26 before). Both leviathans ABM.levS times as large, their spots 30% larger, every eye and spot burning with a glow (one
+     draw for all of them), twice the spray.
    - M4 Blood in the Water: a foe a leviathan bites drowns ABM.bloodK times as fast for ABM.bloodT s; a heavy column of bubbles spirals up
      off it while it does, and a burst of bubbles flies out of it at the bite.
    - M5 The Third Leviathan: at the first lunge after ABM.elderT s (halfway) the eldest bursts up out of the seabed beside its prey's road
      (a column of great bubbles, silt and stones thrown up, a low cloud of silt, a deep rumble) and from then on takes every other lunge,
-     biting ABM.elderBite. It is larger (ABM.elderS times the first two at Mastery 0) and older: weathered grey, scarred with claw marks,
+     biting ABM.elderBite. It is larger (ABM.elderS times the first two at Mastery 0, a little larger than the two at Mastery 3) and older: weathered grey, scarred with claw marks,
      crusted with barnacles like the anchor (merged into one draw per segment), its spots a pale glow, a shadow from every other segment.
      At the end it swims back to the keep and rides the backwash up the field on the crest's lip, then dives. The backwash strikes
      ABM.wave (1000% before), its crest standing taller (radius 2.4, 1.3 before; its strike 1.4 either side, 1.1 before), foam pouring off
      its lip and churning at its foot. Its push is unchanged (Resolve already caps it).
+   In every mastered sea a leviathan's body segment that lies over foes (as the camera sees it, at the foes' height) thins to about half
+   and casts no shadow, so three serpents never bury the foes and their health bars; the head stays solid while it bites. (The first
+   cut had the two 15% larger and the eldest 1.32 times; with three over a thick crowd the middle of the field went dark, so they are
+   8% and 1.2 times now, and they fade over the foes. Size and fade are looks only: the lunges' reach and damage are unchanged.)
    Percentages are of the scroll's power, except the drowning (a share of max health, as before not scaled by the mastery's factor). Every
    mastered Abyssal Genesis cast runs castAbyss with its XO (abmOpts); Mastery 0, echoes and other casters cast exactly as before. A recast
    while the sea is up extends it, as before: the running sea keeps its own masteries. ABM.dbg (an array) logs the events.
@@ -32040,23 +32047,23 @@ castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o
    stand still), so its factor carries it. On the Ancient ladder (pack .6 / one .4, 3 casts 27s apart, 2 runs) with the factors below:
    1.078 / 1.162 / 1.226 / 1.302 / 1.349 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35. With the factor at Mastery 5 (0.945) the bites still
    land 614%, the eldest's 851% and the backwash 1229%: nothing in a mastered sea hits weaker than at Mastery 0. */
-const ABM={dbg:null,drown:.008,drownB:.0025,slow:.7,surf:2.7,gap:2.2,bite:6.5,reach:1.35,bloodT:4,bloodK:1.5,elderT:12,elderBite:9,elderS:1.32,wave:13};
+const ABM={dbg:null,drown:.008,drownB:.0025,slow:.7,surf:2.7,gap:2.2,bite:6.5,reach:1.35,levS:1.08,bloodT:4,bloodK:1.5,elderT:12,elderBite:9,elderS:1.2,wave:13};
 const abmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='abyss'&&c.L?c:null;};
 const abmLog=d=>{if(ABM.dbg){d.t=time;ABM.dbg.push(d);}};
 SM_D.abyss=[
   {n:'Drowning Depths',d:'Foes drown 1.6% of their max health a second (1.2% before; bosses 0.5%, 0.4% before). Streams of bubbles rise off every foe, and the marine snow falls thicker.'},
   {n:'The Weight of the Sea',d:'Foes move 70% slower (60% before). The sea rises higher over the field, its light a deeper teal, its caustics and shafts of light brighter.'},
-  {n:'Leviathan\'s Hunger',d:'The leviathans lunge every 2.2s (2.6s before), 7 times instead of 6, biting {650}% (600% before) and reaching 1.35 tiles (1.26 before). They grow 15% larger, their eyes and spots burning brighter.'},
+  {n:'Leviathan\'s Hunger',d:'The leviathans lunge every 2.2s (2.6s before), 7 times instead of 6, biting {650}% (600% before) and reaching 1.35 tiles (1.26 before). They grow 8% larger, their eyes and spots burning brighter.'},
   {n:'Blood in the Water',d:'A foe a leviathan bites drowns 50% faster for 4s, and a heavy column of bubbles rises from it.'},
   {n:'The Third Leviathan',d:'Halfway through, the eldest leviathan, larger and scarred, bursts up out of the deep and joins the hunt, taking every other lunge and biting {900}%. At the end it rides the backwash, which strikes {1300}% (1000% before), its crest standing twice as tall.'}];
 SMF.abyss={m:1};
 SMA.abyss=[1,1,1,1,1];
 SMG.abyss=[1.03,1.132,1.018,1.01,.945];
 /* this sea's numbers and looks (castAbyss's XO), cumulative: Mastery L has masteries 1..L */
-function abmOpts(c){const L=c.L,a=c.a,X={fx:abmFx,pool:2200};
+function abmOpts(c){const L=c.L,a=c.a,X={fx:abmFx,pool:2200,fade:1};
   if(L>=1){X.drown=ABM.drown;X.drownB=ABM.drownB;X.snow=2;}
   if(L>=2){X.slow=ABM.slow;X.surf=ABM.surf;X.deep=1;X.cauK=1.5;X.rayK=1.35;}
-  if(L>=3){X.gap=ABM.gap;X.bite=ABM.bite*a[2];X.reach2=ABM.reach*ABM.reach;X.levS=1.15;X.spotS=1.3;X.spray=2;}
+  if(L>=3){X.gap=ABM.gap;X.bite=ABM.bite*a[2];X.reach2=ABM.reach*ABM.reach;X.levS=ABM.levS;X.spotS=1.3;X.spray=2;}
   if(L>=4){X.blood=1;X.bloodT=ABM.bloodT;X.bloodK=ABM.bloodK;}
   if(L>=5){X.elder=1;X.elderT=ABM.elderT;X.elderBite=ABM.elderBite*a[4];X.elderS=ABM.elderS;X.wave=ABM.wave*a[4];X.crestR=2.4;X.band=1.4;X.foam=2;X.pool=3400;}
   X.log=abmLog;abmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
@@ -32070,7 +32077,7 @@ function abmMerge(parts){let n=0;for(const[g]of parts)n+=g.attributes.position.c
 /* the masteries' own pieces of the sea (castAbyss's fx): built in its root, freed with it. K: the root, reg/regM, the sea's particle pool,
    its options D, the view's centre VC, the leviathans (LEV, filled after this is built), the bitten foes (blood: foe -> until when),
    alive(), the board's width BW. */
-function abmFx(K){const{root,reg,regM,pool,D,TAU,VC,LEV,blood,alive,BW}=K,RISE=4,END=20,tmpV=new THREE.Vector3(),tmpW=new THREE.Vector3();
+function abmFx(K){const{root,reg,regM,pool,D,TAU,VC,LEV,blood,alive,BW}=K,RISE=4,END=20,tmpV=new THREE.Vector3(),tmpW=new THREE.Vector3(),camD=new THREE.Vector3();
   /* the bubbles: their own pool and shader, so they read as bubbles and do not crowd the sea's other particles */
   const bub=ancPool(root,D.blood?3200:1800,reg,regM,46,ABM_BUB);
   const bubble=(x,y,z,vx,vy,vz,s,lvl,acc,c)=>{const h=Math.max(.15,lvl-.08-y),life=(-vy+Math.sqrt(vy*vy+2*acc*h))/acc;bub.sp(x,y,z,vx,vy,vz,c||(rnd()<.65?0xe8fdff:0xa8f0ff),.85,s,Math.min(4,life),0,-acc);};
@@ -32119,12 +32126,19 @@ function abmFx(K){const{root,reg,regM,pool,D,TAU,VC,LEV,blood,alive,BW}=K,RISE=4
       if(T>RISE&&T<END&&dt>0){const L=alive(),n=L.length,r1=Math.min(12,800/Math.max(1,n));let nb=0;if(blood)for(const e of L)if(blood.get(e)>T)nb++;const r2=Math.min(34,1100/Math.max(1,nb));
         for(const e of L){if(e.fake)continue;if(rnd()<dtR*r1)bubble(e.x+(rnd()-.5)*.16,e.y+e.hitY*(.6+rnd()*.3),e.z+(rnd()-.5)*.16,(rnd()-.5)*.08,.25+rnd()*.3,(rnd()-.5)*.08,.045+rnd()*rnd()*.07,lvl,.55);
           if(nb&&blood.get(e)>T)for(let k=0;k<3;k++)if(rnd()<dtR*r2/3){const a=rnd()*TAU,rr=.1+rnd()*.16;bubble(e.x+Math.cos(a)*rr,e.y+.05+rnd()*e.hitY*.6,e.z+Math.sin(a)*rr,-Math.sin(a)*.14-Math.cos(a)*.03,.5+rnd()*.5,Math.cos(a)*.14-Math.sin(a)*.03,.06+rnd()*rnd()*.11,lvl,.85);}}}
+      /* every mastered sea: a body segment that lies over foes (seen from the camera, at the foes' height) thins to about half, so the
+         foes and their health bars still read through it; the head stays solid while it bites; a thinned segment casts no shadow */
+      if(D.fade){const L=alive(),n=L.length;camera.getWorldDirection(camD);const dy=Math.min(-.2,camD.y);
+        for(const L2 of LEV)for(let i=0;i<L2.segs.length;i++){const s=L2.segs[i],u=s.userData;if(!u.fm||!s.visible)continue;let over=false;
+          if(!(i<2&&L2.lunge)&&n){const k=(s.position.y-.55)/-dy,qx=s.position.x+camD.x*k,qz=s.position.z+camD.z*k,R2=(u.r*1.15+.42)**2;for(const e of L){if((e.x-qx)**2+(e.z-qz)**2<R2){over=true;break;}}}
+          const op=u.op+((over?.45:1)-u.op)*(i<2&&L2.lunge?1:Math.min(1,dtR*9));if(Math.abs(op-u.op)<1e-4&&op===u.op)continue;u.op=op>.995?1:op;
+          for(const m of u.fm){m.material.opacity=u.op;m.material.depthWrite=u.op>.99;if(m.userData.cs===undefined)m.userData.cs=m.castShadow;m.castShadow=m.userData.cs&&u.op>.7;}}}
       /* M3: the glow round every eye and spot, pulsing; the eldest's pale */
       if(halo){if(!lit){lit=true;for(const L2 of LEV)if(!L2.eld&&L2.SP[0])L2.SP[0][1].material.color.setHex(0xb4feff);}
         const{pos,col,sz}=halo;let n=0;const tt=time;
         for(const L2 of LEV){const sc=L2.segs[0].scale.x/.58;for(const[s,d,eye]of L2.SP){if(n>=HN||!s.visible)continue;s.updateMatrix();tmpV.copy(d.position).applyMatrix4(s.matrix);
           tmpW.copy(tmpV).sub(s.position).setY(0).normalize().multiplyScalar((eye?.05:.09)*sc);tmpV.add(tmpW);tmpV.y+=(eye?.1:.06)*sc;
-          const k=SMS(tmpV.y,-.5,.15)*A*(.75+.25*Math.sin(tt*3+n*.7)),c=L2.eld?cPale:cHalo;pos[n*3]=tmpV.x;pos[n*3+1]=tmpV.y;pos[n*3+2]=tmpV.z;col[n*4]=c.r;col[n*4+1]=c.g;col[n*4+2]=c.b;col[n*4+3]=k*(eye?.9:.55);sz[n]=(eye?.62:.34)*sc;n++;}}
+          const k=SMS(tmpV.y,-.5,.15)*A*(.75+.25*Math.sin(tt*3+n*.7))*(s.userData.op||1),c=L2.eld?cPale:cHalo;pos[n*3]=tmpV.x;pos[n*3+1]=tmpV.y;pos[n*3+2]=tmpV.z;col[n*4]=c.r;col[n*4+1]=c.g;col[n*4+2]=c.b;col[n*4+3]=k*(eye?.9:.55);sz[n]=(eye?.62:.34)*sc;n++;}}
         halo.m.uniforms.uScale.value=uScaleNow();halo.g.setDrawRange(0,n);halo.g.attributes.position.needsUpdate=true;halo.g.attributes.aC.needsUpdate=true;halo.g.attributes.aS.needsUpdate=true;}
       bub.step(dtR);}};}
 const ABM_OLD=castAbyss;
