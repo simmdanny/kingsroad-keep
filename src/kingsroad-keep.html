@@ -14310,13 +14310,23 @@ function treeRootMat(regM,r0){return regM(new THREE.ShaderMaterial({uniforms:{uG
     'float gr=.82+.18*sin(vU.y*43.98+sin(vU.x*37.)*1.5);vec3 c=mix(vec3(.2,.13,.08),vec3(.34,.24,.15),gr)*(.42+.78*d);c=mix(c,vec3(.2,.3,.12),.35*smoothstep(.6,1.,sin(vU.x*23.+vU.y*6.28)));'+
     'float vein=smoothstep(.93,1.,sin(vU.y*18.85+vU.x*31.));float p=fract(vU.x*4.-uT*.7);float pulse=smoothstep(0.,.06,p)*smoothstep(.22,.06,p);'+
     'c+=vec3(.75,1.,.35)*vein*(.25+1.6*pulse)*uSap;float tip=smoothstep(uGrow-.025,uGrow,vU.x)*step(uGrow,.995);c+=vec3(.9,1.,.5)*tip*1.4;gl_FragColor=vec4(c,1.);}'}));}
-function castFirstTree(t,PW,o){
+/* v462: XO (optional, the Eldritch Tree's masteries): this cast's own numbers over TRD (reach: how far an eruption strikes from its knot;
+   drink/drinkB: the share of max health the roots drink (bosses); gap: seconds between eruptions; lock: seconds before the roots may strike
+   a foe again; spare: the roots hold a foe only if its Resolve can take the whole hold, so they never make it Unstoppable; swallow: a foe
+   that is not a boss left under this share of its health is dragged under; bloom: the bloom's strike; bloomPer/bloomMax: its bonus for
+   every foe the roots drank from, and the most) and its looks (spikes/spikeH: an eruption's root spikes and their height; motes: motes of
+   life per foe; draught: the sap veins flash with each draught; veinX: GLSL for the veins' flashes and surge; veinR: the veins' thickness;
+   flw/flwG: blossoms per root (instanced) and their shape; waveK/waveH/waveS: the pollen wave's density, height and grain; surge: the sap
+   surge up the trunk; pool: the particle pool), and a log. Without XO the cast is exactly the old one. */
+const TRD={reach:1.35,drink:.01,drinkB:.004,gap:.6,lock:4,spare:0,swallow:0,bloom:9,bloomPer:0,bloomMax:0,spikes:6,spikeH:1,motes:6,draught:0,veinX:'',veinR:.045,flw:0,flwG:null,waveK:1,waveH:1,waveS:1,surge:0,pool:1700,log:null};
+function castFirstTree(t,PW,o,XO){
   if(ANC.live.firsttree&&ANC.live.firsttree.refresh()){toast('The Eldritch Tree drinks deeper','lvl');return;}
+  const D=XO?Object.assign({},TRD,XO):TRD,lg=D.log;
   const C=ancBegin('firsttree'),{root,reg,regM}=C,L=C.L;const RISE=4.5,END=20,LIFE=23,TAU=Math.PI*2;
   ancIntro('firsttree','#b8f08a');
   const zT=tw(0,0).z-.6,zB=tw(0,H-1).z+.6,BW=W+1.2,tmp=new THREE.Vector3();
   L.hc.setHex(0xc8e8a0);L.hg.setHex(0x24361a);L.sc.setHex(0xffe8a8);L.bg.setHex(0x1c2a14);L.bgK=.85;L.hemi=.5;L.sun=.45;
-  const pool=ancPool(root,1700,reg,regM,44);const alive=()=>enemies.filter(e=>!e.dead);
+  const pool=ancPool(root,D.pool,reg,regM,44);const alive=()=>enemies.filter(e=>!e.dead);
   /* ---- where the trunk breaks through: along the top of the view, on the spot with the fewest roads, towers and the hero ---- */
   const V=ancView();let P=null,best=1e9;const FOOT=2.3;
   const okSpot=(x,z)=>{for(let r=Math.max(0,Math.floor(z+OZ-FOOT-1));r<=Math.min(H-1,Math.ceil(z+OZ+FOOT+1));r++)for(let c=Math.max(0,Math.floor(x+OX-FOOT-1));c<=Math.min(W-1,Math.ceil(x+OX+FOOT+1));c++){
@@ -14336,11 +14346,12 @@ function castFirstTree(t,PW,o){
     g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));g.computeVertexNormals();
     const m=new THREE.Mesh(g,regM(new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:4})));m.castShadow=true;tree.add(m);}
   /* sap veins climbing the bark */
-  const veinM=regM(new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  const veinM=regM(new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:0},uD:{value:new THREE.Vector4(-9,-9,-9,-9)},uS:{value:-1},uE:{value:0},uK:{value:1}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
     vertexShader:'varying float vU;void main(){vU=uv.x;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader:'uniform float uT,uA;varying float vU;void main(){float p=fract(vU*3.-uT*.45);float k=.3+1.2*smoothstep(0.,.08,p)*smoothstep(.3,.08,p);gl_FragColor=vec4(vec3(.7,1.,.4)*k,uA*k);}'}));
+    fragmentShader:'uniform float uT,uA;varying float vU;'+D.veinX+'void main(){float p=fract(vU*3.-uT*.45);float k=.3+1.2*smoothstep(0.,.08,p)*smoothstep(.3,.08,p);'+
+      (D.veinX?'vec3 c=vec3(.7,1.,.4);veinX(vU,c,k);gl_FragColor=vec4(c*k,uA*min(k,2.5));}':'gl_FragColor=vec4(vec3(.7,1.,.4)*k,uA*k);}')}));
   for(let v=0;v<7;v++){const a0=v/7*TAU+.3,pts=[];for(let y=.15;y<12;y+=.7){const a=a0+Math.sin(y*.6+v)*.18,r=trR(a,y)*1.03,aa=a+y*.05;pts.push(new THREE.Vector3(Math.cos(aa)*r,y,Math.sin(aa)*r));}
-    tree.add(new THREE.Mesh(reg(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),60,.045,4,false)),veinM));}
+    tree.add(new THREE.Mesh(reg(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),60,D.veinR,4,false)),veinM));}
   /* a ring of torn earth round its foot */
   const crackM=regM(new THREE.MeshBasicMaterial({color:0x1a120a,transparent:true,opacity:0,depthWrite:false}));{const m=new THREE.Mesh(reg(new THREE.RingGeometry(1.2,3.6,40)),crackM);m.rotation.x=-Math.PI/2;m.position.set(P.x,P.y+.03,P.z);m.renderOrder=28;root.add(m);}
   /* ---- the roots: buttresses curling off the foot, then giant roots that crawl down the field, diving under and surfacing ---- */
@@ -14368,15 +14379,48 @@ function castFirstTree(t,PW,o){
   /* ---- the roots burst up round the thickest knot of foes, bind them and drink ---- */
   const spikeG=reg(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0,-.15,0),new THREE.Vector3(.04,.45,0),new THREE.Vector3(-.12,.92,0),new THREE.Vector3(-.42,1.2,0),new THREE.Vector3(-.62,1.1,0)]),24,.12,6,false));
   const spikeM=treeRootMat(regM,.12);spikeM.uniforms.uGrow.value=1;const ringM=regM(new THREE.MeshBasicMaterial({color:0xb8f08a,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}));
-  const ERU=[];for(let i=0;i<7;i++){const g=new THREE.Group();g.visible=false;root.add(g);for(let k=0;k<6;k++){const a=k/6*TAU+rnd()*.3,s=new THREE.Mesh(spikeG,spikeM);s.position.set(Math.cos(a)*.62,0,Math.sin(a)*.62);s.rotation.set(0,-a,(rnd()-.5)*.2);s.scale.setScalar(.85+rnd()*.35);s.castShadow=true;g.add(s);}
-    const rg=new THREE.Mesh(reg(new THREE.RingGeometry(.5,1.4,28)),ringM.clone());regM(rg.material);rg.rotation.x=-Math.PI/2;rg.position.y=.06;g.add(rg);ERU.push({g,rg,t:-1});}
-  const lastHit=new Map();let eruT=.3,eruI=0,leafAcc=0,bloomed=false,waveR=-1;const waveHit=new Set(),FLW=[];
+  const NS=D.spikes,rk=D.reach/1.35;
+  const ERU=[];for(let i=0;i<7;i++){const g=new THREE.Group();g.visible=false;root.add(g);for(let k=0;k<NS;k++){const a=k/NS*TAU+rnd()*.3,s=new THREE.Mesh(spikeG,spikeM);s.position.set(Math.cos(a)*.62*rk,0,Math.sin(a)*.62*rk);s.rotation.set(0,-a,(rnd()-.5)*.2);s.scale.setScalar(.85+rnd()*.35);s.scale.y*=D.spikeH;s.castShadow=true;g.add(s);}
+    const rg=new THREE.Mesh(reg(new THREE.RingGeometry(.5*rk,1.4*rk,28)),ringM.clone());regM(rg.material);rg.rotation.x=-Math.PI/2;rg.position.y=.06;g.add(rg);ERU.push({g,rg,t:-1});}
+  const lastHit=new Map(),drank=new Set(),DQ=[-9,-9,-9,-9];let eruT=.3,eruI=0,dqI=0,leafAcc=0,bloomed=false,waveR=-1,bloomK=1,FI=null;const waveHit=new Set(),FLW=[];
   const flowerM=[0xffd8ec,0xffffff,0xffb8d8].map(c=>regM(new THREE.MeshBasicMaterial({color:c}))),flowerG=reg(new THREE.IcosahedronGeometry(.16,0));
-  function erupt(){const A=alive().filter(e=>!(lastHit.get(e)>time-4));if(!A.length)return;const c=densest(A)||A[0];const E=ERU[eruI++%ERU.length];E.t=0;E.g.position.set(c.x,0,c.z);E.g.rotation.y=rnd()*6;E.g.visible=true;
-    for(const e of A){if((e.x-c.x)**2+(e.z-c.z)**2>1.35*1.35)continue;lastHit.set(e,time);hurt(e,PW*4,'magic',o);if(e.dead)continue;hurt(e,e.maxHp*(e.boss?.004:.01),'magic',{src:o.src});if(!e.dead)stunE(e,e.boss?.4:1.2);
-      for(let i=0;i<6;i++){const y=e.y+e.hitY*.6;pool.sp(e.x,y,e.z,(P.x-e.x)/1.3,(2.4-y)/1.3,(P.z-e.z)/1.3,rnd()<.5?0xc8ff8a:0xffe88a,.9,.06+rnd()*.04,1.3,0,0);}}
-    for(let i=0;i<22;i++){const a=rnd()*TAU;pool.sp(c.x+Math.cos(a)*.5,.1,c.z+Math.sin(a)*.5,Math.cos(a)*(.6+rnd()),1+rnd()*1.6,Math.sin(a)*(.6+rnd()),rnd()<.6?0x5a4028:0x3a5a24,.85,.07+rnd()*.05,.7+rnd()*.4,1,3.5);}
+  function erupt(){const A=alive().filter(e=>!(lastHit.get(e)>time-D.lock));if(!A.length)return;const c=densest(A)||A[0];const E=ERU[eruI++%ERU.length];letGo(E);E.t=0;E.g.position.set(c.x,0,c.z);E.g.rotation.y=rnd()*6;E.g.visible=true;
+    const hits=lg?[]:null;let dr=0;
+    for(const e of A){if((e.x-c.x)**2+(e.z-c.z)**2>D.reach*D.reach)continue;lastHit.set(e,time);hurt(e,PW*4,'magic',o);if(hits)hits.push(e);if(e.dead)continue;hurt(e,e.maxHp*(e.boss?D.drinkB:D.drink),'magic',{src:o.src});drank.add(e);dr++;
+      {const hd=e.boss?.4:1.2;if(!e.dead&&!(D.spare&&rsvLeft(e)<=hd-Math.max(0,e.stunT||0)+1e-4))stunE(e,hd);}
+      /* Swallowed: the spikes clench round a foe the roots leave too weak to stand, and drag it under (it is held while it sinks; towers let it go) */
+      if(D.swallow&&!e.dead&&!e.boss&&e.hp<e.maxHp*D.swallow){e.stunT=Math.max(e.stunT||0,1.1);e.burrow=1;(E.sw=E.sw||[]).push({e,h:e.fly?e.y+.9:Math.max(.6,(e.hitY||.45)*2.2)});lg&&lg({ev:'swallow',e,hp:e.hp/e.maxHp});}
+      for(let i=0;i<D.motes;i++){const y=e.y+e.hitY*.6;pool.sp(e.x,y,e.z,(P.x-e.x)/1.3,(2.4-y)/1.3,(P.z-e.z)/1.3,rnd()<.5?0xc8ff8a:0xffe88a,.9,.06+rnd()*.04,1.3,0,0);}}
+    for(let i=0;i<22;i++){const a=rnd()*TAU;pool.sp(c.x+Math.cos(a)*.5*rk,.1,c.z+Math.sin(a)*.5*rk,Math.cos(a)*(.6+rnd()),1+rnd()*1.6,Math.sin(a)*(.6+rnd()),rnd()<.6?0x5a4028:0x3a5a24,.85,.07+rnd()*.05,.7+rnd()*.4,1,3.5);}
+    /* Thirst: each draught climbs the sap veins when its motes reach the trunk */
+    if(D.draught&&dr){DQ[dqI++%4]=time+1.3;}
+    lg&&lg({ev:'erupt',x:c.x,z:c.z,hits,n:dr});
     camShake=Math.max(camShake,.06*SPACE_K+.03);if(typeof sfxBoom==='function')sfxBoom(.1,true);}
+  /* a swallowing eruption reused (or the cast ending) lets go of any foe it still holds */
+  function letGo(E){if(!E.sw)return;for(const q of E.sw)if(!q.e.dead){q.e.burrow=0;q.e.swal=0;}E.sw=null;}
+  /* Swallowed: the spikes clench round the foes (their own curl, closing) and sink, dragging them under; down there the Tree drinks the rest */
+  function swallowFx(E){const t=E.t,cl=SMS(t,.26,.5),u=SMS(t,.5,.9);
+    E.g.children.forEach((ch,i)=>{if(i<NS)ch.rotation.z=-Math.min(1,t*2)*.18*(1-cl)+.55*cl;});E.g.position.y=-1.9*u*u;
+    for(const q of E.sw){const e=q.e;if(q.done||e.dead)continue;
+      if(t<.9){e.swal=1;e.g.position.y=-q.h*u*u;if(u>0&&rnd()<.7)pool.sp(e.x+(rnd()-.5)*.5,.08,e.z+(rnd()-.5)*.5,(rnd()-.5)*.8,.8+rnd()*1.2,(rnd()-.5)*.8,rnd()<.6?0x5a4028:0x3a5a24,.85,.06+rnd()*.05,.6+rnd()*.3,1,3.5);continue;}
+      q.done=1;e.swal=0;const x=e.x,z=e.z;hurt(e,e.hp+(e.shield||0)+1,'magic',{src:o.src,noReact:true});
+      if(!e.dead){e.burrow=0;e.g.position.y=0;continue;}lg&&lg({ev:'sunk',e});
+      for(let i=0;i<16;i++){const a=rnd()*TAU;pool.sp(x+Math.cos(a)*.3,.1,z+Math.sin(a)*.3,Math.cos(a)*(.5+rnd()*1.2),1.2+rnd()*1.8,Math.sin(a)*(.5+rnd()*1.2),rnd()<.6?0x5a4028:0x3a5a24,.9,.07+rnd()*.06,.7+rnd()*.4,1,3.5);}
+      for(let i=0;i<10;i++)pool.sp(x+(rnd()-.5)*.3,.15,z+(rnd()-.5)*.3,(P.x-x)/1.3,(2.4-.15)/1.3,(P.z-z)/1.3,rnd()<.5?0xc8ff8a:0xffe88a,.9,.07+rnd()*.04,1.3,0,0);}
+    if(t>=.9){E.g.visible=false;E.t=1.5;}}
+  /* The World in Bloom: twice the blossoms along every root, each a blossom of D.flwG (petals round a gold heart) in the old three colours,
+     all in one instanced draw instead of a mesh each */
+  const fM=new THREE.Matrix4(),fS=new THREE.Vector3();
+  function blossoms(){const im=new THREE.InstancedMesh(reg(D.flwG()),regM(new THREE.MeshBasicMaterial({vertexColors:true})),Math.max(1,ROOTS.length*D.flw)),eu=new THREE.Euler();im.frustumCulled=false;root.add(im);FI=[im];let i=0;
+    for(const R2 of ROOTS)for(let k=0;k<D.flw;k++){const p=R2.pts[1+Math.floor(rnd()*(R2.pts.length-1))];FLW.push({im,i,p:new THREE.Vector3(p.x+(rnd()-.5)*.36,Math.max(.12,p.y+.25),p.z+(rnd()-.5)*.36),q:new THREE.Quaternion().setFromEuler(eu.set((rnd()-.5)*.6,rnd()*TAU,(rnd()-.5)*.6)),d:rnd()*.7});
+      im.setColorAt(i++,flowerM[k%3].color);}}
+  function blossomFx(T,tt){for(const F of FLW){const k=SMS(T,END+F.d,END+F.d+.4)*(1-SMS(T,END+1.2,END+2.2));fS.setScalar(Math.max(.001,k*(1.3+.2*Math.sin(tt*4+F.d*9))));fM.compose(F.p,F.q,fS);F.im.setMatrixAt(F.i,fM);}
+    for(const im of FI)im.instanceMatrix.needsUpdate=true;}
+  /* The World in Bloom: the veins glow brighter for every foe the roots drink from, and as the Tree blooms what they drank surges up the trunk */
+  function surgeFx(T,U){const u=T-END;U.uK.value=1+.8*Math.min(1,drank.size*D.bloomPer/Math.max(1e-6,D.bloomMax));
+    if(u<0){U.uS.value=-1;U.uE.value=0;return;}U.uS.value=.15+u*1.1;U.uE.value=bloomK*SMS(u,0,.12)*(1-SMS(u,1.1,2.2));
+    if(u<1){const y0=tree.position.y,top=Math.min(11.5,(.15+u*1.1)*11.85);for(let i=0;i<6;i++){const v=Math.floor(rnd()*7),y=.2+rnd()*top,a=v/7*TAU+.3+Math.sin(y*.6+v)*.18,r=trR(a,y)*1.03+.08,aa=a+y*.05;
+      pool.sp(P.x+Math.cos(aa)*r,y0+y,P.z+Math.sin(aa)*r,Math.cos(aa)*.3,3+rnd()*4,Math.sin(aa)*.3,rnd()<.5?0xe8ff9a:0xfff0b0,.9,.07+rnd()*.05,.5+rnd()*.4,.5,0);}}}
   /* ---- the frame ---- */
   return ancRun(C,LIFE,(T,dt,dtR)=>{const tt=time;
     const up=SMS(T,.2,2.2),down=SMS(T,END+1.3,END+2.9),A=up*(1-down);
@@ -14386,6 +14430,7 @@ function castFirstTree(t,PW,o){
     if((rise>.02&&rise<.98)||(sink>.02&&sink<.98)){camShake=Math.max(camShake,.1*SPACE_K+.04);for(let i=0;i<4;i++){const a=rnd()*TAU,r=1.4+rnd()*1.6;pool.sp(P.x+Math.cos(a)*r,.1,P.z+Math.sin(a)*r,Math.cos(a)*(1+rnd()*2),1.5+rnd()*3,Math.sin(a)*(1+rnd()*2),rnd()<.5?0x5a4028:0x7a6040,.9,.09+rnd()*.08,.8+rnd()*.6,.6,5);}}
     if(T<.35+dt&&T>=.3&&typeof sfxRumble==='function')sfxRumble(3.2,.5);
     veinM.uniforms.uT.value=tt;veinM.uniforms.uA.value=A;
+    if(D.veinX){const U=veinM.uniforms;U.uD.value.set(DQ[0],DQ[1],DQ[2],DQ[3]);if(D.surge)surgeFx(T,U);}
     for(const R2 of ROOTS){R2.m.uniforms.uT.value=tt;R2.m.uniforms.uGrow.value=SMS(T,R2.t0,R2.t1)*(1-SMS(T,END+1.1,END+2.4))*1.001;R2.m.uniforms.uSap.value=1+2*Math.max(0,1-Math.abs(T-END-.3)*1.5);}
     dapM.uniforms.uT.value=tt;dapM.uniforms.uA.value=SMS(T,1.5,4)*(1-down);rayM.uniforms.uT.value=tt;rayM.uniforms.uA.value=SMS(T,2,4.5)*(1-down);for(const R2 of RAYS)R2.m.rotation.z=Math.sin(tt*.25+R2.ph)*.1;
     ANC.fs.firsttree=1-.3*SMS(T,RISE-.8,RISE)*(1-SMS(T,END+1,END+1.6));
@@ -14394,19 +14439,20 @@ function castFirstTree(t,PW,o){
       if(f.rest>0){f.rest-=dt;if(f.rest<=0)m.visible=false;continue;}m.position.y-=f.v*dt;m.position.x+=Math.sin(tt*1.6+f.ph)*dt*.5;m.rotation.set(Math.sin(tt*2+f.ph)*1.2,tt*.8+f.ph,Math.cos(tt*1.7+f.ph)*.9);
       if(m.position.y<.05){m.position.y=.04;m.rotation.set(-Math.PI/2,0,f.ph);f.rest=1.2+rnd();}}
     /* the roots burst under the foes */
-    if(T>RISE&&T<END){eruT-=dt;if(eruT<=0){eruT=.6;erupt();}}
-    for(const E of ERU){if(E.t<0)continue;E.t+=dt;const s=E.t<.16?E.t/.16*1.12:E.t<.3?1.12-(E.t-.16)/.14*.12:E.t<1.15?1:Math.max(0,1-(E.t-1.15)/.3);E.g.scale.set(1,s,1);E.g.children.forEach((ch,i)=>{if(i<6)ch.rotation.z=-(E.t<1.15?Math.min(1,E.t*2)*.18:0);});
+    if(T>RISE&&T<END){eruT-=dt;if(eruT<=0){eruT=D.gap;erupt();}}
+    for(const E of ERU){if(E.t<0)continue;E.t+=dt;const s=E.t<.16?E.t/.16*1.12:E.t<.3?1.12-(E.t-.16)/.14*.12:E.t<1.15?1:Math.max(0,1-(E.t-1.15)/.3);E.g.scale.set(1,s,1);
+      if(E.sw)swallowFx(E);else E.g.children.forEach((ch,i)=>{if(i<NS)ch.rotation.z=-(E.t<1.15?Math.min(1,E.t*2)*.18:0);});
       E.rg.material.opacity=.7*Math.max(0,1-E.t*2.2);E.rg.scale.setScalar(1+E.t*1.2);if(E.t>1.45){E.t=-1;E.g.visible=false;}}
     /* the bloom: blossoms open along every root, a wave of pollen rolls over the whole field */
-    if(T>=END&&!bloomed){bloomed=true;waveR=0;lives+=3;toast('The Eldritch Tree blooms and mends the keep: +3 lives','lvl');flashA=Math.max(flashA,.3*SPACE_K+.1);flashCol='#ffe8f4';flashDecay=1.4;if(typeof sfxBoom==='function')sfxBoom(.4,false);
+    if(T>=END&&!bloomed){bloomed=true;waveR=0;bloomK=1+Math.min(D.bloomMax,D.bloomPer*drank.size);lg&&lg({ev:'bloom',n:drank.size,k:bloomK});lives+=3;toast('The Eldritch Tree blooms and mends the keep: +3 lives','lvl');flashA=Math.max(flashA,.3*SPACE_K+.1);flashCol='#ffe8f4';flashDecay=1.4;if(typeof sfxBoom==='function')sfxBoom(.4,false);
       for(let i=0;i<3;i++)setTimeout(()=>shockwave(P.x,P.z,6+i*6,i%2?0xfff0a0:0xffd8ec,1.2),i*220);
-      for(const R2 of ROOTS)for(let k=0;k<10;k++){const p=R2.pts[1+Math.floor(rnd()*(R2.pts.length-1))];const m=new THREE.Mesh(flowerG,flowerM[k%3]);m.position.set(p.x+(rnd()-.5)*.3,Math.max(.12,p.y+.25),p.z+(rnd()-.5)*.3);m.scale.setScalar(.001);root.add(m);FLW.push({m,d:rnd()*.7});}
+      if(D.flw)blossoms();else for(const R2 of ROOTS)for(let k=0;k<10;k++){const p=R2.pts[1+Math.floor(rnd()*(R2.pts.length-1))];const m=new THREE.Mesh(flowerG,flowerM[k%3]);m.position.set(p.x+(rnd()-.5)*.3,Math.max(.12,p.y+.25),p.z+(rnd()-.5)*.3);m.scale.setScalar(.001);root.add(m);FLW.push({m,d:rnd()*.7});}
       for(let i=0;i<420;i++)pool.sp(V.c.x+(rnd()-.5)*V.hw*2.4,4+rnd()*4,V.c.z+(rnd()-.5)*V.hh*2.4,(rnd()-.5)*.8,-.4-rnd()*.6,(rnd()-.5)*.8,rnd()<.6?0xffd0e8:0xffffff,.9,.06+rnd()*.05,3+rnd()*2,.2,.05);}
-    for(const F of FLW){const k=SMS(T,END+F.d,END+F.d+.4)*(1-SMS(T,END+1.2,END+2.2));F.m.scale.setScalar(Math.max(.001,k*(1.3+.2*Math.sin(tt*4+F.d*9))));}
-    if(waveR>=0){waveR+=dt*16;if(waveR<40)for(let i=0;i<14;i++){const a=rnd()*TAU;pool.sp(P.x+Math.cos(a)*waveR,.25+rnd()*.4,P.z+Math.sin(a)*waveR,Math.cos(a)*1.2,.3+rnd()*.5,Math.sin(a)*1.2,rnd()<.5?0xfff0a0:0xffd8ec,.85,.07+rnd()*.05,.9,1,.2);}
-      const all=T>END+2.2;for(const e of alive()){if(waveHit.has(e))continue;if(all||(e.x-P.x)**2+(e.z-P.z)**2<waveR*waveR){waveHit.add(e);hurt(e,PW*9,'magic',o);if(!e.dead)stunE(e,e.boss?.5:1.5);}}}
+    if(FI)blossomFx(T,tt);else for(const F of FLW){const k=SMS(T,END+F.d,END+F.d+.4)*(1-SMS(T,END+1.2,END+2.2));F.m.scale.setScalar(Math.max(.001,k*(1.3+.2*Math.sin(tt*4+F.d*9))));}
+    if(waveR>=0){waveR+=dt*16;if(waveR<40)for(let i=0;i<14*D.waveK;i++){const a=rnd()*TAU;pool.sp(P.x+Math.cos(a)*waveR,.25+rnd()*.4*D.waveH,P.z+Math.sin(a)*waveR,Math.cos(a)*1.2,.3+rnd()*.5,Math.sin(a)*1.2,rnd()<.5?0xfff0a0:0xffd8ec,.85,(.07+rnd()*.05)*D.waveS,.9,1,.2);}
+      const all=T>END+2.2;for(const e of alive()){if(waveHit.has(e))continue;if(all||(e.x-P.x)**2+(e.z-P.z)**2<waveR*waveR){waveHit.add(e);hurt(e,PW*D.bloom*bloomK,'magic',o);if(!e.dead)stunE(e,e.boss?.5:1.5);}}}
     pool.step(dtR);
-  },()=>{delete ANC.fs.firsttree;},END);}
+  },()=>{delete ANC.fs.firsttree;for(const E of ERU)letGo(E);if(FI)for(const im of FI)im.dispose();},END);}
 /* ================= v303: bosses carry no modifiers (patched in spawnEnemy by p_balance.py), and no other foe outgrows a boss ================= */
 /* the health a boss would have if it walked in at wave w: the same formula as spawnEnemy (bosses get no elite, gem, omen or Starfall change any more) */
 function bossHpAt(B,w){const d=B&&EN[B.type];if(!d)return Infinity;let h=d.hp*hpScale(w)*(B.hpMul||1)*BAL.boss;const a=arenaNow();
@@ -14425,6 +14471,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'The Eldritch Tree: the world in bloom',d:'2 Nov',v:'v462',li:[
+    'The Eldritch Tree (Ancient) has five new masteries, for now in developer mode. Still one trunk older than the stars, roots bursting up under the thickest knots of foes, and one bloom over the whole field: each mastery makes a part the Tree already has stronger and draws that part richer.',
+    'Long Roots: each eruption reaches 1.65 tiles (1.35 before), with 8 root spikes (6 before) a fifth taller round a wider ring. Thirst: the roots drink 2% of each foe\u2019s max health (1% before; bosses 0.7%, 0.4% before); twice the motes of life fly to the trunk, and its sap veins flash as each draught reaches it.',
+    'Restless Roots: the roots burst every 0.45s (0.6s before), about 31 times instead of 24, and may strike the same foe again after 3s (4s before). They hold a foe only while its Resolve allows the whole hold, so they never make it Unstoppable and the bloom still holds it (before, the extra eruptions would have left every foe Unstoppable when the Tree bloomed). Swallowed: a foe (not a boss) the roots leave under 20% of its health is dragged under the earth as the spikes clench round it and sink.',
+    'The World in Bloom: the bloom strikes 1100% (900% before), and 3% more for every foe the roots drank from (up to 45% more); the veins glow brighter as the Tree drinks, and as it blooms a blazing surge of sap climbs the trunk. Twice the blossoms, now real five-petalled blossoms, and a thicker wave of pollen. Still 3 lives.']},
   {t:'Infinite Void: reality, erased',d:'3 Nov',v:'v461',li:[
     'Infinite Void (Ancient) has five new masteries, for now in developer mode. Still the hero erasing the battlefield into an endless starry void where every foe crawls and blinding white cuts tear through everything until reality snaps back: each mastery makes a part the domain already has stronger and draws that part a little richer.',
     'Blinding Edge: every cut on a foe strikes 88% and 2.2% of its max health (81% and 2.03% before; bosses 1.1%, 1.01% before), the ground cuts 66% (60%) within half a tile (0.42), and every stroke is a fifth wider with a whiter core. Ceaseless Cuts: the stream of cuts aimed at foes brings a tenth more a second (4.4 and 0.33 for each foe, up to 11; 4 and 0.3, up to 10, before).',
@@ -33414,6 +33465,86 @@ function ivmOpts(c){const L=c.L,a=c.a,X={},g=(SMG.expanse&&SMG.expanse[L-1])||1;
   X.log=ivmLog;ivmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
 const IVM_OLD=castExpanse;
 castExpanse=function(t,PW,o,X){const c=!X?ivmC(o):null;return IVM_OLD(t,PW,o,c?ivmOpts(c):X);};
+/* ================= The Eldritch Tree's masteries (v462), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: a tree older than the stars tears out of the earth beside the field; its roots run under every road and burst up under the
+   thickest knots of foes to bind them and drink their life, and at the end it blooms over the whole field and mends the keep. There is one
+   trunk and one bloom. Simon, for every Mythic, Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where
+   their identity is preserved but their visuals barely change and change only to better". So each mastery strengthens one part the Tree
+   already has and draws that same part richer; nothing new grows (no other trees: Wrath of Gaia and Oakheart Treant; no Overgrown and no new
+   holds: Entangling Roots; no lingering pollen cloud: Hundred-Year Bloom).
+   | # | Mastery | Question | Part of the spell | Kind |
+   | 1 | Long Roots | what if the roots reached further? | each eruption's reach | wider strike |
+   | 2 | Thirst | what if the roots drank deeper? | the drink | stronger damage |
+   | 3 | Restless Roots | what if they burst more often? | how often they burst | more eruptions |
+   | 4 | Swallowed | what if the roots took what they had drunk dry? | the roots | an execute |
+   | 5 | The World in Bloom | what if all they drank came back as the bloom? | the bloom | signature payoff |
+   - M1 Long Roots: each eruption strikes every foe within ETM.reach tiles of the knot it bursts under (1.35 before); 8 root spikes (6 before),
+     a fifth taller, set out wider round a wider ring.
+   - M2 Thirst: the roots drink ETM.drink of each foe's max health (1% before; bosses ETM.drinkB, 0.4% before). Twice the motes of life fly
+     to the trunk (12 a foe), and as each draught reaches it the sap veins flash and a bright bead of sap climbs them; the veins are drawn a
+     little bolder (0.06, 0.045 before) so the flashes read at the game's zoom.
+   - M3 Restless Roots: an eruption every ETM.gap s (0.6 before), about 31 instead of 24 when fresh foes are at hand, and a foe may be struck
+     again after ETM.lock s (4 before). One rule added: the roots hold a foe only while its Resolve can take the whole hold (spare). Built as
+     written, the extra eruptions spent every foe's Resolve, so the foes were Unstoppable when the bloom came and its hold did nothing (0.8s
+     at Mastery 0, 0 from Mastery 3, measured on 16 foes); now the roots never make a foe Unstoppable and the bloom holds every foe its full
+     1.5s, while the time held under the roots stays the same (about 4s a foe) and the player's other holds keep working on them.
+   - M4 Swallowed: a foe (not a boss) the roots leave under ETM.swallow of its health is dragged under: the eruption's spikes clench round it
+     (their own curl, closing) and sink, taking it down over 0.4s while it is held, its health bar hidden and towers passing it over (e.burrow);
+     under the earth it dies, with a puff of soil and its last life flying to the trunk.
+   - M5 The World in Bloom: the bloom strikes ETM.bloom (900% before) and ETM.bloomPer more for every foe the roots drank from this cast, up to
+     ETM.bloomMax more. The veins glow brighter as the Tree drinks (up to 1.8 times at 15 foes), and as it blooms a blazing surge of sap climbs
+     the trunk with sap motes streaming up it. Twice the blossoms (20 a root), each now a blossom of five cupped petals round a gold heart in the
+     old three pinks, all in one instanced draw (the old cast draws about 130 meshes); a thicker, taller wave of pollen. Still 3 lives.
+   Percentages are of the scroll's power, except the drink (a share of max health, as before not scaled by the mastery's factor). Every
+   mastered Eldritch Tree cast runs castFirstTree with its XO (etmOpts); Mastery 0, echoes and other casters cast exactly as before. A recast
+   while the Tree stands extends it, as before: the standing Tree keeps its own masteries. Wrath of Gaia's World Root still reads
+   ANC.live.firsttree. ETM.dbg (an array) logs the events.
+   Numbers: the approved design (a 1350% bloom) measured 1.525 at Mastery 5 against 1.35, which needs a factor of 0.872; so the bloom is
+   1100% (the 3% a foe, up to 45%, kept) and every other number is as approved. Long Roots (the lockout keeps each foe to one strike every
+   4s however far the roots reach) and Swallowed (an execute) count for nothing on the ladder (its foes stand still with huge health), so
+   their factors carry them. Ancient ladder (pack .6 / one .4, 3 casts 26s apart, 3 runs), the foes put back where they stood and at full
+   health before every cast (the cooldown in play is 150s, so every cast meets fresh foes): 1.078 / 1.162 / 1.226 / 1.302 / 1.35 against
+   1.078 / 1.162 / 1.226 / 1.302 / 1.35; the standard ladder reads the same (the Tree pushes and throws no foe, and the ladder's foes never
+   fall under 20%). */
+const ETM={dbg:null,reach:1.65,drink:.02,drinkB:.007,gap:.45,lock:3,swallow:.2,bloom:11,bloomPer:.03,bloomMax:.45};
+const etmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='firsttree'&&c.L?c:null;};
+const etmLog=d=>{if(ETM.dbg){d.t=time;ETM.dbg.push(d);}};
+SM_D.firsttree=[
+  {n:'Long Roots',d:'Each eruption reaches 1.65 tiles (1.35 before), its ring wider, with 8 root spikes (6 before) a fifth taller.'},
+  {n:'Thirst',d:'The roots drink 2% of each foe\u2019s max health (1% before; bosses 0.7%, 0.4% before). Twice the motes of life fly to the trunk, and its sap veins flash with each draught.'},
+  {n:'Restless Roots',d:'The roots burst every 0.45s (0.6s before), about 31 times instead of 24, and may strike the same foe again after 3s (4s before). They hold a foe only while its Resolve allows the whole hold, so they never make it Unstoppable and the bloom still holds it.'},
+  {n:'Swallowed',d:'A foe (not a boss) the roots leave under 20% of its health is dragged under the earth: the spikes clench round it and sink.'},
+  {n:'The World in Bloom',d:'The bloom strikes {1100}% (900% before), and 3% more for every foe the roots drank from (up to 45% more). Twice the blossoms, a thicker wave of pollen and a blazing surge of sap up the trunk. Still 3 lives.'}];
+SMF.firsttree={m:1};
+SMA.firsttree=[1,1,1,1,1];
+SMG.firsttree=[1.083,1.108,.987,1.056,.952];
+/* the sap veins (castFirstTree's veinX): Thirst's draughts climb them as bright beads (uD: when each of the last four reached the trunk)
+   and flash the whole network as each one arrives; The World in Bloom makes them glow brighter for every foe the roots drank from (uK) and blaze
+   as the surge climbs (uS: its front, uE: its light) */
+const ETM_VEIN='uniform vec4 uD;uniform float uS,uE,uK;void veinX(float u,inout vec3 c,inout float k){k*=uK;'+
+  'vec4 a=vec4(uT)-uD,q=a*.85+.19,x=vec4(u)-q,b=(exp(-x*x*260.)*1.6+exp(-x*x*40.)*.35)*step(.19,q)*(1.-smoothstep(.85,1.1,q)),f=exp(-a*7.)*step(0.,a);'+
+  'float B=dot(b,vec4(1.)),F=dot(f,vec4(1.))*.8;'+
+  'float s=u-uS,H=uE*(exp(-s*s*160.)*2.6+step(s,0.)*exp(s*2.5)*1.1);k+=B+F+H;c=mix(c,vec3(1.,1.,.72),clamp(B*.45+F*.2+H*.35,0.,.85));}';
+/* a blossom (The World in Bloom): five cupped petals round a gold heart, about the size of the old blossom, shaded in its vertex colours
+   (the instance colour tints it with the old three pinks) */
+function etmBlossom(){const P=[],C=[],m=new THREE.Matrix4(),r=new THREE.Matrix4(),t=new THREE.Matrix4(),sc=new THREE.Matrix4(),n=new THREE.Vector3();
+  const add=(g,M,c)=>{const q=g.clone().applyMatrix4(M),A=q.attributes.position,N=q.attributes.normal;for(let i=0;i<A.count;i++){P.push(A.getX(i),A.getY(i),A.getZ(i));n.fromBufferAttribute(N,i).normalize();const k=.66+.34*Math.max(0,n.y);C.push(c[0]*k,c[1]*k,c[2]*k);}q.dispose();};
+  const pet=new THREE.OctahedronGeometry(1,0),mid=new THREE.IcosahedronGeometry(.05,0);
+  for(let k=0;k<5;k++){m.makeRotationY(k/5*Math.PI*2).multiply(r.makeRotationZ(.38)).multiply(t.makeTranslation(.09,0,0)).multiply(sc.makeScale(.09,.026,.056));add(pet,m,[1,1,1]);}
+  add(mid,m.makeTranslation(0,.028,0),[1,.84,.34]);pet.dispose();mid.dispose();
+  const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.Float32BufferAttribute(P,3));G.setAttribute('color',new THREE.Float32BufferAttribute(C,3));return G;}
+/* this cast's numbers and looks (castFirstTree's XO), cumulative: Mastery L has masteries 1..L */
+function etmOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.reach=ETM.reach;X.spikes=8;X.spikeH=1.2;}
+  if(L>=2){X.drink=ETM.drink;X.drinkB=ETM.drinkB;X.motes=12;X.draught=1;X.veinX=ETM_VEIN;X.veinR=.06;}
+  if(L>=3){X.gap=ETM.gap;X.lock=ETM.lock;X.spare=1;}
+  if(L>=4){X.swallow=ETM.swallow;}
+  if(L>=5){X.bloom=ETM.bloom*a[4];X.bloomPer=ETM.bloomPer;X.bloomMax=ETM.bloomMax;X.flw=20;X.flwG=etmBlossom;X.waveK=2;X.waveH=2;X.waveS=1.3;X.surge=1;X.pool=3400;}
+  X.log=etmLog;etmLog({ev:'opts',L,X:Object.assign({},X)});return X;}
+const ETM_OLD=castFirstTree;
+castFirstTree=function(t,PW,o,XO){const c=!XO?etmC(o):null;return ETM_OLD(t,PW,o,c?etmOpts(c):XO);};
+/* a foe being dragged under (e.swal) shows no health bar over the ground it sinks into (the batched bars of v446 skip it too) */
+{const u0=updBar;updBar=function(e){u0(e);if(e.swal&&e.bar)e.bar.visible=false;};}
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
@@ -33520,7 +33651,7 @@ function pfBarMake(cap){if(PFB.m)for(const k in PFB.m){scene.remove(PFB.m[k]);PF
   PFB.m={bg:mk(barGeo,barBgMat,10),fg:mk(barFgGeo,barFgMat,11),fb:mk(barFgGeo,barBossMat,11),sh:mk(barFgGeo,barShMat,11)};PFB.cap=cap;}
 const PFB_M=new THREE.Matrix4(),PFB_P=new THREE.Vector3(),PFB_S=new THREE.Vector3(),PFB_O=new THREE.Vector3();
 function pfBarPut(m,i,e,ox,oy,oz,sx,sy){PFB_O.set(ox,oy,oz).applyQuaternion(camera.quaternion);PFB_P.set(e.x+PFB_O.x,e.y+e.hitY+.18+PFB_O.y,e.z+PFB_O.z);PFB_S.set(Math.max(1e-4,sx),sy,1);PFB_M.compose(PFB_P,camera.quaternion,PFB_S);m.setMatrixAt(i,PFB_M);}
-updBar=function(e){if(!PF.on)return PF_UPDBAR0(e);if(e.bar){scene.remove(e.bar);e.bar=null;}if(e.dead)return;const show=e.hp<e.maxHp||e.shield>0||e.boss;if(!show)return;
+updBar=function(e){if(!PF.on)return PF_UPDBAR0(e);if(e.bar){scene.remove(e.bar);e.bar=null;}if(e.dead||e.swal)return;const show=e.hp<e.maxHp||e.shield>0||e.boss;if(!show)return;
   if(!PFB.m||!PFB.m.bg.parent)pfBarMake(Math.max(64,PFB.cap));if(PFB.n>=PFB.cap){const keep=PFB.cap*2;pfBarMake(keep);PFB.n=PFB.nb=PFB.ns=0;}
   const w=e.boss?.9:.5,M=PFB.m;pfBarPut(M.bg,PFB.n++,e,0,0,0,w+.04,.09);
   pfBarPut(e.boss?M.fb:M.fg,e.boss?PFB.nb++:PFB.fgN++,e,-w/2,0,.001,w*clamp(e.hp/e.maxHp,0,1),.06);

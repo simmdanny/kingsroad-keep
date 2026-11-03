@@ -55,6 +55,8 @@ try{
   ok('towers are back to their own speed',Math.abs(tStats(tw0).rate/r0t-1)<1e-6);
   run(4);ok('the dial ends cleanly',!ANC.on&&!ANC.live.aeon&&!Object.keys(ANC.fs).length);
   /* ---- the First Tree ---- */
+  /* (checked as the Tree itself: no mastery, v462, whatever the dev account has earned; the account is put back afterwards) */
+  meta.smast=meta.smast||{};delete meta.smast.firsttree;
   go();L=foes(8);lives=100;{const c0=$('#ancCard');if(c0)c0.classList.remove('on');}cast('firsttree');
   {const c=$('#ancCard');ok('ancient: the OLDER THAN TIME card, time stops, the world turns to parchment',c&&c.textContent.includes('OLDER THAN TIME')&&/sepia/.test(renderer.domElement.style.filter)&&worldSlow<.1);}
   run(5.5);ok('roots tangle every road: 30% slow',Math.abs(ancF(L[0])-.7)<.02,ancF(L[0]).toFixed(3));
