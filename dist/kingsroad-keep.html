@@ -7970,37 +7970,61 @@ function mfTex(){if(MF_TEX)return MF_TEX;const cv=document.createElement('canvas
   x.fillStyle='#7a0e16';x.fillRect(0,0,512,256);for(let i=0;i<260;i++){const px=R()*512,py=R()*256,r=4+R()*26,g=x.createRadialGradient(px,py,0,px,py,r);const d=R()<.5;g.addColorStop(0,d?'rgba(40,0,6,.45)':'rgba(220,60,50,.3)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(px-r,py-r,r*2,r*2);}
   for(let i=0;i<46;i++){const px=R()*512,py=20+R()*216,r=5+R()*20;x.fillStyle='rgba(30,0,4,.55)';x.beginPath();x.arc(px,py,r,0,6.283);x.fill();x.strokeStyle='rgba(255,120,90,.45)';x.lineWidth=1.5+r*.08;x.beginPath();x.arc(px-r*.12,py-r*.12,r,3.4,5.8);x.stroke();}
   MF_TEX=new THREE.CanvasTexture(cv);return MF_TEX;}
-function castMoonfall(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.fake),c0=pool.length?densest(pool):list[0],TI=2.6,L=nsLead(c0,TI),tx=L.x,tz=L.z,ty=gy(tx,tz),mats=[],geos=[];
+/* v468: XO (optional, Moonfall's masteries): this cast's numbers over MFL: R, DMG, STUN and BSTUN (the impact's reach, damage and stuns);
+   PR, TICK and BURN (the crater's radius, damage a tick and how long it burns); RM, COR and COR2 (the moon's size and coronas); SHADOW,
+   GLOW, SHOP and GLOP (its shadow's and red glow's radius and darkness); SEAMS, SEAMR, SEAMW, SEAMC and seamO (the crater's cracks: how
+   many, how far out (x PR), how wide, their colour, and nsSeamFx's options: up, so they are seen at last, at every mastery, and k, how
+   bright); EMB, SMK and SMKC (the crater's embers and smoke a second, the smoke's colours); SHARD and SHARD_R (each moon shard strikes the
+   nearest foe within SHARD_R of where it lands; 0: only a picture, as before); SLOW (how much the falling moon's shadow slows the ground
+   foes under it at most); WAVE, WAVE_R and WAVE_T (what the far blood wave strikes each ground foe it passes, 0: only a picture, as before;
+   its reach x R and how long it rolls); LIFE. And its looks and log: aim(shards) (throws them; a shard it marks ex flies an exact arc),
+   fx.fall/impact/frame/land/end (the masteries' looks), onImpact(foes), onShard(shard, foe or null), onSlow(foe, slow), onWave(foe) and
+   onEnd. Without XO: exactly as before, but the crater's cracks face the sky (drawn facing the ground, they were never seen). */
+const MFL={R:4.2,DMG:26,STUN:1.4,BSTUN:.5,PR:2.6,TICK:.6,BURN:6,RM:2.4,COR:.26,COR2:.1,SHADOW:3.6,GLOW:3.1,SHOP:.55,GLOP:.6,SEAMS:12,SEAMR:.75,SEAMW:.025,SEAMC:0xff3a20,EMB:14,SMK:5,SMKC:[0x3a0606,0x140202,.4],
+  SHARD:0,SHARD_R:.5,SLOW:0,WAVE:0,WAVE_R:2.3,WAVE_T:1.9,LIFE:9.2,seamO:{up:true,k:.4}};
+function castMoonfall(t,list,P,o,XO){const D=XO?Object.assign({},MFL,XO):MFL,F=D.fx||null;const pool=enemies.filter(e=>!e.dead&&!e.fake),c0=pool.length?densest(pool):list[0],TI=2.6,L=nsLead(c0,TI),tx=L.x,tz=L.z,ty=gy(tx,tz),mats=[],geos=[];
   const mm=new THREE.MeshPhongMaterial({map:mfTex(),emissive:0xff3a2a,emissiveMap:mfTex(),emissiveIntensity:.8,shininess:10});mats.push(mm);
   const sg=new THREE.SphereGeometry(1,36,24);geos.push(sg);const moon=new THREE.Group();moon.add(new THREE.Mesh(sg,mm));
-  const cor=new THREE.Mesh(ico(1,3),nsAM(mats,0xff2030,.26));cor.scale.setScalar(1.25);moon.add(cor);const cor2=new THREE.Mesh(ico(1,2),nsAM(mats,0xff6a40,.1));cor2.scale.setScalar(1.6);moon.add(cor2);
-  const RM=2.4,H0=13,dir=new THREE.Vector3(.3,1,-.7).normalize();moon.scale.setScalar(RM);moon.position.set(tx+dir.x*H0,ty+dir.y*H0,tz+dir.z*H0);nsOwn(moon);
-  const shadow=nsDecal(tx,tz,3.6,0x000000,0,9.2,{manual:true}),glow=nsDecal(tx,tz,3.1,0xff2a1a,0,9.2,{manual:true,add:true});
+  const cor=new THREE.Mesh(ico(1,3),nsAM(mats,0xff2030,D.COR));cor.scale.setScalar(1.25);moon.add(cor);const cor2=new THREE.Mesh(ico(1,2),nsAM(mats,0xff6a40,D.COR2));cor2.scale.setScalar(1.6);moon.add(cor2);
+  const RM=D.RM,H0=13,dir=new THREE.Vector3(.3,1,-.7).normalize();moon.scale.setScalar(RM);moon.position.set(tx+dir.x*H0,ty+dir.y*H0,tz+dir.z*H0);nsOwn(moon);
+  const shadow=nsDecal(tx,tz,D.SHADOW,0x000000,0,D.LIFE,{manual:true}),glow=nsDecal(tx,tz,D.GLOW,0xff2a1a,0,D.LIFE,{manual:true,add:true});
   cineLock=Math.max(cineLock,5);darkTarget=Math.max(darkTarget,.5);vigTarget=Math.max(vigTarget,.5);if(typeof sfxRumble==='function')sfxRumble(3.2,.5);
-  let tt=0,hit=false,burnT=0;const R=4.2,PR=2.6,shards=[];
+  let tt=0,hit=false,burnT=0;const R=D.R,PR=D.PR,shards=[],BX=D.BURN-6,KL=(TI-1)/TI,waved=D.WAVE>0?new Set():null;
+  const C=F?{moon,cor,cor2,mm,shadow,glow,tx,tz,ty,TI,R,PR,mats,geos,shards}:null;
   const impact=()=>{moon.visible=false;worldSlow=.3;slowT=.3;camShake=Math.max(camShake,.7);flashA=Math.max(flashA,.55);flashCol='#ff3020';if(typeof sfxBoom==='function')sfxBoom(.8,true);
-    flash(tx,ty+.5,tz,0xffd0a0,2.6,.45);bmWave(tx,tz,R*1.4,1.2,1.3);bmWave(tx,tz,R*2.3,1.9,.8);shockwave(tx,tz,R,0xff4030,.6,0x2a0204);shockwave(tx,tz,R*.6,0xffd0a0,.45,0x3a0a04);
-    for(const e of enemies){if(e.dead)continue;if((e.x-tx)**2+(e.z-tz)**2<R*R){hurt(e,P*26,'magic',o);if(!e.dead)e.stunT=Math.max(e.stunT||0,e.boss?.5:1.4);}}
+    flash(tx,ty+.5,tz,0xffd0a0,2.6,.45);bmWave(tx,tz,R*1.4,1.2,1.3);bmWave(tx,tz,R*D.WAVE_R,D.WAVE_T,.8);shockwave(tx,tz,R,0xff4030,.6,0x2a0204);shockwave(tx,tz,R*.6,0xffd0a0,.45,0x3a0a04);
+    const HI=D.onImpact?[]:null;for(const e of enemies){if(e.dead)continue;if((e.x-tx)**2+(e.z-tz)**2<R*R){hurt(e,P*D.DMG,'magic',o);if(HI)HI.push(e);if(!e.dead)e.stunT=Math.max(e.stunT||0,e.boss?D.BSTUN:D.STUN);}}
     sprayP(1,tx,ty+.3,tz,90,{c:0xffb080,c2:0xb00010,sp:5,up:2.2,s:.12,s2:.01,life:1,g:4,drag:.6,r:1});sprayP(0,tx,ty+.2,tz,40,{c:0x5a0a0a,c2:0x1a0404,sp:3,up:2.5,s:.1,s2:.04,a:.95,life:1.4,g:6});debris(tx,tz,18,0x3a1a14);
     for(let i=0;i<24;i++)emitS(0,{x:tx+(rnd()-.5)*2,y:ty+.3+rnd()*1.2,z:tz+(rnd()-.5)*2,vx:(rnd()-.5)*3,vy:1+rnd()*2,vz:(rnd()-.5)*3,s:.8,s2:2.6,c:0x4a0a0a,c2:0x140404,a:.5,life:2.6,lift:.6,drag:1,turb:.4});
     for(let i=0;i<16;i++){const a=i/16*6.283+rnd()*.3,s=.14+rnd()*.22,m=new THREE.Mesh(dod(1),mm);m.scale.setScalar(s);m.position.set(tx,ty+.8,tz);m.rotation.set(rnd()*6,rnd()*6,0);nsOwn(m);
       shards.push({m,v:new THREE.Vector3(Math.cos(a)*(2.5+rnd()*3.5),3+rnd()*4,Math.sin(a)*(2.5+rnd()*3.5)),rs:[(rnd()-.5)*10,(rnd()-.5)*10],t:0});}
-    nsDecal(tx,tz,PR,0xff2010,.8,6.4,{add:true,fin:.1,fout:1.5});nsDecal(tx,tz,PR*1.25,0x1a0204,.85,6.6,{fin:.1,fout:1.5});nsSeamFx(tx,tz,PR*1.4,12,0xff3a20,0x2a0204,.05,6.2);};
-  addFx(new THREE.Group(),9.2,(f,dt)=>{tt+=dt;
+    if(D.aim)D.aim(shards,tx,ty,tz,R);
+    nsDecal(tx,tz,PR,0xff2010,.8,6.4+BX,{add:true,fin:.1,fout:1.5});nsDecal(tx,tz,PR*1.25,0x1a0204,.85,6.6+BX,{fin:.1,fout:1.5});nsSeamFx(tx,tz,PR*D.SEAMR,D.SEAMS,D.SEAMC,0x2a0204,D.SEAMW,6.2+BX,D.seamO);
+    if(F&&F.impact)F.impact(C);if(D.onImpact)D.onImpact(HI);};
+  addFx(new THREE.Group(),D.LIFE,(f,dt)=>{tt+=dt;
     if(!hit){const k=Math.min(1,tt/TI),e=k*k,h=H0*(1-e);moon.position.set(tx+dir.x*h,ty+RM*.55+dir.y*h,tz+dir.z*h);moon.rotation.y+=dt*.4;moon.rotation.x+=dt*.15;
-      shadow.material.opacity=.55*k*k;glow.material.opacity=.6*k*k;camShake=Math.max(camShake,.04+.14*k*k);cor.material.opacity=.26+.15*k;
+      shadow.material.opacity=D.SHOP*k*k;glow.material.opacity=D.GLOP*k*k;camShake=Math.max(camShake,.04+.14*k*k);cor.material.opacity=D.COR+.15*k;
       if(dt>0){const p=moon.position;for(let i=0;i<3;i++)emitS(0,{x:p.x+(rnd()-.5)*RM*1.4,y:p.y+(rnd()-.5)*RM*1.4,z:p.z+(rnd()-.5)*RM*1.4,vx:dir.x*2,vy:dir.y*2,vz:dir.z*2,s:.8,s2:2.2,c:0x6a0a10,c2:0x1a0206,a:.4,life:1.6,turb:.4});
         for(let i=0;i<2;i++)emit(1,{x:p.x+(rnd()-.5)*RM*2,y:p.y+(rnd()-.5)*RM*2,z:p.z+(rnd()-.5)*RM*2,vx:dir.x*3,vy:dir.y*3,vz:dir.z*3,s:.12,s2:0,c:0xffa070,c2:0x8a0a08,life:.8});
         if(k>.7)for(let i=0;i<4;i++){const a=rnd()*6.28,r=rnd()*R;emit(0,{x:tx+Math.cos(a)*r,y:ty+.05,z:tz+Math.sin(a)*r,vx:Math.cos(a)*1.5,vy:.3,vz:Math.sin(a)*1.5,s:.12,s2:.35,c:0x8a6a5a,c2:0x3a2a20,a:.5,life:.8,turb:.3});}}
+      /* the shadow of the falling moon slows the ground foes under it, harder as it darkens: all of D.SLOW in its last second */
+      if(D.SLOW>0){const v=D.SLOW*Math.min(1,e/(KL*KL)),r2=D.SHADOW*D.SHADOW;for(const q of enemies){if(q.dead||q.fake||q.fly)continue;if((q.x-tx)**2+(q.z-tz)**2<r2){q.slow=Math.max(q.slow||0,v);q.slowT=Math.max(q.slowT||0,.3);if(D.onSlow)D.onSlow(q,v);}}}
+      if(F&&F.fall)F.fall(C,k,dt);
       if(k>=1){hit=true;impact();}}
-    else{const a=tt-TI;shadow.material.opacity=Math.max(0,.55*(1-a/1.5));glow.material.opacity=Math.max(0,.6*(1-a/6));
-      if(a<6){burnT-=dt;if(burnT<=0){burnT=.5;for(const e of enemies){if(e.dead)continue;if((e.x-tx)**2+(e.z-tz)**2<PR*PR)hurt(e,P*.6,'magic',Object.assign({},o,{dot:true}));}}
-        if(dt>0){if(rnd()<dt*14){const b=rnd()*6.28,r=rnd()*PR*.9;emit(1,{x:tx+Math.cos(b)*r,y:ty+.05,z:tz+Math.sin(b)*r,vx:0,vy:.5+rnd()*.6,vz:0,s:.07,s2:0,c:0xffa060,c2:0x8a0808,life:.9});}
-          if(rnd()<dt*5){const b=rnd()*6.28,r=rnd()*PR*.8;emitS(0,{x:tx+Math.cos(b)*r,y:ty+.1,z:tz+Math.sin(b)*r,vx:0,vy:.3,vz:0,s:.3,s2:1,c:0x3a0606,c2:0x140202,a:.4,life:1.6,lift:.3,turb:.4});}}}}
-    for(const s of shards){s.t+=dt;s.v.y-=9*dt;s.m.position.addScaledVector(s.v,dt);s.m.rotation.x+=s.rs[0]*dt;s.m.rotation.z+=s.rs[1]*dt;const fl=gy(s.m.position.x,s.m.position.z);
-      if(s.m.position.y<fl+.1){s.m.position.y=fl+.1;s.v.multiplyScalar(.35);s.v.y=Math.abs(s.v.y);}if(s.t>3.5)s.m.scale.multiplyScalar(Math.max(0,1-dt*1.2));}
-    if(tt>7.6){darkTarget=Math.max(0,darkTarget-dt*.4);vigTarget=Math.max(0,vigTarget-dt*.4);}},
-    ()=>{nsFree(moon);shards.forEach(s=>nsFree(s.m));darkTarget=0;vigTarget=0;},{mats,geos});}
+    else{const a=tt-TI;shadow.material.opacity=Math.max(0,D.SHOP*(1-a/1.5));glow.material.opacity=Math.max(0,D.GLOP*(1-a/D.BURN));
+      if(a<D.BURN){burnT-=dt;if(burnT<=0){burnT=.5;for(const e of enemies){if(e.dead)continue;if((e.x-tx)**2+(e.z-tz)**2<PR*PR)hurt(e,P*D.TICK,'magic',Object.assign({},o,{dot:true}));}}
+        if(dt>0){if(rnd()<dt*D.EMB){const b=rnd()*6.28,r=rnd()*PR*.9;emit(1,{x:tx+Math.cos(b)*r,y:ty+.05,z:tz+Math.sin(b)*r,vx:0,vy:.5+rnd()*.6,vz:0,s:.07,s2:0,c:0xffa060,c2:0x8a0808,life:.9});}
+          if(rnd()<dt*D.SMK){const b=rnd()*6.28,r=rnd()*PR*.8;emitS(0,{x:tx+Math.cos(b)*r,y:ty+.1,z:tz+Math.sin(b)*r,vx:0,vy:.3,vz:0,s:.3,s2:1,c:D.SMKC[0],c2:D.SMKC[1],a:D.SMKC[2],life:1.6,lift:.3,turb:.4});}}}
+      /* the far blood wave strikes each ground foe as it passes (its front, as bmWave draws it, give or take its ragged edge) */
+      if(waved&&a<D.WAVE_T){const fr=R*D.WAVE_R*Math.min(1,.97*(1-Math.pow(1-a/D.WAVE_T,3))+.05);for(const e of enemies){if(e.dead||e.fake||e.fly||waved.has(e))continue;if((e.x-tx)**2+(e.z-tz)**2<fr*fr){waved.add(e);hurt(e,P*D.WAVE,'magic',o);if(D.onWave)D.onWave(e);}}}}
+    for(const s of shards){s.t+=dt;s.v.y-=9*dt;s.m.position.addScaledVector(s.v,dt);if(s.ex)s.m.position.y+=4.5*dt*dt;s.m.rotation.x+=s.rs[0]*dt;s.m.rotation.z+=s.rs[1]*dt;const fl=gy(s.m.position.x,s.m.position.z);
+      if(s.m.position.y<fl+.1){s.m.position.y=fl+.1;if(!s.land){s.land=1;const sx=s.m.position.x,sz=s.m.position.z;let q=null;
+          if(D.SHARD>0){let bd=D.SHARD_R*D.SHARD_R;for(const e of enemies){if(e.dead||e.fake)continue;const d2=(e.x-sx)**2+(e.z-sz)**2;if(d2<bd){bd=d2;q=e;}}if(q)hurt(q,P*D.SHARD,'magic',o);}
+          if(F&&F.land)F.land(C,s,q);if(D.onShard)D.onShard(s,q);}
+        s.v.multiplyScalar(.35);s.v.y=Math.abs(s.v.y);}if(s.t>3.5)s.m.scale.multiplyScalar(Math.max(0,1-dt*1.2));}
+    if(F&&F.frame)F.frame(C,tt,dt,hit);
+    if(tt>7.6+BX){darkTarget=Math.max(0,darkTarget-dt*.4);vigTarget=Math.max(0,vigTarget-dt*.4);}},
+    ()=>{nsFree(moon);shards.forEach(s=>nsFree(s.m));darkTarget=0;vigTarget=0;if(F&&F.end)F.end(C);if(D.onEnd)D.onEnd();},{mats,geos});}
 
 /* ---- Constellation: stars above the strongest foes join into a constellation, then the whole figure falls ---- */
 function nsLance(x0,y0,z0,tx,tz){const mats=[],ty=gy(tx,tz),[bg1,bg2]=nsBeamGeos(),g=new THREE.Group(),m1=nsAM(mats,0xffffff,1),m2=nsAM(mats,0x7fa8ff,.26);g.add(new THREE.Mesh(bg1,m1));const h=new THREE.Mesh(bg2,m2);h.scale.set(1.7,1.7,1);g.add(h);
@@ -14606,6 +14630,13 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Moonfall: the moon breaks',d:'3 Nov',v:'v468',li:[
+    'Moonfall (Secret) has five masteries, for now in developer mode. Still one moon, one fall, one impact and one crater: each mastery makes a part of it stronger and draws that part richer.',
+    'Fuller Moon: the impact reaches 4.6 tiles (4.2 before); the moon is a tenth larger with a brighter corona, its shadow and waves wider. Molten Crater: the crater of molten blood spreads to 3 tiles (2.6), burns 7s (6s) and 65% a tick (60%), with more and brighter cracks, more embers and darker smoke.',
+    'Shattered Moon: the 16 shards of the moon are thrown at the foes around the crater, the ones the impact did not reach first, and each strikes the nearest foe where it lands for 80%; they glow hotter, trail embers and burst into sparks as they land.',
+    'Under Its Shadow: ground foes under the falling moon\u2019s shadow are slowed, up to 60% in its last second, so fewer slip out before it lands (Unstoppable foes too); the shadow is deeper and the glow under it brighter.',
+    'Moonbreaker: the impact strikes 20% harder, and the wave of blood it sends out to 10.6 tiles strikes every ground foe it passes for 300%; the wave now rolls out with real height, a crest and a curling lip.',
+    'A fix: the crater\u2019s glowing cracks were drawn facing the ground, so they never showed. They show now, inside the crater, at every mastery.']},
   {t:'Eye of the Blood Moon: the gaze that marks',d:'3 Nov',v:'v467',li:[
     'Eye of the Blood Moon (Secret) has five new masteries, for now in developer mode. Still one eye in the sky, its gaze branding the strongest foes and blood lightning lashing down at them: each mastery makes a part the spell already has stronger and draws that part richer.',
     'Wider Gaze: the eye opens a tenth larger and brands 7 foes (6 before) within 10 tiles (8 before). Bloodshot Brand: branded foes take 40% more damage from everything (35% before) for 10s (8s before); the brands glow bigger and deeper red, and stay lit for as long as they last.',
@@ -34217,6 +34248,128 @@ function beyOpts(c){const L=c.L,a=c.a,X={hold:1};
   if(BEY.dbg)X.log=beyLog;beyLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const BEY_OLD=castBloodEye;
 castBloodEye=function(t,list,P,o,X){const c=!X?beyC(o):null;return BEY_OLD(t,list,P,o,c?beyOpts(c):X);};
+/* ================= Moonfall's masteries (v468), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: the hero drags the Blood Moon out of the sky onto the densest group: a slow fall under a growing shadow, one colossal impact that
+   throws out shards of the moon and rolls a wave of blood across the field, then a crater of molten blood that burns. Simon, for every
+   Mythic, Ancient and Secret scroll: "lets do the same way all the mythics ancients and secrets where their identity is preserved but their
+   visuals barely change and change only to better", and "new stuff CAN appear ... but just nothing that over shines the spell". So there
+   is still one moon, one fall, one impact and one crater: each mastery makes one part stronger and draws that same part richer (Simon
+   approved the table). The moon's shards and its far blood wave, only a picture before, are made to strike; there is no rain and no spikes.
+   | # | Mastery | Strengthens | What changes | How it looks |
+   | 1 | Fuller Moon | the impact's reach | 4.6 tiles (4.2) | the moon a tenth larger, a brighter corona; its shadow, glow and waves widened with it |
+   | 2 | Molten Crater | the crater | 3 tiles (2.6), 7s (6s), 65% a tick (60%) | 16 cracks (12), further out and brighter; more embers, darker smoke |
+   | 3 | Shattered Moon | the moon's shards | the 16 shards are thrown at foes; each strikes the nearest foe within 0.5 of where it lands: 80% | hotter shards with short ember trails, a little burst of sparks where each lands; landed, they cool and crumble |
+   | 4 | Under Its Shadow | the fall | ground foes under the falling moon's shadow are slowed, harder as it darkens: 60% in its last second | the shadow deeper, the red glow under it brighter, dust pressed up at the feet of the foes under it |
+   | 5 | Moonbreaker | the impact | 20% harder (3120%), and the far blood wave strikes every ground foe it passes, out to 10.6 tiles: 300% | the wave drawn with height: a ring of blood with a crest and a curling lip rolls out on it, blood thrown off its crest |
+   - M1 Fuller Moon: the impact strikes and stuns within MFM.R; the moon is drawn MFM.moon larger with brighter coronas, and its shadow, red
+     glow and the waves and shockwaves of the impact (drawn from its reach) widen with it.
+   - M2 Molten Crater: the crater burns within MFM.pr for MFM.burn s at MFM.tick a tick (every 0.5s); its scorch, cracks and the cast live as
+     much longer; 16 cracks (12) reach a little further, a little wider and brighter; embers rise faster and the smoke is darker.
+   - M3 Shattered Moon: at the impact the 16 shards are thrown (mfmAim) at foes between MFM.aim0 and MFM.aim1 from it, one each, the foes the
+     impact did not reach first, then the nearest (so a lone foe at its heart gets one back); each lands where its foe will be (a stunned or
+     slowed foe is led less) on an exact arc, and strikes the nearest foe within MFM.shardR of where it lands, MFM.shard (x100%). Shards with
+     no foe to go to fly as before. Those thrown at foes are drawn a quarter smaller; all glow hotter with a short trail of embers; where each lands, a little
+     burst of sparks and dust (with blood on a foe), and it cools darker and crumbles away (the base shards lay on the road for 3.5s).
+   - M4 Under Its Shadow: while the moon falls, every ground foe under its shadow is slowed MFM.slow x min(1, (k / k1)^2), k the fall
+     (0-1) and k1 where its last second starts: so 60% in that last second (a slow, set directly: it works on Unstoppable foes too). The
+     shadow and glow are darker and brighter (.74 / .86, .55 / .6 before), and the falling moon presses dust up at the feet of the foes under it.
+   - M5 Moonbreaker: the impact strikes MFM.hard harder; the far blood wave (bmWave, 2.3 times the impact's reach, 1.9s) strikes each ground
+     foe once as its front passes it, MFM.wave (x100%). It is drawn with height (mfmWave): a ring of wave with a trailing slope, a crest and a
+     lip curling outward, its size in tiles whatever its radius (the vertex shader sets it), lit from over the viewer's shoulder, see-through,
+     highest as it leaves the impact and lower as it spends itself; blood is thrown off its crest.
+   Percentages are of the scroll's power. Every mastered cast runs castMoonfall with its XO (mfmOpts); Mastery 0, echoes and other casters
+   cast exactly as before (one look changed, below). MFM.dbg (an array) logs the events for the tests and previews.
+   A look fixed on the way (Mastery 0 too): the crater's cracks (nsSeamFx, shared with many spells) were drawn facing the ground, so they
+   were never seen; Moonfall's are drawn facing the sky now (nsSeamFx's o.up, as v452 added it for the Ember Titan), kept inside the crater,
+   thin and dim (12 within 0.75 of its radius at 40%; Molten Crater's 16 within 0.8 at 50%). Other spells' cracks are unchanged.
+   Numbers: on the Secret ladder (pack .6 / single .4, 3 runs of 3 casts 13.5s apart) with the foes put back where they stood before every
+   cast (in play the cooldown is 120s: every cast meets fresh foes), with SMG.moonfall = 1.078 / 1.099 / 1.134 / 1.204 / 1.013:
+   1.078 / 1.161 / 1.226 / 1.302 / 1.35 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35; the standard ladder reads the same (its foes stand
+   still and never die). Fuller Moon's reach and Under Its Shadow's slow count for nothing there (every ladder foe is inside 4.2 tiles and
+   none walks), and the shards little (one each), so their factors carry them. Moonbreaker's impact is 20% harder, not the approved 30%:
+   at 30% Mastery 5 measured 1.412 before its factor, which then fell to 0.956 from Mastery 4's 1.204, so each crater tick and shard
+   struck about 21% weaker at Mastery 5 than at Mastery 4; at 20% it measures 1.333 and its factor is 1.013 (they strike 16% lighter than at
+   Mastery 4, whose factor carries its slow, and the impact itself a little harder). */
+const MFM={dbg:null,R:4.6,moon:1.1,pr:3,burn:7,tick:.65,seams:16,shard:.8,shardR:.5,aim0:0,aim1:8.5,slow:.6,hard:.2,wave:3,busy:0};
+const mfmC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='moonfall'&&c.L?c:null;};
+const mfmLog=d=>{if(MFM.dbg){d.t=time;MFM.dbg.push(d);}};
+SM_D.moonfall=[
+  {n:'Fuller Moon',d:'A fuller Blood Moon falls: its impact reaches 4.6 tiles (4.2 before).'},
+  {n:'Molten Crater',d:'The crater of molten blood spreads to 3 tiles (2.6 before) and burns 7s (6s before), {65}% a tick (60% before).'},
+  {n:'Shattered Moon',d:'The 16 shards of the moon are thrown at the foes around the crater, and each strikes the nearest foe within 0.5 tiles of where it lands: {80}%.'},
+  {n:'Under Its Shadow',d:'Ground foes under the falling moon\'s shadow are slowed, up to 60% in its last second, so fewer slip out before it lands.'},
+  {n:'Moonbreaker',d:'The impact strikes {20}% harder, and the blood wave it sends out to 10.6 tiles strikes every ground foe it passes: {300}%.'}];
+SMF.moonfall={m:1};
+SMA.moonfall=[1,1,1,1,1];
+SMG.moonfall=[1.078,1.099,1.134,1.204,1.013];
+/* M3: the shards are thrown at foes (one each) between MFM.aim0 and MFM.aim1 from the impact, the foes it did not reach first, then the
+   nearest; each lands where its foe will be (a stunned or slowed foe is led less). Their flight is exact, so they land where they were sent */
+function mfmAim(shards,tx,ty,tz,R){const tg=enemies.filter(e=>!e.dead&&!e.fake).map(e=>({e,d:Math.hypot(e.x-tx,e.z-tz)})).filter(q=>q.d>=MFM.aim0&&q.d<=MFM.aim1).sort((p,q)=>((p.d<R)-(q.d<R))||p.d-q.d);
+  const n=Math.min(shards.length,tg.length),y0=ty+.8;
+  for(let i=0;i<n;i++){const s=shards[i],e=tg[i].e,vy=clamp(2.4+tg[i].d*.35,3,6.5)+rnd()*.5;
+    const fly=(x,z)=>{const dr=y0-(gy(x,z)+.1);return(vy+Math.sqrt(vy*vy+18*Math.max(0,dr)))/9;};
+    let T=fly(e.x,e.z);const lead=Math.max(0,T-Math.max(0,e.stunT||0))*(e.slowT>0?1-(e.slow||0):1),p=lead>0?nsLead(e,lead):{x:e.x,z:e.z};T=fly(p.x,p.z);
+    const dx=p.x-tx,dz=p.z-tz;s.v.set(dx/T,vy,dz/T);s.m.scale.multiplyScalar(.75);s.ex=1;s.aim=e;s.goal=p;}
+  mfmLog({ev:'aim',n,of:shards.length});}
+/* M3: hotter shards, the moon's own crust burning brighter; landed, they cool darker and crumble */
+function mfmHotMat(C,cool){const m=cool?new THREE.MeshPhongMaterial({map:mfTex(),emissive:0x6a0c08,emissiveMap:mfTex(),emissiveIntensity:.7,shininess:10}):new THREE.MeshPhongMaterial({map:mfTex(),emissive:0xffa060,emissiveMap:mfTex(),emissiveIntensity:1.15,shininess:10});C.mats.push(m);return m;}
+/* M5: the far blood wave drawn with height: a ring of wave (a trailing slope, a crest and a lip curling outward, its size in tiles whatever
+   the ring's radius, uR and uH set by the vertex shader) that rolls out on bmWave's front; dark crimson with streaks, a ragged bright crest */
+const MFM_WAVE_VS='attribute float aOff;attribute vec2 aN;uniform float uR,uH,uT;varying vec2 vUv;varying vec3 vN;'+NOISE+'void main(){vUv=uv;float an=uv.x*6.2832;float h=uH*(.6+.7*fbm(vec2(cos(an),sin(an))*3.8+vec2(uT*1.5,0.0)));float r=uR+aOff*h;'
+  +'vN=normalize(normalMatrix*vec3(position.x*aN.x,aN.y,position.z*aN.x));gl_Position=projectionMatrix*modelViewMatrix*vec4(position.x*r,position.y*h,position.z*r,1.0);}';
+/* lit from over the viewer's shoulder (a light in view space), so its back slope, crest and curling lip read as a shape */
+const MFM_WAVE_FS='varying vec2 vUv;varying vec3 vN;uniform float uT,uA;'+NOISE+'void main(){float j=vUv.y,an=vUv.x*6.2832;float st=fbm(vec2(cos(an),sin(an))*24.0+vec2(0.0,j*3.0-uT*2.2));vec3 n=normalize(gl_FrontFacing?vN:-vN);'
+  +'float l=max(0.0,dot(n,normalize(vec3(.25,.75,.6))));vec3 dk=vec3(.22,.0,.03)*(.55+st*.9);float cr=exp(-pow((j-.6)*5.0,2.0));'
+  +'vec3 c=mix(dk,vec3(.92,.1,.12),smoothstep(.05,.6,j)*.85)*(.22+1.15*l)+vec3(1.0,.55,.45)*cr*(.2+.85*pow(l,3.0));c=mix(c,dk*.5,smoothstep(.62,1.0,j)*.55);'
+  +'float a=(smoothstep(0.0,.3,j)*(.52+.3*st)+cr*.3)*uA;gl_FragColor=vec4(c,clamp(a,0.0,.9));}';
+const MFM_WAVE_P=[[-1,0],[-.5,.36],[-.15,.78],[.08,1],[.3,.9],[.42,.66]];
+function mfmWave(C){const N=192,P=MFM_WAVE_P,M=P.length,pos=[],off=[],nn=[],uv=[],idx=[];
+  /* each profile point's normal in the (out, up) plane: square to the profile, on its top side (the front faces' side) */
+  const nrm=P.map((q,j)=>{const A=P[Math.max(0,j-1)],B=P[Math.min(M-1,j+1)],dx=B[0]-A[0],dy=B[1]-A[1],l=Math.hypot(dx,dy)||1;return[-dy/l,dx/l];});
+  for(let i=0;i<=N;i++){const a=i/N*6.2832;for(let j=0;j<M;j++){pos.push(Math.cos(a),P[j][1],Math.sin(a));off.push(P[j][0]);nn.push(nrm[j][0],nrm[j][1]);uv.push(i/N,j/(M-1));}}
+  for(let i=0;i<N;i++)for(let j=0;j<M-1;j++){const q=i*M+j,w=q+M;idx.push(q,w,q+1,q+1,w,w+1);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('aOff',new THREE.Float32BufferAttribute(off,1));g.setAttribute('aN',new THREE.Float32BufferAttribute(nn,2));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);C.geos.push(g);
+  const m=new THREE.ShaderMaterial({uniforms:{uR:{value:.1},uH:{value:.01},uT:{value:0},uA:{value:0}},vertexShader:MFM_WAVE_VS,fragmentShader:MFM_WAVE_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide});C.mats.push(m);
+  const me=new THREE.Mesh(g,m);me.position.set(C.tx,C.ty+.02,C.tz);me.rotation.y=rnd()*6.28;me.renderOrder=4;me.frustumCulled=false;nsOwn(me);return me;}
+/* this cast's numbers and looks (castMoonfall's XO) */
+function mfmOpts(c){const L=c.L,a=c.a,X={},S={};
+  if(L>=1){const w=MFM.R/MFL.R;X.R=MFM.R;X.RM=MFL.RM*MFM.moon;X.COR=.34;X.COR2=.14;X.SHADOW=MFL.SHADOW*w;X.GLOW=MFL.GLOW*w;}
+  if(L>=2){X.PR=MFM.pr;X.BURN=MFM.burn;X.TICK=MFM.tick*a[1];X.SEAMS=MFM.seams;X.SEAMR=.8;X.SEAMW=.028;X.SEAMC=0xff4422;X.seamO={up:true,k:.5};X.EMB=24;X.SMK=7;X.SMKC=[0x260303,0x0a0101,.48];}
+  if(L>=3){X.SHARD=MFM.shard*a[2];X.SHARD_R=MFM.shardR;X.aim=mfmAim;}
+  if(L>=4){X.SLOW=MFM.slow;X.SHOP=.74;X.GLOP=.86;}
+  if(L>=5){X.DMG=MFL.DMG*(1+MFM.hard*a[4]);X.WAVE=MFM.wave*a[4];}
+  X.LIFE=MFL.LIFE+(X.BURN||MFL.BURN)-MFL.BURN;
+  X.fx={impact:C=>mfmImpact(C,L,S),fall:(C,k,dt)=>mfmFall(C,L,S,k,dt),frame:(C,tt,dt,hit)=>mfmFrame(C,L,S,tt,dt,hit),land:(C,s,q)=>mfmLand(C,L,s,q),end:C=>{if(S.wv)nsFree(S.wv);}};
+  X.onImpact=H=>mfmLog({ev:'impact',H:H.slice(),x:S.tx,z:S.tz});X.onShard=(s,q)=>mfmLog({ev:'shard',q,aim:s.aim||null,x:s.m.position.x,z:s.m.position.z,goal:s.goal||null});
+  if(L>=4){S.slowed=new Map();X.onSlow=(e,v)=>{if(!(S.slowed.get(e)>=v))S.slowed.set(e,v);};}X.onWave=e=>mfmLog({ev:'wave',e,d:Math.hypot(e.x-S.tx,e.z-S.tz)});
+  X.onEnd=()=>{if(S.slowed)mfmLog({ev:'slow',S:[...S.slowed]});mfmLog({ev:'end'});};
+  const N={};for(const k in X)if(typeof X[k]==='number')N[k]=X[k];mfmLog({ev:'cast',L,X:N});return X;}
+function mfmImpact(C,L,S){S.tx=C.tx;S.tz=C.tz;
+  /* M3: the shards glow hotter */
+  if(L>=3){const hm=mfmHotMat(C);S.cool=mfmHotMat(C,true);C.cool=S.cool;for(const s of C.shards)s.m.material=hm;}
+  /* M5: the wave of blood, with height, rides the far wave */
+  if(L>=5){S.wv=mfmWave(C);if(typeof sfxBoom==='function')sfxBoom(.45,false);}}
+/* M4: the falling moon's shadow presses down on the foes under it: dust kicked up at their feet */
+function mfmFall(C,L,S,k,dt){if(L<4||!(dt>0)||!S.slowed)return;for(const [e,v] of S.slowed){if(e.dead||rnd()>dt*7*v)continue;const a=rnd()*6.28;
+  emit(0,{x:e.x+Math.cos(a)*.15,y:gy(e.x,e.z)+.04,z:e.z+Math.sin(a)*.15,vx:Math.cos(a)*.5,vy:.15+rnd()*.2,vz:Math.sin(a)*.5,s:.08,s2:.24,c:0x7a5a4a,c2:0x3a2620,a:.5,life:.6,turb:.3});}}
+function mfmFrame(C,L,S,tt,dt,hit){
+  /* M3: short ember trails behind the hot shards while they fly */
+  if(L>=3&&hit&&dt>0)for(const s of C.shards){if(s.land){const u=s.t-s.lt;if(u>.35&&s.m.scale.x>.004){s.m.scale.multiplyScalar(Math.max(0,1-dt*4.5));if(rnd()<dt*5){const p=s.m.position;emitS(0,{x:p.x,y:p.y,z:p.z,vx:0,vy:.25,vz:0,s:.12,s2:.35,c:0x3a1410,c2:0x140806,a:.35,life:.8,lift:.2,turb:.4});}}continue;}if(s.t>2)continue;const p=s.m.position;emit(1,{x:p.x,y:p.y,z:p.z,vx:-s.v.x*.08,vy:.2-s.v.y*.08,vz:-s.v.z*.08,s:.09,s2:0,c:0xffc890,c2:0xa01008,life:.28+rnd()*.1});}
+  /* M5: the wave rolls out on bmWave's front, highest as it leaves the impact, lower as it spends itself */
+  if(L>=5&&hit&&S.wv){const a=tt-C.TI,T=MFL.WAVE_T,W=S.wv,U=W.material.uniforms;if(a>T+.25){nsFree(W);S.wv=null;return;}const k=Math.min(1,a/T),r=C.R*MFL.WAVE_R*Math.min(1,.97*(1-Math.pow(1-k,3))+.05),h=.95*(1-.5*k)*Math.min(1,a/.12);
+    U.uR.value=Math.max(.05,r-.3*h);U.uH.value=Math.max(.01,h);U.uT.value=a;U.uA.value=Math.min(1,a/.1)*(1-SMS(a,T*.6,T+.2));
+    /* blood thrown off its crest */
+    if(dt>0&&a<T*.8)for(let i=0;i<8;i++){const b=rnd()*6.283,x=C.tx+Math.cos(b)*r,z=C.tz+Math.sin(b)*r,y=gy(x,z)+h*(.8+rnd()*.3);
+      emit(0,{x,y,z,vx:Math.cos(b)*(1.2+rnd()*1.4),vy:1+rnd()*1.4,vz:Math.sin(b)*(1.2+rnd()*1.4),s:.1,s2:.04,c:0xb01420,c2:0x3a0206,a:.92,life:.55+rnd()*.3,g:7});}}}
+/* M3: where a shard lands, a little burst of sparks and dust (bigger, with blood, when it strikes a foe) */
+function mfmLand(C,L,s,q){if(L<3)return;const p=s.m.position,y=gy(p.x,p.z);s.m.material=C.cool||C.mm;s.lt=s.t;   /* it cools, then crumbles (mfmFrame) */
+  sprayP(1,p.x,y+.06,p.z,q?14:8,{c:0xffe0b0,c2:0xff3010,sp:q?1.6:1.1,up:1.8,s:.06,s2:0,life:.45,g:5,r:.05});flash(p.x,y+.15,p.z,0xff6a30,q?.45:.3,.14);
+  emitS(0,{x:p.x,y:y+.1,z:p.z,vx:0,vy:.35,vz:0,s:.18,s2:.55,c:0x4a1a14,c2:0x1a0806,a:.4,life:.9,lift:.2,turb:.4});
+  if(q){const h=tpos2(q);sprayP(0,h.x,h.y,h.z,8,{c:0xb0101a,c2:0x3a0206,sp:1.1,up:.9,s:.05,s2:.02,a:.95,life:.5,g:6});}}
+const MFM_OLD=castMoonfall;
+castMoonfall=function(t,list,P,o,XO){const c=!XO?mfmC(o):null,X=c?mfmOpts(c):XO;MFM.busy=Math.max(MFM.busy>time+15?0:MFM.busy,time+((X&&X.LIFE)||MFL.LIFE));return MFM_OLD(t,list,P,o,X);};
+/* the mastery preview waits for the crater to cool (the cast outlives its cineLock) */
+SMPV_BUSY.push(()=>MFM.busy>time&&MFM.busy-time<15);
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
