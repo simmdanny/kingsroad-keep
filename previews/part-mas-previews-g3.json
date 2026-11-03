@@ -48,5 +48,59 @@
    "lunge": 3,
    "bite": 18
   }
+ },
+ "abyss-5": {
+  "k": "abyss",
+  "L": 5,
+  "len": 9.5,
+  "seed": 1,
+  "bytes": 3730332,
+  "note": "Halfway through the eldest leviathan bursts up out of the deep and joins the hunt (the clip joins it there).",
+  "ev": {
+   "opts": 1,
+   "elder": 1,
+   "drown": 180,
+   "lunge": 7,
+   "bite": 42,
+   "rise": 1,
+   "wave": 6
+  }
+ },
+ "abyss-4": {
+  "k": "abyss",
+  "L": 4,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 3850917,
+  "note": "A foe a leviathan bites drowns 50% faster, a column of bubbles rising from it.",
+  "ev": {
+   "opts": 1,
+   "drown": 96,
+   "lunge": 4,
+   "bite": 24
+  }
+ },
+ "citadel-0": {
+  "k": "citadel",
+  "L": 0,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 3445352,
+  "note": "The domain rises and its cuts begin (the first 13 seconds of the cast)."
+ },
+ "citadel-1": {
+  "k": "citadel",
+  "L": 1,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 3425989,
+  "note": "The foes are spread out: the domain reaches 6 tiles.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "aim": 16,
+   "act": 1,
+   "cut": 15
+  }
  }
 }
