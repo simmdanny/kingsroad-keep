@@ -238,8 +238,8 @@ async function recordClip(P, k, L, frameDir, seed, cam, s0) {
   return { frames: n, len: n / FPS, probe, cam: frame || true, dry, evs, evAt };
 }
 
-function encode(frameDir, out) {
-  execFileSync('ffmpeg', ['-v', 'error', '-y', '-framerate', String(FPS), '-i', path.join(frameDir, '%04d.jpg'), '-c:v', 'libx264', '-preset', 'slow', '-crf', String(SC.crf || 26),
+function encode(frameDir, out, crf) {
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-framerate', String(FPS), '-i', path.join(frameDir, '%04d.jpg'), '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf || SC.crf || 26),
     '-pix_fmt', 'yuv420p', '-profile:v', 'main', '-movflags', '+faststart', '-an', out]);
 }
 function sheet(frameDir, n, out) {
@@ -285,7 +285,7 @@ if (require.main === module) (async () => {
         /* the recorded run must be the run the camera was planned on: the same moments at the same times */
         const drift = Object.keys(d.evAt || {}).filter(e => r.evAt && r.evAt[e] != null && Math.abs(r.evAt[e] - d.evAt[e]) > .05);
         if (drift.length) console.log(`   ${id}: the recorded run drifted from the planned one (${drift.slice(0, 4).map(e => e + ' ' + d.evAt[e] + '->' + r.evAt[e]).join(', ')})`);
-        encode(fd, path.join(OUT, id + '.mp4'));
+        encode(fd, path.join(OUT, id + '.mp4'), s.crf);
         if (sheets) { fs.mkdirSync(path.join(OUT, '_sheets'), { recursive: true }); sheet(fd, r.frames, path.join(OUT, '_sheets', id + '.jpg')); }
         const sz = fs.statSync(path.join(OUT, id + '.mp4')).size;
         man.clips[id] = { k, L, len: +r.len.toFixed(2), seed, bytes: sz, note: s.note || '' };

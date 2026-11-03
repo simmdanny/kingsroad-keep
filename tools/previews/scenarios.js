@@ -268,7 +268,7 @@ const S = {
     5: { probe: "EWM.dbg.some(d=>d.ev==='plates')", note: 'The shatter wave strikes 1500%: the ice sheet bursts up as it breaks.' } },
   aeon: {
     /* the dial turns for about 20s: the clips are windows of it */
-    base: { dbg: 'AEM', from: 1.2, len: 13.2, cap: 13, probe: "AEM.dbg.some(d=>d.ev==='pass')" },
+    base: { zmin: .78, zmax: 1.05, dbg: 'AEM', from: 1.2, len: 13.2, cap: 13, probe: "AEM.dbg.some(d=>d.ev==='pass')" },
     0: { probe: null, note: 'The dial forms and its great hand starts to turn (the first 12 seconds of the cast).' },
     1: { note: 'Each pass of the great hand takes 2% of a foe’s max health.' },
     2: { note: 'Each pass ages the foes slower, up to 50%.' },
@@ -309,7 +309,7 @@ const S = {
     5: { cap: 16, trail: TRAIL, note: 'The final strike hits 1260% within 3.2 tiles; the crater stays live longer.' } },
   abyss: {
     /* the sea stands about 20s: windows of it */
-    base: { dbg: 'ABM', hp: 200, from: 1.2, len: 14, cap: 13.5, sky: 3, probe: "ABM.dbg.some(d=>d.ev==='bite')" },
+    base: { zmin: .78, zmax: 1.05, dbg: 'ABM', hp: 200, from: 1.2, len: 14, cap: 13.5, sky: 3, probe: "ABM.dbg.some(d=>d.ev==='bite')" },
     0: { probe: null, note: 'The sea rises over the field and its leviathans hunt (the first 13 seconds of the cast).' },
     1: { note: 'Foes drown faster: streams of bubbles rise off every one.' },
     2: { spd: .5, note: 'The pack walks on: the sea slows it 70%.' },
@@ -317,7 +317,7 @@ const S = {
     4: { probe: "ABM.dbg.some(d=>d.ev==='bite')", note: 'A foe a leviathan bites drowns 50% faster, a column of bubbles rising from it.' },
     5: { from: null, len: null, cap: 26, probe: "ABM.dbg.some(d=>d.ev==='rise')", focus: { ev: 'rise', before: 1.5, after: 8 }, note: 'Halfway through the eldest leviathan bursts up out of the deep and joins the hunt (the clip joins it there).' } },
   citadel: {
-    base: { dbg: 'CIM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "CIM.dbg.some(d=>d.ev==='cut')" },
+    base: { zmin: .78, zmax: 1.05, dbg: 'CIM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "CIM.dbg.some(d=>d.ev==='cut')" },
     0: { probe: null, note: 'The domain rises and its cuts begin (the first 13 seconds of the cast).' },
     1: { pack: PACK.map(p => Object.assign({}, p, { at: p.at * 2.4, off: p.off * 1.5 })), note: 'The foes are spread out: the domain reaches 6 tiles.' },
     2: { note: 'Each cut strikes harder, and harder in its wake.' },
@@ -325,7 +325,7 @@ const S = {
     4: { note: 'Each cut aims at the foe nearest the keep no cut has struck yet, and throws it back.' },
     5: { from: null, len: null, cap: 24, probe: "CIM.dbg.some(d=>d.ev==='snap')", focus: { ev: 'snap', before: 2.5, after: 3.5 }, note: 'The final fracture tears across the domain (the clip joins it near its end).' } },
   expanse: {
-    base: { dbg: 'IVM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "IVM.dbg.some(d=>d.ev==='cut')" },
+    base: { zmin: .78, zmax: 1.05, dbg: 'IVM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "IVM.dbg.some(d=>d.ev==='cut')" },
     0: { probe: null, note: 'The void swallows the land and its cuts begin (the first 13 seconds of the cast).' },
     1: { note: 'Every cut strikes harder, with wider, whiter strokes.' },
     2: { pack: BIG, note: 'Eleven foes: more cuts a second.' },
@@ -333,7 +333,7 @@ const S = {
     4: { len: 15, pack: PACK.map((p, j) => j < 4 ? Object.assign({}, p, { frac: .25, tag: 'Worn down', tc: TAG.hp1 }) : p), probe: "IVM.dbg.some(d=>d.ev==='erase')", note: 'Four foes are worn down: a cut leaves them under 15%, and they are erased.' },
     5: { hp: 400, from: null, len: null, cap: 30, probe: "IVM.dbg.some(d=>d.ev==='great')", focus: { ev: 'great', before: 1.5, after: 5 }, note: 'In the last 3 seconds great screen-wide cuts, then one last cut on every foe as reality returns (the clip joins it there).' } },
   firsttree: {
-    base: { dbg: 'ETM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "ETM.dbg.some(d=>d.ev==='erupt')" },
+    base: { zmin: .78, zmax: 1.05, dbg: 'ETM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "ETM.dbg.some(d=>d.ev==='erupt')" },
     0: { probe: null, note: 'The tree rises and its roots begin to burst (the first 13 seconds of the cast).' },
     1: { note: 'Each eruption reaches further, with more root spikes.' },
     2: { note: 'The roots drink twice as much; motes of life fly to the trunk.' },
@@ -341,7 +341,7 @@ const S = {
     4: { len: 16, pack: PACK.map((p, j) => j < 3 ? Object.assign({}, p, { frac: .3, tag: 'Worn down', tc: TAG.hp1 }) : p), probe: "ETM.dbg.some(d=>d.ev==='swallow')", note: 'Three foes are worn down: the roots leave them under 20% and drag them under the earth.' },
     5: { from: null, len: null, cap: 30, probe: "ETM.dbg.some(d=>d.ev==='bloom')", focus: { ev: 'bloom', before: 2.5, after: 4 }, note: 'The world in bloom: the bloom strikes harder for every foe the roots drank from (the clip joins it there).' } },
   never: {
-    base: { dbg: 'NVM', hp: 120, cap: 13.5, from: 1.2, len: 14, sky: 3, probe: "NVM.dbg.some(d=>d.ev==='star')" },
+    base: { zmin: .78, zmax: 1.05, dbg: 'NVM', hp: 120, cap: 13.5, from: 1.2, len: 14, sky: 3, probe: "NVM.dbg.some(d=>d.ev==='star')" },
     0: { probe: null },
     1: { note: 'A shooting star every 0.36s, splashing wider.' },
     2: { note: 'Time stands still longer, and the foes held in it take 50% more.' },
@@ -357,7 +357,7 @@ const S = {
     4: { probe: "TPM.dbg.some(d=>d.ev==='wall')", note: 'The lightning racing round the eye wall strikes the foes it passes.' },
     5: { from: null, len: null, cap: 24, trail: TRAIL, probe: "TPM.dbg.some(d=>d.ev==='fin')", focus: { ev: 'fin', before: 2, after: 3.5 }, note: 'The last thunder, and the hero’s fall rolls out over the whole field (the clip joins it there).' } },
   purgatory: {
-    base: { dbg: 'PGM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "PGM.dbg.some(d=>d.ev==='cut')" },
+    base: { zmin: .78, zmax: 1.05, dbg: 'PGM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "PGM.dbg.some(d=>d.ev==='cut')" },
     0: { probe: null, note: 'The judgment gathers round the hero and its cuts begin (the first 13 seconds of the cast).' },
     1: { pack: PACK.map(p => Object.assign({}, p, { at: p.at * 2.2 })), note: 'The foes are spread along the road: the judgment reaches further.' },
     2: { from: 9.5, len: 20, cap: 11, note: 'The last stage begins at 13s and cuts faster (the clip joins it there).' },
@@ -444,5 +444,5 @@ exports.ancient = () => ['abyss', 'citadel', 'expanse', 'firsttree', 'never', 't
 exports.secret = () => ['bloodneedles', 'bloodeye', 'moonfall', 'constellation', 'bloodcurse', 'pulsar', 'singularity', 'wormhole'];
 const EL = new Set(exports.epic().concat(exports.legendary()));
 const HI = new Set(exports.mythic().concat(exports.ancient(), exports.secret()));
-exports.get = (k, L) => { const s = S[k] || {}; return Object.assign({}, DEF, EL.has(k) ? { hp: 30 } : {}, HI.has(k) ? { hp: 60, cap: 14, live: true } : {}, s.base || {}, s[L] || {}); };
+exports.get = (k, L) => { const s = S[k] || {}; return Object.assign({}, DEF, EL.has(k) ? { hp: 30 } : {}, HI.has(k) ? { hp: 60, cap: 14, live: true, crf: 29 } : {}, s.base || {}, s[L] || {}); };
 exports.S = S; exports.TAG = TAG;
