@@ -8202,38 +8202,50 @@ function myLance(mats,geos,len,w){w=w||1;const g=new THREE.Group();const sh=new 
   const fm=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.95,depthWrite:false,side:THREE.DoubleSide});mats.push(fm);const fg=myFeatherGeo(.62*w,.12*w,1.05);geos.push(fg);
   for(let i=0;i<4;i++){const q=new THREE.Group(),p=new THREE.Group(),m=new THREE.Mesh(fg,fm);m.rotation.z=.5;p.rotation.x=-Math.PI/2;p.add(m);q.add(p);q.rotation.z=i*Math.PI/2+Math.PI/4;q.position.z=len/2-.05;g.add(q);}
   const hg=new THREE.CylinderGeometry(.09*w,.09*w,len+1.2,8,1,true);hg.rotateX(Math.PI/2);geos.push(hg);g.add(new THREE.Mesh(hg,nsAM(mats,0xffd878,.2)));return g;}
-function castSeraphLance(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.fake),cand=list.filter(e=>!e.fake&&!e.dead),all=cand.length?cand:pool;
+/* v456: XO (optional, Lance of the Seraph's masteries): this cast's numbers over SLD: LN and LW, the great lance's length and width; MAIN,
+   its strike; BLAST and BLR, the impact's strike and reach; COL and COL2, the column of light's radii; PILR, PILH and PILW, the ring of
+   pillars' radius, height and thickness; RUNE, the rune's radius; SW, the outer shockwave's; N, the lances that leave the wings; SMALL, SPL
+   and SPLR, a lance's strike, the strike around it and its reach; SLN and SLW, a lance's length and width; BMR and BMH, the beam where it
+   lands; HOLD and SHOLD, how long the great lance and each lance hold their foe (stunE, so Resolve applies; with SHOLD a lance stays
+   standing in its foe while it holds it); LIFE; TRL and STRL, the trails' layers. Its looks: org(i), where lance i leaves the wings (seraph
+   space), and fx.build/frame/impact/land/stand/end (the masteries' own pieces); its log: log(d). Without XO: exactly as before. */
+const SLD={LN:3.4,LW:1.25,MAIN:35,BLAST:8,BLR:3.2,COL:.6,COL2:.18,PILR:2.4,PILH:4.5,PILW:1,RUNE:2.6,SW:3.4,N:6,SMALL:12,SPL:2.5,SPLR:.8,SLN:1.7,SLW:.8,BMR:.11,BMH:8,HOLD:0,SHOLD:0,LIFE:6,
+  TRL:[[0xffc860,.45,.34],[0xffffff,.85,.1]],STRL:[[0xffc860,.4,.18],[0xffffff,.8,.05]]};
+function castSeraphLance(t,list,P,o,XO){const D=XO?Object.assign({},SLD,XO):SLD,F=D.fx||null,LG=D.log||null;const pool=enemies.filter(e=>!e.dead&&!e.fake),cand=list.filter(e=>!e.fake&&!e.dead),all=cand.length?cand:pool;
   const mark=all.length?all.reduce((b,e)=>nsStrong(e)>nsStrong(b)?e:b):list[0];let mx=mark.x,mz=mark.z;
   const mats=[],geos=[],S=mySeraph(mats,geos);S.g.position.set(mx,gy(mx,mz)+4.6,mz-2.3);S.g.scale.setScalar(.001);nsOwn(S.g);const sy=S.g.position.y;
   /* it turns to the camera once, leaning back a little, and then keeps that place in the world */
   {const cv=new THREE.Vector3().subVectors(camera.position,S.g.position),el=Math.atan2(cv.y,Math.hypot(cv.x,cv.z));S.g.rotation.set(-el*.5,Math.atan2(cv.x,cv.z),0,'YXZ');}
   const lpool=new THREE.Mesh(myGlowDisc(3.4,0xffd27a,geos),myVC(mats,0));lpool.rotation.x=-Math.PI/2;lpool.position.set(mx,gy(mx,mz-2.3)+.05,mz-2.3);lpool.renderOrder=2;nsOwn(lpool);
-  const LN=3.4,lance=myLance(mats,geos,LN,1.25);lance.scale.setScalar(.001);nsOwn(lance);const ltr=nsTrail(mats,[[0xffc860,.45,.34],[0xffffff,.85,.1]]);
+  const LN=D.LN,lance=myLance(mats,geos,LN,D.LW);lance.scale.setScalar(.001);nsOwn(lance);const ltr=nsTrail(mats,D.TRL);
   const plume=new THREE.Group();nsOwn(plume);const pfm=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide});mats.push(pfm);const pfg=myFeatherGeo(.42,.08,1);geos.push(pfg);const plumes=[];
   cineLock=Math.max(cineLock,4.8);darkTarget=Math.max(darkTarget,.45);vigTarget=Math.max(vigTarget,.38);if(typeof sfxWind==='function')sfxWind(2,.15);
   const T0=1.9,TF=.2,lp=new THREE.Vector3(),lt=new THREE.Vector3(),tmp=new THREE.Vector3(),small=[];let tt=0,thrown=false,hitMain=false,fly=0,stuckT=0;
+  const C=F?{S,lance,ltr,lt,small,mark,mats,geos,D,hm:null,tt:0,thrown:false,hit:false,stuck:0}:null;if(F&&F.build)F.build(C);
   /* the verdict: the great lance lands, a column of light falls on it, then six lances fall on the next strongest foes */
   const verdict=(x,z)=>{const y=gy(x,z);worldSlow=.25;slowT=.32;camShake=Math.max(camShake,.6);flashA=Math.max(flashA,.55);flashCol='#fff7d8';if(typeof sfxBoom==='function')sfxBoom(.7,false);
-    if(!mark.dead&&(mark.x-x)**2+(mark.z-z)**2<1)hurt(mark,P*35,'magic',o);else{let b=null,bd=1.2;for(const e of enemies){if(e.dead)continue;const d=Math.hypot(e.x-x,e.z-z);if(d<bd){bd=d;b=e;}}if(b)hurt(b,P*35,'magic',o);}
-    for(const e of enemies){if(e.dead)continue;if((e.x-x)**2+(e.z-z)**2<3.2*3.2)hurt(e,P*8,'magic',o);}
-    flash(x,y+.8,z,0xfff4d0,1.3,.3);shockwave(x,z,3.4,0xffe08a,.6,0x3a2a08);shockwave(x,z,1.8,0xffffff,.4,0x5a4a18);sprayP(1,x,y+.3,z,70,{c:0xffffff,c2:0xffc040,sp:4,up:1.6,s:.08,s2:0,life:.8,g:2,drag:.6});
+    let hm=null;if(!mark.dead&&(mark.x-x)**2+(mark.z-z)**2<1){hm=mark;hurt(mark,P*D.MAIN,'magic',o);}else{let b=null,bd=1.2;for(const e of enemies){if(e.dead)continue;const d=Math.hypot(e.x-x,e.z-z);if(d<bd){bd=d;b=e;}}if(b){hm=b;hurt(b,P*D.MAIN,'magic',o);}}
+    const bl=[];for(const e of enemies){if(e.dead)continue;if((e.x-x)**2+(e.z-z)**2<D.BLR*D.BLR){bl.push(e);hurt(e,P*D.BLAST,'magic',o);}}
+    const hh=hm&&D.HOLD?stunE(hm,D.HOLD):0;if(C)C.hm=hm;if(LG)LG({ev:'impact',x,z,hm,bl,hold:hh});
+    flash(x,y+.8,z,0xfff4d0,1.3,.3);shockwave(x,z,D.SW,0xffe08a,.6,0x3a2a08);shockwave(x,z,1.8,0xffffff,.4,0x5a4a18);sprayP(1,x,y+.3,z,70,{c:0xffffff,c2:0xffc040,sp:4,up:1.6,s:.08,s2:0,life:.8,g:2,drag:.6});
     /* the column of light from the sky and the burst of light on the ground */
     const vm=[],vg=[],col=new THREE.Group();col.position.set(x,y,z);scene.add(col);
-    const cg=myFadeUp(new THREE.CylinderGeometry(.6,.6,16,28,6,true).translate(0,8,0),0xfff0c0);vg.push(cg);const cm=myVC(vm,.55),cmesh=new THREE.Mesh(cg,cm);col.add(cmesh);
-    const cg2=myFadeUp(new THREE.CylinderGeometry(.18,.18,16,16,6,true).translate(0,8,0),0xffffff);vg.push(cg2);const cm2=myVC(vm,1),cmesh2=new THREE.Mesh(cg2,cm2);col.add(cmesh2);
+    const cg=myFadeUp(new THREE.CylinderGeometry(D.COL,D.COL,16,28,6,true).translate(0,8,0),0xfff0c0);vg.push(cg);const cm=myVC(vm,.55),cmesh=new THREE.Mesh(cg,cm);col.add(cmesh);
+    const cg2=myFadeUp(new THREE.CylinderGeometry(D.COL2,D.COL2,16,16,6,true).translate(0,8,0),0xffffff);vg.push(cg2);const cm2=myVC(vm,1),cmesh2=new THREE.Mesh(cg2,cm2);col.add(cmesh2);
     const dm=myVC(vm,.85),disc=new THREE.Mesh(myGlowDisc(3.6,0xffe2a0,vg),dm);disc.rotation.x=-Math.PI/2;disc.position.y=.06;col.add(disc);
-    for(let i=0;i<10;i++){const a=i/10*6.283,pg=myFadeUp(new THREE.CylinderGeometry(.05,.07,4.5,6,4,true).translate(0,2.25,0),0xfff0c0);vg.push(pg);const pc=new THREE.Mesh(pg,cm2);pc.position.set(Math.cos(a)*2.4,gy(x+Math.cos(a)*2.4,z+Math.sin(a)*2.4)-y,Math.sin(a)*2.4);pc.userData.d=i*.03;pc.scale.set(1,.001,1);col.add(pc);}
+    for(let i=0;i<10;i++){const a=i/10*6.283,pg=myFadeUp(new THREE.CylinderGeometry(.05*D.PILW,.07*D.PILW,D.PILH,6,4,true).translate(0,D.PILH/2,0),0xfff0c0);vg.push(pg);const pc=new THREE.Mesh(pg,cm2);pc.position.set(Math.cos(a)*D.PILR,gy(x+Math.cos(a)*D.PILR,z+Math.sin(a)*D.PILR)-y,Math.sin(a)*D.PILR);pc.userData.d=i*.03;pc.scale.set(1,.001,1);col.add(pc);}
     let ct=0;addFx(col,1.6,(f,dt)=>{ct+=dt;const k=Math.min(1,ct/.12);const wc=.35+1.5*(1-Math.min(1,ct/.45))*k;cmesh.scale.set(wc,1,wc);cm.opacity=.55*(1-SMS(ct,.3,1.3));cm2.opacity=.85*(1-SMS(ct,.45,1.3));
       disc.scale.setScalar(.35+.65*(1-Math.pow(1-Math.min(1,ct/.35),3)));dm.opacity=.7*(1-SMS(ct,.25,1.2));
       col.children.forEach(c=>{if(c.userData.d==null)return;const kk=SMS(ct,c.userData.d,c.userData.d+.15);c.scale.set(1+ct*.6,Math.max(.001,kk),1+ct*.6);});},null,{mats:vm,geos:vg});
-    const gr=makeRune(2.6,0xffd060,{star:8,step:3,glyphs:28,fill:.2,fillCol:0x3a2a08});gr.position.set(x,y+.03,z);nsOwn(gr);gr.userData.fade(.9);let gt=0;
+    const gr=makeRune(D.RUNE,0xffd060,{star:8,step:3,glyphs:28,fill:.2,fillCol:0x3a2a08});gr.position.set(x,y+.03,z);nsOwn(gr);gr.userData.fade(.9);let gt=0;
     addFx(new THREE.Group(),2.8,(f,dt)=>{gt+=dt;gr.userData.fade(.9*(1-SMS(gt,.8,2.8)));gr.rotation.y+=dt*.4;},()=>nsFree(gr),{mats:gr.userData.mats,geos:gr.userData.geos});
     /* the wings shed golden feathers that drift down over the field */
     S.g.updateMatrixWorld();for(let i=0;i<22;i++){const m=new THREE.Mesh(pfg,pfm),s=rnd()<.5?-1:1;tmp.set(s*(.6+rnd()*3.6),(rnd()-.3)*2.4,0).applyMatrix4(S.g.matrixWorld);m.position.copy(tmp);m.rotation.set(rnd()*6,rnd()*6,rnd()*6);plume.add(m);
       plumes.push({m,vy:-.5-rnd()*.5,vx:(rnd()-.5)*.6,vz:(rnd()-.5)*.6+.3,ph:rnd()*6,sp:1.5+rnd()*1.5});}
-    const others=enemies.filter(e=>!e.dead&&!e.fake&&e!==mark&&(e.x-x)**2+(e.z-z)**2<100).sort((a,b)=>nsStrong(b)-nsStrong(a)).slice(0,6);
-    for(let i=0;i<6;i++){const tg=others.length?others[i%others.length]:null,g=myLance(mats,geos,1.7,.8);g.scale.setScalar(.001);nsOwn(g);small.push({g,tg,tr:nsTrail(mats,[[0xffc860,.4,.18],[0xffffff,.8,.05]]),born:tt+.35+i*.14,fly:0,done:false,sx:0,sy:0,sz:0,ex:x+(rnd()-.5)*4,ez:z+(rnd()-.5)*4,ang:(i<3?-1:1)*(.9+(i%3)*.45)});}};
-  addFx(new THREE.Group(),6,(f,dt)=>{if(state!=='playing'){f.life=0;return;}tt+=dt;const op=SMS(tt,0,.5)*(1-SMS(tt,4.6,5.6));S.g.scale.setScalar(Math.max(.001,1.1*SMS(tt,0,.6)));S.g.position.y=sy+.12*Math.sin(tt*1.6)+2.2*SMS(tt,4.6,5.9);lpool.material.opacity=.45*op;
+    if(F&&F.impact)F.impact(C,x,y,z);
+    const others=enemies.filter(e=>!e.dead&&!e.fake&&e!==mark&&(e.x-x)**2+(e.z-z)**2<100).sort((a,b)=>nsStrong(b)-nsStrong(a)).slice(0,D.N);
+    for(let i=0;i<D.N;i++){const tg=others.length?others[i%others.length]:null,g=myLance(mats,geos,D.SLN,D.SLW);g.scale.setScalar(.001);nsOwn(g);small.push({i,g,tg,tr:nsTrail(mats,D.STRL),born:tt+.35+i*.14,fly:0,done:false,sx:0,sy:0,sz:0,ex:x+(rnd()-.5)*4,ez:z+(rnd()-.5)*4,ang:(i<3?-1:1)*(.9+(i%3)*.45),org:D.org&&i>=6?D.org(i):null});}};
+  addFx(new THREE.Group(),D.LIFE,(f,dt)=>{if(state!=='playing'){f.life=0;return;}tt+=dt;const op=SMS(tt,0,.5)*(1-SMS(tt,4.6,5.6));S.g.scale.setScalar(Math.max(.001,1.1*SMS(tt,0,.6)));S.g.position.y=sy+.12*Math.sin(tt*1.6)+2.2*SMS(tt,4.6,5.9);lpool.material.opacity=.45*op;
     /* the wings unfold feather by feather from a closed bud, then breathe */
     /* the wings open from a closed sweep, beat slowly, and thrust forward as it throws */
     const fl=Math.sin(tt*2.2),thr=SMS(tt,T0-.35,T0)*(1-SMS(tt,T0+.1,T0+.7)),ko=SMS(tt,.05,.9);
@@ -8251,20 +8263,23 @@ function castSeraphLance(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.fa
     if(thrown&&!hitMain){fly+=dt;const k=Math.min(1,fly/TF);lance.position.lerpVectors(lp,lt,k*k);ltr.push(lance.position,10);ltr.draw(1);ltr.fade(1);
       if(dt>0)for(let i=0;i<6;i++)emit(1,{x:lance.position.x+(rnd()-.5)*.2,y:lance.position.y+(rnd()-.5)*.2,z:lance.position.z+(rnd()-.5)*.2,vx:0,vy:0,vz:0,s:.14,s2:0,c:0xffffff,c2:0xffb030,life:.35});
       if(k>=1){hitMain=true;verdict(lt.x,lt.z);}}
-    if(hitMain){stuckT+=dt;ltr.fade(Math.max(0,1-stuckT/.35));lance.scale.setScalar(Math.max(.001,1.25*(1-SMS(stuckT,1.6,2.6))));if(dt>0&&rnd()<.6)emit(1,{x:lt.x+(rnd()-.5)*.4,y:lt.y+rnd()*1.5,z:lt.z+(rnd()-.5)*.4,vx:0,vy:.6,vz:0,s:.06,s2:0,c:0xfff4d0,c2:0xffb030,life:.8});}
-    /* the six lances: they leave the wings, take aim and fall */
-    for(const s of small){if(s.done){if(s.tf<1){s.tf=Math.min(1,s.tf+dt/.3);s.tr.fade(1-s.tf);}continue;}if(tt<s.born-.3)continue;const tx=s.tg&&!s.tg.dead?s.tg.x:s.ex,tz=s.tg&&!s.tg.dead?s.tg.z:s.ez;
-      if(tt<s.born){S.g.updateMatrixWorld();tmp.set(Math.sin(s.ang)*2.6,Math.cos(s.ang)*1.4+.4,0).applyMatrix4(S.g.matrixWorld);s.g.position.copy(tmp);s.g.scale.setScalar(Math.max(.001,SMS(tt,s.born-.3,s.born)));s.g.lookAt(tx,gy(tx,tz)+.2,tz);s.sx=tmp.x;s.sy=tmp.y;s.sz=tmp.z;continue;}
+    if(hitMain){stuckT+=dt;ltr.fade(Math.max(0,1-stuckT/.35));const sk=Math.max(1.6,D.HOLD+.3);lance.scale.setScalar(Math.max(.001,1.25*(1-SMS(stuckT,sk,sk+1))));if(dt>0&&rnd()<.6)emit(1,{x:lt.x+(rnd()-.5)*.4,y:lt.y+rnd()*1.5,z:lt.z+(rnd()-.5)*.4,vx:0,vy:.6,vz:0,s:.06,s2:0,c:0xfff4d0,c2:0xffb030,life:.8});}
+    if(C){C.tt=tt;C.thrown=thrown;C.hit=hitMain;C.stuck=stuckT;if(F.frame)F.frame(C,tt,dt);}
+    /* the six lances: they leave the wings, take aim and fall (with SHOLD, each stays standing in its foe while it holds it) */
+    for(const s of small){if(s.done){if(s.st!=null&&!s.gone){s.st-=dt;const k=s.st>0?1:Math.max(0,1+s.st/.25);s.g.scale.setScalar(Math.max(.001,k));if(F&&F.stand)F.stand(C,s,dt,k);if(k<=0){s.gone=true;nsFree(s.g);}}
+        if(s.tf<1){s.tf=Math.min(1,s.tf+dt/.3);s.tr.fade(1-s.tf);}continue;}if(tt<s.born-.3)continue;const tx=s.tg&&!s.tg.dead?s.tg.x:s.ex,tz=s.tg&&!s.tg.dead?s.tg.z:s.ez;
+      if(tt<s.born){S.g.updateMatrixWorld();if(s.org)tmp.set(s.org[0],s.org[1],s.org[2]);else tmp.set(Math.sin(s.ang)*2.6,Math.cos(s.ang)*1.4+.4,0);tmp.applyMatrix4(S.g.matrixWorld);s.g.position.copy(tmp);s.g.scale.setScalar(Math.max(.001,SMS(tt,s.born-.3,s.born)));s.g.lookAt(tx,gy(tx,tz)+.2,tz);s.sx=tmp.x;s.sy=tmp.y;s.sz=tmp.z;continue;}
       s.fly+=dt;const k=Math.min(1,s.fly/.22),q=k*k;s.g.position.set(s.sx+(tx-s.sx)*q,s.sy+(gy(tx,tz)+.2-s.sy)*q,s.sz+(tz-s.sz)*q);s.tr.push(s.g.position,8);s.tr.draw(1);s.tr.fade(1);
       if(dt>0)emit(1,{x:s.g.position.x,y:s.g.position.y,z:s.g.position.z,vx:0,vy:0,vz:0,s:.1,s2:0,c:0xffffff,c2:0xffb030,life:.3});
-      if(k>=1){s.done=true;s.tf=0;nsFree(s.g);if(s.tg&&!s.tg.dead)hurt(s.tg,P*12,'magic',o);for(const e of enemies){if(e.dead||e===s.tg)continue;if((e.x-tx)**2+(e.z-tz)**2<.8*.8)hurt(e,P*2.5,'magic',o);}
+      if(k>=1){s.done=true;s.tf=0;const tg=s.tg&&!s.tg.dead?s.tg:null,sp=[];if(tg)hurt(tg,P*D.SMALL,'magic',o);for(const e of enemies){if(e.dead||e===s.tg)continue;if((e.x-tx)**2+(e.z-tz)**2<D.SPLR*D.SPLR){sp.push(e);hurt(e,P*D.SPL,'magic',o);}}
+        const hd=tg&&D.SHOLD?stunE(tg,D.SHOLD):0;if(D.SHOLD>0){s.st=Math.max(.25,hd);s.tx=tx;s.tz=tz;}else nsFree(s.g);if(LG)LG({ev:'lance',i:s.i,tg,sp,hold:hd,g:s.g,org:s.org});
         const y=gy(tx,tz);flash(tx,y+.5,tz,0xfff0c0,.7,.2);ringFx(tx,y+.08,tz,1.1,0xffd060,.45);sprayP(1,tx,y+.2,tz,26,{c:0xffffff,c2:0xffc040,sp:2.4,up:1.2,s:.06,s2:0,life:.6,g:2});camShake=Math.max(camShake,.14);
-        const bm2=[],bg2=[],bc=myFadeUp(new THREE.CylinderGeometry(.11,.11,8,12,4,true).translate(0,4,0),0xfff0c0);bg2.push(bc);const bmm=myVC(bm2,.6),bme=new THREE.Mesh(bc,bmm);bme.position.set(tx,y,tz);scene.add(bme);let bt=0;
-        addFx(bme,.5,(f2,d2)=>{bt+=d2;const ws=1+1.2*(1-Math.min(1,bt/.25));bme.scale.set(ws,1,ws);bmm.opacity=.6*Math.max(0,1-bt/.5);},null,{mats:bm2,geos:bg2});}}
+        const bm2=[],bg2=[],bc=myFadeUp(new THREE.CylinderGeometry(D.BMR,D.BMR,D.BMH,12,4,true).translate(0,D.BMH/2,0),0xfff0c0);bg2.push(bc);const bmm=myVC(bm2,.6),bme=new THREE.Mesh(bc,bmm);bme.position.set(tx,y,tz);scene.add(bme);let bt=0;
+        addFx(bme,.5,(f2,d2)=>{bt+=d2;const ws=1+1.2*(1-Math.min(1,bt/.25));bme.scale.set(ws,1,ws);bmm.opacity=.6*Math.max(0,1-bt/.5);},null,{mats:bm2,geos:bg2});if(F&&F.land)F.land(C,s,tx,y,tz);}}
     /* drifting feathers */
     pfm.opacity=plumes.length?.95*(1-SMS(tt,4.4,5.8)):0;for(const p of plumes){p.m.position.x+=(p.vx+Math.sin(tt*p.sp+p.ph)*.5)*dt;p.m.position.y=Math.max(gy(p.m.position.x,p.m.position.z)+.05,p.m.position.y+p.vy*dt);p.m.position.z+=p.vz*dt;p.m.rotation.x+=dt*p.sp*.7;p.m.rotation.z=Math.sin(tt*p.sp+p.ph)*.8;}
     if(tt>5){darkTarget=Math.max(0,darkTarget-dt*.45);vigTarget=Math.max(0,vigTarget-dt*.45);}},
-    ()=>{nsFree(S.g);nsFree(lpool);nsFree(lance);nsFree(plume);ltr.free();small.forEach(s=>{if(!s.done)nsFree(s.g);s.tr.free();});darkTarget=0;vigTarget=0;},{mats:mats.concat(S.rune.userData.mats),geos:geos.concat(S.rune.userData.geos)});}
+    ()=>{nsFree(S.g);nsFree(lpool);nsFree(lance);nsFree(plume);ltr.free();small.forEach(s=>{nsFree(s.g);s.tr.free();});if(F&&F.end)F.end(C);darkTarget=0;vigTarget=0;},{mats:mats.concat(S.rune.userData.mats),geos:geos.concat(S.rune.userData.geos)});}
 
 /* ---- hooks ---- */
 Object.assign(NSP,{embertitan:(t,s,l,P,o)=>castEmberTitan(t,l,P,o),eternalwinter:(t,s,l,P,o)=>castEternalWinter(t,l,P,o),seraphlance:(t,s,l,P,o)=>castSeraphLance(t,l,P,o)});
@@ -14240,6 +14255,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Lance of the Seraph: the host of heaven',d:'2 Nov',v:'v456',li:[
+    'Lance of the Seraph (Mythic) has five new masteries, for now in developer mode. Still one seraph, one great lance and the lances from its wings: each mastery makes a part of the cast stronger and draws that part richer.',
+    'Star-Forged Lance: the great lance is forged longer and brighter, with a brighter trail, and lands in a wider column of light; it strikes 4200% (3500% before). Falling Star: its blast reaches 4 tiles (3.2) and strikes 900% (800%); the ring of pillars of light rises wider and taller, the rune beneath it grows and a dome of light swells over the blast.',
+    'Host of Lances: nine lances leave the wings (six before), the last three from the wing tips. Pinned by Light: the lances stay standing in their foes, glowing, and hold them there: the great lance 1.5s, each other lance 0.5s (Resolve applies, so bosses are held less).',
+    'Wrath of the Host: every lance from the wings strikes like a lesser great lance: 1500% (1200% before) and 350% around it (250%); the lances are larger, their trails brighter and their beams taller, and each lands with a small dome of light.']},
   {t:'Wrath of Gaia: the forest takes them down',d:'2 Nov',v:'v455',li:[
     'Wrath of Gaia (Mythic) has five new masteries, for now in developer mode. Still the forest that tears up along every road from the keep outward: each mastery makes a part the forest already has stronger and draws that part a little richer.',
     'Heartwood: each tree strikes for 650% (500% before) and reaches foes up to 1.05 tiles away (0.9 before); the trees pop up harder and the earth bursts wider at every trunk. Rooted Fast: struck foes are pinned 1.6s (1s before; bosses 0.6s, 0.4s before; Resolve applies) and Held 2.1s; thick roots splay from every trunk, the ground darker beneath.',
@@ -32794,6 +32814,94 @@ function wgmFx(C){const{D,spots,hit,hitOnce,cp,P,o,DM,END}=C,K=natKit(),F=nfxKit
       sprayP(1,cp.x,y+2.3,cp.z,40,{c:0xd8ffa0,c2:0x4a9a2a,sp:1.7,up:1,s:.055,s2:0,life:1.1,g:-.4});natLeaves(cp.x,y+2.3,cp.z,8);}};}
 const WGM_OLD=castGaia;
 castGaia=function(t,P,o,XO){const c=!XO?wgmC(o):null;return WGM_OLD(t,P,o,c?wgmOpts(c):XO);};
+/* ================= Lance of the Seraph's masteries (v456), designed with the framework (MASTERY_DESIGN.md) ================= */
+/* Identity: a seraph of light appears over the mightiest foe and hurls one great lance into it like a falling star, then six smaller
+   lances leave its wings for the next strongest. Simon, for every Mythic, Ancient and Secret scroll: "lets do the same way all the mythics
+   ancients and secrets where their identity is preserved but their visuals barely change and change only to better", and "new stuff CAN
+   appear ... but just nothing that over shines the spell". So there is still one seraph, one great lance and its volley from the wings:
+   each mastery makes one part of the cast stronger and draws that same part richer (Simon approved the table). The old generic set (Holy
+   Brand, Feathers of Light, Radiant Wings, Eighth Lance, Choir of Lances) is replaced.
+   | # | Mastery | Strengthens | What changes | How it looks |
+   | 1 | Star-Forged Lance | the great lance | 4200% (3500%) | the lance 4.1 long and 1.5 wide (3.4, 1.25), brighter, with a brighter trail and motes; the column of light where it lands wider (0.75, 0.6) |
+   | 2 | Falling Star | the impact | its blast reaches 4 tiles (3.2) and strikes 900% (800%) | the ring of ten pillars of light rises at 3.2 tiles (2.4), 6 tall (4.5); the rune 3.3 (2.6); a dome of light swells to the blast's reach |
+   | 3 | Host of Lances | the lances | nine lances leave the wings (six) | three more of the same lances, from the tips of the great wings and above the halo |
+   | 4 | Pinned by Light | the lances left standing | the great lance holds its foe 1.5s, each lance its foe 0.5s (stunE: Resolve applies) | the lances stay standing in their foes, glowing, while they hold them (the small ones vanished as they landed) |
+   | 5 | Wrath of the Host | the small lances | each strikes like a lesser great lance: 1500% (1200%) and 350% around it (250%) | the lances larger (2.2 by 1.05), brighter trails, taller beams (11), a small dome of light where each lands |
+   Approved as 1800% and 400% for Wrath of the Host: measured on the ladder, the set came out far over it (1.54 at Mastery 5 against 1.35),
+   so those two numbers are trimmed (the mechanics are as approved). Percentages are of the scroll's power. Every mastered cast runs
+   castSeraphLance with its XO (srlOpts); Mastery 0, echoes and other casters cast exactly as before. SRL.dbg (an array) logs the events
+   (the impact with the foe the great lance struck and the hold it applied; each lance with its foe, the foes around it and its hold).
+   Holds measure as nothing on the ladder (its foes stand still), so Pinned by Light's factor carries it. On the Mythic ladder (kit
+   ladder.js: pack .6 / one .4, 8 runs of 4 casts 9s apart) with the hidden factors below (SMG.seraphlance = 1 / 1.045 / .96 / 1.024 / .94):
+   1.074 / 1.166 / 1.226 / 1.31 / 1.354 against 1.078 / 1.162 / 1.226 / 1.302 / 1.35. */
+const SRL={dbg:null,main:42,blast:9,blr:4,n:9,hold:1.5,shold:.5,small:15,spl:3.5,busy:0};
+const SRL_V=new THREE.Vector3();
+const srlC=o=>{const c=o&&o.smId&&!o.smx&&typeof SM!=='undefined'&&SM.ctx.get(o.smId);return c&&c.k==='seraphlance'&&c.L?c:null;};
+const srlLog=d=>{if(SRL.dbg){d.t=time;SRL.dbg.push(d);}};
+SM_D.seraphlance=[
+  {n:'Star-Forged Lance',d:'The great lance is forged longer and brighter: it strikes {4200}% (3500% before).'},
+  {n:'Falling Star',d:'The great lance lands like a falling star: its blast reaches 4 tiles (3.2 before) and strikes {900}% (800% before).'},
+  {n:'Host of Lances',d:'Nine lances leave the wings after the great one (six before), the last three from the wing tips.'},
+  {n:'Pinned by Light',d:'The lances stay standing in their foes and hold them: the great lance 1.5s, each other lance 0.5s (Resolve applies).'},
+  {n:'Wrath of the Host',d:'Every lance from the wings strikes like a lesser great lance: {1500}% (1200% before) and {350}% around it (250% before).'}];
+SMF.seraphlance={m:1};
+SMA.seraphlance=[1,1,1,1,1];
+SMG.seraphlance=[1,1.045,.96,1.024,.94];
+/* where the three more lances of Host of Lances leave the wings (seraph space): the tips of the great wings, then above the halo where the
+   tips of the upper wings meet */
+const SRL_TIPS=[[-3.95,3.42,-2.6],[3.95,3.42,-2.6],[0,3.35,-.55]];
+const srlOrg=i=>SRL_TIPS[(i-6)%3];
+/* this cast's numbers and looks (castSeraphLance's XO) */
+function srlOpts(c){const L=c.L,a=c.a,X={};
+  if(L>=1){X.MAIN=SRL.main*a[0];X.LN=4.1;X.LW=1.5;X.COL=.75;X.TRL=[[0xffd47a,.56,.4],[0xffffff,.95,.12]];}
+  if(L>=2){X.BLAST=SRL.blast*a[1];X.BLR=SRL.blr;X.PILR=3.2;X.PILH=6;X.PILW=1.2;X.RUNE=3.3;X.SW=SLD.SW*SRL.blr/SLD.BLR;}
+  if(L>=3){X.N=SRL.n;X.org=srlOrg;}
+  if(L>=4){X.HOLD=SRL.hold;X.SHOLD=SRL.shold;}
+  if(L>=5){X.SMALL=SRL.small*a[4];X.SPL=SRL.spl*a[4];X.SLN=2.2;X.SLW=1.05;X.BMR=.13;X.BMH=11;X.STRL=[[0xffd47a,.55,.25],[0xffffff,.95,.075]];}
+  X.fx={build:C=>srlBuild(C,L),frame:(C,tt,dt)=>srlFrame(C,L,tt,dt),impact:(C,x,y,z)=>srlImpact(C,L,x,y,z),land:(C,s,x,y,z)=>srlLand(C,L,s,x,y,z),stand:(C,s,dt,k)=>srlStand(C,L,s,dt,k)};
+  X.log=srlLog;const N={};for(const k in X)if(typeof X[k]==='number')N[k]=X[k];srlLog({ev:'cast',L,X:N});return X;}
+/* a dome of light: a shell swelling out over the ground, bright at its rim (it faces away there) and faint at its crown so it never
+   reads as a white cap; faint streaks of light run up it. Used for the blast of Falling Star (to the blast's reach) and, small, where
+   each lance of Wrath of the Host lands */
+let SRL_DG=null;
+const SRL_DVS='varying vec3 vN;varying vec3 vV;varying vec3 vP;void main(){vP=position;vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}';
+const SRL_DFS='uniform vec3 uC;uniform float uA;uniform float uS;varying vec3 vN;varying vec3 vV;varying vec3 vP;void main(){float f=1.-abs(dot(normalize(vN),normalize(vV)));'+
+  'float st=.7+.3*sin(atan(vP.x,vP.z)*22.+uS)*sin(atan(vP.x,vP.z)*9.-uS*.7);float a=(.12+.88*pow(f,2.4))*(1.-.7*vP.y)*st*uA;gl_FragColor=vec4(uC*a,1.);}';
+function srlDome(x,y,z,R,dur,op,col,flat){if(!SRL_DG)SRL_DG=new THREE.SphereGeometry(1,40,10,0,Math.PI*2,0,Math.PI/2);
+  const m=new THREE.ShaderMaterial({uniforms:{uC:{value:new THREE.Color(col)},uA:{value:0},uS:{value:rnd()*6}},vertexShader:SRL_DVS,fragmentShader:SRL_DFS,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const me=new THREE.Mesh(SRL_DG,m);me.position.set(x,y,z);me.scale.setScalar(.01);me.renderOrder=5;scene.add(me);const h=flat||.55;
+  addFx(me,dur,(f,dt)=>{const k=Math.min(1,1-f.life/f.max),e=1-Math.pow(1-k,3),r=R*(.2+.8*e);me.scale.set(r,r*h,r);m.uniforms.uA.value=op*SMS(k,0,.08)*(1-SMS(k,.3,1));m.uniforms.uS.value+=dt*2;},null,{mat:m});}
+/* M1 and M4: the great lance's own light (a brighter halo round it, a glow on its head) and, while it holds its foe, a glow where it stands in it */
+function srlBuild(C,L){if(L<1)return;const g=C.lance,w=C.D.LW,len=C.D.LN;const halo=g.children[g.children.length-1];if(halo&&halo.material)halo.material.opacity=.26;
+  const hg=new THREE.CylinderGeometry(.21*w,.21*w,len+1.7,10,1,true);hg.rotateX(Math.PI/2);C.geos.push(hg);const outer=new THREE.Mesh(hg,nsAM(C.mats,0xffe2a0,.07));outer.renderOrder=4;g.add(outer);
+  const head=myGlowSprite(C.mats,0xfff2c8,1.2,1.2);head.position.z=len/2+.6*w;head.renderOrder=9;g.add(head);C.head=head;
+  if(L>=4){const foot=myGlowSprite(C.mats,0xfff0c0,1.8,1.8);foot.renderOrder=9;g.add(foot);C.foot=foot;}}
+function srlFrame(C,L,tt,dt){if(L<1)return;const g=C.lance,S=C.S,v=SRL_V,len=C.D.LN;
+  if(!C.thrown){const k=SMS(tt,.8,1.6);C.head.material.opacity=.42*k*(1+.25*Math.sin(tt*9));
+    /* M1: the longer lance draws more light into itself as it forms, brighter */
+    if(dt>0&&k>0){g.updateMatrixWorld();for(let i=0;i<3;i++){v.set((rnd()-.5)*.7,(rnd()-.5)*.7,(rnd()-.5)*len).applyMatrix4(g.matrixWorld);emit(1,{x:v.x,y:v.y,z:v.z,vx:0,vy:0,vz:0,s:.09,s2:0,c:0xffffff,c2:0xffd070,life:.4});}
+      S.g.updateMatrixWorld();for(let i=0;i<3;i++){const sd=rnd()<.5?-1:1;v.set(sd*(1+rnd()*2.8),.3+rnd()*1.7,-.2-rnd()*.6).applyMatrix4(S.g.matrixWorld);
+        emit(1,{x:v.x,y:v.y,z:v.z,vx:(g.position.x-v.x)*2.6,vy:(g.position.y-v.y)*2.6,vz:(g.position.z-v.z)*2.6,s:.11,s2:.03,c:0xffffff,c2:0xffc850,life:.38});}}}
+  else if(!C.hit){C.head.material.opacity=.7;
+    /* M1: a brighter wake of light behind it as it falls */
+    if(dt>0)for(let i=0;i<5;i++){const p=g.position;emit(1,{x:p.x+(rnd()-.5)*.3,y:p.y+(rnd()-.5)*.3,z:p.z+(rnd()-.5)*.3,vx:(rnd()-.5)*1.2,vy:(rnd()-.5)*1.2,vz:(rnd()-.5)*1.2,s:.18,s2:0,c:0xffffff,c2:0xffc040,life:.42,drag:2});}}
+  else{const st=C.stuck,hm=C.hm,held=L>=4&&hm&&!hm.dead&&hm.stunT>0;C.head.material.opacity=Math.max(0,.7*(1-st/.5));
+    if(dt>0&&rnd()<.6)emit(1,{x:C.lt.x+(rnd()-.5)*.5,y:C.lt.y+rnd()*2,z:C.lt.z+(rnd()-.5)*.5,vx:0,vy:.7,vz:0,s:.08,s2:0,c:0xffffff,c2:0xffc040,life:.8});
+    /* M4: while it holds its foe the lance burns brighter where it stands in it, and light climbs it */
+    if(C.foot){C.held=C.held||0;C.held+=((held?1:0)-C.held)*Math.min(1,dt*8);C.foot.material.opacity=C.held*(.6+.22*Math.sin(tt*11));
+      if(dt>0&&held){g.updateMatrixWorld();for(let i=0;i<2;i++){const u=rnd();v.set(Math.cos(tt*7+u*9)*.18,Math.sin(tt*7+u*9)*.18,-u*len*.55).applyMatrix4(g.matrixWorld);emit(1,{x:v.x,y:v.y,z:v.z,vx:0,vy:.5,vz:0,s:.09,s2:0,c:0xffffff,c2:0xffd070,life:.5});}}}}}
+/* M2: the falling star's blast drawn as a dome of light to its reach, with light thrown out low over the ground */
+function srlImpact(C,L,x,y,z){if(L<2)return;const R=C.D.BLR;srlDome(x,y,z,R,.55,.5,0xffe4a0);srlDome(x,y,z,R*.55,.4,.45,0xffffff,.8);
+  for(let i=0;i<36;i++){const a=rnd()*6.283,sp=4+rnd()*4;emit(1,{x:x+Math.cos(a)*.3,y:y+.15+rnd()*.3,z:z+Math.sin(a)*.3,vx:Math.cos(a)*sp,vy:.6+rnd()*1.8,vz:Math.sin(a)*sp,s:.1,s2:0,c:0xffffff,c2:0xffc040,life:.5+rnd()*.35,g:2.5,drag:1.6});}}
+/* M4: a lance stands in its foe while it holds it, glowing; M5: it lands like a lesser great lance */
+function srlLand(C,L,s,x,y,z){if(L>=4){const g=s.g;s.halo=g.children[g.children.length-1];const gl=myGlowSprite(C.mats,0xfff0c0,1.3,1.3);gl.renderOrder=9;g.add(gl);s.gl=gl;}
+  if(L>=5){srlDome(x,y,z,C.D.SPLR*1.15,.38,.42,0xffe4a0);sprayP(1,x,y+.2,z,22,{c:0xffffff,c2:0xffc040,sp:3.4,up:2,s:.07,s2:0,life:.55,g:3});}}
+function srlStand(C,L,s,dt,k){if(!s.gl)return;const p=.5+.5*Math.sin(time*10+s.i*1.7);s.gl.material.opacity=(.5+.25*p)*k;if(s.halo&&s.halo.material)s.halo.material.opacity=(.25+.25*p)*k;
+  if(dt>0&&k>.5&&rnd()<.7){const q=s.g.position;emit(1,{x:q.x+(rnd()-.5)*.3,y:q.y+rnd()*.9,z:q.z+(rnd()-.5)*.3,vx:0,vy:.6,vz:0,s:.07,s2:0,c:0xffffff,c2:0xffc040,life:.5});}}
+const SRL_OLD=castSeraphLance;
+castSeraphLance=function(t,list,P,o,XO){const c=!XO?srlC(o):null,X=c?srlOpts(c):XO;SRL.busy=Math.max(SRL.busy>time+12?0:SRL.busy,time+((X&&X.LIFE)||SLD.LIFE));return SRL_OLD(t,list,P,o,X);};
+/* the mastery preview waits for the seraph to rise away (the cast outlives its cineLock) */
+SMPV_BUSY.push(()=>SRL.busy>time&&SRL.busy-time<12);
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
