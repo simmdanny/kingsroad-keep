@@ -3042,6 +3042,20 @@
    "seed": 1,
    "bytes": 1536873,
    "note": ""
+  },
+  "embertitan-1": {
+   "k": "embertitan",
+   "L": 1,
+   "len": 11.87,
+   "seed": 1,
+   "bytes": 1580326,
+   "note": "The greatsword is longer and white-hot.",
+   "ev": {
+    "cast": 1,
+    "blow": 1,
+    "geyser": 24,
+    "end": 1
+   }
   }
  },
  "made": "2026-10-29"
