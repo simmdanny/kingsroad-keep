@@ -20971,138 +20971,16 @@ SMA.bloom=[1,1,1,1,1];SMG.bloom=[1.094,1.234,1.234,1.234,1.234];
    The mastery hooks wrapped castScrollNow from outside that, so the cast flourish (smCastFx) and the add-ons kept the scroll's own colours
    (since v366). Now the whole cast, mastery hooks included, runs in the context. */
 {const c0=castScrollNow;castScrollNow=function(k,t,s,list,P,o){if(SM_D[k]&&!AS.ctx&&t&&t===heroU&&state==='playing'&&asEl()&&AS.el!=='nature'&&SPELL_EL[k]===AS.el){const a=arguments,me=this;return asRun(()=>c0.apply(me,a));}return c0.apply(this,arguments);};}
-/* ================= v373 (Simon): the Mythic scrolls' masteries =================
-   Simon: Mythic spells do NOT become domains when they approach Ancient power, they just enhance their visuals. So the Mythics climb the
-   half-step ladder (SM_XH: Mastery 5 = Ancient power) and every mastery adds a layer to the spell's look, with a small effect beside it.
-   Their climax is a single great blow, so most add-ons start from the first foe the spell strikes (c.h0), which lines them up with it. */
-const smFirst=(c,e)=>{if(c.h0)return false;c.h0={x:e.x,z:e.z,t:time};return true;};
-function smStarfall(el,x,z,R,n,dmg,o,opt){opt=opt||{};const C=smCol(el);let i=0;const one=()=>{if(state!=='playing'||i>=n)return;i++;const L=smNear(x,z,R);const q=L.length?L[Math.floor(rnd()*L.length)]:null;
-    if(q){const p=tpos2(q);smShard(el,smV(p.x+(rnd()-.5)*1.4,p.y+4.5+rnd(),p.z-.6+(rnd()-.5)*1.4),q,dmg,o,{big:opt.big||1.6,T:opt.T||.4});}else{const a=rnd()*6.28,r=rnd()*R,px=x+Math.cos(a)*r,pz=z+Math.sin(a)*r;flash(px,gy(px,pz)+.3,pz,C[0],.4,.12);}
-    mxLater(opt.gap||.12,one);};one();}
-function smCrown(el,x,z,R,life,n){const C=smCol(el),y=gy(x,z)+.1,g=new THREE.Group();g.position.set(x,y,z);scene.add(smTag(g));const ms=[];
-  for(let i=0;i<n;i++){const m=new THREE.Mesh(oct(.09),new THREE.MeshBasicMaterial({color:C[0],transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false}));g.add(m);ms.push(m);}
-  let tt=0;addFx(g,life,(f,dt)=>{tt+=dt;const k=Math.min(1,tt/.3),fade=Math.min(1,f.life/.4);ms.forEach((m,i)=>{const a=tt*1.6+i/n*6.28;m.position.set(Math.cos(a)*R*k,.5+.25*Math.sin(tt*3+i),Math.sin(a)*R*k);m.rotation.y+=dt*4;m.material.opacity=.9*fade;});
-    if(rnd()<.5){const a=rnd()*6.28;emit(1,{x:x+Math.cos(a)*R,y:y+.5,z:z+Math.sin(a)*R,vx:0,vy:.4,vz:0,s:.04,s2:0,c:C[1],c2:C[0],life:.5});}},null,{mats:ms.map(m=>m.material)});}
-
-/* ---------- Spatial Shatter: a region of space shatters ---------- */
-SM_D.shatter=[
-  {n:'Glass Echo',d:'Struck foes glitter with broken space and are Fractured for 5s: light scrolls deal {8}% more to them.'},
-  {n:'Starlit Cracks',d:'The shatter leaves cracks of starlight in the ground for 4s; foes on them are 25% slower.'},
-  {n:'Falling Space',d:'6 great shards of space fall out of the sky onto foes, {40}% each.'},
-  {n:'Prism Halo',d:'Rings of prismatic light flare round the region and struck foes are held 0.4s more (Resolve applies).'},
-  {n:'Mirror World',d:'The region breaks a second time, as a mirror image: a smaller shatter for {100}% to the foes in it.'}];
-SMF.shatter={m:1,
-  hit(c,e){if(smSeen(e,c,'S'))return;const L=c.L,a=c.a;if(L>=1){smMark(e,'light',5,.08*a[0]);smHitFx('light',tpos2(e),1.2);}if(L>=4)smStun(e,.4);
-    if(smFirst(c,e)){const x=c.c?c.c.x:e.x,z=c.c?c.c.z:e.z,D=c.P;
-      if(L>=2){smZone('light',x,z,2.4,4,c.o,{slow:.25,ground:0x1c2a48});if(typeof nfxRune==='function')nfxRune(x,z,2.4,4,0xcfe6ff,.7);}
-      if(L>=3)mxLater(.4,()=>smStarfall('light',x,z,3,6,D*.4*a[2],c.o,{big:2,gap:.15}));
-      if(L>=4){const y=gy(x,z)+.06;[0xff9ad0,0xa0e0ff,0xfff0a0].forEach((col,i)=>mxLater(i*.12,()=>ringFx(x,y,z,2.2+i*.5,col,.7)));}
-      if(L>=5)mxLater(1.6,()=>{if(state!=='playing')return;smNova('light',x,z,1.8,D*a[4],c.o);flash(x,gy(x,z)+.8,z,0xf4f0ff,2.2,.35);sprayP(1,x,gy(x,z)+.6,z,40,{c:0xffffff,c2:0x8aa8ff,sp:3,r:.4,ry:1,s:.07,s2:0,life:.7,drag:2});camShake=Math.max(camShake,.08);});}}};
-/* ---------- Vael'Thoruun: the hero becomes the storm ---------- */
-SM_D.vael=[
-  {n:'Charged Sky',d:'Struck foes crackle and are Overcharged for 4s: lightning scrolls deal {8}% more to them.'},
-  {n:'Thunder Crown',d:'A crown of lightning circles the hero through the storm, and each strike has a 15% chance to stun for 0.3s (Resolve applies).'},
-  {n:'Static Field',d:'Arcs leap from the hero to foes in reach every 0.5s for 3s, {10}% each.'},
-  {n:'Ball Lightning',d:'Two balls of lightning roll out on the road for 5s, zapping a foe every 0.6s for {20}%.'},
-  {n:'Storm Lattice',d:'At the end every foe it struck is linked in one last lattice of lightning, {35}% each.'}];
-SMF.vael={m:1,
-  hit(c,e){const L=c.L,a=c.a;if(L>=2&&rnd()<.15)smStun(e,.3);if(smSeen(e,c,'V'))return;(c.hits=c.hits||[]).push(e);if(L>=1)smMark(e,'lightning',4,.08*a[0]);
-    if(smFirst(c,e)){const t=c.t,D=c.P;
-      if(L>=2)smCrown('lightning',t.x,t.z,.8,6,8);
-      if(L>=3){let n=0;const z=()=>{if(state!=='playing'||n>=6)return;n++;const R=(c.s&&c.s.range||3)+.5;for(const q of smNear(t.x,t.z,R,null,3)){smArc('lightning',smV(t.x,(t.topY||1)+.2,t.z),smP3(q),{w:1,life:.2});hurt(q,D*.1*a[2],'magic',smO(c.o));}mxLater(.5,z);};z();}
-      if(L>=4){const cc=c.c||e,p1=smRoadPt(cc.x,cc.z,.8),p2=smRoadPt(cc.x,cc.z,1.6);smOrb(c,p1.x,p1.z,D*.2*a[3]);smOrb(c,p2.x,p2.z,D*.2*a[3]);}}},
-  cast(c){const L=c.L,a=c.a;if(L>=5)mxLater(8.6,()=>{if(state!=='playing'||!c.hits)return;const H=c.hits.filter(e=>!e.dead).slice(0,14);for(let i=0;i<H.length;i++){const q=H[i],n=H[(i+1)%H.length];if(H.length>1)smArc('lightning',smP3(q),smP3(n),{w:1.4,life:.4});hurt(q,c.P*.35*a[4],'magic',smO(c.o));smHitFx('lightning',tpos2(q),1);}if(H.length)camShake=Math.max(camShake,.06);});}};
-/* ---------- Eclipse of the Damned: a black sun swallows the sky ---------- */
-SM_D.eclipse=[
-  {n:'Umbral Mark',d:'Struck foes are Doomed for 5s: dark scrolls deal {8}% more to them.'},
-  {n:'Black Corona',d:'A corona of black fire clings to struck foes, burning {10}% over 2s.'},
-  {n:'Grasping Dead',d:'3 hands of the dead tear out of the ground under the thickest foes, {40}% each.'},
-  {n:'Dying Stars',d:'8 black stars fall among the foes after the eclipse, {25}% each.'},
-  {n:'Second Sunset',d:'The black sun leaves its afterimage: it collapses over the thickest foes for {80}%.'}];
-SMF.eclipse={m:1,
-  hit(c,e){if(smSeen(e,c,'E'))return;const L=c.L,a=c.a;if(L>=1)smMark(e,'dark',5,.08*a[0]);if(L>=2){smDot(e,c.P*.1*a[1]/2,2,'dark',c.o);smHitFx('dark',tpos2(e),1.1);}
-    if(smFirst(c,e)){const D=c.P;
-      if(L>=3)for(let i=0;i<3;i++)mxLater(.3+i*.35,()=>{if(state!=='playing')return;const A=enemies.filter(q=>!q.dead&&!q.fake&&!q.fly);if(!A.length)return;const d=densest(A);smHand(c,d.x+(rnd()-.5)*.6,d.z+(rnd()-.5)*.6,D*.4*a[2]);});
-      if(L>=4)mxLater(1.2,()=>{const A=enemies.filter(q=>!q.dead&&!q.fake);if(!A.length)return;const d=densest(A);smStarfall('dark',d.x,d.z,4,8,D*.25*a[3],c.o,{gap:.14});});
-      if(L>=5)mxLater(2.8,()=>{if(state!=='playing')return;const A=enemies.filter(q=>!q.dead&&!q.fake);if(!A.length)return;const d=densest(A);smSingularity(c,d.x,d.z,D*.8*a[4]);});}}};
-/* ---------- Wrath of the Ember Titan: a colossus of lava ---------- */
-SM_D.embertitan=[
-  {n:'White-Hot Blade',d:'Foes the greatsword strikes burn for {10}% more each second.'},
-  {n:'Ember Rain',d:'Embers rain round the blow for 3s and set the foes there alight.'},
-  {n:'Magma Fists',d:'3 fists of magma burst up under foes near the blow, {40}% each.'},
-  {n:'Molten Spray',d:'Struck foes spray molten rock at 2 foes nearby for {15}% (at most every 0.3s).'},
-  {n:'Titan\'s Roar',d:'The Titan roars and a ring of fire bursts out of the blade for {80}%.'}];
-SMF.embertitan={m:1,
-  hit(c,e){const L=c.L,a=c.a;if(L>=4&&(c.ms||0)<=time){c.ms=time+.3;for(const q of smNear(e.x,e.z,1.6,e,2))smShard('fire',smP3(e),q,c.P*.15*a[3],c.o,{T:.25,arc:.3});}
-    if(smSeen(e,c,'T'))return;if(L>=1)applyBurn(e,c.P*(.3+.1*a[0]),3,smO(c.o,{dot:true}));
-    if(smFirst(c,e)){const x=e.x,z=e.z,D=c.P;
-      if(L>=2){smZone('fire',x,z,1.8,3,c.o,{burn:D*.2,ground:0x2a0e04});let n=0;const rain=()=>{if(state!=='playing'||n>=15)return;n++;for(let i=0;i<4;i++){const a2=rnd()*6.28,r=rnd()*1.8;smMote('fire',x+Math.cos(a2)*r,gy(x,z)+2+rnd(),z+Math.sin(a2)*r);}mxLater(.2,rain);};rain();}
-      if(L>=3)for(let i=0;i<3;i++)mxLater(.35+i*.3,()=>{if(state!=='playing')return;const q=smNear(x,z,3)[i]||smNear(x,z,3)[0];if(!q)return;if(typeof myGeyser==='function')myGeyser(q.x,q.z);smNova('fire',q.x,q.z,.8,D*.4*a[2],c.o);});
-      if(L>=5)mxLater(1.2,()=>{if(state!=='playing')return;smNova('fire',x,z,2.4,D*.8*a[4],c.o);flash(x,gy(x,z)+1,z,0xff6020,2.4,.4);ringFx(x,gy(x,z)+.08,z,2.4,0xff8030,.6);camShake=Math.max(camShake,.1);});}}};
-/* ---------- Eternal Winter: the Heart of Winter freezes the world ---------- */
-SM_D.eternalwinter=[
-  {n:'Deep Cold',d:'Frozen foes are Brittle for 5s: ice scrolls deal {8}% more to them.'},
-  {n:'Snowfall',d:'Snow falls thick round the Heart, and foes it froze stay 20% slower for 3s after.'},
-  {n:'Ice Spires',d:'6 spires of ice burst up under foes, {30}% each.'},
-  {n:'Frostbite',d:'Foes the Heart shatters take {15}% more over 2s.'},
-  {n:'Heart\'s Echo',d:'The Heart\'s splinters circle once more and strike 8 foes, {40}% each.'}];
-SMF.eternalwinter={m:1,
-  hit(c,e){if(smSeen(e,c,'W')){if(c.L>=4&&!smSeen(e,c,'W4'))smDot(e,c.P*.15*c.a[3]/2,2,'ice',c.o);return;}const L=c.L,a=c.a;if(L>=1)smMark(e,'ice',5,.08*a[0]);if(L>=2)mxLater(2.5,()=>smSlow(e,.2,3));
-    if(smFirst(c,e)){const x=c.c?c.c.x:e.x,z=c.c?c.c.z:e.z,D=c.P;
-      if(L>=2){let n=0;const snow=()=>{if(state!=='playing'||n>=25)return;n++;for(let i=0;i<6;i++){const a2=rnd()*6.28,r=rnd()*3.5;emit(0,{x:x+Math.cos(a2)*r,y:gy(x,z)+2.5+rnd(),z:z+Math.sin(a2)*r,vx:(rnd()-.5)*.3,vy:-.6,vz:(rnd()-.5)*.3,s:.05,s2:.04,c:0xffffff,c2:0xd8eeff,a:.85,life:2});}mxLater(.2,snow);};snow();}
-      if(L>=3)mxLater(.6,()=>{for(const q of smNear(x,z,4,null,6)){const p=tpos2(q);smShard('ice',smV(p.x,gy(p.x,p.z)-.4,p.z),q,D*.3*a[2],c.o,{big:1.8,T:.25});}});
-      if(L>=5)mxLater(3.5,()=>{if(state!=='playing')return;smCrown('ice',x,z,1.2,1.2,8);mxLater(.9,()=>{for(const q of smNear(x,z,5,null,8))smShard('ice',smV(x,gy(x,z)+1.6,z),q,D*.4*a[4],c.o,{big:1.6,arc:.4,T:.4});});});}}};
-/* ---------- Lance of the Seraph: wings of light and seven lances ---------- */
-SM_D.seraphlance=[
-  {n:'Holy Brand',d:'Struck foes are Branded for 5s: light scrolls deal {8}% more to them.'},
-  {n:'Feathers of Light',d:'Feathers of light drift where the lances fell, burning foes there for {5}% each second for 3s.'},
-  {n:'Radiant Wings',d:'The wings beat once: a wave of light rolls out from the mark for {30}%.'},
-  {n:'Eighth Lance',d:'One more lance falls on the strongest foe left, for {100}%.'},
-  {n:'Choir of Lances',d:'Three more lances rain down on the next strongest, {60}% each.'}];
-SMF.seraphlance={m:1,
-  hit(c,e){if(smSeen(e,c,'L'))return;const L=c.L,a=c.a;if(L>=1)smMark(e,'light',5,.08*a[0]);
-    if(L>=2&&(c.fz||0)<6){c.fz=(c.fz||0)+1;const x=e.x,z=e.z;smZone('light',x,z,.7,3,c.o,{dps:c.P*.05*a[1],ground:0x3a3418});for(let i=0;i<5;i++)smMote('light',x+(rnd()-.5)*.8,gy(x,z)+1.4+rnd(),z+(rnd()-.5)*.8);}
-    if(smFirst(c,e)){const x=e.x,z=e.z,D=c.P;
-      if(L>=3)mxLater(.3,()=>{smNova('light',x,z,2.6,D*.3*a[2],c.o);ringFx(x,gy(x,z)+.08,z,2.6,0xfff4c0,.5);});
-      if(L>=4)mxLater(2.6,()=>{if(state!=='playing')return;const q=smStrong(enemies.filter(q=>!q.dead&&!q.fake));if(q)smPillarL(q,D*a[3],c.o);});
-      if(L>=5)mxLater(3.1,()=>{if(state!=='playing')return;const A=enemies.filter(q=>!q.dead&&!q.fake).sort((p,q)=>(q.hp||0)-(p.hp||0)||(p.uid||0)-(q.uid||0)).slice(0,3);A.forEach((q,i)=>mxLater(i*.2,()=>{if(!q.dead)smPillarL(q,D*.6*a[4],c.o);}));});}}};
-/* ---------- The Aeon Dial: the clock older than time ---------- */
-SM_D.aeon=[
-  {n:'Weathered',d:'Foes the great hand passes are Aged for 5s: light scrolls deal {8}% more to them.'},
-  {n:'Sands of Ages',d:'Sand streams off aged foes as the years strip them, {10}% over 2s.'},
-  {n:'Clockwork Shards',d:'Golden shards of the dial strike 4 foes as the hand first passes, {30}% each.'},
-  {n:'Heavy Hours',d:'Aged foes stay 15% slower for 3s more.'},
-  {n:'The Thirteenth Hour',d:'After midnight the dial strikes once more over the thickest foes, {80}%.'}];
-SMF.aeon={m:1,
-  hit(c,e){if(smSeen(e,c,'A'))return;const L=c.L,a=c.a;if(L>=1)smMark(e,'light',5,.08*a[0]);if(L>=2){smDot(e,c.P*.1*a[1]/2,2,'light',c.o);const p=tpos2(e);for(let i=0;i<4;i++)emit(0,{x:p.x+(rnd()-.5)*.3,y:p.y+.3,z:p.z+(rnd()-.5)*.3,vx:(rnd()-.5)*.4,vy:.3,vz:(rnd()-.5)*.4,s:.04,s2:.07,c:0xe8c070,c2:0x8a6a30,a:.7,life:1});}
-    if(L>=4)smSlow(e,.15,3);
-    if(smFirst(c,e)){const D=c.P;if(L>=3)for(const q of smNear(e.x,e.z,3.5,null,4))smShard('light',smV(e.x,gy(e.x,e.z)+1.8,e.z),q,D*.3*a[2],c.o,{big:1.3,arc:.3});}},
-  cast(c){const L=c.L,a=c.a;if(L>=5){const end=(typeof AEON_ACT!=='undefined'&&AEON_ACT[1])?AEON_ACT[1]+.6:10;mxLater(end,()=>{if(state!=='playing')return;const A=enemies.filter(q=>!q.dead&&!q.fake);if(!A.length)return;const d=densest(A);smNova('light',d.x,d.z,2,c.P*.8*a[4],c.o);ringFx(d.x,gy(d.x,d.z)+.08,d.z,2,0xffd878,.7);flash(d.x,gy(d.x,d.z)+.8,d.z,0xffe0a0,2,.3);});}}};
-/* ---------- Wrath of Gaia: a forest erupts along every road ---------- */
-SM_D.gaia=[
-  {n:'Thorned Bark',d:'Pinned foes are Drained for 5s: nature scrolls deal {8}% more to them.'},
-  {n:'Pollen Storm',d:'Golden pollen swirls off the trees onto struck foes, {10}% over 2s.'},
-  {n:'Blossoms',d:'3 great roses burst open on the thickest foes, {40}% each.'},
-  {n:'Strangling Roots',d:'Pinned foes are held 0.3s longer (Resolve applies).'},
-  {n:'Heart of the Forest',d:'An elder sapling rises among the thickest foes and lashes them for {80}%.'}];
-SMF.gaia={m:1,
-  hit(c,e){if(smSeen(e,c,'G'))return;const L=c.L,a=c.a;if(L>=1)smMark(e,'nature',5,.08*a[0]);if(L>=2){smDot(e,c.P*.1*a[1]/2,2,'nature',c.o);const p=tpos2(e);for(let i=0;i<3;i++)smMote('nature',p.x+(rnd()-.5)*.5,p.y+.8,p.z+(rnd()-.5)*.5);}if(L>=4)smStun(e,.3);
-    if(smFirst(c,e)){const D=c.P;
-      if(L>=3)for(let i=0;i<3;i++)mxLater(1.5+i*.4,()=>{if(state!=='playing')return;const A=enemies.filter(q=>!q.dead&&!q.fake);if(!A.length)return;const d=densest(A);smRoseBurst(d.x+(rnd()-.5)*.5,d.z+(rnd()-.5)*.5,D*.4*a[2],c.o);});
-      if(L>=5)mxLater(4,()=>{if(state!=='playing')return;const A=enemies.filter(q=>!q.dead&&!q.fake);if(!A.length)return;const d=densest(A);smSapling(c,d.x,d.z,D*.8*a[4]);});}}};
-
+/* ================= v373-v458: the Mythic scrolls' masteries =================
+   The first Mythic masteries (v373) were one generic set for all eight: a mark that made an element's scrolls hit harder, a burn, new pieces
+   bursting up under the foes, a longer hold and an afterimage strike. v451-v458 replaced every one of them with a set designed for its own
+   scroll (each strengthens a part the spell already has and draws that part richer): see the modules for Eclipse (ECM), the Ember Titan
+   (EMT), Eternal Winter (EWM), the Aeon Dial (AEM), Gaia (WGM), the Seraph (SRL), Spatial Shatter (SHM) and Vael'Thoruun (VTM) near the
+   end of the script. The old cards, hooks and helpers (smFirst, smStarfall, smCrown) were removed in the merge that brought them together. */
 /* calibration of the Mythic scrolls (tests/smast-cal.js, 2026-10-25, 3 runs). A Mythic's blow kills every 600 HP foe of the churn crowd each
    cast whatever its mastery, so that crowd cannot measure it (it only shows foes tipping over at 600 HP): the standing pack and the
    single foe only (SMW, which the test uses too). Masteries never take power away, so a dip between two is read as noise. */
 for(const k of ['shatter','vael','eclipse','embertitan','eternalwinter','seraphlance','aeon','gaia'])SMW[k]={pack:.6,one:.4};
-SMA.shatter=[1,1,1,1,1];SMG.shatter=[1.08,1.16,1.07,1.14,1.06];
-SMA.vael=[.89,1,1,1,1];SMG.vael=[1,1.07,1.13,1.19,1.19];
-SMA.eclipse=[.62,1,1,1,1];SMG.eclipse=[1,1.09,1.13,1.14,1.16];   /* refined with the factor applied (tests/smast-refine.js, 3 runs) */
-SMA.embertitan=[1,1,1,1,1];SMG.embertitan=[1.08,1.12,1.18,1.23,1.28];
-SMA.eternalwinter=[1,1,1,1,1];SMG.eternalwinter=[1.01,1.09,1.13,1.19,1.21];
-SMA.seraphlance=[1,1,1,1,1];SMG.seraphlance=[1.06,1.13,1.17,1.22,1.24];
-SMA.aeon=[1,1,1,1,1];SMG.aeon=[1.05,1.12,1.18,1.25,1.26];
-SMA.gaia=[1,1,1,1,.76];SMG.gaia=[1.06,1.13,1.02,1.08,1];
 /* ================= v374 (Simon): mastery previews outside developer mode, for what you already have =================
    "make it so that when not in dev mode you can see the preview but only of items and masteries you already have". The live previews of
    v367 (scrolls) and v368 (buildings) were developer-only. Now everyone can watch them on the mastery cards, but only for a scroll you own or a
