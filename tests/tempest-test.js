@@ -3,8 +3,8 @@
    Run on the dev page: __kk.ev(await (await fetch('/tests/tempest-test.js')).text()) returns [name, ok, detail] rows. Puts the account back afterwards.
    Needs a real viewport (a hidden Browser pane is 0x0: give the tab a size first). */
 const out=[],ok=(n,c,d)=>out.push([n,!!c,d===undefined?'':String(d)]);const m0=JSON.stringify(meta),r0=lsGet(KR),hurt0=hurt;
-/* board 777 at board version 5 (two roads), like the other ancient checks */
-const go=a=>{lsSet(KR,null);meta.arenas=meta.arenas||{};['snow','tundra','whitewaste','taiga'].forEach(k=>meta.arenas[k]=1);meta.seenA=meta.seenA||{};['snow','tundra','whitewaste','taiga'].forEach(k=>meta.seenA[k]=1);meta.mapIntro=0;
+/* board 777 at board version 5 (two roads), like the other ancient checks; the checks are of the storm itself: no mastery (v465), whatever the dev account has earned */
+const go=a=>{lsSet(KR,null);meta.smast=meta.smast||{};delete meta.smast.tempest;meta.arenas=meta.arenas||{};['snow','tundra','whitewaste','taiga'].forEach(k=>meta.arenas[k]=1);meta.seenA=meta.seenA||{};['snow','tundra','whitewaste','taiga'].forEach(k=>meta.seenA[k]=1);meta.mapIntro=0;
   meta.arena=a||'plains';meta.scrAuto=false;meta.spaceCalm=false;state='menu';clearWorld();{const gv=MAP_GV;MAP_GV=5;try{buildMap(777);}finally{MAP_GV=gv;}}MAP.fresh=true;newGame(1);auto=0;lives=1e9;
   const q=heroTileNear(meta.equipped,innerWidth/2,innerHeight*.45);spawnHero(q.c,q.r);state='playing';paused=false;speed=0;window.__fz=true;worldSlow=1;slowT=0;};
 const foe=(i,o)=>{spawnEnemy(Object.assign({type:i%2?'knight':'soldier',v:0},o||{}),60);const e=enemies[enemies.length-1];e.route=ROUTES[i%ROUTES.length];e.dist=4+i*.9;e.off=0;e.hp=e.maxHp=1e6;e.armor=0;e.res={};e.spd=.5;moveEnemy(e,0);return e;};
