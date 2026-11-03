@@ -7762,8 +7762,8 @@ function castMoonfall(t,list,P,o){const pool=enemies.filter(e=>!e.dead&&!e.fake)
 /* v470: w (optional, Constellation's Brighter Stars): the lance's thickness, 1 as before */
 function nsLance(x0,y0,z0,tx,tz,w){w=w||1;const mats=[],ty=gy(tx,tz),[bg1,bg2]=nsBeamGeos(),g=new THREE.Group(),m1=nsAM(mats,0xffffff,1),m2=nsAM(mats,0x7fa8ff,.26);g.add(new THREE.Mesh(bg1,m1));const h=new THREE.Mesh(bg2,m2);h.scale.set(1.7,1.7,1);g.add(h);
   nsBeamSet(g,x0,y0,z0,tx,ty,tz);g.scale.x=g.scale.y=w;scene.add(g);addFx(g,.45,f=>{const k=f.life/f.max;m1.opacity=k;m2.opacity=.26*k;g.scale.x=g.scale.y=w*(1+(1-k)*1.5);},null,{mats});}
-/* v470: X (optional, Constellation's Burning Lines): w the streak's width, life how long it stays alight (at full strength until its last 0.7s),
-   op its brightness, band the height of a low band of light rising off it (a standing ribbon, CS_BAND_FS), with a white core and embers
+/* v470: X (optional, Constellation's Burning Lines): w the streak's width, life how long it stays alight (bright as it burns in, settling to
+   0.7 of it, fading over its last 0.7s), op its brightness, band the height of a low band of light rising off it (a standing ribbon, CS_BAND_FS), with a white core and embers
    rising along it while it burns. Without X as before. */
 const CS_BAND_VS='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
 const CS_BAND_FS='varying vec2 vUv;uniform float uA,uT,uL;uniform vec3 uC;void main(){float h=vUv.y,x=vUv.x*uL,e=smoothstep(0.,.3,x)*smoothstep(uL,uL-.3,x);'+
@@ -7780,8 +7780,8 @@ function nsStreak(ax,az,bx,bz,X){const L=Math.hypot(bx-ax,bz-az);if(L<.1)return;
     if(bm){bm.uniforms.uT.value+=dt;bm.uniforms.uA.value=.95*a*Math.min(1,tt/.3);}
     if(dt>0&&rnd()<dt*L*4*a){const u=rnd(),x=ax+(bx-ax)*u,z=az+(bz-az)*u;emit(1,{x,y:gy(x,z)+.08,z,vx:0,vy:.45+rnd()*.5,vz:0,s:.045,s2:0,c:0xffffff,c2:0x6a8aff,life:.7});}},null,{mats,geos});}
 /* v470 (Brighter Stars): where a star falls, a short column of light rises off the ground round its foe (open, brightest at its edges and its
-   foot, streaked, thinning as it climbs) inside a low wall of light racing out to the lance's reach: the impact's flat ring made 3D (the
-   explosion rule), quick and see-through */
+   foot, streaked, thinning as it climbs) inside a low wall of light racing out to the lance's splash (R); K: its brightness (the second
+   figure's are a little softer). The impact's flat ring made 3D (the explosion rule), quick and see-through */
 const CS_COL_VS='varying vec2 vUv;varying float vF;void main(){vUv=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vF=abs(dot(normalize(normalMatrix*normal),normalize(-mv.xyz)));gl_Position=projectionMatrix*mv;}';
 const CS_COL_FS='varying vec2 vUv;varying float vF;uniform float uA,uH,uT;uniform vec3 uC;void main(){float h=vUv.y,top=1.-smoothstep(uH-.3,uH,h),s=.68+.32*sin(vUv.x*31.42+h*5.-uT*15.);'+
   'float a=uA*top*pow(1.-h,1.2)*(.28+.72*pow(1.-vF,1.3))*s;if(a<.004)discard;gl_FragColor=vec4(mix(uC,vec3(1.),.6*(1.-h)),min(1.,a));}';
