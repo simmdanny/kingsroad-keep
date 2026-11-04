@@ -2521,4 +2521,4 @@ Simon: "Why are the previews still not how they should be?", then "Yes, record t
 - Each clip's moment was checked twice: in a run without pictures (every one of the 138 stages logs its mastery's event: a probe) and on its contact sheet.
 - The recording was split across six cloud sessions (four browsers each) and merged here; `previews/manifest.json` lists all 432 clips (294 before).
 - Known limits: Gaia's The Keep Drinks Deep heals the keep, which is off camera. Curse of the Blood Moon's Blood Price needs other great scrolls sealed on the hero, which the stage does not set up.
-- Tests: `tests/mpv-test.js` (in run-all as 'mpv'): the 23 scrolls (8 Mythic, 7 Ancient, 8 Secret); a clip for every level and every file present; lengths 3-16 s; a caption on every mastery clip; every mastery clip logged its mastery at work, and no clip without one did; the changelog.
+- Tests: `tests/mpv-test.js` (in run-all as 'mpv'): the 23 scrolls (8 Mythic, 7 Ancient, 8 Secret); a clip for every level and every file present; lengths 3-17 s; a caption on every mastery clip; every mastery clip logged its mastery at work, and no clip without one did; the changelog.
