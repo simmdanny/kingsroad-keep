@@ -68,5 +68,35 @@
    "fall": 3,
    "move": 3
   }
+ },
+ "bloodeye-5": {
+  "k": "bloodeye",
+  "L": 5,
+  "len": 13.53,
+  "seed": 1,
+  "bytes": 847839,
+  "note": "Before the lids close, one great lash strikes every brand at once.",
+  "ev": {
+   "cast": 1,
+   "open": 1,
+   "marks": 1,
+   "brand": 1,
+   "lash": 7,
+   "last": 1
+  }
+ },
+ "moonfall-1": {
+  "k": "moonfall",
+  "L": 1,
+  "len": 11.1,
+  "seed": 1,
+  "bytes": 764932,
+  "note": "The foes are spread out: the fuller moon’s impact reaches 4.6 tiles.",
+  "ev": {
+   "cast": 1,
+   "impact": 1,
+   "shard": 16,
+   "end": 1
+  }
  }
 }
