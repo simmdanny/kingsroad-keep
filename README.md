@@ -2588,3 +2588,21 @@ A refactor with no change to how anything looks or plays. It lets each elite mod
   - every Bestiary unit takes every modifier it can roll, in game and in the Bestiary, without an error;
   - an `ARMOR_D` entry is used and is told the variant;
   - the class template still dresses a unit that has no design of its own.
+
+## Armoured bosses, one design each (v483)
+Simon: "armoured should not just be a template but rather a seperate design for every unit that can be armored". Every boss that can roll the Armoured modifier (from wave 100, half of the time, never a milestone boss) has its own `ARMOR_D[type]`:
+
+| Boss | Armour |
+|---|---|
+| Dragon, Twin Drake, Brood Mother, Pale Elder | scale-plate barding, peytral, lamellar neck collars on every neck, a helm per dragon (brow spike, strapped skull plate, coronet, bronze blades), chin guards, wing-arm guards and couters, tail rings, a spade sheath |
+| Ironclad Twin Drake, Armoured Brood Mother | the same in gilded overplates over their own steel (a gilded crest fin; a golden face mask with swept horns on obsidian) |
+| Ogre | Brute: scrap (cauldron helm, barrel-lid, pot-lid pauldron); Chieftain: skull-bossed plate, barred visor, spiked pauldrons, greaves; Scarred: riveted slabs, one-slit bucket helm, chain round the arm; the Gem Carrier keeps his crown bare |
+| Kikimora | bark slabs lashed with vine, bone ribs, horned skull-cap, bark greaves and bone bands on all eight legs |
+| Stone and Runebound Golem | riveted iron bands, rune plates bolted into the stone (copper runes; cyan runes framing the sigil) |
+| Spined Behemoth | plates laid between its spines, brow and snout plates, greaves and pauldrons on all four legs |
+| Arachne | chitin capping plates with silver edges and her hourglass repainted, greaves on every leg, gorget |
+| Colossus, Dread Knight, Void Knight | darker, heavier plate in their own style (visored helm and siege pauldrons; red-rune blackened plate; obsidian with violet seams) |
+| Mire Wyrm, Armoured Mire Wyrm, Wyrmfiend | per-segment hoops: rusted iron split round the spines, a gilded crest over steel, bone-iron with magma seams plus greaves and wing guards |
+| Ophanim, Seraphim | gilded bands on every wheel rim between the eyes, a collar round the great eye, steel feather-plates edged in gold |
+
+How it works: `arbKit(key, build)` builds each design once as one merged vertex-coloured geometry per moving part and material (four shared materials: steel, gilded, matte, glowing). `arbDress(C, kit, targets)` puts each part's mesh on the model's own bone (wing, neck/head group, jaw, tail segment, leg or arm pivot, snake segment, wheel, wing flap), found through wrappers on `enemyModel` and `unitModel` (`ARB_M`). Pieces not in the dress group leave with it (a `removed` listener), so the Bestiary elite button takes them off. 23 kits, 5 to 29 extra meshes per boss. Tests: `tests/arb-test.js`; sheets: `tests/arb-shots.js`.

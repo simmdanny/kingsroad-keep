@@ -14908,7 +14908,8 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
 /* ================= Changelog (v307): every update since the world map =================
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
-const CLOG=[
+const CLOG=[{t:'Armoured bosses, each in its own armour',d:'4 Nov',v:'v483',li:['An Armoured boss now wears armour made for it instead of a shared template: barding, neck collars, helms, wing guards and a tail sheath on the dragons, a different set for each of the three ogres, bark and bone on the Kikimora, iron bands and rune plates on the golems, chitin plates on Arachne, gilded rings and feather-plates on the angels, and heavier plate on the Colossus, the knights and the wyrms.','The Ironclad Twin Drake, the Armoured Brood Mother and the Armoured Mire Wyrm get gilded plating over their own steel.','Every piece sits on the part it belongs to and moves with it: wings, necks, jaws, tails, legs, arms, wheels.','See them in the Bestiary with the elite button.']},
+
   {t:'The Primordial Tempest, a hurricane seen from above',d:'4 Nov',v:'v477',li:[
     'The Primordial Tempest looks like a real hurricane now. Spiral arms of storm cloud wheel over the whole board round a clear eye that always frames the hero, the wall of the eye lit bright by the lightning inside it.',
     'Every bolt lights the cloud above it from within, sheet lightning lights the whole storm and lightning crawls along its arms. A sheet of wind and rain swirls into the eye, and every bolt that lands leaves a flare of light and a glowing scorch.',
@@ -35236,7 +35237,27 @@ function gmxAfter(b,how){const n={};for(const [t,e0] of b){const d=(t.earned||0)
 {const k0=kill;kill=function(){const b=gmxBefore('merchant');const r=k0.apply(this,arguments);if(b.length)try{gmxAfter(b,'bounty');}catch(err){console.error(err);}return r;};}
 {const mp=mxPay;mxPay=function(t){const b=t&&GOLD_T.includes(t.type)?[[t,t.earned||0]]:[];const r=mp.apply(this,arguments);try{gmxAfter(b,'payout');}catch(err){console.error(err);}return r;};}
 /* ---- end of v476 ---- */
-/* ================= Armoured bosses (v483) ================= */
+/* ================= Armoured bosses (v483) =================
+   Simon: "armoured should not just be a template but rather a seperate design for every unit that can be armored".
+   Every boss that can roll Armoured (from wave 100, never a milestone boss) now wears armour made for it, ARMOR_D[type]:
+     dragons (dragon, dragon2, dragon2a, dragon3, dragon3a, wyrm): scale-plate barding on the flanks, a peytral, lamellar collars down every neck, a helm
+       per dragon (war-helm with a brow spike, a mercenary's strapped skull plate, a gilded crest fin, a coronet, a golden face mask, bronze blades),
+       a chin guard on every jaw, guards and spiked couters on both wing arms, plated rings down the tail and a sheath over the spade;
+       the Ironclad drake and the Armoured Brood Mother get gilded overplates over their own steel;
+     ogre: one set per variant (Brute in scrap with a cauldron helm, Chieftain in skull-bossed trophy plate with a barred visor, Scarred Ogre in riveted
+       slabs, a one-slit bucket helm and chain round his arm; the Gem Carrier keeps his crown bare); kikimora: bark slabs lashed with vine, bone ribs,
+       a horned skull-cap, bark greaves and bone bands on all eight legs; golems: riveted iron bands and rune plates bolted into the stone (copper runes,
+       or cyan runes framing the runebound golem's sigil); behemoth: plates between its spines, brow and snout plates, greaves; arachne: chitin capping
+       plates edged in silver with her hourglass repainted, greaves on both segments of every leg, a gorget; colossus: a visored helm on the turning head,
+       siege pauldrons, plates round the furnace core, a banded club; dread knight / void knight: blackened plate with smouldering red runes, or obsidian
+       with violet seams round the open void; wyrms: hoops per segment (rusted iron round the Mire Wyrm's spines, a gilded crest over the Armoured Wyrm's
+       steel, bone-iron with magma seams, greaves and wing guards on the Fiend); ophanim and seraph: gilded bands on every wheel rim between the eyes,
+       a gilded collar round the great eye, steel feather-plates edged in gold on every wing.
+   How: arbKit(key) builds each design once (kitBuilder + mergeParts, vertex colours) as one merged geometry per moving part and material (steel,
+   gilded, matte, glowing: four shared materials). arbDress puts each part's mesh on the model's own bone (a wing, a neck/head group, a jaw, a tail
+   segment, a leg or arm pivot, a snake segment, a wheel, a wing flap), so it moves with the animation; the model's parts come from enemyModel and
+   unitModel wrappers (ARB_M). Pieces off the dress group leave with it (a 'removed' listener), so the Bestiary's elite button takes them off again.
+   Numbers: 23 cached kits, 5 to 29 extra meshes per boss (one per part and material), 450 to 3300 triangles; no per-foe geometry or material. */
 const ARB={kits:{},stat:{},att:new WeakMap()},ARB_M=new WeakMap();
 const ARB_MET=new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:38,specular:0x34383e});
 const ARB_GILD=new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:60,specular:0x8a7040});
@@ -35286,7 +35307,7 @@ const ARB_DRG={
   dragon2a:{st:'gild',P:0xd8aa3c,P2:0xb88a2a,T:0xf0cc60,R:0xfff0b0,L:0x5a3a22},
   dragon3:{st:'royal',P:0xa8b0ba,P2:0x8e96a2,A:0x2c3c84,T:0xd8b048,R:0xf4dc84,L:0x2a2a40},
   dragon3a:{st:'obs',P:0x1e1e26,P2:0x2c2c36,T:0xe6b440,R:0xffdc78,L:0x1a1a20},
-  wyrm:{st:'bronze',P:0xa07a46,P2:0x86643a,A:0x5e9a86,T:0xc8a060,R:0xe8dcc0,L:0x3a2a1a}};
+  wyrm:{st:'bronze',P:0x7a5630,P2:0x664626,A:0x5e9a86,T:0xc8a060,R:0xe8dcc0,L:0x3a2a1a}};
 function arbDragonKit(form){return arbKit('drg_'+form,({pl,riv,ball,horn,strip,arc})=>{const S=ARB_DRG[form],F=DRG_FORM[form],A=!!F.armor,SP=!!F.spiky,st=S.st;
   const gold=st==='gild'||st==='obs'||st==='royal'||st==='war'||st==='bronze',tk=k=>gold?k+'*g':k+'*d',mk=k=>(st==='gild'?k+'*g':k);
   const P=S.P,P2=S.P2,T=S.T,R=S.R,lift=A?.014:0;
@@ -35399,10 +35420,10 @@ function arbOgreKit(v){const sty=v===1?1:v===2?2:0,bare=v===3;return arbKit('ogr
   if(sty===2){/* riveted slabs front and back, a bucket helm with one slit (his good eye glows through), chain round the left arm */
     arc('body',[0,.29,0],[0,1,0],[0,0,1],.122,.15,-1.15,1.15,4,.15,.014,IR,{riv:[.006,0xc8c4bc],col2:IR2});arc('body',[0,.29,0],[0,1,0],[0,0,-1],.12,.09,-1.05,1.05,4,.15,.014,IR2,{riv:[.006,0xc8c4bc]});
     for(let i=0;i<5;i++)riv('body',-.08+i*.04,.355,.152,.006,0xc8c4bc);
-    P('body',ARB_UY,IR2,0,.485,Hz,0,0,0,.076,.1,.076);P('body',ARB_UY,IR,0,.538,Hz,0,0,0,.07,.012,.07);arc('body',[0,.45,Hz],[0,1,0],[0,0,1],.08,.08,0,Math.PI*2*.92,10,.014,.008,IR);
-    pl('body*d',.03,.008,.01,-.026,.48,Hz+.074,0,0,0,0x0a0606);pl('body*e',.012,.005,.004,-.026,.48,Hz+.077,0,0,0,0xff4020);
-    for(let i=0;i<3;i++)riv('body',.02+i*.012,.46,Hz+.077,.004,0x1a1a1a);
-    pl('armR',.07,.016,.08,.0,.055,0,0,0,0,IR);riv('armR',0,.065,0,.008,0xc8c4bc);arc('armR',[0,-.2,0],[0,-1,0],[0,0,1],.05,.05,-1.9,1.9,5,.09,.012,IR2,{riv:[.005,0xc8c4bc]});
+    P('body',ARB_UY,IR2,0,.478,Hz,Math.PI/8,0,0,.084,.11,.084);P('body',ARB_UY,IR,0,.536,Hz,Math.PI/8,0,0,.078,.012,.078);for(let i=0;i<6;i++){const a=i/6*6.283+.3;pl('body',.014,.1,.006,Math.sin(a)*.082,.478,Hz+Math.cos(a)*.082,0,a,0,IR);riv('body',Math.sin(a)*.086,.51,Hz+Math.cos(a)*.086,.006,0xc8c4bc);}
+    pl('body*d',.034,.009,.01,-.026,.48,Hz+.082,0,0,0,0x0a0606);pl('body*e',.012,.005,.004,-.026,.48,Hz+.086,0,0,0,0xff4020);
+    for(let i=0;i<3;i++)for(let j=0;j<2;j++)riv('body',.014+i*.013,.452+j*.012,Hz+.085,.004,0x1a1a1a);
+    arc('armR',[.01,.0,0],[1,0,0],[0,1,0],.062,.06,-1.6,1.6,4,.06,.012,IR,{tilt:-.12});riv('armR',.01,.066,0,.008,0xc8c4bc);arc('armR',[0,-.2,0],[0,-1,0],[0,0,1],.05,.05,-1.9,1.9,5,.07,.012,IR2,{riv:[.005,0xc8c4bc]});
     for(let i=0;i<22;i++){const a=i*1.05,y=-.04-i*.0095;P('armL',LINK_GEO,IR,Math.cos(a)*.05,y,Math.sin(a)*.05,i%2?0:Math.PI/2,-a,.35,.42,.42,.42);}
     [-1,1].forEach(s=>{const g=s<0?'legL':'legR';pl(g,.075,.06,.014,0,-.09,.052,0,0,0,IR);riv(g,-.025,-.07,.06,.005,0xc8c4bc);riv(g,.025,-.07,.06,.005,0xc8c4bc);});}});}
 ARMOR_D.ogre=C=>{const m=arbModel(C),L=m&&m.limbs;if(!L||!L.armL||!L.legL){armorClass(C);return;}const K=arbOgreKit(C.variant||0);
@@ -35422,7 +35443,7 @@ function arbGolemKit(rune){return arbKit(rune?'golem2':'golem',({pl,riv,ball,hor
   /* iron brow band over the eyes */
   arc('body',[0,.655,.08],[0,1,0],[0,0,1],.074,.068,-1.3,1.3,5,.024,.012,IR2,{riv:[.006,RV]});
   /* shoulders (on the arms): an iron cap; forearm bands, a knuckle bar with studs */
-  [-1,1].forEach(s=>{const k=s<0?'armL':'armR';arc(k,[s*.0,-.02,0],[s,0,0],[0,1,0],.09,.086,-1.8,1.8,7,.06,.012,IR,{tilt:-.14,riv:[.007,RV]});arc(k,[s*.05,-.035,0],[s,0,0],[0,1,0],.084,.08,-1.75,1.75,7,.05,.012,IR2,{tilt:-.14});horn(k,[s*.05,.06,0],[s*.3,1,0],.06,.016,IR2);
+  [-1,1].forEach(s=>{const k=s<0?'armL':'armR';arc(k,[s*.0,-.02,0],[s,0,0],[0,1,0],.09,.086,-1.8,1.8,7,.06,.012,IR,{tilt:-.14,riv:[.007,RV]});arc(k,[s*.05,-.035,0],[s,0,0],[0,1,0],.084,.08,-1.75,1.75,7,.05,.012,IR2,{tilt:-.14});pl(k,.014,.13,.16,s*.08,-.04,0,0,0,0,IR2);bolt(k,s*.088,-.03,0);horn(k,[s*.05,.06,0],[s*.3,1,0],.06,.016,IR2);
     [-.15,-.25].forEach((y,i)=>arc(k,[s*.045,y,.01],[s*.12,-1,0],[0,0,1],.066,.066,0,Math.PI*2*.88,8,.03,.012,i?IR2:IR,{riv:i?null:[.006,RV]}));
     pl(k,.11,.034,.03,s*.055,-.325,.105,0,0,0,IR2);for(let j=-1;j<=1;j++)horn(k,[s*.055+j*.034,-.325,.12],[0,0,1],.03,.01,RV);
     const g=s<0?'legL':'legR';arc(g,[0,-.15,0],[0,-1,0],[0,0,1],.064,.07,0,Math.PI*2*.9,8,.03,.014,IR,{riv:[.006,RV]});pl(g,.14,.03,.05,0,-.232,.115,0,0,0,IR2);bolt(g,0,-.232,.142);
@@ -35435,7 +35456,7 @@ ARMOR_D.golem=ARMOR_D.golem2=C=>{const m=arbModel(C),L=m&&m.limbs;if(!L||!L.armL
 function arbBeastKit(){return arbKit('beast',({pl,riv,ball,horn,strip,arc})=>{const IR=0x3e3a38,IR2=0x524a44,RS=0x7a4a2e,RV=0xb0a89a;
   const top=z=>{const f1=Math.sqrt(Math.max(0,1-(z/.304)**2)),f2=Math.sqrt(Math.max(0,1-((z-.13)/.143)**2)),f3=Math.sqrt(Math.max(0,1-((z+.19)/.132)**2));
     return{ry:Math.max(.136*f1,.09+.117*f2,.03+.102*f3)+.014,rx:Math.max(.184*f1,.15*f2,.132*f3)+.014};};
-  for(let i=0;i<8;i++){const z=.245-i*.07,q=top(z);arc('body',[0,.34,z],[0,0,-1],[0,1,0],q.rx,q.ry,-1.3,1.3,5,.05,.012,i%2?IR2:IR,{tilt:.12,col2:i%3?IR:RS,riv:[.006,RV]});}
+  for(let i=0;i<8;i++){const z=.245-i*.07,q=top(z);arc('body',[0,.34,z],[0,0,-1],[0,1,0],q.rx,q.ry,-1.1,1.1,4,.05,.012,i%2?IR2:IR,{tilt:.12,col2:i%3?IR:RS,riv:[.006,RV]});}
   /* head: brow plate between the horns, snout plate, cheek guards */
   pl('body',.17,.016,.13,0,.438,.445,0,0,0,IR2);pl('body',.124,.014,.09,0,.384,.565,.1,0,0,IR);riv('body',0,.447,.47,.008,RV);
   [-1,1].forEach(s=>{pl('body',.014,.07,.1,s*.087,.37,.45,0,0,0,IR);riv('body',s*.095,.39,.43,.006,RV);riv('body',s*.095,.35,.47,.006,RV);});
@@ -35479,7 +35500,7 @@ function arbColossusKit(){return arbKit('colossus',({pl,riv,ball,horn,strip,arc}
   pl('body',.12,.07,.024,0,.95,.182,0,0,0,IR2);for(let i=0;i<2;i++)arc('body',[0,.63-i*.06,0],[0,1,0],[0,0,1],.24,.165,-1.2,1.2,5,.055,.014,i?IR2:IR,{tilt:-.12});
   pl('body',.42,.3,.022,0,.85,-.19,0,0,0,IR2);
   [-1,1].forEach(s=>{const k=s<0?'armL':'armR';for(let j=0;j<3;j++)arc('body',[s*(.32+j*.05),1.05-j*.035,0],[s,-.35,0],[0,1,0],.2-j*.015,.15-j*.015,-1.8,1.8,7,.06,.016,j%2?IR2:IR,{tilt:-.15,riv:j?null:[.008,RV]});
-    arc('body*g',[s*.3,1.06,0],[s,-.35,0],[0,1,0],.206,.156,-1.8,1.8,7,.012,.01,BR);for(let j=0;j<2;j++)horn('body',[s*(.34+j*.06),1.2-j*.02,-.03+j*.06],[s*.3,1,0],.11,.024,IR2);
+    arc('body*g',[s*.3,1.06,0],[s,-.35,0],[0,1,0],.206,.156,-1.8,1.8,7,.012,.01,BR);pl('body',.02,.2,.3,s*.45,1.0,0,0,0,s*.33,IR2);riv('body',s*.462,1.03,0,.01,RV);for(let j=0;j<2;j++)horn('body',[s*(.34+j*.06),1.2-j*.02,-.03+j*.06],[s*.3,1,0],.11,.024,IR2);
     arc(k,[0,-.45,0],[0,-1,0],[0,0,1],.1,.1,0,Math.PI*2*.9,8,.18,.016,IR,{riv:[.008,RV]});arc(k+'*g',[0,-.35,0],[0,-1,0],[0,0,1],.104,.104,0,Math.PI*2*.9,8,.014,.01,BR);
     const g=s<0?'legL':'legR';arc(g,[0,-.38,0],[0,-1,0],[0,0,1],.15,.15,-2.1,2.1,6,.2,.018,IR,{riv:[.008,RV]});ball(g,0,-.27,.14,.07,.06,.035,IR2);horn(g,[0,-.27,.17],[0,.2,1],.06,.02,BR);
     arc(g+'*g',[0,-.48,0],[0,-1,0],[0,0,1],.154,.154,-2.1,2.1,6,.014,.01,BR);});
@@ -35520,7 +35541,7 @@ ARMOR_D.dreadk=ARMOR_D.voidk=C=>{const m=arbModel(C),L=m&&m.limbs,v=C.type==='vo
    gilded overplates and a gold blade crest over its steel; the Fiend blackened bone-iron with magma seams, a horned skull helm, greaves and wing guards ---- */
 const ARB_WY={wyrm2:{n:9,R:.13,st:0},wyrm2a:{n:9,R:.14,st:1},wyrmf:{n:11,R:.17,st:2}};
 function arbWyrmKit(type){return arbKit(type,({pl,riv,ball,horn,strip,arc})=>{const W=ARB_WY[type],R=W.R,st=W.st;
-  const IR=[0x55504a,0x9aa0aa,0x1c1416][st],IR2=[0x7a4a2c,0x7e848e,0x2a1e20][st],TR=[0x8a6a40,0xe0b040,0xff5a14][st],RV=[0xa89a84,0xfff0b0,0xe8dcc0][st],tk=['*d','*g','*e'][st];
+  const IR=[0x55504a,0x9aa0aa,0x1c1416][st],IR2=[0x6a4430,0x7e848e,0x2a1e20][st],TR=[0x8a6a40,0xe0b040,0xff5a14][st],RV=[0xa89a84,0xfff0b0,0xe8dcc0][st],tk=['*d','*g','*e'][st];
   for(let i=0;i<W.n;i++){const k='s'+i,f=i/(W.n-1),r=R*(1-.62*f)+.02,cy=r+.02,ry=r*.9+.012+(st===1?.03:0),rx=r+.012+(st===1?.02:0),len=r*1.25*1.6;
     if(st===0){[-1,1].forEach(s=>arc(k,[0,cy,0],[0,0,1],[0,1,0],rx,ry,s*.3,s*1.5,3,len,.012,i%2?IR2:IR,{tilt:.12,riv:[.006,RV]}));arc(k+tk,[0,cy,len*.36],[0,0,1],[0,1,0],rx+.004,ry+.004,-1.5,1.5,6,.012,.01,TR);}
     if(st===1){arc(k+'*g',[0,cy,0],[0,0,1],[0,1,0],rx,ry,-.95,.95,3,len*.8,.012,i%2?0xb8862a:0xc8962c,{tilt:.14});arc(k+'*g',[0,cy,len*.38],[0,0,1],[0,1,0],rx+.004,ry+.004,-.95,.95,3,.014,.01,0xf0cc60);if(i<W.n-1)horn(k+'*g',[0,cy+ry+.006,0],[0,1,-.5],r*.7,r*.22,0xfff0b0);
