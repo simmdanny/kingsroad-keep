@@ -14909,6 +14909,13 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Armoured troops, each in armour of their own',d:'4 Nov',v:'v482',li:[
+    'Armoured is no longer one set of plates bolted onto everyone. Every troop that can be Armoured now has its own armour, made for each of its variants and fitted to its body.',
+    'Peasants make do: a cooking pot jammed over the straw hat, a pail, a colander or a barber\'s basin for a helm, padded jacks with scrap iron nailed on, and a barn door, a log round, a cart wheel or a frying pan for a shield. The elder wears his father\'s rusted breastplate.',
+    'Soldiers: a studded brigandine and a broad kettle hat for the Spearman, mail and a coat of plates with a nasal helm for the Swordsman, laced lamellar and a spangenhelm for the Axeman, gilded parade plate for the Gem Carrier and a herald\'s half-armour for the Scroll Bearer.',
+    'Riders come on barded horses, with a face plate, plates down the neck, a chest plate, a rump plate and guards on the legs, in leather, bright steel, black scale, gilt or mail, and the rider is armoured to match.',
+    'Ravens wear a riveted beak cap, a little helm, a mantle of steel feather scales, talon guards and scales along the wings. Rams get iron-sheathed roofs, a metal-clad head, riveted bands and studded iron tyres. The taiga wolf has a spiked collar, a mail coat and a helm plate.',
+    'The armour moves with the arms, legs, wings, wheels and heads, fits the Highlands troops too, and costs fewer draw calls than the old plates. An artefact that strips Armoured off a foe now takes the armour off as well.']},
   {t:'The Primordial Tempest, a hurricane seen from above',d:'4 Nov',v:'v477',li:[
     'The Primordial Tempest looks like a real hurricane now. Spiral arms of storm cloud wheel over the whole board round a clear eye that always frames the hero, the wall of the eye lit bright by the lightning inside it.',
     'Every bolt lights the cloud above it from within, sheet lightning lights the whole storm and lightning crawls along its arms. A sheet of wind and rain swirls into the eye, and every bolt that lands leaves a flare of light and a glowing scorch.',
@@ -35236,6 +35243,288 @@ function gmxAfter(b,how){const n={};for(const [t,e0] of b){const d=(t.earned||0)
 {const k0=kill;kill=function(){const b=gmxBefore('merchant');const r=k0.apply(this,arguments);if(b.length)try{gmxAfter(b,'bounty');}catch(err){console.error(err);}return r;};}
 {const mp=mxPay;mxPay=function(t){const b=t&&GOLD_T.includes(t.type)?[[t,t.earned||0]]:[];const r=mp.apply(this,arguments);try{gmxAfter(b,'payout');}catch(err){console.error(err);}return r;};}
 /* ---- end of v476 ---- */
+/* ================= Armoured, one design per troop (v482) =================
+   Simon: "armoured should not just be a template but rather a seperate design for every unit that can be armored".
+   Design: ARMOR_D.peasant/.soldier/.rider/.raven/.ram/.wolf each build their own armour, per variant, on the unit's real skeleton:
+   - peasants wear improvised kit (a cooking pot, a pail, a colander, a barber's basin, a padded jack with nailed scrap, a barn-door, log-round, cart-wheel or frying-pan shield);
+   - soldiers: a brigandine and broad kettle hat (Spearman), mail and a coat of plates with a nasal helm and coif (Swordsman), lamellar and a spangenhelm (Axeman),
+     gilded parade plate (Gem Carrier), a herald's half-armour and sallet (Scroll Bearer);
+   - riders: a barded horse (chanfron, crinet, peytral, crupper, flanchards, knee guards on the moving legs) and an armoured rider, in leather, steel, black scale, gilt or mail;
+   - ravens: a riveted beak cap, a crested helm cap, a feather-scale mantle, talon guards and scale lames on the flapping wings;
+   - rams: iron-sheathed roof plates with rivet rows, a ridge cap, a metal-clad head, riveted bands on the posts, a front mantlet and studded iron tyres on the turning wheels;
+   - wolves: a spiked collar, a chain-mail barding coat with a riveted spine plate, a helm plate on the moving head and greaves on the legs.
+   Every piece is placed from the kit's own numbers (torso, head, limb pivots) and measured from the body mesh (head top, torso depth), so it fits the Highlands kits too.
+   Numbers: each (type, variant, body mesh) is built once and cached (ARX_CACHE); the static armour merges into at most 2 meshes (steel, leather/wood) on the dress,
+   and each moving part (arm, leg, wing, horse leg, wheel, wolf head) gets at most 2 more meshes parented to that pivot, so it cannot drift while animating.
+   All foes share the geometries and the two vertex-coloured materials; nothing is allocated per frame. The limb meshes leave with the dress ('removed'). */
+const ARX_MET=new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:46,specular:0x6c7480,side:THREE.DoubleSide});
+const ARX_SOFT=new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:5,side:THREE.DoubleSide});
+const ARX_CACHE=new Map(),ARX_STATS={builds:0,dresses:0};
+const AX={ST:0xb4bcc6,ST2:0x9aa3b0,IR:0x80868e,IR2:0x5e646c,BK:0x34363c,BK2:0x24262a,RU:0x8a5634,RU2:0x6a4028,BR:0xc8963e,CU:0xc06a3a,GO:0xe8b84a,GO2:0xb8862a,
+  RV:0xe0e4ea,NL:0x2a2a2e,LE:0x6b4424,LE2:0x4a2e18,LE3:0x8a5a30,WD:0x8a6438,WD2:0x6a4a28,WD3:0xa8804a,RO:0xb8a070,QU:0xc8b48a,MA:0x8a9098,MA2:0x5a6068};
+/* cached shapes the house helpers lack: open shells, domes, rings */
+const axShell=(rt,rb,h,s,t0,tl)=>gget(`axs${r3(rt)},${r3(rb)},${r3(h)},${s},${r3(t0)},${r3(tl)}`,()=>new THREE.CylinderGeometry(rt,rb,h,s,1,true,t0,tl));
+const axDome=(r,s,ph)=>gget(`axd${r3(r)},${s},${r3(ph)}`,()=>new THREE.SphereGeometry(r,s,Math.max(2,Math.round(s/2)),0,Math.PI*2,0,ph));
+const axRing=(r,t,s)=>gget(`axr${r3(r)},${r3(t)},${s}`,()=>new THREE.TorusGeometry(r,t,4,s));
+const axArc=(r,t,s,a)=>gget(`axa${r3(r)},${r3(t)},${s},${r3(a)}`,()=>new THREE.TorusGeometry(r,t,4,s,a));
+/* measures the merged body mesh: the extent of its vertices inside a box (cached per geometry and box) */
+const ARX_MEAS=new Map();
+function arxMeas(geo,y0,y1,xr,zc,zr,xm){xm=xm||0;const k=geo.uuid+'|'+[y0,y1,xr,zc,zr,xm].join(',');let r=ARX_MEAS.get(k);if(r)return r;const p=geo.attributes.position;r={x0:1,x1:-1,y0:1,y1:-1,z0:1,z1:-1,n:0};
+  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);if(y<y0||y>y1||Math.abs(x)>xr||Math.abs(x)<xm||Math.abs(z-zc)>zr)continue;r.n++;if(x<r.x0)r.x0=x;if(x>r.x1)r.x1=x;if(y<r.y0)r.y0=y;if(y>r.y1)r.y1=y;if(z<r.z0)r.z0=z;if(z>r.z1)r.z1=z;}
+  ARX_MEAS.set(k,r);return r;}
+/* the moving parts of a model, recorded when it is built (peasants, troops, wolves) */
+{const pm=peasantModel;peasantModel=function(){const m=pm.apply(this,arguments);if(m&&m.b&&m.limbs){const l=m.limbs;m.b.userData.arxL={legL:l.legL,legR:l.legR,armL:l.armL,armR:l.armR};}return m;};}
+{const um=unitModel;unitModel=function(type){const m=um.apply(this,arguments);if(!m||!m.b)return m;const L={};const l=m.limbs||{};
+  if(l.legL)Object.assign(L,{legL:l.legL,legR:l.legR,armL:l.armL,armR:l.armR});if(l.quad)Object.assign(L,{legFL:l.quad.FL,legFR:l.quad.FR,legBL:l.quad.BL,legBR:l.quad.BR});
+  if(l.wheels)l.wheels.forEach((w,i)=>L['wh'+i]=w);if(m.wings){L.wingL=m.wings[0];L.wingR=m.wings[1];}m.b.userData.arxL=L;return m;};}
+{const wm=tgWolfModel;tgWolfModel=function(alpha){const m=wm.apply(this,arguments);if(!m||!m.b)return m;const L={hd:m.refs&&m.refs.hd};
+  for(const c of m.b.children)if(c.isGroup&&Math.abs(c.position.y-.23)<.002&&Math.abs(Math.abs(c.position.z)-.11)<.002)L['leg'+(c.position.z>0?'F':'B')+(c.position.x<0?'L':'R')]=c;
+  m.b.userData.arxL=L;m.b.userData.arxAlpha=!!alpha;return m;};}
+/* builds a design once: build(P,S) with P = steel/iron/brass parts, S = leather/wood/cloth parts, each P(key,geo,col,x,y,z,rx,ry,rz,sx,sy,sz); key 'body' or a pivot name */
+function arxMake(build){const A=kitBuilder(),B=kitBuilder();build(A.P,B.P);const out={};
+  for(const k of new Set([...Object.keys(A.B),...Object.keys(B.B)]))out[k]={m:A.B[k]?mergeParts(A.B[k]):null,s:B.B[k]?mergeParts(B.B[k]):null};return out;}
+function arxDress(C,key,build){const L=(C.body&&C.body.parent&&C.body.parent.userData.arxL)||{};let R=ARX_CACHE.get(key);if(!R){R=arxMake(build);ARX_CACHE.set(key,R);ARX_STATS.builds++;}
+  const extra=[];for(const k in R){const par=k==='body'?C.g:L[k];if(!par)continue;for(const[geo,mat]of[[R[k].m,ARX_MET],[R[k].s,ARX_SOFT]]){if(!geo)continue;const m=new THREE.Mesh(geo,mat);m.userData.arx=k;par.add(m);if(par!==C.g)extra.push(m);}}
+  if(extra.length)C.g.addEventListener('removed',function f(){C.g.removeEventListener('removed',f);for(const m of extra)if(m.parent)m.parent.remove(m);});
+  C.g.userData.arx={type:C.type,key,pieces:extra.length};C.g.userData.arxLimb=extra;ARX_STATS.dresses++;}
+/* shared helpers: a row of rivets, a riveted strip */
+function axRiv(P,k,x,y,z,n,dx,dy,dz,col,r){for(let i=0;i<n;i++)P(k,ico(r||.0042,0),col||AX.RV,x+dx*i,y+dy*i,z+dz*i);}
+
+/* ---------- humanoid parts on the shared skeleton (arms pivot at the shoulder, hand at y -.135; legs pivot at the hip, sole at -.19) ---------- */
+function axPauldron(P,k,s,col,col2,o){o=o||{};const r=o.r||.03;P(k,axDome(r,9,Math.PI*.5),col,s*.006,.002,0,0,0,s*-.25,1,o.fl||.8,1.05);
+  for(let i=0;i<(o.lames==null?2:o.lames);i++)P(k,axShell(r*(.92-i*.06),r*(.98-i*.05),.014,9,0,Math.PI*2),i%2?col:col2||col,s*.008,-.008-i*.012,0,0,0,s*-.22,1,1,1.05);
+  if(o.riv!==false)P(k,ico(.0048,0),o.rc||AX.RV,s*(r*.55),r*.45,0);if(o.spike)P(k,cone(.008,.03,4),o.spike,s*.018,.024,0,0,0,s*-.6);}
+function axVamb(P,k,col,o){o=o||{};P(k,axShell(.0175,.0165,o.h||.052,8,0,Math.PI*2),col,0,o.y||-.1,0);if(o.ridge!==false)P(k,box(.004,(o.h||.052)*.95,.006),o.rc||col,0,o.y||-.1,.017);
+  if(o.cop)P(k,axDome(.016,7,Math.PI*.5),o.cop,0,-.07,-.006,-1.75,0,0,1,1,.9);if(o.band)for(const y of[-.08,-.12])P(k,axShell(.0182,.0182,.006,8,0,Math.PI*2),o.band,0,y,0);}
+function axLeg(P,S,k,col,o){o=o||{};if(o.cuisse)P(k,axShell(.025,.023,.07,8,-1.6,3.2),o.cuisse,0,-.045,0);
+  if(o.knee)P(k,axDome(.019,7,Math.PI*.55),o.knee,0,-.1,.012,1.45,0,0,1,1,.85);if(o.knee&&o.wing)[-1,1].forEach(s=>P(k,box(.004,.02,.016),o.knee,s*.018,-.1,.008));
+  if(o.greave)P(k,axShell(.022,.019,.068,8,-1.7,3.4),o.greave,0,-.143,0);if(o.greave&&o.gr)P(k,box(.004,.066,.006),o.gr,0,-.143,.022);
+  if(o.sabaton)for(let i=0;i<3;i++)P(k,box(.036,.008,.018),o.sabaton,0,-.17+i*.002,.024-i*.012,.25);
+  if(o.wrap)for(let i=0;i<4;i++)S(k,axShell(.021,.021,.01,7,0,Math.PI*2),o.wrap,0,-.115-i*.019,0,0,0,(i%2?.18:-.18));
+  if(o.slats)for(let i=-1;i<=1;i++)S(k,box(.009,.07,.005),o.slats,i*.011,-.14,.02,0,0,0);if(o.slats)for(const y of[-.12,-.16])S(k,axShell(.022,.022,.006,7,0,Math.PI*2),o.rope||AX.RO,0,y,0);}
+/* a humanoid cuirass: front and back shells round the torso, zf/zb are the measured front and back of the chest */
+function axCuirass(P,k,M,col,o){o=o||{};const y=o.y||.274,h=o.h||.104,rx=(o.rx||.052),zs=Math.max(.6,(Math.max(M.zf,-M.zb)+.006)/rx);
+  P(k,axShell(rx,rx*.94,h,12,0,Math.PI*2),col,0,y,M.zc,0,0,0,1,1,zs);
+  if(o.ridge!==false)P(k,box(.006,h*.95,.008),o.rc||col,0,y,M.zc+rx*zs+.001,-.05);
+  if(o.gorget)P(k,axShell(.036,.05,.022,10,0,Math.PI*2),o.gorget,0,y+h/2+.002,M.zc,0,0,0,1,1,zs*.95);
+  if(o.fauld)for(let i=0;i<(o.fn||2);i++)P(k,axShell(rx*.98+i*.004,rx*1.02+i*.006,.018,12,0,Math.PI*2),i%2?(o.f2||o.fauld):o.fauld,0,y-h/2-.008-i*.015,M.zc,0,0,0,1,1,zs);
+  if(o.riv)axRiv(P,k,-.032,y+h*.38,M.zc+rx*zs+.002,5,.016,0,0,o.riv);}
+function axMeasH(body,hy,hz){const G=body.geometry,t=arxMeas(G,.24,.31,.07,0,.06),hd=arxMeas(G,hy-.005,.72,.06,hz,.065,.024);/* pompoms, crests and feathers in the middle are left out */
+  return{zf:t.n?t.z1:.031,zb:t.n?t.z0:-.031,zc:0,top:hd.n?hd.y1+.006:hy+.045,hx:hd.n?Math.max(-hd.x0,hd.x1):.05};}
+
+/* ---------- peasants: improvised armour ---------- */
+ARMOR_D.peasant=C=>{const v=C.variant|0;arxDress(C,'peasant:'+v+':'+C.body.geometry.uuid,(P0,S0)=>{
+  const hunch=v===3?.28:0,T=(x,y,z)=>[x,y-(hunch?Math.max(0,y-.22)*.12:0),z+(hunch?Math.max(0,y-.22)*hunch*.9:0)];
+  const tb=F=>(k,geo,col,x,y,z,rx,ry,rz,sx,sy,sz)=>{if(k==='body'&&hunch&&y<.35){const[a,b,c]=T(x,y,z);F(k,geo,col,a,b,c,(rx||0)+(y>.22?hunch*.8:0),ry,rz,sx,sy,sz);}else F(k,geo,col,x,y,z,rx,ry,rz,sx,sy,sz);};
+  const P=tb(P0),S=tb(S0),hy=.393-(hunch?.02:0),hz=hunch?.05:0,M=axMeasH(C.body,hy,hz);if(hunch){M.zf=.032;M.zb=-.032;}
+  const top=hunch?hy+.05:M.top;/* the elder is measured unbent */
+  /* a padded jack: quilted cloth over the torso, lines of stitching, a high collar */
+  const jack=(col,col2)=>{S('body',axShell(.054,.052,.112,10,0,Math.PI*2),col,0,.272,0,0,0,0,1,1,(M.zf+.008)/.054);for(let i=0;i<4;i++)S('body',axShell(.0545,.0525,.004,10,0,Math.PI*2),col2,0,.235+i*.026,0,0,0,0,1,1,(M.zf+.009)/.054);
+    for(let i=-2;i<=2;i++)S('body',box(.003,.108,.004),col2,i*.018,.272,M.zf+.009);S('body',axShell(.032,.042,.02,9,0,Math.PI*2),col,0,.336,0,0,0,0,1,1,.9);};
+  const nailed=(x,y,w,h,rz,col,z)=>{const zz=(z==null?M.zf+.012:z);P('body',box(w,h,.005),col,x,y,zz,-.04,0,rz);[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>P('body',ico(.0042,0),AX.NL,x+a*(w*.36)*Math.cos(rz)-b*(h*.36)*Math.sin(rz),y+a*(w*.36)*Math.sin(rz)+b*(h*.36)*Math.cos(rz),zz+.003));};
+  /* a shield strapped to the left forearm, its face turned out to the front-left */
+  const SH=(build)=>{const k='armL',ry=-.75;build((geo,col,x,y,z,rx,ry2,rz,sx,sy,sz,soft)=>{/* shield-local: x across, y up, z out; mapped onto the forearm */
+      const c=Math.cos(ry),s=Math.sin(ry),X=-.03+x*c+z*s,Z=.012-x*s+z*c;(soft?S:P)(k,geo,col,X,-.095+y,Z,rx||0,(ry2||0)+ry,rz||0,sx,sy,sz);});
+    S(k,axShell(.0175,.0175,.008,7,0,Math.PI*2),AX.LE2,0,-.08,0);S(k,axShell(.0165,.0165,.008,7,0,Math.PI*2),AX.LE2,0,-.12,0);};
+  const pot=(r,h,col,col2,o)=>{o=o||{};const y=top+.01-h/2;P('body',cyl(r*.97,r,h,10),col,0,y,hz);P('body',axShell(r+.004,r+.004,.008,10,0,Math.PI*2),col2,0,y-h/2+.004,hz);
+    if(o.handle)P('body',box(.05,.008,.012),col2,r+.022,y+h*.1,hz,0,0,-.15);if(o.ears)[-1,1].forEach(s=>P('body',axRing(.011,.003,6),col2,s*(r+.004),y+h*.2,hz,0,Math.PI/2,0));
+    if(o.riv)for(let i=0;i<8;i++){const a=i/8*6.283;P('body',ico(.0035,0),o.riv,Math.sin(a)*(r+.002),y-h*.3,hz+Math.cos(a)*(r+.002));}};
+  if(v===0){/* Farmer: a cooking pot jammed over the straw hat, a padded jack with a ploughshare and scrap nailed on, a barn-door shield, slat shin guards */
+    jack(0xb8a47a,0x8a7854);P('body',cone(.03,.05,3),AX.IR2,0,.265,M.zf+.014,Math.PI/2+.08,0,Math.PI,1,1,.25);P('body',box(.004,.05,.004),AX.NL,0,.272,M.zf+.02);
+    nailed(-.03,.235,.03,.024,.2,AX.RU);nailed(.032,.305,.026,.02,-.15,AX.IR);nailed(.0,.255,.03,.026,.1,AX.RU2,-(M.zf+.012));nailed(-.02,.3,.026,.024,-.2,AX.IR,-(M.zf+.012));
+    pot(.048,.05,0x5a5650,0x3a3834,{handle:true,riv:AX.NL});
+    SH(p=>{for(let i=-2;i<=2;i++)p(box(.022,.11,.008),i%2?AX.WD:AX.WD2,i*.022,0,0,0,0,0,1,1,1,true);for(const y of[-.035,.035])p(box(.112,.012,.006),AX.WD3,0,y,.007,0,0,0,1,1,1,true);p(box(.012,.09,.006),AX.WD3,0,0,.008,0,0,.95,1,1,1,true);
+      for(const y of[-.035,.035])for(const x of[-.04,0,.04])p(ico(.004,0),AX.NL,x,y,.011);});
+    ['legL','legR'].forEach(k=>axLeg(P,S,k,0,{slats:AX.WD3,rope:AX.RO}));['armL','armR'].forEach(k=>S(k,axShell(.017,.016,.04,7,0,Math.PI*2),AX.LE,0,-.105,0));}
+  if(v===1){/* Woodcutter: a barrel-stave cuirass hooped in iron, iron straps nailed over the hood, a log-round shield, bark-wrapped shins */
+    const zs=(M.zf+.012)/.056;for(let i=0;i<14;i++){const a=i/14*6.283;S('body',box(.026,.11,.007),i%2?AX.WD:AX.WD2,Math.sin(a)*.056,.272,Math.cos(a)*.056*zs,0,a,0,1,1,1);}
+    for(const y of[.235,.308])P('body',axShell(.06,.06,.01,14,0,Math.PI*2),AX.IR2,0,y,0,0,0,0,1,1,zs*1.02);for(let i=0;i<6;i++){const a=i/6*6.283+.5;P('body',ico(.0042,0),AX.RV,Math.sin(a)*.061,.235,Math.cos(a)*.061*zs*1.02);}
+    const hr=Math.max(.052,M.hx+.004),hc=top-hr*.92;P('body',axDome(hr,10,Math.PI*.36),AX.IR2,0,hc,hz-.022);for(const ry of[Math.PI/4,-Math.PI/4])P('body',axArc(hr+.002,.004,10,Math.PI),AX.IR,0,hc,hz-.022,0,ry,0);P('body',axRing(hr*.9,.004,10),AX.IR,0,hc+hr*.42,hz-.022,Math.PI/2,0,0);P('body',ico(.008,0),AX.RV,0,hc+hr+.002,hz-.022);for(let i=0;i<6;i++){const a=i/6*6.283;P('body',ico(.0035,0),AX.RV,Math.sin(a)*hr*.9,hc+hr*.44,hz-.022+Math.cos(a)*hr*.9);}
+    SH(p=>{p(cyl(.056,.056,.018,10),AX.WD3,0,0,0,Math.PI/2,0,0,1,1,1,true);p(axShell(.057,.057,.02,10,0,Math.PI*2),0x5a3e22,0,0,0,Math.PI/2,0,0,1,1,1,true);for(const r of[.02,.038])p(axRing(r,.002,10),AX.WD2,0,0,.01,0,0,0,1,1,1,true);
+      p(box(.006,.03,.004),AX.WD2,.012,.01,.011,0,0,.6,1,1,1,true);p(box(.12,.012,.006),AX.IR2,0,0,.012);});
+    ['legL','legR'].forEach(k=>axLeg(P,S,k,0,{wrap:0x5a3e22}));}
+  if(v===2){/* Torchbearer: a smith's leather apron with horseshoes nailed on, a pail helm with its handle, a barrel-lid shield, a bracer on the torch arm */
+    S('body',box(.1,.14,.008),AX.LE2,0,.25,M.zf+.008,-.05);S('body',box(.1,.012,.07),AX.LE,0,.316,0);[-1,1].forEach(s=>S('body',box(.008,.06,.062),AX.LE2,s*.049,.3,0));
+    for(const[x,y,rz]of[[-.024,.29,.2],[.024,.29,-.2],[0,.235,0]]){P('body',axRing(.014,.0035,8),AX.IR,x,y,M.zf+.014,0,0,rz+Math.PI);for(const a of[-.9,0,.9])P('body',ico(.003,0),AX.RV,x+Math.sin(a)*.014,y-Math.cos(a)*.014,M.zf+.018);}
+    const r=Math.max(.05,M.hx+.004),h=.058,y=top+.012-h/2;S('body',cyl(r*.86,r,h,10),AX.WD,0,y,hz);for(const yy of[y-h*.32,y+h*.3])P('body',axShell(r*(yy>y?.9:.98)+.002,r*(yy>y?.9:.98)+.002,.008,10,0,Math.PI*2),AX.IR2,0,yy,hz);
+    for(let i=0;i<10;i++){const a=i/10*6.283;S('body',box(.003,h,.003),AX.WD2,Math.sin(a)*r*.94,y,hz+Math.cos(a)*r*.94,0,a,0);}P('body',axRing(r*.95,.0025,10),AX.IR,0,y+.004,hz,Math.PI/2+.5,0,0,1,1,1);
+    SH(p=>{p(cyl(.054,.054,.012,10),AX.WD,0,0,0,Math.PI/2,0,0,1,1,1,true);p(axRing(.054,.004,10),AX.IR2,0,0,0);for(let i=-2;i<=2;i++)p(box(.002,.1,.002),AX.WD2,i*.02,0,.007,0,0,0,1,1,1,true);p(box(.02,.03,.006),AX.LE2,0,0,.008,0,0,0,1,1,1,true);});
+    axVamb(P,'armR',AX.IR,{cop:AX.IR2,ridge:false,band:AX.LE2});['legL','legR'].forEach(k=>{S(k,axDome(.02,7,Math.PI*.5),AX.LE2,0,-.1,.012,1.45);P(k,ico(.004,0),AX.RV,0,-.098,.032);});}
+  if(v===3){/* Village Elder: his father's rusted breastplate (too big, dented), an old wide-brimmed kettle hat, a rusty mail shawl, knee cops */
+    P('body',axShell(.056,.052,.11,12,-1.75,3.5),AX.RU,0,.27,0,0,0,0,1,1,(M.zf+.012)/.056);P('body',box(.006,.1,.008),AX.RU2,0,.27,M.zf+.012+.001);P('body',box(.018,.014,.006),AX.RU2,.022,.255,M.zf+.012,0,.3,.5);
+    P('body',axShell(.058,.058,.012,12,-1.6,3.2),AX.RU2,0,.218,0,0,0,0,1,1,(M.zf+.014)/.058);axRiv(P,'body',-.03,.312,M.zf+.014,4,.02,0,0,AX.QU);
+    for(let i=0;i<16;i++){const a=i/16*6.283;if(Math.cos(a)<-.3)continue;P('body',box(.016,.03,.004),i%2?AX.MA2:AX.MA,Math.sin(a)*.05,.318,Math.cos(a)*.05*.85,-.45*Math.cos(a),a,0,1,1,1);}
+    const y=hy+.03;P('body',axDome(.05,10,Math.PI*.5),AX.RU,0,y,hz,0,0,0,1,.8,1);P('body',axShell(.074,.052,.012,12,0,Math.PI*2),AX.RU2,0,y-.006,hz);P('body',axRing(.074,.003,12),AX.RU,0,y-.012,hz,Math.PI/2,0,0);
+    ['legL','legR'].forEach(k=>axLeg(P,S,k,0,{knee:AX.RU}));}
+  if(v===4){/* Stable Lad: saddle-leather plates stitched and studded, a copper barber's basin for a helm, a cart-wheel shield */
+    S('body',axShell(.054,.052,.11,10,0,Math.PI*2),AX.LE3,0,.272,0,0,0,0,1,1,(M.zf+.008)/.054);for(let i=0;i<3;i++){S('body',box(.1,.028,.006),i%2?AX.LE:AX.LE2,0,.235+i*.032,M.zf+.011,-.12);axRiv(P,'body',-.04,.226+i*.032,M.zf+.015,5,.02,0,0,AX.BR);}
+    S('body',box(.012,.13,.006),AX.LE2,0,.27,M.zf+.016,0,0,.6);
+    const y=top-.05;P('body',axDome(.056,10,Math.PI*.38),AX.CU,0,y,hz);P('body',axShell(.076,.054,.008,12,0,Math.PI*2),0xa85a30,0,y+.022,hz);P('body',axRing(.076,.003,12),0xd8925a,0,y+.019,hz,Math.PI/2,0,0);P('body',box(.026,.006,.014),0xa85a30,0,y+.019,hz+.074);
+    SH(p=>{p(axRing(.05,.007,12),AX.WD2,0,0,0,0,0,0,1,1,1,true);p(axRing(.051,.004,12),AX.IR2,0,0,.003);p(cyl(.012,.012,.026,8),AX.WD,0,0,0,Math.PI/2,0,0,1,1,1,true);for(let i=0;i<4;i++)p(box(.006,.096,.006),AX.WD,0,0,0,0,0,i*Math.PI/4,1,1,1,true);p(cyl(.006,.006,.03,6),AX.IR,0,0,.004,Math.PI/2);});
+    ['legL','legR'].forEach(k=>{S(k,axShell(.023,.021,.06,7,-1.5,3),AX.LE3,0,-.12,0);axRiv(P,k,0,-.095,.024,3,0,-.022,0,AX.BR);});}
+  if(v===5){/* Goodwife: a colander helm, a quilted apron with pot lids nailed on, a frying-pan shield */
+    S('body',box(.09,.16,.01),0xd8ccb0,0,.22,M.zf+.012,-.16);for(let i=0;i<4;i++)S('body',box(.09,.003,.011),0xa89a7a,0,.17+i*.035,M.zf+.015-(i-1.5)*.006,-.16);
+    for(const[x,y,r]of[[-.024,.28,.018],[.024,.26,.016],[0,.21,.02]]){P('body',cyl(r,r*.9,.006,10),AX.IR,x,y,M.zf+.02-y*.08+.02,Math.PI/2-.16);P('body',ico(.005,0),AX.BK,x,y,M.zf+.026-y*.08+.02);}
+    const y=top-.01;P('body',axDome(.054,10,Math.PI*.5),0xa8b0b8,0,y,hz,0,0,0,1,.82,1);P('body',axRing(.054,.003,12),AX.IR2,0,y,hz,Math.PI/2,0,0);
+    for(let j=0;j<2;j++)for(let i=0;i<9;i++){const a=i/9*6.283+j*.35,ph=.45+j*.4;P('body',ico(.0042,0),AX.NL,Math.sin(a)*Math.sin(ph)*.055,y+Math.cos(ph)*.055*.82,hz+Math.cos(a)*Math.sin(ph)*.055);}
+    [-1,1].forEach(s=>P('body',box(.02,.006,.01),AX.IR2,s*.065,y+.004,hz));
+    SH(p=>{p(cyl(.05,.044,.014,12),AX.BK,0,0,0,Math.PI/2,0,0);p(axRing(.05,.004,12),AX.BK2,0,0,.007);p(box(.012,.07,.008),AX.WD2,0,-.08,.0,0,0,0,1,1,1,true);p(ico(.005,0),AX.RV,0,-.044,.004);});}
+  if(v===6){/* Gem Carrier: a looted, gold-edged breastplate, a crested morion, a gilded round shield slung on his back, vambraces */
+    axCuirass(P,'body',M,AX.ST,{rc:AX.GO,gorget:AX.GO2,fauld:AX.ST2,fn:1,riv:AX.GO});P('body',box(.07,.006,.008),AX.GO,0,.315,M.zf+.008);
+    const y=top-.012;P('body',axDome(.05,10,Math.PI*.5),AX.ST,0,y,hz,0,0,0,1,.95,1.1);P('body',box(.006,.04,.1),AX.GO,0,y+.05,hz,0,0,0);P('body',axShell(.07,.052,.012,12,0,Math.PI*2),AX.ST2,0,y,hz,0,0,0,1,1,1.25);
+    P('body',axRing(.07,.003,12),AX.GO,0,y-.006,hz,Math.PI/2,0,0,1,1.25,1);
+    P('body',cyl(.07,.07,.012,12),AX.GO2,0,.27,-.06,Math.PI/2,0,0);P('body',cyl(.06,.06,.014,12),0x6a2a7a,0,.27,-.064,Math.PI/2,0,0);P('body',ico(.014,0),AX.GO,0,.27,-.074);for(let i=0;i<8;i++){const a=i/8*6.283;P('body',ico(.004,0),AX.GO,Math.sin(a)*.064,.27+Math.cos(a)*.064,-.07);}
+    P('body',box(.012,.16,.006),AX.LE2,0,.27,-.04,0,0,.62);axVamb(P,'armL',AX.ST,{rc:AX.GO});axVamb(P,'armR',AX.ST,{rc:AX.GO});
+    axPauldron(P,'armL',-1,AX.ST,AX.GO2,{rc:AX.GO});axPauldron(P,'armR',1,AX.ST,AX.GO2,{rc:AX.GO});['legL','legR'].forEach(k=>axLeg(P,S,k,0,{knee:AX.ST,greave:AX.ST2}));}
+  if(v===7){/* Scroll Bearer: book-board armour (wooden covers in leather with brass corners and a clasp), a brass-studded skull cap, a lectern board on his back, parchment bracers */
+    const bz=M.zf+.008;S('body',box(.096,.11,.01),0x7a2a24,0,.27,bz,-.03);S('body',box(.09,.104,.004),0x5a1a16,0,.27,bz+.005,-.03);for(const[x,y]of[[-.044,.322],[.044,.322],[-.044,.218],[.044,.218]])P('body',box(.016,.016,.006),AX.BR,x,y,bz+.006,-.03);
+    P('body',box(.012,.03,.008),AX.BR,.046,.27,bz+.006);P('body',ico(.006,0),AX.BR,0,.27,bz+.008);S('body',box(.092,.11,.012),0x3a5a36,0,.27,-(M.zf+.01),.03);
+    for(const[x,y]of[[-.044,.322],[.044,.322],[-.044,.218],[.044,.218]])P('body',box(.016,.016,.006),AX.BR,x,y,-(M.zf+.016),.03);
+    S('body',box(.11,.16,.012),AX.WD,0,.25,-.075,.08);S('body',box(.1,.15,.004),AX.WD2,0,.25,-.082,.08);for(const y of[.19,.31])P('body',box(.112,.01,.014),AX.BR,0,y,-.075+(y-.25)*.08,.08);
+    const y=top-.006;S('body',axDome(.05,10,Math.PI*.42),AX.LE2,0,y,hz-.004);for(let i=0;i<8;i++){const a=i/8*6.283;P('body',ico(.0045,0),AX.BR,Math.sin(a)*.044,y+.02,hz-.004+Math.cos(a)*.044);}P('body',ico(.007,0),AX.BR,0,y+.05,hz-.004);
+    ['armL','armR'].forEach(k=>{S(k,axShell(.019,.018,.05,8,0,Math.PI*2),AX.QU,0,-.1,0);S(k,axShell(.0195,.0195,.005,8,0,Math.PI*2),0x8a2a24,0,-.1,0);});}
+});};
+
+/* ---------- soldiers ---------- */
+ARMOR_D.soldier=C=>{const v=C.variant|0;arxDress(C,'soldier:'+v+':'+C.body.geometry.uuid,(P,S)=>{const hy=.393,hz=0,M=axMeasH(C.body,hy,hz),top=M.top;
+  const both=f=>{f('armL',-1);f('armR',1);},legs=f=>{f('legL',-1);f('legR',1);};
+  if(v===0){/* Spearman: a red brigandine studded with rivet rows, a steel gorget, a broad kettle hat with a comb and a mail aventail, spaulders, splinted vambraces, knee cops and greaves */
+    const zs=(M.zf+.009)/.054;S('body',axShell(.054,.052,.114,12,0,Math.PI*2),0x8a2420,0,.272,0,0,0,0,1,1,zs);
+    for(let j=0;j<5;j++)for(let i=0;i<9;i++){const a=(i-4)*.33;P('body',ico(.0036,0),AX.GO2,Math.sin(a)*.0545,.226+j*.023,Math.cos(a)*.0545*zs);P('body',ico(.0036,0),AX.GO2,Math.sin(a)*.0545,.226+j*.023,-Math.cos(a)*.0545*zs);}
+    P('body',axShell(.036,.05,.022,10,0,Math.PI*2),AX.ST2,0,.338,0,0,0,0,1,1,.95);
+    const y=Math.max(top+.004,hy+.07),yb=Math.max(hy+.04,y-.03);P('body',axDome(.052,10,Math.PI*.5),AX.ST,0,yb+.006,hz,0,0,0,1,(y+.012-yb)/.052,1);P('body',axShell(.1,.054,.02,14,0,Math.PI*2),AX.ST2,0,yb,hz);P('body',axRing(.1,.003,14),AX.ST,0,yb-.01,hz,Math.PI/2,0,0);P('body',box(.006,.012,.1),AX.ST,0,y+.016,hz);
+    for(let i=0;i<14;i++){const a=i/14*6.283;if(Math.cos(a)>.55)continue;P('body',box(.02,.04,.004),i%2?AX.MA2:AX.MA,Math.sin(a)*.05,hy-.02,hz+Math.cos(a)*.05,-.12*Math.cos(a),a,0);}
+    both((k,s)=>{axPauldron(P,k,s,AX.ST,AX.ST2,{lames:3});axVamb(P,k,AX.ST2,{cop:AX.ST,band:AX.LE2});});legs(k=>axLeg(P,S,k,0,{knee:AX.ST,wing:1,greave:AX.ST2,gr:AX.ST}));}
+  if(v===1){/* Swordsman: a mail hauberk to the knee, a coat of plates under his red tabard, a nasal helm with cheek plates and a mail coif, round pauldrons and couters */
+    for(let j=0;j<4;j++)for(let i=0;i<16;i++){const a=i/16*6.283+j*.2;S('body',box(.016,.02,.004),(i+j)%2?AX.MA:AX.MA2,Math.sin(a)*(.058+j*.003),.205-j*.017,Math.cos(a)*(.044+j*.003),.18,a,0);}
+    S('body',box(.074,.13,.006),0x9b2d27,0,.255,M.zf+.006);for(let j=0;j<4;j++){P('body',box(.07,.004,.004),AX.ST2,0,.21+j*.028,M.zf+.01);axRiv(P,'body',-.03,.217+j*.028,M.zf+.011,3,.03,0,0,AX.GO);}
+    P('body',box(.074,.02,.068),AX.GO,0,.306,0);
+    for(let i=0;i<16;i++){const a=i/16*6.283;if(Math.cos(a)>.6)continue;P('body',box(.019,.05,.004),i%2?AX.MA2:AX.MA,Math.sin(a)*.052,hy-.012,hz-.004+Math.cos(a)*.052,-.1*Math.cos(a),a,0);}
+    const y=Math.max(hy+.046,top-.015);P('body',axDome(.053,10,Math.PI*.5),AX.ST,0,y-.034,hz-.004,0,0,0,1,1.05,1.04);P('body',cone(.012,.03,4),AX.ST2,0,y+.02,hz-.004);P('body',box(.012,.045,.012),AX.ST,0,hy-.0,hz+.052);
+    P('body',axShell(.055,.055,.01,12,0,Math.PI*2),AX.ST2,0,y-.036,hz-.004);[-1,1].forEach(s=>P('body',box(.006,.04,.03),AX.ST,s*.05,hy-.012,hz+.022,0,s*.4,0));
+    both((k,s)=>{axPauldron(P,k,s,AX.ST,AX.ST2,{r:.032,lames:1,fl:1});axVamb(P,k,AX.MA,{cop:AX.ST,ridge:false,h:.06});});legs(k=>axLeg(P,S,k,0,{knee:AX.ST,greave:AX.MA2}));}
+  if(v===2){/* Axeman: a lamellar coat laced in rows, a lamellar skirt, a spangenhelm with brass bands and a mail aventail, lamellar shoulder guards, splinted bracers */
+    const row=(y,r,zs,n,c1,c2,h)=>{for(let i=0;i<n;i++){const a=i/n*6.283;P('body',box(.012,h||.026,.004),i%2?c1:c2,Math.sin(a)*r,y,Math.cos(a)*r*zs,-.06,a,0);}};
+    const zs=(M.zf+.009)/.056;for(let j=0;j<4;j++)row(.236+j*.026,.056,zs,22,AX.IR,AX.IR2);for(let j=0;j<4;j++)S('body',axShell(.0575,.0575,.003,14,0,Math.PI*2),0x8a2a1a,0,.249+j*.026,0,0,0,0,1,1,zs);
+    for(let j=0;j<2;j++)row(.19-j*.026,.064+j*.004,.82,22,AX.IR2,AX.IR,.028);S('body',axShell(.062,.062,.012,14,0,Math.PI*2),AX.LE2,0,.218,0,0,0,0,1,1,.8);
+    const y=top+.008;P('body',cone(.058,.066,8),AX.IR,0,y-.022,hz-.004);for(let i=0;i<4;i++)P('body',box(.006,.062,.006),0xa8803a,Math.sin(i*Math.PI/2+Math.PI/4)*.031,y-.024,hz-.004+Math.cos(i*Math.PI/2+Math.PI/4)*.03,-Math.cos(i*Math.PI/2+Math.PI/4)*.72,0,Math.sin(i*Math.PI/2+Math.PI/4)*.72);
+    P('body',axShell(.059,.059,.012,12,0,Math.PI*2),0xa8803a,0,y-.052,hz-.004);P('body',box(.012,.04,.01),AX.IR,0,hy+.0,hz+.052);
+    for(let i=0;i<16;i++){const a=i/16*6.283;if(Math.cos(a)>.5)continue;P('body',box(.018,.045,.004),i%2?AX.MA2:AX.MA,Math.sin(a)*.054,hy-.02,hz-.004+Math.cos(a)*.054,-.1*Math.cos(a),a,0);}
+    both((k,s)=>{for(let j=0;j<3;j++)for(let i=0;i<6;i++){const a=(i/5-.5)*2.4;P(k,box(.01,.02,.004),(i+j)%2?AX.IR:AX.IR2,s*.006+Math.sin(a)*.026*s,-.004-j*.017,Math.cos(a)*.026,0,a*s,s*-.2);}
+      for(let i=0;i<4;i++){const a=i/4*6.283;P(k,box(.005,.05,.004),AX.IR,Math.sin(a)*.017,-.1,Math.cos(a)*.017,0,a,0);}S(k,axShell(.018,.018,.008,7,0,Math.PI*2),AX.LE2,0,-.08,0);S(k,axShell(.018,.018,.008,7,0,Math.PI*2),AX.LE2,0,-.12,0);});
+    legs(k=>{axLeg(P,S,k,0,{wrap:AX.LE});P(k,axDome(.019,7,Math.PI*.55),AX.IR,0,-.1,.012,1.45,0,0,1,1,.85);});}
+  if(v===3){/* Gem Carrier: gilded parade plate, a polished cuirass edged in gold with a sunburst, crowned pauldrons, a crested gilt helm with a purple plume */
+    axCuirass(P,'body',M,AX.ST,{rc:AX.GO,gorget:AX.GO,fauld:AX.GO2,f2:AX.ST,fn:3,riv:AX.GO});for(let i=0;i<8;i++){const a=i/8*6.283;P('body',box(.004,.018,.004),AX.GO,Math.sin(a)*.014,.285+Math.cos(a)*.014,M.zf+.012,0,0,-a);}P('body',ico(.007,0),AX.GO,0,.285,M.zf+.013);
+    const y=Math.max(hy+.048,top-.015);P('body',axDome(.053,10,Math.PI*.5),AX.GO,0,y-.036,hz-.004,0,0,0,1,1.04,1.04);P('body',box(.008,.03,.09),AX.GO2,0,y+.004,hz-.004);for(let i=0;i<5;i++)S('body',box(.012,.04,.016),0x6a2a8a,0,y+.022+i*.003,hz-.04+i*.018,.6-i*.3);
+    P('body',axShell(.056,.056,.012,12,0,Math.PI*2),AX.GO2,0,y-.036,hz-.004);
+    both((k,s)=>{axPauldron(P,k,s,AX.ST,AX.GO,{r:.033,lames:3,rc:AX.GO});for(let i=0;i<3;i++)P(k,cone(.006,.018,4),AX.GO,s*(.004+i*.008),.03-i*.004,-.01+i*.01,0,0,s*-.3);axVamb(P,k,AX.ST,{rc:AX.GO,cop:AX.GO});});
+    legs(k=>axLeg(P,S,k,0,{cuisse:AX.ST,knee:AX.GO,wing:1,greave:AX.ST,gr:AX.GO}));}
+  if(v===4){/* Scroll Bearer: a royal herald's half-armour: a blue padded jack, a steel breastplate with a gold device, a sallet with a tail over his cap, light spaulders and vambraces */
+    S('body',axShell(.054,.052,.114,10,0,Math.PI*2),0x2f4f8f,0,.268,0,0,0,0,1,1,(M.zf+.007)/.054);axCuirass(P,'body',M,AX.ST,{rx:.055,y:.285,h:.07,rc:AX.ST2,fauld:AX.ST2,fn:1});
+    P('body',box(.02,.024,.006),AX.GO,0,.29,M.zf+.014);P('body',cone(.012,.014,4),AX.GO,0,.307,M.zf+.014);
+    const y=top-.006;P('body',axDome(.054,10,Math.PI*.5),AX.ST,0,y-.03,hz-.004,0,0,0,1,1,1.05);P('body',box(.084,.006,.05),AX.ST2,0,y-.042,hz-.05,-.7);P('body',box(.004,.012,.07),AX.ST,0,y+.016,hz-.01,0,0,0);
+        both((k,s)=>{axPauldron(P,k,s,AX.ST,AX.ST2,{lames:2});axVamb(P,k,AX.ST,{});});legs(k=>axLeg(P,S,k,0,{knee:AX.ST}));}
+});};
+
+/* ---------- riders: a barded horse and an armoured rider ---------- */
+ARMOR_D.rider=C=>{const v=C.variant|0;arxDress(C,'rider:'+v+':'+C.body.geometry.uuid,(P,S)=>{
+  const st=[{m:AX.LE3,m2:AX.LE2,t:AX.BR,r:AX.BR,soft:1},{m:AX.ST,m2:AX.ST2,t:0x2f4f8f,r:AX.GO},{m:AX.BK,m2:AX.BK2,t:0x9b2d27,r:0xc8c8cc},{m:AX.GO,m2:AX.GO2,t:0x5a2a7a,r:0xfff0c0},{m:AX.MA,m2:AX.MA2,t:0x3a4a5e,r:AX.RV}][v];
+  const Q=st.soft?S:P;/* the scout's barding is boiled leather */
+  /* chanfron: the face plate along the head (head box at y .37 z .26, tilted .5) with eye guards, a ridge and per-style crest */
+  const hc=Math.cos(.5),hs=Math.sin(.5),HP=(x,u,w)=>[x,.37+u*hc-w*hs,.26+u*hs+w*hc];/* head frame: u up, w forward */
+  {const[a,b,c]=HP(0,.036,.0);Q('body',box(.058,.008,.15),st.m,a,b,c,.5);const[d,e,f]=HP(0,.041,.0);P('body',box(.008,.006,.13),st.r,d,e,f,.5);
+   [-1,1].forEach(s=>{const[x,y,z]=HP(s*.034,.016,.0);Q('body',box(.008,.03,.12),st.m2,x,y,z,.5,0,s*.15);const[x2,y2,z2]=HP(s*.036,.02,-.025);P('body',axRing(.009,.0025,8),st.r,x2,y2,z2,0,Math.PI/2+.1*s,0);});
+   const[x3,y3,z3]=HP(0,.045,-.02);if(v===2)P('body',cone(.009,.06,4),0xc8c8cc,x3,y3,z3,.5-.9);else if(v===1||v===3)P('body',cone(.006,.03,4),st.r,x3,y3,z3,.5-1.2);else P('body',ico(.007,0),st.r,x3,y3,z3);
+   const[x4,y4,z4]=HP(0,.0,.07);Q('body',box(.054,.03,.008),st.m,x4,y4,z4+.004,.5);}
+  /* crinet: overlapping lames down the crest of the neck, over the mane */
+  for(let i=0;i<5;i++){const t=-.06+i*.03,y=.33+t*.72,z=.18+t*.7;Q('body',axShell(.047,.049,.034,8,Math.PI-1.7,3.4),i%2?st.m2:st.m,0,y,z,.77,0,0,1,1,1);P('body',ico(.004,0),st.r,0,y+.036,z-.034);}
+  /* peytral: a curved chest plate with bosses */
+  Q('body',axShell(.088,.08,.1,12,-1.25,2.5),st.m,0,.25,.105,0,0,0,1,1,1);P('body',axShell(.09,.09,.01,12,-1.25,2.5),st.r,0,.298,.105);[-1,0,1].forEach(s=>P('body',axDome(.012,6,Math.PI*.5),st.r,s*.05,.25,.105+.088*Math.cos(s*.6)+.001,Math.PI/2,0,0));
+  /* flanchards under the saddle and the crupper over the rump */
+  [-1,1].forEach(s=>{Q('body',box(.006,.09,.12),st.m2,s*.072,.245,.02);axRiv(P,'body',s*.076,.285,-.03,4,0,0,.033,st.r);});
+  Q('body',axShell(.086,.088,.14,12,Math.PI-1.65,3.3),st.m,0,.25,-.11,Math.PI/2,0,0,1,1,.95);P('body',axShell(.09,.09,.012,12,Math.PI-1.9,3.8),st.r,0,.25,-.183,Math.PI/2,0,0,1,1,.95);
+  axRiv(P,'body',0,.338,-.05,4,0,-.004,-.032,st.r);if(v===1){S('body',box(.004,.06,.06),0xe8e0cc,.09,.24,-.12);S('body',box(.004,.06,.06),0xe8e0cc,-.09,.24,-.12);}
+  if(v===2)for(let i=0;i<4;i++)P('body',cone(.006,.026,4),0xc8c8cc,0,.345-i*.004,-.07-i*.035,-.4);
+  /* knee and cannon guards on each moving leg */
+  for(const k of['legFL','legFR','legBL','legBR']){const f=k[3]==='F'?1:-1;Q(k,box(.04,.05,.008),st.m,0,-.06,.02*f);P(k,ico(.005,0),st.r,0,-.045,.025*f);if(v!==0)P(k,axShell(.019,.019,.008,6,0,Math.PI*2),st.m2,0,-.155,0);}
+  /* the rider: breastplate and tassets, pauldrons, a helm per style */
+  const ry=.345,rz=-.01,Hy=ry+.19,M0=arxMeas(C.body.geometry,Hy-.01,.8,.06,rz,.06),top=M0.n?Math.min(M0.y1,Hy+.09):Hy+.045;
+  P('body',axShell(.046,.044,.09,10,0,Math.PI*2),st.soft?AX.LE3:st.m,0,ry+.08,rz,0,0,0,1,1,.78);P('body',box(.006,.08,.006),st.r,0,ry+.08,rz+.037);
+  [-1,1].forEach(s=>{P('body',axDome(.026,8,Math.PI*.5),st.m,s*.044,ry+.118,rz,0,0,s*-.35,1,.8,1);P('body',box(.024,.04,.006),st.m2,s*.07,ry-.02,rz+.04,.3);});
+  if(v===0){P('body',axDome(.05,10,Math.PI*.42),AX.IR,0,top-.03,rz-.01);P('body',axShell(.072,.05,.012,12,0,Math.PI*2),AX.IR2,0,top-.032,rz-.01);for(let i=0;i<8;i++){const a=i/8*6.283;P('body',ico(.003,0),AX.BR,Math.sin(a)*.048,ry+.12,rz+Math.cos(a)*.04);}}
+  if(v===1){P('body',cyl(.05,.05,.08,10),AX.ST,0,top-.03,rz);P('body',box(.07,.006,.006),AX.BK,0,Hy+.006,rz+.051);P('body',box(.004,.07,.012),AX.ST2,0,Hy,rz+.052);P('body',cyl(.052,.052,.01,10),0x2f4f8f,0,top-.0,rz);
+    for(let i=0;i<4;i++)S('body',box(.012,.04,.018),0xe8e0cc,0,top+.016+i*.004,rz-.02+i*.016,.6-i*.3);}
+  if(v===2){P('body',axDome(.052,10,Math.PI*.55),AX.BK,0,top-.03,rz,0,0,0,1,1,1.05);P('body',box(.064,.03,.006),AX.BK2,0,Hy-.016,rz+.05);for(const s of[-1,1])P('body',cone(.008,.04,4),0xc8c8cc,s*.04,top+.006,rz,0,0,s*-.7);}
+  if(v===3){P('body',axDome(.05,10,Math.PI*.5),AX.GO,0,top-.034,rz);P('body',axShell(.07,.052,.01,12,0,Math.PI*2),AX.GO2,0,top-.036,rz,0,0,0,1,1,1.2);P('body',box(.006,.035,.09),AX.GO2,0,top+.006,rz);}
+  if(v===4){P('body',axDome(.052,10,Math.PI*.5),AX.ST,0,top-.03,rz,0,0,0,1,1,1.05);P('body',box(.1,.006,.06),AX.ST2,0,top-.035,rz-.04,-.35);P('body',box(.06,.006,.006),AX.BK,0,Hy+.004,rz+.052);}
+});};
+
+/* ---------- ravens ---------- */
+ARMOR_D.raven=C=>{const v=C.variant|0;arxDress(C,'raven:'+v+':'+C.body.geometry.uuid,(P,S)=>{
+  const st=[{m:0x9aa2ac,m2:0x868e98,r:AX.RV},{m:AX.IR,m2:0x727880,r:AX.RV},{m:0x3a3034,m2:0x4a2224,r:0xd03a2a},{m:AX.GO,m2:0xd0a040,r:0xfff0c0},{m:0xa87a44,m2:0x946a3a,r:AX.BR}][v];
+  /* beak cap: a riveted sleeve over the base of the beak */
+  P('body',cyl(.0115,.0185,.03,6),st.m,0,.029,.172,Math.PI/2,0,0,1,1,.85);P('body',axRing(.018,.003,8),st.m2,0,.029,.158,0,0,0,1,.85,1);[-1,1].forEach(s=>P('body',ico(.0035,0),st.r,s*.012,.034,.172));
+  /* helm cap over the crown with a brow guard and a crest */
+  P('body',axDome(.047,9,Math.PI*.36),st.m,0,.036,.13,-.25,0,0);[-1,1].forEach(s=>P('body',box(.026,.006,.016),st.m2,s*.026,.052,.158,0,s*-.5,s*.15));P('body',box(.006,.014,.06),st.m2,0,.088,.118,-.2);
+  if(v===2)for(let i=0;i<3;i++)P('body',cone(.005,.022,4),st.r,0,.092+i*.0,.135-i*.018,-.6);
+  if(v===0){P('body',box(.004,.018,.05),st.r,0,.098,.11,-.3);[-1,1].forEach(s=>P('body',cone(.006,.02,4),st.m2,s*.03,.07,.1,-.5,0,s*-.6));}
+  if(v===1){/* Hooded Crow: a mail hood over the nape and throat */for(let i=0;i<12;i++){const a=i/12*6.283;if(Math.cos(a)>.5)continue;P('body',box(.016,.03,.004),i%2?0x5a6068:0x6a7078,Math.sin(a)*.05,.012,.128+Math.cos(a)*.05,.25*Math.cos(a),a,0);}}
+  if(v===3){/* Gem Thief: gilded claw-cage round the stolen gem */for(let i=0;i<4;i++){const a=i/4*6.283+.785;P('body',box(.004,.04,.004),st.m,Math.cos(a)*.026,-.072,.03+Math.sin(a)*.026,Math.sin(a)*.5,0,-Math.cos(a)*.5);}P('body',axRing(.028,.003,8),st.m2,0,-.052,.03,Math.PI/2,0,0);}
+  if(v===4){/* Scroll Thief: a leather harness with a bronze buckle holding the scroll case */S('body',axRing(.064,.005,10),AX.LE2,0,-.004,.0,Math.PI/2,0,0,1,.82,1);P('body',box(.014,.012,.006),AX.BR,0,-.05,.03);S('body',box(.006,.06,.006),AX.LE2,0,-.03,.03);}
+  /* feather-scale mantle over the neck and back: rows of scales on the body's curve */
+  for(let j=0;j<4;j++){const z=.07-j*.035,f=Math.sqrt(Math.max(.05,1-Math.pow(z/.122,2)));for(let i=-3;i<=3;i++){const a=i*.3;P('body',box(.021,.004,.032),(i+j)%2?st.m:st.m2,Math.sin(a)*.071*f,.058*f*Math.cos(a)+.002,z,-.12,0,-a);}}
+  P('body',box(.01,.006,.16),st.m2,0,.064,.0,0,0,0);axRiv(P,'body',0,.069,.07,5,0,-.0,-.035,st.r,.004);
+  /* talon guards */
+  [-1,1].forEach(s=>{P('body',cyl(.0075,.0075,.022,6),st.m,s*.02,-.05,.02);for(let t=0;t<3;t++)P('body',cone(.003,.01,4),st.m2,s*.02+(t-1)*.005,-.067,.04,Math.PI/2);});
+  /* scale lames along each flapping wing's leading edge */
+  [['wingL',-1],['wingR',1]].forEach(([k,s])=>{for(let i=0;i<5;i++){P(k,box(.042,.006,.036),i%2?st.m2:st.m,s*(.03+i*.04),.012,.038-i*.004,.1,0,0);P(k,ico(.0035,0),st.r,s*(.03+i*.04),.016,.05-i*.004);}P(k,axDome(.02,7,Math.PI*.5),st.m,s*.012,.006,.02,0,0,s*-.3,1,.6,1);});
+});};
+
+/* ---------- battering rams ---------- */
+ARMOR_D.ram=C=>{const v=C.variant|0;arxDress(C,'ram:'+v+':'+C.body.geometry.uuid,(P,S)=>{
+  const st=[{m:AX.IR,m2:AX.IR2,m3:0x767c84,r:AX.RV},{m:0xb08040,m2:0x8a6030,m3:0xa07438,r:0xe0c080},{m:AX.BK,m2:AX.BK2,m3:0x2e3034,r:AX.IR},{m:AX.IR,m2:AX.IR2,m3:0x767c84,r:AX.GO},{m:AX.IR,m2:AX.IR2,m3:0x767c84,r:AX.RV}][v];
+  /* iron sheets over each roof plane (planes at x +-.1, y .4, tilted .5), overlapping down the slope, with rivet rows and a ridge cap; gaps left for the gem cradle and the banner pole */
+  const gap=z=>v===3?Math.abs(z)<.07:v===4?Math.abs(z+.2)<.035:false;
+  /* a thick roof (the Highlands' sheepskins or heather) lifts the sheets: measured at the middle of each plane */
+  const rm=arxMeas(C.body.geometry,.36,.62,.13,0,.3,.07),lift=rm.n?Math.max(0,Math.min(.05,rm.y1-.418)):0;
+  [-1,1].forEach(s=>{const c=Math.cos(.5),sn=Math.sin(.5),R=(u,n,z)=>[s*(.1+u*c)-s*n*sn*0,.4-u*sn+n*c,z];/* u along the slope (outwards), n along the plane normal */
+    for(let j=0;j<3;j++)for(let i=0;i<4;i++){const u=-.08+j*.075,z=-.25+i*.165;if(gap(z))continue;const n=.018+j*.004+lift*.88,X=s*(.1+u*c)+s*n*sn,Y=.4-u*sn+n*c;P('body',box(.085,.006,.17),(i+j)%2?st.m:st.m3,X,Y,z,0,0,s*-.5+s*-.06);
+      for(let q=0;q<4;q++)if(!gap(z-.06+q*.04))P('body',ico(.0055,0),st.r,X+s*.03*c+s*.004*sn,Y-.03*sn+.004*c,z-.06+q*.04);}});
+  for(let i=0;i<6;i++){const z=-.3+i*.12;if(gap(z))continue;P('body',axShell(.024,.024,.11,6,-1.1,2.2),st.m2,0,.468+lift,z,Math.PI/2,0,0,1,1,1);}
+  if(v===2)for(let i=0;i<7;i++){const z=-.3+i*.1;P('body',cone(.009,.05,4),0x8a8e96,0,.5+lift,z);}
+  /* riveted bands round the posts and the rails */
+  [-1,1].forEach(s=>{for(const z of[-.25,0,.25])for(const y of[.17,.3]){P('body',box(.042,.012,.042),st.m2,s*.16,y,z);P('body',ico(.005,0),st.r,s*.182,y,z);}
+    for(const z of[-.29,.29])P('body',box(.046,.046,.012),st.m2,s*.16,.13,z);
+    if(v!==2){/* side mantlet plates hung from the upper rail */for(let i=0;i<3;i++){const z=-.2+i*.2;P('body',box(.006,.09,.17),i%2?st.m:st.m2,s*.182,.29,z);axRiv(P,'body',s*.186,.325,z-.06,4,0,0,.04,st.r);}}});
+  /* the metal-clad head: a riveted iron sleeve on the log, flanges along the head, and a front mantlet under the roof */
+  const logY=.25;P('body',cyl(.074,.074,.1,10),st.m,0,logY,.37,Math.PI/2);for(const z of[.33,.41])P('body',cyl(.078,.078,.012,10),st.m2,0,logY,z,Math.PI/2);
+  for(let i=0;i<8;i++){const a=i/8*6.283;P('body',ico(.006,0),st.r,Math.cos(a)*.075,logY+Math.sin(a)*.075,.37);}
+  if(v===0||v===3||v===4)for(let i=0;i<4;i++){const a=i/4*6.283+.785;P('body',box(.008,.03,.12),st.m2,Math.cos(a)*.05,logY+Math.sin(a)*.05,.5,0,0,a+Math.PI/2);P('body',ico(.007,0),st.r,0,logY,.565);}
+  if(v===1){[-1,1].forEach(s=>{P('body',axRing(.03,.006,8),st.m2,s*.07,logY+.02,.47,0,Math.PI/2,0);P('body',cone(.012,.04,4),st.r,s*.08,logY-.02,.52,Math.PI/2);});P('body',box(.11,.012,.1),st.m2,0,logY+.055,.48);}
+  if(v===2)for(let i=0;i<6;i++){const a=i/6*6.28+.52;P('body',cone(.01,.06,4),0x8a8e96,Math.cos(a)*.078,logY+Math.sin(a)*.078,.39,Math.PI/2);}
+  P('body',box(.3,.05,.008),st.m,0,.355,.33,-.15);axRiv(P,'body',-.12,.36,.336,7,.04,0,0,st.r);
+  /* studded iron tyres on the turning wheels */
+  for(let w=0;w<4;w++){const k='wh'+w;P(k,axShell(.094,.094,.03,12,0,Math.PI*2),st.m2,0,0,0,0,0,Math.PI/2);for(let i=0;i<8;i++){const a=i/8*6.283;P(k,ico(.008,0),st.r,0,Math.cos(a)*.096,Math.sin(a)*.096);}P(k,cyl(.036,.036,.056,8),st.m,0,0,0,0,0,Math.PI/2);}
+});};
+
+/* ---------- the taiga wolf ---------- */
+ARMOR_D.wolf=C=>{const al=!!(C.body&&C.body.parent&&C.body.parent.userData.arxAlpha);arxDress(C,'wolf:'+(al?1:0),(P,S)=>{
+  const st=al?{m:AX.BK,m2:AX.BK2,r:0xd8d0c0,l:0x6a1a14,mail:[0x404248,0x36383e]}:{m:AX.ST,m2:AX.ST2,r:AX.RV,l:AX.LE,mail:[0x8c929a,0x7c828a]};
+  /* chain-mail barding coat over the back and flanks (body ellipsoid at y .27, half-sizes .078 x .082 x .185): rows of rings, a riveted spine plate, a leather trim */
+  for(let j=0;j<9;j++){const z=-.14+j*.033,f=Math.sqrt(Math.max(.1,1-Math.pow((z+.01)/.2,2)));for(let i=-5;i<=5;i++){const a=i*.27;P('body',box(.018,.004,.03),(i+j)%2?st.mail[0]:st.mail[1],Math.sin(a)*.084*f,.27+Math.cos(a)*.088*f,z,-.18,0,-a);P('body',ico(.0032,0),(i+j)%2?st.mail[1]:st.mail[0],Math.sin(a)*.087*f,.27+Math.cos(a)*.091*f,z+.008);}
+    for(const s of[-1,1])S('body',box(.004,.012,.034),st.l,s*Math.sin(1.5)*.084*f,.27+Math.cos(1.5)*.088*f-.006,z,0,0,s*-1.5);}
+  P('body',box(.026,.008,.3),st.m,0,.364,-.01);axRiv(P,'body',0,.37,-.14,9,0,0,.033,st.r,.005);
+  /* spiked collar round the neck */
+  P('body',axRing(.064,.012,12),st.l,0,.31,.16,1.2,0,0);for(let i=0;i<10;i++){const a=i/10*6.283,x=Math.cos(a)*.072,yy=Math.sin(a)*.072;P('body',cone(.009,al?.04:.03,4),st.r,x,.31+yy*Math.cos(1.2),.16-yy*Math.sin(1.2),0,0,0,1,1,1);}
+  /* helm plate on the moving head: brow and snout plate, ear guards, a crest spike */
+  P('hd',box(.05,.008,.1),st.m,0,.026,.05,-.18);P('hd',box(.008,.006,.1),st.m2,0,.032,.05,-.18);[-1,1].forEach(s=>{P('hd',box(.006,.03,.06),st.m2,s*.04,.0,.03,0,s*.2,0);P('hd',axRing(.011,.003,8),st.r,s*.027,.02,.06,0,0,0);});
+  P('hd',cone(.008,al?.05:.03,4),st.r,0,.048,-.0,-.3);
+  /* greaves on the four moving legs */
+  for(const k of['legFL','legFR','legBL','legBR']){P(k,axShell(.022,.019,.08,6,-1.6,3.2),st.m,0,-.1,0);P(k,ico(.005,0),st.r,0,-.065,.02);}
+});};
+/* an artefact that strips Armoured off a foe takes its armour off too */
+{const as=artStrip;artStrip=function(q){const had=!!(q&&q.elites&&q.elites.includes('armored'));const r=as.apply(this,arguments);
+  if(had&&q&&q.b&&!(q.elites||[]).includes('armored'))q.b.traverse(o=>{if(o.isMesh&&o.userData.arx)o.visible=false;});return r;};}
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
