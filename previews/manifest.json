@@ -2398,7 +2398,7 @@
    "len": 7.4,
    "seed": 1,
    "bytes": 2045491,
-   "note": "The folding beams set the foes ringing like bells: the lance’s power runs through them into the foes beside them.",
+   "note": "The folding beams set the foes ringing like bells: the lance\u2019s power runs through them into the foes beside them.",
    "ev": {
     "cast": 1,
     "lock": 1,
@@ -2625,7 +2625,7 @@
    "len": 7.17,
    "seed": 1,
    "bytes": 2948603,
-   "note": "Seven standing stones rise in a ring at the rune’s edge: the foes walking through are fenced in until the sky falls.",
+   "note": "Seven standing stones rise in a ring at the rune\u2019s edge: the foes walking through are fenced in until the sky falls.",
    "ev": {
     "cast": 1,
     "stone": 7,
@@ -2856,7 +2856,7 @@
    "len": 6.8,
    "seed": 1,
    "bytes": 1683339,
-   "note": "A Frost Spire’s ice shatters the fractured foes.",
+   "note": "A Frost Spire\u2019s ice shatters the fractured foes.",
    "ev": {
     "comet": 1,
     "eye": 12,
@@ -3063,7 +3063,7 @@
    "len": 12.37,
    "seed": 1,
    "bytes": 1749050,
-   "note": "The blast at the blade’s tip strikes harder and wider.",
+   "note": "The blast at the blade\u2019s tip strikes harder and wider.",
    "ev": {
     "cast": 1,
     "blow": 1,
@@ -3235,7 +3235,7 @@
    "len": 12.03,
    "seed": 1,
    "bytes": 3240679,
-   "note": "Each pass of the great hand takes 2% of a foe’s max health.",
+   "note": "Each pass of the great hand takes 2% of a foe\u2019s max health.",
    "ev": {
     "opts": 1,
     "cast": 1,
@@ -3466,15 +3466,15 @@
   "wormhole-1": {
    "k": "wormhole",
    "L": 1,
-   "len": 11.97,
+   "len": 13.13,
    "seed": 1,
-   "bytes": 1422951,
-   "note": "Here a second road joins the first: the first wormhole yawns wider and draws in foes from both roads (knights from the other road, labelled).",
+   "bytes": 1734864,
+   "note": "Foes at the road\u2019s edges: the first wormhole yawns wider and draws in every foe within 1.6 tiles.",
    "ev": {
     "opts": 1,
     "cast": 1,
-    "cross": 9,
-    "collapse": 6,
+    "cross": 6,
+    "collapse": 2,
     "end": 1
    }
   },
@@ -3661,7 +3661,7 @@
    "len": 5.5,
    "seed": 1,
    "bytes": 2768825,
-   "note": "The last thunder, and the hero’s fall rolls out over the whole field (the clip joins it there).",
+   "note": "The last thunder, and the hero\u2019s fall rolls out over the whole field (the clip joins it there).",
    "ev": {
     "opts": 1,
     "cast": 1,
@@ -3863,6 +3863,346 @@
     "fire": 36,
     "hit": 36,
     "halo": 1
+   }
+  },
+  "gaia-0": {
+   "k": "gaia",
+   "L": 0,
+   "len": 9.6,
+   "seed": 1,
+   "bytes": 979829,
+   "note": ""
+  },
+  "gaia-1": {
+   "k": "gaia",
+   "L": 1,
+   "len": 9.7,
+   "seed": 1,
+   "bytes": 1010128,
+   "note": "Each tree tears up harder and reaches further.",
+   "ev": {
+    "opts": 1,
+    "strike": 6,
+    "shed": 1,
+    "fin": 1
+   }
+  },
+  "gaia-4": {
+   "k": "gaia",
+   "L": 4,
+   "len": 9.7,
+   "seed": 1,
+   "bytes": 1077343,
+   "note": "The keep mends 3 lives; a green column rises at the keep.",
+   "ev": {
+    "opts": 1,
+    "strike": 6,
+    "shed": 1,
+    "fin": 1
+   }
+  },
+  "gaia-3": {
+   "k": "gaia",
+   "L": 3,
+   "len": 9.7,
+   "seed": 1,
+   "bytes": 1183402,
+   "note": "Foes behind the pack walk into the standing trees and are struck and pinned too.",
+   "ev": {
+    "opts": 1,
+    "strike": 8,
+    "stand": 1,
+    "shed": 1,
+    "fin": 1
+   }
+  },
+  "gaia-2": {
+   "k": "gaia",
+   "L": 2,
+   "len": 9.87,
+   "seed": 1,
+   "bytes": 1000570,
+   "note": "Foes a tree strikes are pinned longer, roots splaying from every trunk.",
+   "ev": {
+    "opts": 1,
+    "strike": 6,
+    "shed": 1,
+    "fin": 1
+   }
+  },
+  "seraphlance-0": {
+   "k": "seraphlance",
+   "L": 0,
+   "len": 7.9,
+   "seed": 1,
+   "bytes": 1130725,
+   "note": ""
+  },
+  "seraphlance-2": {
+   "k": "seraphlance",
+   "L": 2,
+   "len": 7.9,
+   "seed": 1,
+   "bytes": 1207286,
+   "note": "It lands like a falling star: a 4-tile blast.",
+   "ev": {
+    "cast": 1,
+    "impact": 1,
+    "lance": 6
+   }
+  },
+  "gaia-5": {
+   "k": "gaia",
+   "L": 5,
+   "len": 9.7,
+   "seed": 1,
+   "bytes": 1097508,
+   "note": "Every tree sheds its leaves, and as the forest sinks it drags its foes down.",
+   "ev": {
+    "opts": 1,
+    "strike": 6,
+    "shed": 1,
+    "fin": 1,
+    "drag": 6
+   }
+  },
+  "seraphlance-1": {
+   "k": "seraphlance",
+   "L": 1,
+   "len": 7.9,
+   "seed": 1,
+   "bytes": 1060158,
+   "note": "The great lance is forged longer and brighter.",
+   "ev": {
+    "cast": 1,
+    "impact": 1,
+    "lance": 6
+   }
+  },
+  "seraphlance-3": {
+   "k": "seraphlance",
+   "L": 3,
+   "len": 8.6,
+   "seed": 1,
+   "bytes": 1387150,
+   "note": "Nine lances leave the wings after the great one.",
+   "ev": {
+    "cast": 1,
+    "impact": 1,
+    "lance": 9
+   }
+  },
+  "seraphlance-5": {
+   "k": "seraphlance",
+   "L": 5,
+   "len": 8.6,
+   "seed": 1,
+   "bytes": 1363760,
+   "note": "Every lance from the wings strikes like a lesser great lance.",
+   "ev": {
+    "cast": 1,
+    "impact": 1,
+    "lance": 9
+   }
+  },
+  "seraphlance-4": {
+   "k": "seraphlance",
+   "L": 4,
+   "len": 7.9,
+   "seed": 1,
+   "bytes": 1139254,
+   "note": "The lances stay standing in their foes and hold them.",
+   "ev": {
+    "cast": 1,
+    "impact": 1,
+    "lance": 9
+   }
+  },
+  "shatter-0": {
+   "k": "shatter",
+   "L": 0,
+   "len": 11.93,
+   "seed": 1,
+   "bytes": 1657635,
+   "note": ""
+  },
+  "shatter-1": {
+   "k": "shatter",
+   "L": 1,
+   "len": 12.43,
+   "seed": 1,
+   "bytes": 1733229,
+   "note": "The break strikes harder; thicker shards with coloured edges.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "break": 1
+   }
+  },
+  "shatter-3": {
+   "k": "shatter",
+   "L": 3,
+   "len": 12.63,
+   "seed": 1,
+   "bytes": 1783909,
+   "note": "The twist turns further and drags at the foes inside.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "twist": 28,
+    "hold": 6,
+    "break": 1
+   }
+  },
+  "shatter-2": {
+   "k": "shatter",
+   "L": 2,
+   "len": 12.9,
+   "seed": 1,
+   "bytes": 1504675,
+   "note": "Foes stay held 1.2s after the break; the shards hang still at the top of their flight.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "hold": 6,
+    "break": 1
+   }
+  },
+  "shatter-4": {
+   "k": "shatter",
+   "L": 4,
+   "len": 9.63,
+   "seed": 1,
+   "bytes": 1486683,
+   "note": "Three foes are worn down: the break leaves them under 25%, and they break apart with it.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "twist": 28,
+    "clean": 3,
+    "hold": 3,
+    "break": 1
+   }
+  },
+  "vael-0": {
+   "k": "vael",
+   "L": 0,
+   "len": 13.1,
+   "seed": 1,
+   "bytes": 2860838,
+   "note": ""
+  },
+  "vael-1": {
+   "k": "vael",
+   "L": 1,
+   "len": 13.1,
+   "seed": 1,
+   "bytes": 3020779,
+   "note": "The storm grows wilder faster: some 26 strikes.",
+   "ev": {
+    "opts": 1,
+    "bursts": 1,
+    "strike": 30,
+    "arcs": 6,
+    "net": 1,
+    "tick": 5,
+    "final": 1,
+    "crater": 8,
+    "end": 1
+   }
+  },
+  "shatter-5": {
+   "k": "shatter",
+   "L": 5,
+   "len": 12.27,
+   "seed": 1,
+   "bytes": 1763579,
+   "note": "The sheet of shards bursts up and rains back down on the foes.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "twist": 28,
+    "hold": 6,
+    "break": 1,
+    "land": 154
+   }
+  },
+  "vael-2": {
+   "k": "vael",
+   "L": 2,
+   "len": 13.5,
+   "seed": 1,
+   "bytes": 3094608,
+   "note": "Every strike that lands arcs on into one or two foes nearby.",
+   "ev": {
+    "opts": 1,
+    "bursts": 1,
+    "strike": 27,
+    "arcs": 17,
+    "net": 1,
+    "tick": 5,
+    "final": 1,
+    "crater": 8,
+    "end": 1
+   }
+  },
+  "vael-3": {
+   "k": "vael",
+   "L": 3,
+   "len": 13.1,
+   "seed": 1,
+   "bytes": 3147792,
+   "note": "Every foe in the storm joins the network, and it tears harder at them.",
+   "ev": {
+    "opts": 1,
+    "bursts": 1,
+    "strike": 25,
+    "arcs": 22,
+    "net": 1,
+    "tick": 5,
+    "final": 1,
+    "crater": 8,
+    "end": 1
+   }
+  },
+  "vael-4": {
+   "k": "vael",
+   "L": 4,
+   "len": 13.1,
+   "seed": 1,
+   "bytes": 3106243,
+   "note": "The pack walks on: the storm re-centres and glides after it.",
+   "ev": {
+    "opts": 1,
+    "bursts": 1,
+    "recentre": 5,
+    "strike": 28,
+    "arcs": 18,
+    "net": 1,
+    "tick": 5,
+    "final": 1,
+    "crater": 8,
+    "end": 1
+   }
+  },
+  "vael-5": {
+   "k": "vael",
+   "L": 5,
+   "len": 15,
+   "seed": 1,
+   "bytes": 3508632,
+   "note": "The final strike hits 1260% within 3.2 tiles; the crater stays live longer.",
+   "ev": {
+    "opts": 1,
+    "bursts": 1,
+    "recentre": 5,
+    "strike": 29,
+    "arcs": 24,
+    "net": 1,
+    "tick": 5,
+    "final": 1,
+    "crater": 14,
+    "end": 1
    }
   }
  },
