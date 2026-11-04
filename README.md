@@ -2588,3 +2588,19 @@ A refactor with no change to how anything looks or plays. It lets each elite mod
   - every Bestiary unit takes every modifier it can roll, in game and in the Bestiary, without an error;
   - an `ARMOR_D` entry is used and is told the variant;
   - the class template still dresses a unit that has no design of its own.
+
+## Regenerating variants, the Shielded bubble and 3D elite markers (v484)
+Simon: "fix all elite modifiers ... regenerating should have more variants and add some more features".
+- **Regenerating, five looks.** Each foe gets one, picked from its spawn (a run serial hashed with the unit; the Bestiary's Elite button steps through all five, and the label names it, e.g. "Elite: Regenerating (Troll-blood)").
+  - Verdant: moss, leaves and sprouts with glowing buds that shrink when it is hurt and grow back as it heals.
+  - Troll-blood: warty hide, scars and glowing wounds that gape when hurt and knit shut as it heals, with faint steam.
+  - Blessed: a slowly turning ring of golden runes and motes round the chest.
+  - Blood-leech: dark veins and a heart-stone pulsing with a heartbeat (0.85 a second, 1.5 while healing).
+  - Fungal: glowing caps on the shoulders and back, and spore puffs.
+- **Fitted to every unit.** `rgxSurf(b,key)` reads the triangles of the unit's three biggest solid meshes (cached per model) and samples points on them by area; gear is placed along the surface normal on the mesh's own parent, so it moves with animated parts. Static gear is merged per parent, cached per model and look, and shared by every foe of that kind. Glow levels are 12 shared materials per look.
+- **The heal shows.** Every 3% of max health healed (or every 1.25 s of a smaller heal) a soft additive shell of the model's own meshes pulses for 0.75 s, at most 0.18 opacity, scaled to the heal, with a few particles.
+- **Counterplay.** Fire damage (`o.el==='fire'`) and any burn set `e.rgSup=2`: no regeneration of any kind (elite or Starfall) for 2 s after the last fire hit or the end of the burn. The update line reads `if(e.regen&&!(e.rgSup>1e-6))`. The look sears meanwhile. The heal is unchanged (2.5% a second).
+- **Shielded.** An ellipsoid bubble fitted to the model's bounds, drawn with one shared hex-cell shader (rim, faint twinkle). Hits ripple from the attacker's side (at most one new ripple per 0.1 s, two at once, 0.45 s). Cracks show under 50% and 25%. Breaking it shows a 0.09 s crack-up, then 20 curved glass shards (80 on a big bubble) that fly off and shrink in 0.55 to 0.85 s. A bubble removed any other way (the split, a strip) shatters too.
+- **Markers.** `eliteRing(a,i)` is a bevelled band 0.022 high with a motif per modifier and an additive glow ring. The geometry is shared per modifier and slot. Each foe has its own band and glow material, so `en.aura.material.opacity`, `.visible` and `.scale` still work; `removeEnemy` now also disposes the second marker's material and both glows.
+- Draw calls with 30 elites on the road: 315 (was 400).
+- **Tests:** `tests/rgx-test.js` (in run-all as 'rgx'): every look on every unit, the pick from the spawn, the exact heal and the 2 s fire and burn stops, the pulse and sear, the ripple, cracks, shatter and clean-up, the marker API, the other lands and the Bestiary.
