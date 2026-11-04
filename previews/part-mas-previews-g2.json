@@ -201,5 +201,64 @@
    "hold": 6,
    "break": 1
   }
+ },
+ "shatter-4": {
+  "k": "shatter",
+  "L": 4,
+  "len": 9.63,
+  "seed": 1,
+  "bytes": 1486683,
+  "note": "Three foes are worn down: the break leaves them under 25%, and they break apart with it.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "twist": 28,
+   "clean": 3,
+   "hold": 3,
+   "break": 1
+  }
+ },
+ "vael-0": {
+  "k": "vael",
+  "L": 0,
+  "len": 13.1,
+  "seed": 1,
+  "bytes": 2860838,
+  "note": ""
+ },
+ "vael-1": {
+  "k": "vael",
+  "L": 1,
+  "len": 13.1,
+  "seed": 1,
+  "bytes": 3020779,
+  "note": "The storm grows wilder faster: some 26 strikes.",
+  "ev": {
+   "opts": 1,
+   "bursts": 1,
+   "strike": 30,
+   "arcs": 6,
+   "net": 1,
+   "tick": 5,
+   "final": 1,
+   "crater": 8,
+   "end": 1
+  }
+ },
+ "shatter-5": {
+  "k": "shatter",
+  "L": 5,
+  "len": 12.27,
+  "seed": 1,
+  "bytes": 1763579,
+  "note": "The sheet of shards bursts up and rains back down on the foes.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "twist": 28,
+   "hold": 6,
+   "break": 1,
+   "land": 154
+  }
  }
 }
