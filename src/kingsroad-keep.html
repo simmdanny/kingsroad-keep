@@ -14911,6 +14911,12 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Three new elite modifiers: Splitting, Blinking and Warded',d:'4 Nov',v:'v485',li:[
+    '<b>Splitting</b> (from wave 15, never on bosses): a glowing stitched seam runs down the middle of the foe. Slay it and it tears in two along the seam: two smaller copies, each with 30% of its health, no modifiers, a little gold and at most 1 life, carry on from where it fell.',
+    '<b>Blinking</b> (from wave 25): every 4 seconds it blinks 1.25 tiles forward along the road, leaving a fading after-image, and cannot be targeted for that instant. Its crystal glows brighter and its motes spin faster as the blink charges. Stuns, roots and holds stop the charge, and it waits a moment after it is free.',
+    '<b>Warded</b> (from wave 40): it resists the element of the last elemental hit it took by 40%. The rune stone orbiting it and the gem on its circlet show that element, and the ward shifts with a flash when a new element lands. Physical damage is never warded, so mix your elements.',
+    'All three appear in the Bestiary, on every unit that can carry them, and in every land. Bosses still carry at most one modifier, never Splitting, and the share of elite foes is the same as before.',
+    '<b>Invisible</b>, reviewed: an unseen foe now shimmers like a heat haze, rim-lit and faintly tinted, with every part of it cloaked (a shield wall\u2019s tower shield too). Its marker dims even when Invisible is its second modifier, and Old Tobin, who fights hand to hand, no longer blocks or strikes a foe he cannot see.']},
   {t:'Elites you can read',d:'4 Nov',v:'v484',li:[
     '<b>Regenerating</b> comes in five looks, each fitted to the unit: <b>Verdant</b> (moss and sprouts that grow back as it heals), <b>Troll-blood</b> (glowing wounds that knit shut, with faint steam), <b>Blessed</b> (a slowly turning ring of golden runes), <b>Blood-leech</b> (dark veins and a heart-stone beating faster while it heals) and <b>Fungal</b> (glowing caps and spore puffs). The Bestiary names the look.',
     'You can see it heal: a soft glow pulses over the foe, stronger the more it healed.',
@@ -36169,6 +36175,300 @@ ELA.mkx=(fx,t,dt,moving,e)=>{if(!e)return;for(const r of [e.aura,e.aura2]){const
       el.title='Regenerating: heals 2.5% of its health a second. Fire and burns stop it for 2 s.';if(step)toast('Regenerating ('+V.n+'): heals 2.5% of its health a second. Fire and burns stop it for 2 s.');}else el.title='';}}catch(e){console.error(e);}
   return r;};}
 {const ng=newGame;newGame=function(){RGX.n=0;return ng.apply(this,arguments);};}
+/* ================= v485: three new elite modifiers (Splitting, Blinking, Warded), and the Invisible modifier reviewed =================
+   Simon: "fix all elite modifiers" and "add some more features".
+   Splitting (troops only, never a boss, from wave 15): a glowing seam runs down the middle of the body, stitched shut. When it dies it tears
+     in two along the seam: two copies at 0.7 scale, 30% of its max HP each, with no modifiers, a quarter of a plain troop's gold and at most
+     1 life each, carry on from where it fell. Counterplay: splash and fast-firing towers; the halves are small and plain.
+   Blinking (from wave 25): every 4 s it blinks 1.25 tiles forward along the road, leaving a fading after-image, a small 3D implosion where it
+     was and a burst where it lands, and is untargetable for 0.18 s. The crystal it wears glows and its motes speed up as the blink charges,
+     so you can see it coming. Stuns, roots, holds, freezes, a hero's block, being lifted or Turned Around all stop the charge: it waits, and
+     blinks no sooner than 0.6 s after it is free. It never blinks when less than 0.75 tiles of road are left.
+   Warded (from wave 40): it resists the element of the last elemental hit it took by 40%. A small rune stone orbits it, its glyph and the
+     gem in its circlet showing that element's colour; when a new element lands the ward shifts with a faceted flash in the new colour (at most
+     once every 0.4 s). Physical damage, and magic that has no element, are never warded. Counterplay: mix elements.
+   Rolls: the elite chance is unchanged. A modifier that may not appear (too early, Splitting or Invisible on a boss, Armoured on a knight or
+     a monk) is replaced by one that may; bosses keep one modifier. A wave item or spawn flagged invOK has its modifiers decided (or forced
+     by the developer tools and tests) and is left as it is.
+   Invisible, reviewed: a cloaked shimmer (a rim-lit, faintly tinted ghost) instead of the grey see-through look; every part is cloaked,
+     the formation shields and banners added after the spawn too, and lines, sprites and instanced parts hide while it is unseen; the marker
+     dims when Invisible is the second modifier; Old Tobin (the melee hero) no longer blocks or hits a foe he cannot see; revealing it and
+     losing sight of it again both show. */
+const NMX={min:{invisible:21,splitting:15,blinking:25,warded:40},
+  split:{n:2,hp:.3,sc:.7,gold:.25,lives:1,tear:.42,off:.15},
+  blink:{d:1.25,cd:4,first:[1.6,4],wake:.6,untarg:.18,ghost:.5,minLeft:.75},
+  ward:{res:.4,lock:.4,els:['fire','ice','lightning','light','dark','nature']},
+  col:{splitting:0xff4f9a,blinking:0x22e6a8,warded:0xffc83a},T:{u:{value:0}}};
+AFFIX.splitting={c:NMX.col.splitting};AFFIX.blinking={c:NMX.col.blinking};AFFIX.warded={c:NMX.col.warded};
+ELITE_N.splitting='Splitting';ELITE_N.blinking='Blinking';ELITE_N.warded='Warded';
+ELITE_CYCLE.push(['splitting'],['blinking'],['warded'],['warded','armored'],['blinking','swift']);
+
+/* ---- which modifiers a foe may roll ---- */
+function nmxOk(a,type,w,boss){if(!AFFIX[a])return false;if(a==='armored'&&(type==='knight'||type==='monk'))return false;
+  if(boss&&(a==='invisible'||a==='splitting'))return false;return (w||0)>=(NMX.min[a]||0);}
+function nmxFix(el,type,w,boss){if(!el)return el;const L=[].concat(el),out=[];
+  for(const a of L){let b=a;if(!nmxOk(b,type,w,boss)||out.includes(b)){const alt=Object.keys(AFFIX).filter(k=>k!=='invisible'&&nmxOk(k,type,w,boss)&&!out.includes(k)&&!L.includes(k));b=alt.length?pick(alt):null;}if(b)out.push(b);}
+  if(boss)out.length=Math.min(out.length,1);if(!out.length)return null;return Array.isArray(el)?out:out[0];}
+{const bw=buildWave;buildWave=function(w){const W=bw.apply(this,arguments);try{for(const it of W.q){if(!it||!it.elite||typeof it.type!=='string'||it.type[0]==='_')continue;
+    it.elite=nmxFix(it.elite,it.type,w,!!(EN[it.type]&&EN[it.type].boss));it.invOK=true;}}catch(e){console.error(e);}return W;};}
+{const s0=spawnEnemy;spawnEnemy=function(e,w){
+  if(e&&e.elite&&!e.invOK&&EN[e.type]){const ww=w!=null?w:wave,boss=!!EN[e.type].boss;let L=[].concat(e.elite);
+    /* Invisible keeps its own odds (kept 45% of the time after wave 20); what replaces it obeys the rules above */
+    if(L.includes('invisible')&&(ww<=20||boss||rnd()<.45))L=L.map(a=>a==='invisible'?'-':a);
+    const f=nmxFix(Array.isArray(e.elite)?L:L[0],e.type,ww,boss);e=Object.assign({},e,{elite:f,invOK:true});}
+  const n0=enemies.length,r=s0.apply(this,arguments.length>1?[e,w]:[e]);
+  for(let i=n0;i<enemies.length;i++){const en=enemies[i];if(!en.elites)continue;
+    if(en.elites.includes('invisible')){const ring=en.elites.indexOf('invisible')===0?en.aura:en.aura2;if(ring&&ring.material)ring.material.opacity=.35;}
+    if(en.elites.includes('blinking'))en.nmxBlink={t:NMX.blink.first[0]+rnd()*(NMX.blink.first[1]-NMX.blink.first[0])};
+    if(en.elites.includes('warded'))en.nmxWard={el:null,lock:0,rT:0};}
+  return r;};}
+
+/* ---- fitting gear to the real model: its triangles, and rays against them ---- */
+const NMX_TRI=new Map();
+/* the key of a model's shape: its body geometry, or for a model built as a group (the late bosses) its first mesh geometry */
+function nmxKey(C){const b=C.body;if(!b)return null;if(b.geometry)return b.geometry.uuid;let k=null;b.traverse(o=>{if(!k&&o.isMesh&&o.geometry)k=o.geometry.uuid;});return k;}
+function nmxTris(C){const body=C.body,key=nmxKey(C);if(!key)return null;
+  const pre=C.affs.slice(0,C.affs.indexOf(C.cur)).join(),k=key+'|'+pre;let T=NMX_TRI.get(k);if(T)return T;
+  const A=[],v=new THREE.Vector3(),add=(o,m)=>{const g=o.geometry,p=g.attributes.position,ix=g.index,n=ix?ix.count:p.count;for(let i=0;i<n;i++){v.fromBufferAttribute(p,ix?ix.getX(i):i).applyMatrix4(m);A.push(v.x,v.y,v.z);}};
+  if(body.geometry){body.updateMatrix();add(body,body.matrix);}
+  else{body.updateMatrix();body.updateMatrixWorld(true);const rel=new THREE.Matrix4(),inv=new THREE.Matrix4().copy(body.matrixWorld).invert();
+    body.traverse(o=>{if(!o.isMesh||o.isInstancedMesh||!o.geometry||!o.geometry.attributes.position||!o.material||Array.isArray(o.material)||o.material.transparent)return;rel.multiplyMatrices(inv,o.matrixWorld).premultiply(body.matrix);add(o,rel);});}
+  /* gear an earlier modifier put on (armour), so the new gear sits on top of it */
+  C.g.updateMatrixWorld(true);C.g.traverse(o=>{if(o.isMesh&&o.geometry&&o.material&&!o.material.transparent&&!o.userData.nmx)add(o,o.matrixWorld);});
+  T=new Float32Array(A);T.bb=new THREE.Box3();if(body.geometry){body.geometry.computeBoundingBox();T.bb.copy(body.geometry.boundingBox).applyMatrix4(body.matrix);}
+  else{for(let i=0;i<T.length;i+=3)T.bb.expandByPoint(v.set(T[i],T[i+1],T[i+2]));}NMX_TRI.set(k,T);return T;}
+/* body landmarks: eliteDress measures them from a body mesh; a model built as a group gets them from its measured triangles here */
+function nmxB(C,T){if(C.body&&C.body.geometry)return{B:C.B,tw:C.tw,fz:C.fz};const bb=T.bb,H=bb.max.y-bb.min.y,hx=(bb.max.x-bb.min.x)/2,hz=(bb.max.z-bb.min.z)/2,B=Object.assign({},C.B);
+  if(!B.horse&&!B.siege&&!B.bird&&!B.beast){B.tw=Math.max(.05,Math.min(hx*.8,hz*1.4));B.cy=bb.min.y+H*.36;B.sy=bb.min.y+H*.6;B.hy=bb.max.y;B.H=H;B.dz=hz*.95;}return{B,tw:B.tw,fz:(bb.max.z+bb.min.z)/2};}
+function nmxRay(T,o,d){let best=-1;const e1=[0,0,0],e2=[0,0,0];
+  for(let i=0;i<T.length;i+=9){e1[0]=T[i+3]-T[i];e1[1]=T[i+4]-T[i+1];e1[2]=T[i+5]-T[i+2];e2[0]=T[i+6]-T[i];e2[1]=T[i+7]-T[i+1];e2[2]=T[i+8]-T[i+2];
+    const px=d.y*e2[2]-d.z*e2[1],py=d.z*e2[0]-d.x*e2[2],pz=d.x*e2[1]-d.y*e2[0],det=e1[0]*px+e1[1]*py+e1[2]*pz;if(Math.abs(det)<1e-9)continue;const inv=1/det;
+    const sx=o.x-T[i],sy=o.y-T[i+1],sz=o.z-T[i+2],u=(sx*px+sy*py+sz*pz)*inv;if(u<0||u>1)continue;
+    const qx=sy*e1[2]-sz*e1[1],qy=sz*e1[0]-sx*e1[2],qz=sx*e1[1]-sy*e1[0],w=(d.x*qx+d.y*qy+d.z*qz)*inv;if(w<0||u+w>1)continue;
+    const t=(e2[0]*qx+e2[1]*qy+e2[2]*qz)*inv;if(t>1e-4&&(best<0||t<best))best=t;}
+  return best;}
+/* the first surface point seen from `from` looking along dir (both in the model's space), or null */
+function nmxHit(T,from,dir){const d=dir.clone().normalize(),t=nmxRay(T,from,d);return t<0?null:from.clone().addScaledVector(d,t);}
+/* the size of the model, so gear scales from a raven to a ram */
+const nmxU=T=>{const s=T.bb.getSize(new THREE.Vector3());return clamp(Math.max(s.y,s.z*.8)/.55,.4,3);};
+function nmxMerge(parts){let n=0;const gs=parts.map(([g,m])=>{const q=g.index?g.toNonIndexed():g.clone();q.applyMatrix4(m);if(!q.attributes.normal)q.computeVertexNormals();n+=q.attributes.position.count;return q;});
+  const P=new Float32Array(n*3),N=new Float32Array(n*3);let o=0;for(const q of gs){P.set(q.attributes.position.array,o*3);N.set(q.attributes.normal.array,o*3);o+=q.attributes.position.count;q.dispose();}
+  const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.BufferAttribute(P,3));G.setAttribute('normal',new THREE.BufferAttribute(N,3));G.computeBoundingSphere();return G;}
+const NMX_Y=new THREE.Vector3(0,1,0);
+/* a matrix placing a unit part (along +y) from point a to point b */
+function nmxSeg(a,b){const d=b.clone().sub(a),L=d.length()||1e-4,q=new THREE.Quaternion().setFromUnitVectors(NMX_Y,d.multiplyScalar(1/L));return[new THREE.Matrix4().compose(a.clone().add(b).multiplyScalar(.5),q,new THREE.Vector3(1,L,1)),L];}
+const nmxAt=(p,q,s)=>new THREE.Matrix4().compose(p,q||new THREE.Quaternion(),s||new THREE.Vector3(1,1,1));
+const NMX_G=new Map();const nmxGeo=(k,f)=>{let g=NMX_G.get(k);if(!g){g=f();NMX_G.set(k,g);}return g;};
+const NMX_M={};
+function nmxMats(){if(NMX_M.seam)return NMX_M;
+  NMX_M.seam=new THREE.MeshPhongMaterial({color:0xff8cc0,emissive:0xff2a86,emissiveIntensity:1,flatShading:true});
+  NMX_M.glow=new THREE.MeshBasicMaterial({color:0xff4f9a,transparent:true,opacity:.42,blending:THREE.AdditiveBlending,depthWrite:false});
+  NMX_M.stitch=M(0x2a1610);
+  NMX_M.crys=new THREE.MeshPhongMaterial({color:0x8affe6,emissive:0x16c8a2,emissiveIntensity:.8,shininess:90,specular:0xc8fff4,flatShading:true});
+  NMX_M.clasp=M(0x3e3630,{shininess:40,specular:0x6a5a4a});NMX_M.mote=new THREE.MeshBasicMaterial({color:0x9afff0,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false});
+  NMX_M.stone=M(0x4c4a54,{shininess:20});NMX_M.band=M(0xb88e3c,{shininess:60,specular:0xffe0a0});NMX_M.glyph={};NMX_M.gem={};NMX_M.shell={};
+  for(const k of ['none'].concat(NMX.ward.els)){const c=k==='none'?0xcfc6a8:ELEM[k].hex;NMX_M.glyph[k]=new THREE.MeshBasicMaterial({color:k==='none'?0xa89c7a:c});
+    NMX_M.gem[k]=new THREE.MeshPhongMaterial({color:c,emissive:c,emissiveIntensity:k==='none'?.05:.55,shininess:80,flatShading:true});
+    NMX_M.shell[k]=new THREE.LineBasicMaterial({color:c,transparent:true,opacity:.42,blending:THREE.AdditiveBlending,depthWrite:false});}
+  return NMX_M;}
+const nmxMesh=(g,geo,mat,flag)=>{const m=new THREE.Mesh(geo,mat);m.castShadow=false;m.userData.nmx=flag||1;g.add(m);return m;};
+
+/* ---- Splitting: the seam, traced around the model's midline (front, over the top, down the back) ---- */
+function nmxSeamPts(T){const bb=T.bb,c=bb.getCenter(new THREE.Vector3()),sz=bb.getSize(new THREE.Vector3()),R=Math.max(sz.x,sz.y,sz.z)*2+1,u=nmxU(T),pts=[];
+  c.y=bb.min.y+sz.y*.5;const N=64,raw=[];
+  for(let i=0;i<=N;i++){const th=(-.9+i/N*(Math.PI+1.8)),dy=Math.sin(th),dz=Math.cos(th);
+    const h=nmxHit(T,new THREE.Vector3(0,c.y+dy*R,c.z+dz*R),new THREE.Vector3(0,-dy,-dz));
+    if(h&&h.y>bb.min.y+sz.y*.22){h.y+=dy*.005*u;h.z+=dz*.005*u;raw.push(h);}else raw.push(null);}
+  /* runs of hits that join up, each resampled at an even step so the crack and the stitches are regular */
+  const runs=[];let cur=[];for(const h of raw){if(h&&cur.length&&cur[cur.length-1].distanceTo(h)>.075*u){runs.push(cur);cur=[];}if(h)cur.push(h);else if(cur.length){runs.push(cur);cur=[];}}if(cur.length)runs.push(cur);
+  const step=.026*u;for(const r of runs){let len=0;for(let i=1;i<r.length;i++)len+=r[i].distanceTo(r[i-1]);if(len<step*3)continue;const out=[];let need=0,acc=0;
+    for(let i=1;i<r.length;i++){const a=r[i-1],b=r[i],L=a.distanceTo(b);while(need<=acc+L){out.push(a.clone().lerp(b,L?(need-acc)/L:0));need+=step;}acc+=L;}pts.push(out);}
+  return{pts,u};}
+function nmxSeamGeo(C){const T=nmxTris(C);if(!T)return null;const k='seam|'+nmxKey(C)+'|'+C.affs.slice(0,C.affs.indexOf(C.cur)).join();
+  return nmxGeo(k,()=>{const {pts:runs,u}=nmxSeamPts(T),core=[],glow=[],st=[];let n=0;
+    for(const P of runs){const Z=P.map((p,i)=>p.clone().add(new THREE.Vector3((i%2?1:-1)*.0065*u,0,0)));
+      for(let i=1;i<Z.length;i++){const[m]=nmxSeg(Z[i-1],Z[i]);core.push([new THREE.BoxGeometry(.017*u,1,.012*u),m]);n++;}
+      for(let i=1;i<P.length;i++){const[m]=nmxSeg(P[i-1],P[i]);glow.push([new THREE.BoxGeometry(.06*u,1,.005*u),m]);}
+      for(let i=2;i<P.length-1;i+=3){const t=P[i+1].clone().sub(P[i-1]).normalize(),q=new THREE.Quaternion().setFromUnitVectors(NMX_Y,t);
+        st.push([new THREE.BoxGeometry(.052*u,.0085*u,.014*u),nmxAt(P[i],q)]);}}
+    if(!n)return null;return{core:nmxMerge(core),glow:nmxMerge(glow),st:st.length?nmxMerge(st):null};});}
+ELD.splitting=C=>{nmxMats();const G=nmxSeamGeo(Object.assign({},C,{cur:'splitting'}));if(!G)return;const g=new THREE.Group();g.userData.nmx='split';
+  nmxMesh(g,G.glow,NMX_M.glow);nmxMesh(g,G.core,NMX_M.seam);if(G.st)nmxMesh(g,G.st,NMX_M.stitch);C.g.add(g);C.fx.split=g;};
+ELA.splitting=(fx,t)=>{const g=fx.split;if(!g)return;const k=1+.18*Math.sin(t*5+(g.userData.ph||(g.userData.ph=rnd()*6)));g.children[0].scale.set(k,1,k);};
+ELP.splitting=(e,f,dt)=>{if(!f.split||!f.split.parent||rnd()>dt*3.2)return;const a=e.g.rotation.y,s=(rnd()<.5?1:-1)*.07*(e.b.scale.z||1)*(rnd()*.6+.4);
+  emit(1,{x:e.x+Math.sin(a)*s,y:e.y+e.hitY*(.45+rnd()*.4),z:e.z+Math.cos(a)*s,vx:(rnd()-.5)*.15,vy:-.25,vz:(rnd()-.5)*.15,s:.035,s2:0,c:0xffb0d4,c2:0xff2a86,life:.4,g:1});};
+/* the tear: a jagged rift of light opens along the seam, the halves lean apart and stand up as two smaller copies */
+function nmxRiftGeo(){return nmxGeo('rift',()=>{const P=[],seg=[];let x=0;for(let i=0;i<=9;i++){x=i%2?.035:-.035;if(i===0||i===9)x=0;P.push(new THREE.Vector3(x,i/9,0));}
+  for(let i=1;i<P.length;i++){const[m]=nmxSeg(P[i-1],P[i]);seg.push([new THREE.BoxGeometry(.03,1,.03),m]);}return nmxMerge(seg);});}
+function nmxTear(e,h){const p={x:e.x,y:e.y,z:e.z},H=Math.max(.3,h),a=e.g.rotation.y,ca=Math.cos(a),sa=Math.sin(a);
+  const root=new THREE.Group();root.position.set(p.x,p.y,p.z);root.rotation.y=a;scene.add(root);const mats=[];
+  for(const s of[-1,1]){const m=new THREE.MeshBasicMaterial({color:0xff2a7e,transparent:true,opacity:.62,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(m);
+    const r=new THREE.Mesh(nmxRiftGeo(),m);r.scale.set(1,H,1);r.userData.s=s;root.add(r);}
+  addFx(root,.3,f=>{const k=1-f.life/f.max;root.children.forEach(r=>{r.position.x=r.userData.s*k*.16;r.rotation.z=-r.userData.s*k*.35;r.scale.set(1+k*.8,H*(1-k*.25),1);});mats.forEach(m=>m.opacity=.62*(1-k)*(1-k));},null,{mats});
+  flash(p.x,p.y+H*.5,p.z,0xff2a7e,.14,.1);
+  sprayP(1,p.x,p.y+H*.5,p.z,16,{c:0xff9cc8,c2:0xff2a86,sp:1.6,up:.6,s:.045,s2:0,life:.45,g:2});
+  for(let i=0;i<8;i++){const t=rnd(),s=rnd()<.5?-1:1;emit(0,{x:p.x+ca*s*.03,y:p.y+H*t,z:p.z-sa*s*.03,vx:ca*s*(.6+rnd()*.6),vy:.5+rnd()*.5,vz:-sa*s*(.6+rnd()*.6),s:.04,s2:.02,c:0x3a1a22,c2:0x1a0a10,a:.9,life:.5,g:3});}}
+function nmxSplit(e){const S=NMX.split,kids=[];e.nmxSplitDone=true;
+  for(let i=0;i<S.n;i++){const side=i?1:-1;let k=null;
+    for(let tries=0;tries<6&&!k;tries++){const n0=enemies.length,st=state;state='nmx';   /* no Scroll Bearer announcement while a half is made */
+      try{spawnEnemy({type:e.type,v:e.gem||e.scroll?undefined:e.variant,invOK:true},e.wv||wave);}finally{state=st;}
+      const q=enemies.length>n0?enemies[enemies.length-1]:null;if(!q)break;
+      if(q.gem||q.scroll){removeEnemy(q);enemies.splice(enemies.indexOf(q),1);continue;}k=q;}   /* a half is never a Gem Carrier or a Scroll Bearer */
+    if(!k)continue;k.nmxKid=true;k.route=e.route;k.dist=e.dist;k.ox=e.ox||0;k.oz=e.oz||0;
+    k.maxHp=e.maxHp*S.hp;k.hp=k.maxHp;k.shield=0;k.gold*=S.gold;k.xp*=S.gold;k.lives=Math.min(S.lives,k.lives);
+    const T=k.b.scale.clone().multiplyScalar(S.sc);k.hitY*=S.sc;k.g.children.forEach(o=>{if(o.geometry===blobGeo)o.scale.multiplyScalar(S.sc);});
+    const off0=e.off+side*.03,off1=clamp(e.off+side*S.off,-.42,.42);k.off=off0;k.nmxT=T;k.b.scale.set(T.x*.72,T.y/S.sc,T.z/S.sc);k.b.rotation.z=-side*.5;moveEnemy(k,0);
+    addFx(new THREE.Group(),S.tear,f=>{if(k.dead){f.life=0;return;}const p=1-f.life/f.max,q=1-(1-p)*(1-p);k.off=off0+(off1-off0)*q;
+      k.b.rotation.z=-side*.5*(1-q);k.b.scale.set(T.x*(.72+.28*q),T.y*(1/S.sc+(1-1/S.sc)*q),T.z*(1/S.sc+(1-1/S.sc)*q));k.b.position.y+=Math.sin(p*Math.PI)*.06;},
+      ()=>{if(!k.dead){k.off=off1;k.b.rotation.z=0;k.b.scale.copy(T);}});
+    kids.push(k);}
+  nmxTear(e,e.hitY);return kids;}
+{const k0=kill;kill=function(e,src){const can=!!(e&&!e.dead&&!e.boss&&!e.nmxKid&&!e.nmxSplitDone&&e.elites&&e.elites.includes('splitting'));
+  const r=k0.apply(this,arguments);if(can&&e.dead)try{nmxSplit(e);}catch(err){console.error(err);}return r;};}
+
+/* ---- Blinking: a void crystal and two motes; the crystal glows and the motes speed up as the blink charges ---- */
+function nmxBlinkGeo(C){const T=nmxTris(C);if(!T)return null;const k='blink|'+nmxKey(C)+'|'+C.affs.slice(0,C.affs.indexOf(C.cur)).join();
+  return nmxGeo(k,()=>{const bb=T.bb,c=bb.getCenter(new THREE.Vector3()),sz=bb.getSize(new THREE.Vector3()),u=nmxU(T),LM=nmxB(C,T),B=LM.B,hum=!B.horse&&!B.siege&&!B.bird&&!B.beast,cr=[],cl=[];let mount,orbit;C=Object.assign({},C,{tw:LM.tw,fz:LM.fz});
+    const gem=(p,n,s,tilt)=>{const q=new THREE.Quaternion().setFromUnitVectors(NMX_Y,n.clone().normalize());if(tilt)q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),tilt));
+      cr.push([new THREE.OctahedronGeometry(1,0),nmxAt(p.clone().addScaledVector(n,s*.9),q,new THREE.Vector3(s*.55,s*1.5,s*.55))]);};
+    if(hum){const y=B.cy+(B.sy-B.cy)*.55,h=nmxHit(T,new THREE.Vector3(0,y,c.z+2),new THREE.Vector3(0,0,-1))||new THREE.Vector3(0,y,C.fz+(B.dz||C.tw));
+      const s=.026*u;mount=h;const q=new THREE.Quaternion().setFromUnitVectors(NMX_Y,new THREE.Vector3(0,0,1));
+      cl.push([new THREE.CylinderGeometry(s*1.25,s*1.45,s*.5,8),nmxAt(h.clone().add(new THREE.Vector3(0,0,s*.2)),q)]);
+      for(let i=0;i<4;i++){const a=i/4*6.283+.785,pp=h.clone().add(new THREE.Vector3(Math.cos(a)*s*1.05,Math.sin(a)*s*1.4,s*.75));cl.push([new THREE.BoxGeometry(s*.35,s*.35,s*.9),nmxAt(pp)]);}
+      cr.push([new THREE.OctahedronGeometry(1,0),nmxAt(h.clone().add(new THREE.Vector3(0,0,s*.9)),null,new THREE.Vector3(s*.85,s*1.35,s*.7))]);
+      for(const sg of[-1,1]){const t=nmxHit(T,new THREE.Vector3(sg*2,B.sy-.015,C.fz),new THREE.Vector3(-sg,0,0));if(!t)continue;t.x-=sg*.012*u;t.y+=.008*u;gem(t,new THREE.Vector3(sg*.6,1,0),.02*u);gem(t.clone().add(new THREE.Vector3(-sg*.012*u,-.004*u,-.022*u)),new THREE.Vector3(sg*.9,1,-.4),.013*u);}
+      orbit={y:B.sy-.02,r:Math.max(C.tw*1.5,.13),z:C.fz};}
+    else{/* everything else wears a crystal cluster on its back (and a rider on his chest too) */
+      const top=nmxHit(T,new THREE.Vector3(0,bb.max.y+1,c.z),new THREE.Vector3(0,-1,0))||new THREE.Vector3(0,bb.max.y,c.z);const s=(B.siege?.05:B.bird?.016:B.horse?.03:.045)*(B.siege||B.horse||B.bird?1:u);
+      let back=top;if(B.horse){const h2=nmxHit(T,new THREE.Vector3(0,bb.max.y+1,bb.max.z-sz.z*.16),new THREE.Vector3(0,-1,0));if(h2&&h2.y<bb.min.y+sz.y*.8)gem(h2,new THREE.Vector3(0,1,.6),s*.75);
+        back=nmxHit(T,new THREE.Vector3(0,bb.max.y+1,bb.min.z+sz.z*.22),new THREE.Vector3(0,-1,0))||top;}
+      if(B.siege)back=nmxHit(T,new THREE.Vector3(0,bb.max.y+1,c.z-sz.z*.12),new THREE.Vector3(0,-1,0))||top;
+      gem(back,new THREE.Vector3(0,1,-.15),s);gem(back.clone().add(new THREE.Vector3(s*.7,0,s*.3)),new THREE.Vector3(.6,1,.1),s*.62);gem(back.clone().add(new THREE.Vector3(-s*.6,0,-s*.4)),new THREE.Vector3(-.6,1,-.4),s*.5);
+      cl.push([new THREE.CylinderGeometry(s*1.3,s*1.6,s*.4,7),nmxAt(back)]);mount=back;
+      orbit={y:B.bird?c.y:c.y+sz.y*.15,r:Math.max(sz.x,sz.z)*(B.bird?.6:.62),z:c.z};}
+    return{cr:cr.length?nmxMerge(cr):null,cl:cl.length?nmxMerge(cl):null,orbit,u,mount};});}
+ELD.blinking=C=>{nmxMats();const G=nmxBlinkGeo(Object.assign({},C,{cur:'blinking'}));if(!G)return;const g=new THREE.Group();g.userData.nmx='blink';
+  if(G.cl)nmxMesh(g,G.cl,NMX_M.clasp);const cr=G.cr?nmxMesh(g,G.cr,NMX_M.crys):null;const pv=new THREE.Group();pv.position.set(0,G.orbit.y,G.orbit.z);g.add(pv);const motes=[];
+  for(let i=0;i<2;i++){const m=nmxMesh(pv,oct(.012*Math.min(G.u,1.8)),NMX_M.crys);m.scale.set(1,1.7,1);motes.push(m);}C.g.add(g);
+  C.fx.blink={g,cr,pv,motes,r:G.orbit.r,a:rnd()*6.28,u:G.u};};
+ELA.blinking=(fx,t,dt,moving,e)=>{const B=fx.blink;if(!B)return;const ch=e&&e.nmxBlink?clamp(1-e.nmxBlink.t/NMX.blink.cd,0,1):(t*.25)%1,held=e&&e.nmxHeld;
+  B.a+=dt*(held?.6:1.8+ch*ch*9);const r=B.r*(1-.38*ch*ch);B.motes.forEach((m,i)=>{const a=B.a+i*Math.PI;m.position.set(Math.cos(a)*r,Math.sin(a*2+i)*.02*B.u,Math.sin(a)*r);m.rotation.y=a;});
+  if(B.cr){const k=1+.22*ch*ch+(ch>.85?.1*Math.sin(t*40):0);B.cr.scale.setScalar(k);}};
+/* the last second of the charge: teal sparks gather toward it, so the blink can be seen coming */
+ELP.blinking=(e,f,dt)=>{const B=e.nmxBlink;if(!f.blink||!B||e.nmxHeld||B.t>1||rnd()>dt*7)return;const a=rnd()*6.28,r=.22+rnd()*.12,p=tpos2(e);
+  emit(1,{x:p.x+Math.cos(a)*r,y:p.y+(rnd()-.3)*.2,z:p.z+Math.sin(a)*r,vx:-Math.cos(a)*r*2.6,vy:0,vz:-Math.sin(a)*r*2.6,s:.03,s2:.008,c:0x6af0d4,c2:0x0a8a6e,life:.35});};
+/* the blink itself */
+function nmxHeldNow(e){return e.stunT>0||e.heldT>0||e.frzT>0||!!e.blockBy||GRAV.on||e.liftT>0||e.revT>0||e.mbSleep>0||!(e.spd>0);}
+function nmxBlinkTick(e,dt){const B=e.nmxBlink;if(e.nmxUT>0)e.nmxUT-=dt;e.nmxHeld=nmxHeldNow(e);if(e.nmxHeld){B.t=Math.max(B.t,NMX.blink.wake);return;}
+  B.t-=dt;if(B.t>0)return;B.t=NMX.blink.cd;nmxBlink(e);}
+function nmxAfterImage(e){if(e.invis&&!(e.revealT>0))return;const m=new THREE.MeshBasicMaterial({color:0x1fc49c,transparent:true,opacity:.38,depthWrite:false});
+  const gh=e.b.clone();gh.traverse(o=>{if(o.isMesh&&!o.isInstancedMesh)o.material=m;else if(o.isLine||o.isPoints||o.isSprite||o.isInstancedMesh)o.visible=false;});
+  const root=new THREE.Group();root.position.copy(e.g.position);root.rotation.copy(e.g.rotation);root.add(gh);scene.add(root);const s0=gh.scale.clone(),y0=gh.position.y;
+  addFx(root,NMX.blink.ghost,f=>{const k=1-f.life/f.max;m.opacity=.38*(1-k)*(1-k);gh.scale.set(s0.x*(1+k*.12),s0.y*(1+k*.05),s0.z*(1+k*.12));gh.position.y=y0+k*.05;},null,{mats:[m]});}
+function nmxImplode(x,y,z,R){const ed=nmxGeo('imp',()=>new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(1,0))),m=new THREE.LineBasicMaterial({color:0x14a888,transparent:true,opacity:.75,depthWrite:false});
+  const o=new THREE.LineSegments(ed,m);o.position.set(x,y,z);o.scale.setScalar(R);scene.add(o);
+  addFx(o,.26,f=>{const k=1-f.life/f.max;o.scale.setScalar(R*(1-k*.85));o.rotation.y+=.2;o.rotation.x+=.13;m.opacity=.75*(1-k*.6);},null,{mats:[m]});
+  for(let i=0;i<12;i++){const a=rnd()*6.28,b=(rnd()-.5)*2,r=R*1.3,dx=Math.cos(a)*r,dz=Math.sin(a)*r,dy=b*r*.6;emit(1,{x:x+dx,y:y+dy,z:z+dz,vx:-dx*3.2,vy:-dy*3.2,vz:-dz*3.2,s:.032,s2:.005,c:0x7af5dc,c2:0x0a8a6e,life:.28});}}
+function nmxArrive(x,y,z,R){const g=nmxGeo('arr',()=>{const q=new THREE.RingGeometry(.8,1,28);q.rotateX(-Math.PI/2);return q;}),m=new THREE.MeshBasicMaterial({color:0x1fc8a0,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const o=new THREE.Mesh(g,m);o.position.set(x,gy(x,z)+.04,z);o.scale.setScalar(R*.3);scene.add(o);
+  addFx(o,.34,f=>{const k=1-f.life/f.max;o.scale.setScalar(R*(.3+k*.85));m.opacity=.6*(1-k);},null,{mats:[m]});
+  flash(x,y,z,0x2ad8b0,.24,.1);sprayP(1,x,y,z,12,{c:0x8afbe4,c2:0x0a8a6e,sp:1.5,up:.5,s:.04,s2:0,life:.35,g:1.5});}
+function nmxBlink(e){const rt=e.route||ROUTES[0],D=NMX.blink.d*TS,left=rt.len-e.dist;if(left<NMX.blink.minLeft*TS)return false;
+  const p0=tpos2(e),x0=e.x,z0=e.z;nmxAfterImage(e);nmxImplode(p0.x,p0.y,p0.z,Math.max(.18,e.hitY*.42));
+  const d0=e.dist;e.dist=Math.min(e.dist+D,rt.len-.05);if(FOLD.on)foldHop(e,d0);moveEnemy(e,0);e.nmxUT=NMX.blink.untarg;e.nmxBlinks=(e.nmxBlinks||0)+1;
+  const p1=tpos2(e);for(let i=1;i<6;i++){const k=i/6;emit(1,{x:x0+(e.x-x0)*k,y:p0.y+(p1.y-p0.y)*k,z:z0+(e.z-z0)*k,vx:0,vy:.15,vz:0,s:.035,s2:0,c:0x6af0d4,c2:0x0a6a5a,life:.3+k*.15});}
+  nmxArrive(p1.x,p1.y,p1.z,Math.max(.3,e.hitY*.7));return true;}
+
+/* ---- Warded: a circlet with a gem, and a rune stone orbiting it; both show the warded element ---- */
+function nmxRuneGeo(){return nmxGeo('rune',()=>{const st=new THREE.CylinderGeometry(1,1,.34,6);st.rotateX(Math.PI/2);const s=nmxMerge([[st,nmxAt(new THREE.Vector3())]]);st.dispose();
+  const gl=[];for(const z of[.18,-.18]){for(let i=0;i<6;i++){const a=i/6*6.283+Math.PI/6,b=a+6.283/6,p=new THREE.Vector3(Math.sin(a)*.86,Math.cos(a)*.86,z),q=new THREE.Vector3(Math.sin(b)*.86,Math.cos(b)*.86,z);const[m]=nmxSeg(p,q);gl.push([new THREE.BoxGeometry(.1,1,.05),m]);}gl.push([new THREE.BoxGeometry(.16,1.2,.06),nmxAt(new THREE.Vector3(0,0,z))]);
+    for(const sg of[-1,1])gl.push([new THREE.BoxGeometry(.14,.62,.06),nmxAt(new THREE.Vector3(sg*.22,.25,z),new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),sg*.75))]);
+    gl.push([new THREE.BoxGeometry(.56,.13,.06),nmxAt(new THREE.Vector3(0,-.32,z))]);}
+  return{s,gl:nmxMerge(gl)};});}
+function nmxWardGeo(C){const T=nmxTris(C);if(!T)return null;const k='ward|'+nmxKey(C)+'|'+C.affs.slice(0,C.affs.indexOf(C.cur)).join();
+  return nmxGeo(k,()=>{const bb=T.bb,c=bb.getCenter(new THREE.Vector3()),sz=bb.getSize(new THREE.Vector3()),u=nmxU(T),LM=nmxB(C,T),B=LM.B,hum=!B.horse&&!B.siege&&!B.bird&&!B.beast,band=[];let gemP=null,orbit,shell;C=Object.assign({},C,{tw:LM.tw,fz:LM.fz});
+    if(hum||B.horse){/* a bronze circlet around the head, measured by rays from four sides */
+      const top=nmxHit(T,new THREE.Vector3(0,bb.max.y+1,hum?C.fz:bb.min.z+sz.z*.45),new THREE.Vector3(0,-1,0));
+      if(top){const y=top.y-.045*(hum?u:1.1),cz=top.z,rr=[];const L0=.2*u;for(const [dx,dz] of[[1,0],[-1,0],[0,1],[0,-1]]){const h=nmxHit(T,new THREE.Vector3(dx*L0,y,cz+dz*L0),new THREE.Vector3(-dx,0,-dz));rr.push(h?(dx?h.x:h.z):null);}
+        const ok=rr.every(v=>v!=null),cx=ok?(rr[0]+rr[1])/2:0,cz2=ok?(rr[2]+rr[3])/2:cz,rx=ok?(rr[0]-rr[1])/2:.06,rz=ok?(rr[2]-rr[3])/2:.06,N=12;
+        if(ok&&rx>.01&&rz>.01&&rx<.2*u&&rz<.2*u){let prev=null;for(let i=0;i<=N;i++){const a=i/N*6.283,p=new THREE.Vector3(cx+Math.sin(a)*(rx+.008),y,cz2+Math.cos(a)*(rz+.008));if(prev){const[m]=nmxSeg(prev,p);band.push([new THREE.BoxGeometry(.012*u,1,.018*u),m]);}prev=p;}
+          gemP=new THREE.Vector3(cx,y+.004,cz2+rz+.016);}}
+      orbit=hum?{y:B.sy+.03,r:Math.max(C.tw*2,.17),z:C.fz,s:.036}:{y:c.y+sz.y*.22,r:Math.max(sz.x,sz.z)*.5,z:c.z,s:.04};shell=hum?{y:(B.hy||bb.max.y)*.52,r:(B.hy||bb.max.y)*.5,z:C.fz}:{y:c.y,r:sz.y*.5,z:c.z};}
+    else if(B.siege){/* a rune slab bolted to the ram's head */const h=nmxHit(T,new THREE.Vector3(0,bb.min.y+sz.y*.55,bb.max.z+1),new THREE.Vector3(0,0,-1))||new THREE.Vector3(0,c.y,bb.max.z);
+      band.push([new THREE.BoxGeometry(.13,.1,.02),nmxAt(h.clone().add(new THREE.Vector3(0,0,.012)))]);gemP=h.clone().add(new THREE.Vector3(0,0,.03));
+      orbit={y:bb.max.y+.05,r:Math.max(sz.x,sz.z)*.3,z:c.z,s:.045};shell={y:c.y,r:Math.max(sz.x,sz.z)*.36,z:c.z};}
+    else{orbit={y:c.y+sz.y*(B.bird?.1:.25),r:B.bird?Math.max(sz.x,sz.z)*.5:Math.min(Math.max(sz.x,sz.z)*.55,sz.z*.6),z:c.z,s:B.bird?.022:.034*u};shell={y:c.y,r:B.bird?Math.max(sz.x,sz.z)*.45:Math.min(sz.y,sz.z)*.5,z:c.z};
+      const h=nmxHit(T,new THREE.Vector3(0,bb.max.y+1,c.z),new THREE.Vector3(0,-1,0));if(h)gemP=h.clone().add(new THREE.Vector3(0,.01,0));}
+    return{band:band.length?nmxMerge(band):null,gemP,orbit,shell,u};});}
+ELD.warded=C=>{nmxMats();const G=nmxWardGeo(Object.assign({},C,{cur:'warded'}));if(!G)return;const R=nmxRuneGeo(),g=new THREE.Group();g.userData.nmx='ward';
+  if(G.band)nmxMesh(g,G.band,NMX_M.band);let gem=null;if(G.gemP){gem=nmxMesh(g,oct(.018*Math.min(G.u,2)),NMX_M.gem.none);gem.position.copy(G.gemP);gem.scale.set(1,1.3,.7);}
+  const pv=new THREE.Group();pv.position.set(0,G.orbit.y,G.orbit.z);g.add(pv);const rune=new THREE.Group();pv.add(rune);rune.scale.setScalar(G.orbit.s);
+  nmxMesh(rune,R.s,NMX_M.stone);const glyph=nmxMesh(rune,R.gl,NMX_M.glyph.none);
+  const sh=new THREE.LineSegments(nmxGeo('wshell',()=>new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(1,0))),NMX_M.shell.none);sh.userData.nmx=1;sh.position.set(0,G.shell.y,G.shell.z);sh.visible=false;g.add(sh);
+  C.g.add(g);C.fx.ward={g,pv,rune,glyph,gem,sh,shR:G.shell.r,r:G.orbit.r,s0:G.orbit.s,a:rnd()*6.28,pu:0,el:null,demo:.8+rnd()*.5,u:G.u};};
+function nmxWardSet(W,el){W.el=el;const k=el&&NMX_M.glyph[el]?el:'none';W.glyph.material=NMX_M.glyph[k];if(W.gem)W.gem.material=NMX_M.gem[k];W.sh.material=NMX_M.shell[k];W.pu=.32;}
+ELA.warded=(fx,t,dt,moving,e)=>{const W=fx.ward;if(!W)return;W.a+=dt*1.5;const b=Math.sin(t*2.3+W.a)*.012*W.u;W.rune.position.set(Math.cos(W.a)*W.r,b,Math.sin(W.a)*W.r);W.rune.rotation.set(-.85,-W.a+Math.PI/2,0,'YXZ');
+  if(!e){W.demo-=dt;if(W.demo<=0){W.demo=1.7;const L=NMX.ward.els,i=(L.indexOf(W.el)+1)%L.length;nmxWardSet(W,L[i]);}}
+  if(W.pu>0){W.pu=Math.max(0,W.pu-dt);const k=1-W.pu/.32;W.sh.visible=W.pu>0;W.sh.scale.setScalar(W.shR*(.82+.4*k));W.sh.rotation.y=k*.8;}
+  else if(W.sh.visible)W.sh.visible=false;
+  W.rune.scale.setScalar(W.s0*(1+(W.pu>0?Math.sin((1-W.pu/.32)*Math.PI)*.6:0)));};
+ELP.warded=()=>{};
+const nmxElOf=o=>o&&o.el&&ELEM[o.el]?o.el:null;
+{const h0=hurt;hurt=function(e,amt,kind,o){const Wd=e&&!e.dead&&e.nmxWard;if(!Wd)return h0.apply(this,arguments);const el=nmxElOf(o);if(!el)return h0.apply(this,arguments);
+  let a=amt;if(Wd.el===el){a*=1-NMX.ward.res;if(time-Wd.rT>.25&&amt>0){Wd.rT=time;const p=tpos2(e);sprayP(1,p.x,p.y,p.z,4,{c:0xffffff,c2:ELEM[el].hex,sp:1.2,up:.3,s:.03,s2:0,life:.25,g:1});}}
+  const r=h0.call(this,e,a,kind,o);
+  if(!e.dead&&Wd.el!==el&&!(o&&o.dot)&&time>=Wd.lock){Wd.el=el;Wd.lock=time+NMX.ward.lock;Wd.n=(Wd.n||0)+1;const W=e.eliteFx&&e.eliteFx.ward;if(W)nmxWardSet(W,el);
+    const p=tpos2(e);flash(p.x,p.y,p.z,ELEM[el].hex,.26,.12);sprayP(1,p.x,p.y+.05,p.z,10,{c:0xffffff,c2:ELEM[el].hex,sp:1.3,up:.4,s:.035,s2:0,life:.35,g:1});}
+  return r;};}
+
+/* ---- the clock, blink ticks, the untargetable instant ---- */
+{const a0=anim;anim=function(dt,rt){NMX.T.u.value=rt;if(NMX_M.seam){NMX_M.seam.emissiveIntensity=.75+.35*Math.sin(rt*5);NMX_M.glow.opacity=.32+.14*Math.sin(rt*5);NMX_M.crys.emissiveIntensity=.65+.25*Math.sin(rt*3.1);}return a0.apply(this,arguments);};}
+{const s0=statusTick;statusTick=function(e,dt){if(e.nmxBlink&&!e.dead&&!e.fake)try{nmxBlinkTick(e,dt);}catch(err){console.error(err);}return s0.apply(this,arguments);};}
+{const r0=inRange;inRange=function(t,s){const L=r0.apply(this,arguments);return L.some(e=>e.nmxUT>0)?L.filter(e=>!(e.nmxUT>0)):L;};}
+
+/* ---- artifacts that strip a modifier take the gear off too ---- */
+{const a0=artStrip;artStrip=function(q,fx){const before=q&&q.elites?q.elites.slice():[];const r=a0.apply(this,arguments);if(!r)return r;
+  const gone=before.filter(a=>!q.elites.includes(a)),F=q.eliteFx||{},off=o=>{if(o&&o.parent)o.parent.remove(o);};
+  for(const a of gone){if(a==='splitting'){off(F.split);F.split=null;q.nmxSplitDone=true;}
+    else if(a==='blinking'){off(F.blink&&F.blink.g);F.blink=null;q.nmxBlink=null;q.nmxUT=0;}
+    else if(a==='warded'){off(F.ward&&F.ward.g);F.ward=null;q.nmxWard=null;}}
+  return r;};}
+
+/* ---- Invisible, reviewed: the cloak ---- */
+const NMX_GVS='varying vec3 vN;varying vec3 vV;varying float vY;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=-mv.xyz;vY=(modelMatrix*vec4(position,1.)).y;gl_Position=projectionMatrix*mv;}';
+const NMX_GFS='uniform vec3 uC;uniform vec3 uR;uniform float uT;uniform float uA;varying vec3 vN;varying vec3 vV;varying float vY;'+
+  'void main(){float f=1.-abs(dot(normalize(vN),normalize(vV)));f=f*f;float sh=.72+.28*sin(vY*46.-uT*5.);float sw=smoothstep(.0,.25,fract(vY*1.6-uT*.55))*smoothstep(.5,.25,fract(vY*1.6-uT*.55));'+
+  'gl_FragColor=vec4(mix(uC,uR,f)+uR*sw*.18,uA*(.07+.55*f+sw*.1)*sh);}';
+const NMX_GHOST=new Map();
+artGhostMat=function(m){if(!m||Array.isArray(m))return m;if(m.userData&&m.userData.nmxGhost)return m;let g=NMX_GHOST.get(m);if(g)return g;
+  const c=new THREE.Color(m.color?m.color.getHex():0x9a8ac8).lerp(new THREE.Color(0xb8a8ff),.55);
+  g=new THREE.ShaderMaterial({uniforms:{uC:{value:c},uR:{value:new THREE.Color(0xdcd2ff)},uT:NMX.T.u,uA:{value:1}},vertexShader:NMX_GVS,fragmentShader:NMX_GFS,transparent:true,depthWrite:false,side:m.side||THREE.FrontSide});
+  g.opacity=.2;g.userData.nmxGhost=true;NMX_GHOST.set(m,g);return g;};
+const nmxCloakable=m=>!!m&&!Array.isArray(m)&&!m.isShaderMaterial&&m.blending!==THREE.AdditiveBlending;
+invisLook=function(e,on){if(!e||!e.b)return;
+  if(on){const L=e.ghostL||(e.ghostL=[]),H=e.nmxHid||(e.nmxHid=[]);const seen=new Set(L.map(x=>x[0]));
+    e.b.traverse(o=>{if(seen.has(o))return;if(o.isMesh&&!o.isInstancedMesh&&nmxCloakable(o.material)){if(o.material.userData&&o.material.userData.nmxGhost)return;L.push([o,o.material]);o.material=artGhostMat(o.material);}
+      else if((o.isMesh||o.isLine||o.isPoints||o.isSprite)&&o.visible&&!H.includes(o)){H.push(o);o.visible=false;}});}
+  else{for(const [o,m] of e.ghostL||[])if(o.material===NMX_GHOST.get(m))o.material=m;for(const o of e.nmxHid||[])o.visible=true;e.ghostL=[];e.nmxHid=[];}
+  e.ghostOn=on;};
+{const s0=statusTick;statusTick=function(e,dt){const was=e.invis&&!e.dead?!!e.ghostOn:null;const r=s0.apply(this,arguments);
+  if(was!==null&&!e.dead&&e.invis&&was!==!!e.ghostOn){const p=tpos2(e);if(e.ghostOn)sprayP(1,p.x,p.y,p.z,10,{c:0xf0ecff,c2:0x8a7aff,sp:.9,up:.3,s:.035,s2:0,life:.4,g:.5});}return r;};}
+/* the formation's shields and banners are added after the spawn: cloak them too */
+{const f0=spawnFormation;spawnFormation=function(){const n0=enemies.length,r=f0.apply(this,arguments);for(let i=n0;i<enemies.length;i++){const e=enemies[i];if(e.invis&&e.ghostOn)invisLook(e,true);}return r;};}
+/* the Bestiary: rebuild the cloak from the plain materials each time the cycle moves on */
+{const ge=galElite;galElite=function(step){try{if(GV)GV.items.forEach(it=>{const b=it.m.b;if(b.ghostL){for(const [o,m] of b.ghostL)o.material=m;b.ghostL=null;}});}catch(e){console.error(e);}
+  let r=ge.apply(this,arguments);
+  /* bosses never split: the Bestiary skips that entry for them */
+  try{for(let i=0;i<ELITE_CYCLE.length&&GV&&EN[GV.type]&&EN[GV.type].boss;i++){const CY=(GV.type==='knight'||GV.type==='monk')?ELITE_CYCLE.filter(c=>!c.includes('armored')):ELITE_CYCLE;if(!(CY[GV.eIdx||0]||[]).includes('splitting'))break;
+      GV.items.forEach(it=>{const b=it.m.b;if(b.ghostL){for(const [o,m] of b.ghostL)o.material=m;b.ghostL=null;}});r=ge.call(this,true);}}catch(e){console.error(e);}
+  return r;};}
+/* Old Tobin fights in melee: he can neither block nor strike a foe he cannot see (nor one in the instant of a blink) */
+{const h0=heroUpdate;heroUpdate=function(dt){const H=heroU;if(!H||!H.melee||artSees(H)||!enemies.some(e=>!e.dead&&((e.invis&&!(e.revealT>0))||e.nmxUT>0)))return h0.apply(this,arguments);
+  const all=enemies,hide=e=>(e.invis&&!(e.revealT>0))||e.nmxUT>0;for(const e of all)if(e.blockBy===H&&hide(e)){e.blockBy=null;H.blk.delete(e);}
+  enemies=all.filter(e=>!hide(e));try{return h0.apply(this,arguments);}finally{const now=enemies;enemies=all;for(const e of now)if(!all.includes(e))all.push(e);}};}
+/* every new modifier says what it does the first time the Bestiary shows it */
+{const ge=galElite;galElite=function(step){const r=ge.apply(this,arguments);try{if(!GV||!step)return r;const CY=(GV.type==='knight'||GV.type==='monk')?ELITE_CYCLE.filter(c=>!c.includes('armored')):ELITE_CYCLE,affs=CY[GV.eIdx||0]||[];
+    if(affs.length===1){const T={splitting:'Splitting: when slain it tears in two smaller copies (30% health each, no modifiers)',blinking:'Blinking: every 4 seconds it blinks 1.25 tiles forward; stuns and roots stop it',warded:'Warded: resists the element that last hit it by 40%; physical damage is never warded'}[affs[0]];if(T)toast(T);}}catch(e){console.error(e);}return r;};}
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
