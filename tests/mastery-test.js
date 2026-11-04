@@ -23,8 +23,9 @@ try{
    const b=near(T,2,10);b.boss=true;hurt(b,100,'phys',{src:T});ok('a boss: '+30*KX+' XP',mastXp('archer')===34*KX,mastXp('archer'));
    if(!heroU){const q=heroTileNear(meta.equipped,innerWidth/2,innerHeight*.45);spawnHero(q.c,q.r);}const h=near(T,3,10);hurt(h,100,'magic',{src:heroU});ok('a kill by the hero gives no building XP',mastXp('archer')===34*KX);
    const x0=mastXp('archer');const d=near(T,4,10);hurt(d,100,'phys',{src:T});hurt(d,100,'phys',{src:T});ok('a foe counts once',mastXp('archer')===x0+KX);}
-  {const sb=spot();clean();const w0=mastXp('windmill');const wm=placeTower('windmill',sb[0]+2<W?sb[0]:sb[0],sb[1]+2<H?sb[1]+2:sb[1]);lmWaveClear(wave+1);
-   ok('a support building earns '+MAST_SUP+' XP for every wave it stands through',!wm||mastXp('windmill')===w0+MAST_SUP,mastXp('windmill'));}
+  /* (v476: the gold buildings earn by the gold they make, tests/gmx-test.js; the Bell Tower is the support building that keeps the flat XP) */
+  {const sb=spot();clean();const w0=mastXp('bell');const wm=placeTower('bell',sb[0]+2<W?sb[0]:sb[0],sb[1]+2<H?sb[1]+2:sb[1]);lmWaveClear(wave+1);
+   ok('a support building earns '+MAST_SUP+' XP for every wave it stands through',!wm||mastXp('bell')===w0+MAST_SUP,mastXp('bell'));}
   /* a level up mid-run */
   {meta.mast={archer:XP[0]-KX};const toasts=[];const tt=toast;toast=function(m){toasts.push(m);return tt.apply(this,arguments);};try{const e=near(T,0,10);hurt(e,100,'phys',{src:T});}finally{toast=tt;}
    ok('reaching a level mid-run says so and flies the pennant',mastLv('archer')===1&&toasts.some(m=>/Archer Tower reached Mastery 1: Keen Eyes/.test(m))&&!!T.mflag,toasts.join(' | '));}

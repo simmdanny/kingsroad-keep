@@ -2480,3 +2480,38 @@ Simon: "add more heros that have some sort of a specialization to a certain elem
 - **Their looks:** `heroModel` hands its helpers to `ehModel` for them: Ignatia in red and char with a crown of flame, a burning hem and a flame-tipped staff; Isolde in white and ice blue with a crown and shoulders of ice crystals and a crystal staff; Vesper a white-bearded storm mage in a tall navy hat with lightning stitched on his robe and a forked staff; Sylvara in moss green with antlers, leaves and a staff wound in vines; Corvin in a deep horned hood with violet eyes and a skull staff; Seraphine in ivory and gold with a halo, small wings of light and a sun-disc staff. Each has motes of their element floating round them. Their cards carry a coloured element chip (`ehChip`) and border, and `heroCol` gives their element's colour.
 - **Patch notes:** a "Six elemental heroes" section at the top of `NOTES_HTML`; `NOTES_V` is left as it is for whoever publishes the update.
 - Tests: `tests/ehr-test.js` (25, in run-all as 'ehr'): six heroes, one per element; 4-star spellcasters with 6 slots; priced by power, all different, between Elowen and Thaddeus; aura, talent, thumbnail and a model of their own; the chip and colour; other heroes unchanged; Element Mastery +30% and 10% faster on their element only (and Ignatia's Catch Flame's cooldown); each shoots an orb of its element that hits as it; burning, chill, two extra chain jumps, wither, roots about one bolt in five, a flare every 6th light bolt; Elowen still shoots her violet bolt; each fights in the real loop without errors.
+
+
+## v476: gold buildings learn by their gold
+
+Simon: "we have to rework how money earning buildings gain masteries, they should get masteries by how much money they produce".
+
+- **The rule:** the Gold Mine, the Windmill and the Merchant's Post (`GOLD_T`) earn 1 XP for every `MAST_GOLD` = 10 gold they pay out. That is the gold that adds to a building's own tally (`t.earned`), whatever pays it:
+
+  | Source | Where it is paid | Buildings |
+  |---|---|---|
+  | Income at each wave call, with its share of the interest | `callWave` | all three |
+  | The bounty: the extra gold foes slain in its range drop | `kill` (`MERCH_HIT`) | Merchant's Post |
+  | Mastery payouts after a cleared wave (Gold Rush, Mother Lode, Harvest Festival, Strongbox, Royal Treasury, Golden Caravan) | `mxPay` | all three |
+
+- **Before:** like every support building they earned a flat `MAST_SUP` = 4 XP for each wave they stood through, however much they made. The Bell Tower, which makes no gold, still does.
+- **How it is counted:** the v476 module wraps `callWave`, `kill` and `mxPay`. Each wrapper reads the gold buildings' tallies before and after the call and turns the difference into XP through `mastGain`, so nothing is counted twice and a resumed run's restored tallies are never counted again. `mastGain` gives XP only in play, as for every building. The support-XP hook skips `GOLD_T`.
+- **The rate:** a new Windmill or Merchant's Post makes about 40 gold a wave, so it earns 4 XP a wave, the same as before; upgraded, it learns faster. Gold per wave, read from `tStats` (no Armory enhancement):
+
+  | Special part | 0 | 5 | 10 | 15 | 20 |
+  |---|---|---|---|---|---|
+  | Gold Mine | 18 | 35 | 71 | 142 | 286 |
+  | Windmill | 39 | 72 | 133 | 245 | 452 |
+  | Merchant's Post (before its bounty) | 40 | 80 | 162 | 325 | 655 |
+
+  An un-upgraded Gold Mine learns at about half its old pace (1.8 XP a wave), but a player can build five.
+- **Card:** the mastery card of a gold building says it grows with the gold it makes, 1 XP for every 10 gold; the Merchant's Post's card also names its bounty. Changelog entry and a patch-notes section added (`NOTES_V` unchanged).
+- **Saved XP:** XP already earned stays; nothing is migrated.
+- **Tests:** `tests/gmx-test.js` (15 rows, in run-all as 'gmx'):
+  - each payout source turns into XP exactly (wave income, interest share, bounty in range and none out of range, a Mastery 4 Mother Lode);
+  - the Bell Tower keeps 4 XP a wave and the gold buildings get no flat XP;
+  - a restored tally is not counted again, and there is no XP outside a run;
+  - over five waves each type's XP equals its buildings' gold / 10;
+  - kill XP is unchanged, and the cards say the right thing.
+
+  `tests/mastery-test.js` now uses the Bell Tower as its support building.
