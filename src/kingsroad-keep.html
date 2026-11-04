@@ -5126,21 +5126,20 @@ function sdpInit(){if(SDP.mat)return;SDP.sc=new THREE.Scene();SDP.cam=new THREE.
           float edge=exp(-pow((d-.97)/.03,2.))*(.55+.45*sin(ang*13.+uT*3.))*Pp.w;float iso=smoothstep(.05,0.,abs(fract(m*4.+uT*.15)-.5)-.4)*m*(1.-m)*4.*step(.001,Pp.x)*.5;
           glow+=vec3(.7,.86,1.)*ring*.9;anyZ=1.;}
         float dk=0.;
-        for(int i=0;i<12;i++){vec4 Q=uPl[i];if(Q.z<=0.)continue;vec2 q=G.xz-Q.xy;float l=length(q);if(l>=Q.z)continue;float m=1.-smoothstep(0.,Q.z,l);float an=atan(q.y,q.x),sd=Q.x*7.3+Q.y*3.1;vec2 rd=q/(l+1e-3),tg=vec2(-rd.y,rd.x);float h=sin(an*2.+sd+uT*.5)*.6+sin(an*5.-sd*1.3-uT*.8)*.4;vec2 D=(rd*h+tg*(.6+.4*sin(sd+l*3.)))*Q.w*m*m;sh[0]+=D*.94;sh[1]+=D;sh[2]+=D*1.06;anyZ=1.;}
-        for(int i=0;i<4;i++){vec4 A=uSa[i],B=uSb[i];if(B.y<=0.)continue;vec2 ab=A.zw-A.xy;float L=length(ab)+1e-4;vec2 d=ab/L,nn=vec2(-d.y,d.x),q=G.xz-A.xy;float al=dot(q,d),s=clamp(al/L,0.,1.);float lat=dot(q,nn)-B.z*4.*s*(1.-s)*L;float w=B.x*(.3+.7*sin(3.14159*s))*(1.+.3*sin(s*19.+B.w));float dist=length(vec2(lat,max(0.,max(-al,al-L))));float fa=clamp(B.y*2.5,0.,1.);float m=1.-smoothstep(0.,w*3.4,dist);float sg=lat>=0.?1.:-1.;vec2 D=-nn*sg*B.y*m*(1.+.4*sin(s*11.+B.w*2.));sh[0]+=D*.9;sh[1]+=D;sh[2]+=D*1.14;
+        for(int i=0;i<12;i++){vec4 Q=uPl[i];if(Q.z<=0.)continue;vec2 q=G.xz-Q.xy;float l=length(q);if(l>=Q.z)continue;float m=1.-smoothstep(0.,Q.z,l);float an=atan(q.y,q.x),sd=Q.x*7.3+Q.y*3.1;vec2 rd=q/(l+1e-3),tg=vec2(-rd.y,rd.x);float h=sin(an*2.+sd+uT*.5)*.6+sin(an*5.-sd*1.3-uT*.8)*.4;vec2 D=(rd*h+tg*(.6+.4*sin(sd+l*3.)))*abs(Q.w)*m*m;sh[0]+=Q.w>0.?D*.94:D;sh[1]+=D;sh[2]+=Q.w>0.?D*1.06:D;anyZ=1.;}
+        for(int i=0;i<4;i++){vec4 A=uSa[i],B=uSb[i];if(B.y<=0.)continue;bool cl=B.w<0.;float bw=cl?-B.w-1.:B.w;vec2 ab=A.zw-A.xy;float L=length(ab)+1e-4;vec2 d=ab/L,nn=vec2(-d.y,d.x),q=G.xz-A.xy;float al=dot(q,d),s=clamp(al/L,0.,1.);float lat=dot(q,nn)-B.z*4.*s*(1.-s)*L;float w=B.x*(.3+.7*sin(3.14159*s))*(1.+.3*sin(s*19.+bw));float dist=length(vec2(lat,max(0.,max(-al,al-L))));float fa=clamp(B.y*2.5,0.,1.);float m=1.-smoothstep(0.,w*3.4,dist);float sg=lat>=0.?1.:-1.;vec2 D=-nn*sg*B.y*m*(1.+.4*sin(s*11.+bw*2.));if(cl)D*=.12*smoothstep(0.,w*1.2,abs(lat));sh[0]+=cl?D:D*.9;sh[1]+=D;sh[2]+=cl?D:D*1.14;
           anyZ=1.;}
 for(int i=0;i<6;i++){vec4 A=uBa[i],B=uBb[i];if(B.y<=0.)continue;vec2 d=A.zw,nn=vec2(-d.y,d.x),q=G.xz-A.xy;float u=dot(q,d),v=dot(q,nn),a=B.x,av=abs(v);u+=.2*v*v/a*sin(B.w);
           float env=exp(-pow(v/(a*1.7),2.)),cf=exp(-pow((u-.3)/1.3,2.))*env;vec2 D=d*B.y*.9*cf;
           float tipW=exp(-pow((av-a*.95)/(a*.55),2.))*exp(-pow(u/2.,2.));D+=nn*sign(v)*B.y*.85*tipW;
           float back=exp(-pow((av-a*1.1)/(a*.6),2.))*(1.-smoothstep(-.2,.6,u))*exp(min(u,0.)/3.);D-=d*B.y*.7*back;
           float wk=(1.-smoothstep(-.3,.3,u))*exp(min(u,0.)/2.6)*env;D+=nn*sin(u*2.6+B.w+v*1.2)*B.y*.55*wk+d*sin(v*3.1-u*1.8+B.w*2.)*B.y*.3*wk;
-          float dist=length(vec2(u,max(0.,av-a))),w=.09*(1.-smoothstep(.5,1.,av/a)*.75),sm=(1.-smoothstep(0.,w*3.6,dist))*B.z,sg=u>=0.?1.:-1.;D+=d*sg*sm*.7;
-          sh[0]+=D*.92;sh[1]+=D;sh[2]+=D*1.1;anyZ=1.;}
+          D*=.08;sh[0]+=D;sh[1]+=D;sh[2]+=D;anyZ=1.;}
         for(int i=0;i<4;i++){vec4 Qa=uQa[i],Qb=uQb[i];if(Qb.y<=0.)continue;vec2 q=G.xz-Qa.xy;float l=length(q),an=atan(q.y,q.x),age=Qa.z,sd=Qa.w;
-          float rr=age*6.5*(1.+.28*sin(an*3.+sd)+.17*sin(an*5.-sd*1.7)+.1*sin(an*8.+sd*.6));float w2=1.2+age*1.6;float env=exp(-pow((l-rr)/w2,2.))*exp(-age*2.2)+exp(-l*l/(Qb.x*Qb.x*.25))*exp(-age*3.5);
+          float rr=age*6.5*(1.+.28*sin(an*3.+sd)+.17*sin(an*5.-sd*1.7)+.1*sin(an*8.+sd*.6));float w2=1.2+age*1.6;bool cq=Qb.w>.5;float env=exp(-pow((l-rr)/w2,2.))*exp(-age*2.2)+(cq?0.:1.)*exp(-l*l/(Qb.x*Qb.x*.25))*exp(-age*3.5);
           vec2 rd=q/(l+1e-3),tg=vec2(-rd.y,rd.x);float rad=-Qb.z*(1.-smoothstep(0.,.18,age))+smoothstep(0.,.2,age)*sin(l*3.-age*14.+sd)*.8;float tq=floor(age*14.);
-          vec2 jt=(vec2(h21(floor(G.xz*2.5)+tq*3.1+sd),h21(floor(G.xz*2.5)+tq*7.7-sd))-.5)*1.4;vec2 D=(rd*rad+tg*sin(an*4.+sd+age*18.)*.5+jt*.7)*Qb.y*env;sh[0]+=D*.93;sh[1]+=D;sh[2]+=D*1.07;anyZ=1.;}
-        for(int i=0;i<4;i++){vec4 A=uWv[i],B=uWw[i];if(B.y<=0.)continue;vec2 d=A.zw,nn=vec2(-d.y,d.x),q=G.xz-A.xy;float u=dot(q,d),v=dot(q,nn);float band=exp(-pow(u/B.w,2.))*exp(-pow(v/B.x,2.));vec2 D=(nn*sin(u*5.+B.z+uT*3.)*.8+d*cos(v*3.+B.z-uT*2.)*.5)*B.y*band;sh[0]+=D*.93;sh[1]+=D;sh[2]+=D*1.07;anyZ=1.;}
+          vec2 jt=(vec2(h21(floor(G.xz*2.5)+tq*3.1+sd),h21(floor(G.xz*2.5)+tq*7.7-sd))-.5)*1.4;vec2 D=(rd*rad+tg*sin(an*4.+sd+age*18.)*.5+(cq?vec2(0.):jt*.7))*Qb.y*env*(cq?.12:1.);sh[0]+=cq?D:D*.93;sh[1]+=D;sh[2]+=cq?D:D*1.07;anyZ=1.;}
+        for(int i=0;i<4;i++){vec4 A=uWv[i],B=uWw[i];if(B.y<=0.)continue;vec2 d=A.zw,nn=vec2(-d.y,d.x),q=G.xz-A.xy;float u=dot(q,d),v=dot(q,nn);float band=exp(-pow(u/B.w,2.))*exp(-pow(v/B.x,2.));vec2 D=(nn*sin(u*5.+B.z+uT*3.)*.8+d*cos(v*3.+B.z-uT*2.)*.5)*B.y*band*.25;sh[0]+=D;sh[1]+=D;sh[2]+=D;anyZ=1.;}
         b0=mix(G.xz,b0,uK);b1=mix(G.xz,b1,uK);b2=mix(G.xz,b2,uK);sh[0]*=uK;sh[1]*=uK;sh[2]*=uK;glow*=uK;
         vec3 col;if(anyZ>0.){col=vec3(texture2D(tD,clamp(toUv(vec3(b0.x-sh[0].x,.35,b0.y-sh[0].y)),.001,.999)).r,texture2D(tD,clamp(toUv(vec3(b1.x-sh[1].x,.35,b1.y-sh[1].y)),.001,.999)).g,texture2D(tD,clamp(toUv(vec3(b2.x-sh[2].x,.35,b2.y-sh[2].y)),.001,.999)).b);}else col=texture2D(tD,vUv).rgb;
         gl_FragColor=vec4(col*(1.-clamp(dk,0.,.88))+glow,1.);}`});
@@ -5154,10 +5153,10 @@ function sdpRender(){const sz=renderer.getDrawingBufferSize(SDP.v2);
   {const C=SDP.cmp;if(C){u.uCa.value.set(C.x,C.z,C.ex,C.ez);u.uCb.value.set(C.a,C.b,C.k,C.curv);u.uCc.value.set(C.seed,C.asym,C.asymA,C.wave);u.uCd.value.set(C.waveA,C.flash||0,C.rupt||0,C.inst||0);
     for(let i=0;i<2;i++){const S=C.sat[i];u.uS.value[i*3].set(S.x,S.z,S.ex,S.ez);u.uS.value[i*3+1].set(S.a,S.b,Math.max(-.8,Math.min(1.4,C.k*S.ks)),0);u.uS.value[i*3+2].set(S.seed,0,0,0);}
     for(let i=0;i<3;i++){const W=C.wv[i];u.uWd.value[i].set(W.d[0],W.d[1],W.d[2],W.d[3]);}u.uWa.value.set(C.wv[0].amp,C.wv[1].amp,C.wv[2].amp,0);u.uWc.value.set(C.wv[0].cv,C.wv[1].cv,C.wv[2].cv,0);u.uCe.value.set(C.fold,C.fold2,C.tear,0);}else u.uCb.value.set(0,0,0,0);}
-  for(let i=0;i<4;i++){const q=SDP.sl&&SDP.sl[i];if(q&&q.amp2>0&&isFinite(q.ax)){SDP_SA[i].set(q.ax,q.az,q.bx,q.bz);SDP_SB[i].set(q.w2,q.amp2,q.curve,q.seed);}else SDP_SB[i].set(0,0,0,0);}
-  for(let i=0;i<12;i++){const q=SDP.pl&&SDP.pl[i];if(q&&q.amp>0)SDP_PL[i].set(q.x,q.z,q.r,q.amp);else SDP_PL[i].set(0,0,0,0);}
+  for(let i=0;i<4;i++){const q=SDP.sl&&SDP.sl[i];if(q&&q.amp2>0&&isFinite(q.ax)){SDP_SA[i].set(q.ax,q.az,q.bx,q.bz);SDP_SB[i].set(q.w2,q.amp2,q.curve,q.cl?-1-q.seed:q.seed);}else SDP_SB[i].set(0,0,0,0);}
+  for(let i=0;i<12;i++){const q=SDP.pl&&SDP.pl[i];if(q&&q.amp>0)SDP_PL[i].set(q.x,q.z,q.r,q.cl?-q.amp:q.amp);else SDP_PL[i].set(0,0,0,0);}
   for(let i=0;i<6;i++){const q=SDP.bl&&SDP.bl[i];if(q&&q.amp2>0.003&&q.seam!==undefined){SDP_BA[i].set(q.cx,q.cz,q.ux,q.uz);SDP_BB[i].set(q.a,q.amp2,q.seam,q.seed);}else SDP_BB[i].set(0,0,0,0);}
-  for(let i=0;i<4;i++){const q=SDP.qk&&SDP.qk[i];if(q&&q.age<1.2){SDP_QA[i].set(q.x,q.z,q.age,q.seed);SDP_QB[i].set(q.R,q.amp*Math.max(0,1-q.age/1.2),q.mode,0);}else SDP_QB[i].set(0,0,0,0);}
+  for(let i=0;i<4;i++){const q=SDP.qk&&SDP.qk[i];if(q&&q.age<1.2){SDP_QA[i].set(q.x,q.z,q.age,q.seed);SDP_QB[i].set(q.R,q.amp*Math.max(0,1-q.age/1.2),q.mode,q.cl?1:0);}else SDP_QB[i].set(0,0,0,0);}
   for(let i=0;i<4;i++){const q=SDP.wv&&SDP.wv[i];if(q&&q.amp>0.003){SDP_WA[i].set(q.x,q.z,q.dx,q.dz);SDP_WB[i].set(q.len,q.amp,q.seed,q.wd);}else SDP_WB[i].set(0,0,0,0);}
   renderer.setRenderTarget(SDP.rt);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(SDP.sc,SDP.cam);}
 function sdSound(snap){const c=sfxCtx();if(!c)return;const t=c.currentTime;
@@ -5183,7 +5182,373 @@ function citSnd(kind,v){const c=sfxCtx();if(!c)return;const t=c.currentTime;v=v|
 function citHum(){const c=sfxCtx();if(!c)return null;const t=c.currentTime,out=c.createGain();out.gain.setValueAtTime(0,t);out.gain.linearRampToValueAtTime(.2,t+1.6);out.connect(SFX.master);const os=[[55,'sine'],[82.4,'sine'],[165,'triangle']].map(([f,ty])=>{const o=c.createOscillator();o.type=ty;o.frequency.value=f;const g=c.createGain();g.gain.value=ty==='triangle'?.12:1;o.connect(g);g.connect(out);o.start(t);return o;});
   const lf=c.createOscillator(),lg=c.createGain();lf.frequency.value=.35;lg.gain.value=.05;lf.connect(lg);lg.connect(out.gain);lf.start(t);
   return{fade(d){const n=c.currentTime;out.gain.cancelScheduledValues(n);out.gain.setValueAtTime(out.gain.value,n);out.gain.linearRampToValueAtTime(0,n+d);setTimeout(()=>{try{os.forEach(o=>o.stop());lf.stop();}catch(e){}},d*1000+100);}};}
-const CIT_BODY_FS=()=>'varying vec2 vUv;varying vec3 vN;uniform float uT,uI,uS;'+NOISE+'void main(){float y=vUv.y;float n=fbm(vec2(vUv.x*5.0+uS,y*2.5-uT*.7));float bands=smoothstep(.9,1.,abs(sin(y*11.+uS*3.)))*.3+smoothstep(.97,1.,abs(sin(vUv.x*18.85+uS)))*.15;float fr=1.-abs(normalize(vN).z);vec3 c=mix(vec3(1.,.5,.12),vec3(1.,.82,.32),smoothstep(.1,.85,1.-fr));c=mix(c,vec3(1.,.97,.85),pow(1.-fr,3.)*.8)+bands*vec3(1.,.9,.6);float a=(.4+.6*n)*(.28+.72*(1.-fr))*uI;a*=smoothstep(0.,.04,y)*(1.-smoothstep(.78,1.,y));gl_FragColor=vec4(c,clamp(a,0.,1.));}';
+/* ================= v478: the Citadel's looks (cvx), rebuilt (Simon: "make the visuals for the citadel of orders 10x better") =================
+   Looks only: castCitadel's numbers, hits, slows, reach, timings and targeting are exactly as they were (cim-test, cvx-test), and nothing here
+   draws on the game's own random (rnd; emit, sprayP and flash use it), so the looks can never move a cut. The pieces, all in the cast's group:
+   - the domain: a clock-face sigil of golden light spreading from the hero over the ground (the reach as a double ring with minute and hour
+     ticks, the hours I-XII turning slowly, two gear rings turning against each other, a ring of beads, spokes and two clock hands, the minute
+     hand running faster as the cuts do), the pillars' feet, the light each cut throws on the ground, the ripples where cuts land and the
+     drifting waves, all in one shader (CVX_SIG_FS); a faint dome of light over the reach; motes of light rising and grains of sand drifting
+     down (one GPU-animated point cloud). No screen tint: the old glow and haze stay at a third of their light, and the shared light is gentle.
+   - the pillars: hexagonal crystals of condensed light with a pointed tip, bright facet edges, an inner core, three bands of runes turning
+     round them and light flowing up, a soft glow round them and a beam above them, two clock rings turning round each (instanced: three draw
+     calls for every pillar). They rise into light at the end.
+   - the Monarch: a golden crown and a halo of clock hands over the hero's head, and a soft column of light round him.
+   - the cuts: a crisp white-hot line that draws itself, then opens into a wound of void and stars (parallax layers: the stars lie deep under
+     it) with molten gold edges and a trail as it flies, and seals with a flash, breaking into tumbling shards and sparks.
+   - slowed foes: a small clock ring ticking at the feet of every foe in the domain, sand falling off them, afterimages as soft golden echoes
+     cut in time slices; a foe a cut or the fracture throws back leaves a golden rewind streak.
+   - the final order: the crown flares and a ring of light runs out from the hero; the fracture tears out from him, a jagged crack of void and
+     stars with molten edges lifting, shards of space rising from its rims and hanging over it; it snaps shut with a flash, a 3D shockwave (a wall of
+     light and a ring on the ground) and the shards thrown out.
+   - the space pass (SDP) draws the Citadel's own entries clean and gentle (no colour split, no blocky jitter, no tear along a cut: the drawn
+     wound is the tear now); other spells' entries are drawn exactly as before.
+   - the masteries' looks follow the cast's options: M1 a wider sigil and taller, brighter pillars; M2 deeper wounds, more shards and the seam
+     shown as a blade of white light leaning back over each wound (seen from above whichever way the cut flies); M3 thicker sand and twice the
+     echoes; M4 a mark closing on the foe each order is aimed at; M5 a longer crack, wider branches, more shards and a larger shockwave.
+   CVX.dbg (an array) logs the looks' events for the tests (cvx-test). */
+const CVX={dbg:null};
+const cvxLog=d=>{if(CVX.dbg){d.t=time;CVX.dbg.push(d);}};
+let CVX_NUM=null,CVX_GH=null;
+/* the hours for the sigil's turning ring (XII at the top), drawn narrow because the ring stretches them, with a small diamond between them */
+function cvxNumTex(){if(CVX_NUM)return CVX_NUM;const W=4096,H=128,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d'),N=['XII','I','II','III','IV','V','VI','VII','VIII','IX','X','XI'],sx=.578;
+  g.textAlign='center';g.textBaseline='middle';g.fillStyle='#fff';g.shadowColor='rgba(255,255,255,.8)';g.shadowBlur=8;g.font='bold 88px Georgia, "Times New Roman", serif';
+  for(let i=0;i<12;i++)for(const dx of [0,W]){g.save();g.translate(i/12*W+dx,H*.55);g.scale(sx,1);g.fillText(N[i],0,0);g.restore();}
+  for(let i=0;i<12;i++){g.save();g.translate((i+.5)/12*W,H*.5);g.scale(sx,1);g.beginPath();g.moveTo(0,-17);g.lineTo(10,0);g.lineTo(0,17);g.lineTo(-10,0);g.closePath();g.fill();g.restore();}
+  const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());CVX_NUM=t;return t;}
+/* the afterimages' time slices (an alpha map): brighter at the foot, faint at the head, five bright slices */
+function cvxGhTex(){if(CVX_GH)return CVX_GH;const c=document.createElement('canvas');c.width=4;c.height=128;const g=c.getContext('2d');
+  for(let y=0;y<128;y++){const v=1-y/127;let a=.62-.42*v;if((v*5.5)%1<.14)a=Math.min(.85,a+.3);const L=Math.round(a*255);g.fillStyle='rgb('+L+','+L+','+L+')';g.fillRect(0,y,4,1);}
+  CVX_GH=new THREE.CanvasTexture(c);return CVX_GH;}
+/* a hexagonal crystal (unit radius, unit height, a pointed tip from 0.84): flat facets; uv = across the facet (-1..1), round it (0..1) */
+function cvxPrism(){const P=[],N=[],U=[],hb=.84,cs=j=>[Math.cos(j/6*Math.PI*2),Math.sin(j/6*Math.PI*2)];
+  for(let j=0;j<6;j++){const a=cs(j),b=cs(j+1),am=(j+.5)/6*Math.PI*2,nx=Math.cos(am),nz=Math.sin(am),cn=new THREE.Vector3(nx*(1-hb),1,nz*(1-hb)).normalize(),u0=j/6,u1=(j+1)/6;
+    for(const [p,y,s,u] of [[a,0,-1,u0],[b,0,1,u1],[b,hb,1,u1],[a,0,-1,u0],[b,hb,1,u1],[a,hb,-1,u0]]){P.push(p[0],y,p[1]);N.push(nx,0,nz);U.push(s,u);}
+    for(const [p,y,s,u] of [[a,hb,-1,u0],[b,hb,1,u1],[[0,0],1,0,(u0+u1)/2]]){P.push(p[0],y,p[1]);N.push(cn.x,cn.y,cn.z);U.push(s,u);}}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(N,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));return g;}
+/* a thin shard (an elongated tetrahedron, flat facets) */
+function cvxShard(){const v=[[0,.5,0],[-.16,-.5,.07],[.16,-.5,.07],[0,-.4,-.11]],P=[],N=[];
+  for(const f of [[0,1,2],[0,2,3],[0,3,1],[1,3,2]]){const a=new THREE.Vector3(...v[f[0]]),b=new THREE.Vector3(...v[f[1]]),c=new THREE.Vector3(...v[f[2]]),n=b.clone().sub(a).cross(c.clone().sub(a)).normalize();
+    for(const p of [a,b,c]){P.push(p.x,p.y,p.z);N.push(n.x,n.y,n.z);}}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(N,3));return g;}
+/* the Monarch's crown: a band with eight points */
+function cvxCrown(){const P=[],N=[],ix=[],n=16;for(let k=0;k<=n;k++){const a=k/n*Math.PI*2,c=Math.cos(a),s=Math.sin(a),top=k%2?.055:.17;P.push(c*.15,0,s*.15,c*.165,top,s*.165);N.push(c,0,s,c,.3,s);}
+  for(let k=0;k<n;k++){const a=k*2;ix.push(a,a+2,a+1,a+1,a+2,a+3);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(N,3));g.setIndex(ix);return g;}
+/* a cut's wound: a ribbon across its line (aQ.x along it, -1..1; aQ.y behind -1 / ahead +1), bent and lifted in its shader */
+function cvxRibbon(n){const q=[],ix=[];for(let i=0;i<=n;i++){const x=-1+2*i/n;q.push(x,-1,x,1);}for(let i=0;i<n;i++){const a=i*2;ix.push(a,a+1,a+2,a+1,a+3,a+2);}
+  const g=new THREE.BufferGeometry();g.setAttribute('aQ',new THREE.Float32BufferAttribute(q,2));g.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array((n+1)*6),3));g.setIndex(ix);return g;}
+/* ---- shaders ---- */
+const CVX_GL='float cvH(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}'+
+  'float cvN(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(cvH(i),cvH(i+vec2(1.,0.)),f.x),mix(cvH(i+vec2(0.,1.)),cvH(i+vec2(1.,1.)),f.x),f.y);}'+
+  /* an antialiased line of half width w at d=0, never thinner than about a pixel */
+  'float cvL(float d,float w,float px){w=max(w,px*.55);return 1.-smoothstep(w-px*.75,w+px*.75,abs(d));}'+
+  /* one layer of stars (k a tile: density), each at least a pixel wide (pw: world units a pixel) and fainter when it has to be widened */
+  'float cvStar(vec2 p,float k,float sd,float pw){vec2 q=p*k+sd;vec2 i=floor(q),f=fract(q);float h=cvH(i);vec2 c=vec2(fract(h*13.7),fract(h*71.3))*.7+.15;float r0=.08+.09*fract(h*5.1),rr=max(r0,pw*k*.9);'+
+    'return (1.-smoothstep(rr*.2,rr,length(f-c)))*step(.3,h)*(.45+.55*fract(h*3.3))*min(1.,r0*r0/(rr*rr)*1.6);}'+
+  /* the void seen through an opening on the ground: three layers of stars and a nebula deep below it (parallax along the view ray), and the
+     walls lit gold just inside the rim (dr: how far inside it) */
+  'vec3 cvVoid(vec3 W,float sd,float dr,float pw,float T){vec3 Vd=normalize(W-cameraPosition);vec2 o=Vd.xz/max(-Vd.y,.3);vec3 c=vec3(.025,.016,.06);vec2 p3=W.xz+o*3.;float nb=cvN(p3*.8+sd);'+
+    'c+=vec3(.2,.08,.32)*nb*nb*.8+vec3(.34,.2,.05)*pow(cvN(p3*1.6-sd),3.)*.7;'+
+    'c+=vec3(.72,.8,1.)*cvStar(W.xz+o*2.2,6.,sd,pw)*.9+vec3(1.,.92,.75)*cvStar(W.xz+o*1.,4.,sd+3.1,pw)*1.2+vec3(1.,.84,.5)*cvStar(W.xz+o*.4,2.6,sd+7.7,pw)*(1.+.4*sin(T*3.+sd));'+
+    'return mix(c,vec3(.95,.58,.2),exp(-max(dr,0.)/.04)*.6);}';
+const CVX_UV_VS='varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+const CVX_FR_VS='varying vec3 vN,vV;varying float vY;void main(){vY=uv.y;vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=-mv.xyz;gl_Position=projectionMatrix*mv;}';
+/* instanced pieces: aP (a vec4 a piece) carries its light and state */
+const CVX_IVS='attribute vec4 aP;varying vec3 vN,vV,vL;varying vec2 vU;varying vec4 vP;void main(){vec4 lp=vec4(position,1.);vec3 nl=normal;\n#ifdef USE_INSTANCING\nlp=instanceMatrix*lp;nl=mat3(instanceMatrix)*nl;\n#endif\n'+
+  'vec4 mv=viewMatrix*modelMatrix*lp;vN=normalize(mat3(viewMatrix)*mat3(modelMatrix)*nl);vV=-mv.xyz;vL=position;vU=uv;vP=aP;gl_Position=projectionMatrix*mv;}';
+/* the domain on the ground (one plane round the hero; vQ: world xz from the hero) */
+const CVX_SIG_VS='uniform vec2 uC;varying vec2 vQ;void main(){vec4 w=modelMatrix*vec4(position,1.);vQ=w.xz-uC;gl_Position=projectionMatrix*viewMatrix*w;}';
+const CVX_SIG_FS=`uniform vec2 uC;uniform float uT,uR,uRev,uAl,uRa,uRb,uRn,uHm,uHh,uAct,uActA,uFin,uOrd,uOrdA;uniform vec4 uPl[12],uQk[4],uQr,uCa[6],uCb[6],uWa[4],uWb[4];uniform sampler2D uNum;varying vec2 vQ;
+${CVX_GL}
+float cvA(float a,float b){return abs(mod(a-b+3.14159,6.28318)-3.14159);}
+void main(){float r=length(vQ),px=max(fwidth(r),1e-4),rn=r/uR,an=atan(vQ.y,vQ.x);float rev=1.-smoothstep(uRev-.8,uRev,r);float L=0.;
+  /* the reach: a double ring with two lights running round it, the minute and hour ticks */
+  L+=cvL(r-uR,.032,px)*(1.+.9*exp(-pow(cvA(an,uT*.55)*r/1.3,2.))+.9*exp(-pow(cvA(an,uT*.55+3.14159)*r/1.3,2.)));
+  L+=cvL(r-uR*.972,.012,px)*.6;
+  float ta=an+uRa,tk=(fract(ta*9.5493+.5)-.5)*6.28318*r/60.,hk=(fract(ta*1.90986+.5)-.5)*6.28318*r/12.;
+  L+=step(uR*.938,r)*step(r,uR*.972)*cvL(tk,.011,px)*.45+step(uR*.9,r)*step(r,uR*.972)*cvL(hk,.03,px)*.95;
+  /* the hours, turning slowly (the u of the smaller derivative, so no seam where the angle wraps) */
+  float x=(an+1.5708+uRn)/6.28318,u1=fract(x),u2=fract(x+.5)-.5,uu=fwidth(u1)<=fwidth(u2)+1e-6?u1:u2,nb=(rn-.79)/.095;
+  float Nm=texture2D(uNum,vec2(uu,clamp(nb,0.,1.))).a*step(0.,nb)*step(nb,1.);
+  L+=cvL(r-uR*.78,.01,px)*.5+cvL(r-uR*.895,.008,px)*.35;
+  /* two gear rings turning against each other, a ring of beads and six spokes between them */
+  float gk=(fract((an-uRb)*4.7746)-.5)*6.28318*r/30.;L+=cvL(r-uR*.6,.02,px)*.45+(1.-smoothstep(-px,px,abs(gk)-.09))*(1.-smoothstep(-px,px,abs(r-uR*.617)-uR*.017))*.26;
+  float gb=(fract((an+uRb*1.6)*2.8648)-.5)*6.28318*r/18.;L+=cvL(r-uR*.36,.018,px)*.4+(1.-smoothstep(-px,px,abs(gb)-.08))*(1.-smoothstep(-px,px,abs(r-uR*.343)-uR*.017))*.22;
+  float dq=(fract((an-uRa*.7)*5.7296+.5)-.5)*6.28318*r/36.;L+=(1.-smoothstep(.025-px,.025+px,length(vec2(dq,r-uR*.48))))*.28;
+  /* the clock hands */
+  float hm=an-uHm,hh=an-uHh;L+=step(0.,cos(hm))*step(r,uR*.72)*step(uR*.1,r)*cvL(sin(hm)*r,.035*(1.-rn*1.1)+.006,px)*.3;
+  L+=step(0.,cos(hh))*step(r,uR*.5)*step(uR*.1,r)*cvL(sin(hh)*r,.06*(1.-rn*1.6)+.008,px)*.28;
+  /* the Monarch's seal under his feet */
+  L+=cvL(r-uR*.088,.02,px)*.9+cvL(r-uR*.07,.008,px)*.5;float seal=exp(-r*r/(uR*uR*.005))*.5;
+  /* the pillars' feet (x, z, light, radius) */
+  float F=0.;for(int i=0;i<12;i++){vec4 P=uPl[i];if(P.z<=0.)continue;vec2 d=vQ-P.xy;float l=length(d);if(l>P.w*2.6)continue;float pa=atan(d.y,d.x);
+    F+=(cvL(l-P.w,.024,px)*.9+cvL(l-P.w*1.5,.011,px)*(.35+.3*sin(pa*6.+uT*1.5))+exp(-l*l/(P.w*P.w*.45))*.6+step(P.w,l)*step(l,P.w*1.5)*cvL((fract(pa*1.2732+.5)-.5)*l*.7854,.014,px)*.55)*P.z;}
+  /* the ripples where cuts land (x, z, age, depth; uQr: their reach) */
+  for(int i=0;i<4;i++){vec4 Q=uQk[i];if(Q.w<=0.)continue;float l=length(vQ-Q.xy),rr=Q.z*6.5,Rq=i==0?uQr.x:i==1?uQr.y:i==2?uQr.z:uQr.w;
+    L+=exp(-pow((l-rr)/(.045+Q.z*.06),2.))*min(Q.w,.7)*.55*(1.-smoothstep(.4,1.1,Q.z))*(1.-smoothstep(Rq*.45,Rq*1.05,rr));}
+  /* the light each cut throws on the ground under it, and its wake (x, z, its way; reach, speed, light) */
+  for(int i=0;i<6;i++){vec4 A=uCa[i],B=uCb[i];if(B.z<=0.)continue;vec2 d=A.zw,nn=vec2(-d.y,d.x),q=vQ-A.xy;float u=dot(q,d),v=dot(q,nn),lat=1.-smoothstep(B.x*.5,B.x*.95,abs(v)),u2=u+.3*v*v/B.x;
+    L+=(exp(-pow(u2/.16,2.))*.5+step(u2,0.)*exp(u2/(.3+B.y*.04))*.2)*lat*B.z;}
+  /* the waves of bent space drifting over the field */
+  for(int i=0;i<4;i++){vec4 A=uWa[i],B=uWb[i];if(B.y<=0.)continue;vec2 d=A.zw,nn=vec2(-d.y,d.x),q=vQ-A.xy;float u=dot(q,d),v=dot(q,nn),bd=exp(-pow(u/B.w,2.))*exp(-pow(v/B.x,2.)),st=.5+.5*sin(u*13.-uT*3.+B.z);L+=bd*st*st*st*B.y*1.;}
+  /* the opening strike's ring, the final order's ring and the front of the light as it spreads */
+  L+=exp(-pow((r-uAct)/(.18+uAct*.03),2.))*uActA*1.1+exp(-pow((r-uOrd)/(.1+uOrd*.015),2.))*uOrdA*.5;
+  float front=exp(-pow((r-uRev)/.22,2.))*(1.-smoothstep(uR,uR*1.12,uRev))*step(.05,uRev),haze=exp(-abs(uR-r)/(uR*.05))*.08+.015*(1.-smoothstep(0.,uR,r));
+  float lit=((L+Nm*.75)*(1.+uFin*.4)+F+seal+haze)*rev+front*1.1;
+  gl_FragColor=vec4(mix(vec3(1.,.72,.3),vec3(1.,.95,.8),clamp(lit-.55,0.,1.)),clamp(lit*uAl,0.,1.));}`;
+/* the dome over the reach: only its rim and its foot glow (seen from above the board stays clear) */
+const CVX_DOME_VS='varying vec3 vN,vV;varying float vY;void main(){vY=position.y;vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=-mv.xyz;gl_Position=projectionMatrix*mv;}';
+const CVX_DOME_FS='uniform float uT,uAl;varying vec3 vN,vV;varying float vY;void main(){float f=1.-abs(dot(normalize(vN),normalize(vV))),fr=pow(f,3.),lt=pow(.5+.5*sin(vY*34.-uT*.9),8.)*.35;'+
+  'float a=(fr*(.5+lt)+exp(-vY*10.)*.45*(.4+.6*f))*(1.-smoothstep(.45,1.,vY))*uAl;gl_FragColor=vec4(mix(vec3(1.,.76,.36),vec3(1.,.93,.75),fr),clamp(a,0.,1.));}';
+/* motes of light rising and grains of sand drifting down, slowly, inside the domain (aS: angle, radius, phase, kind) */
+const CVX_MOTE_VS='uniform float uT,uR,uRev,uAl,uPx;attribute vec4 aS;varying float vA,vK;void main(){float sd=step(.72,aS.w),ang=aS.x+uT*(.04+.06*aS.z)*(1.-sd*1.5),r=aS.y*uR*1.02,ph=fract(aS.z*7.31+uT*mix(.05,.11,sd)),y=mix(.08+ph*3.,2.3-ph*2.2,sd);'+
+  'vec4 mv=modelViewMatrix*vec4(cos(ang)*r,y,sin(ang)*r,1.);gl_PointSize=clamp(mix(.075,.04,sd)*(.6+.8*fract(aS.z*53.7))*uPx/-mv.z,1.2,14.);'+
+  'vA=uAl*smoothstep(0.,.12,ph)*(1.-smoothstep(.72,1.,ph))*(1.-smoothstep(uRev-.6,uRev,r))*(.55+.45*sin(uT*2.4+aS.z*40.));vK=sd;gl_Position=projectionMatrix*mv;}';
+const CVX_MOTE_FS='varying float vA,vK;void main(){float d=length(gl_PointCoord-.5)*2.,a=pow(max(0.,1.-d),2.)*vA;if(a<.004)discard;gl_FragColor=vec4(mix(vec3(1.,.8,.4),vec3(1.,.97,.85),max(0.,1.-d*1.6)),a);}';
+/* the pillars: the crystal (aP: light, seed, rising into light, fade), its glow and beam, its clock rings */
+const CVX_CRY_FS=`uniform float uT;varying vec3 vN,vV,vL;varying vec2 vU;varying vec4 vP;
+${CVX_GL}
+void main(){vec3 N=normalize(vN),V=normalize(vV);float nv=abs(dot(N,V)),fr=1.-nv,I=vP.x,sd=vP.y,rs=vP.z,y=vL.y,ax=abs(vU.x),edge=smoothstep(.8,.99,ax),cap=step(.84,y);
+  float lam=.7+.3*max(dot(N,normalize(vec3(-.45,.55,.7))),0.);vec3 deep=vec3(.95,.56,.14),gold=vec3(1.,.76,.3),hot=vec3(1.,.98,.9);
+  /* a golden facet, brighter where it turns away (its rim), a white-hot core seen through the middle of each facet */
+  vec3 c=mix(deep,gold,.35+.65*fr)*lam;c=mix(c,hot,exp(-ax*ax*5.)*(.28+.3*nv));
+  /* light flowing up inside: streaks along each facet, pulses rising */
+  float fx=vU.y*18.+sd*7.,st=pow(.5+.5*sin(fx*3.14159),10.),pu=pow(fract(y*2.4-uT*.55+cvH(vec2(floor(fx),sd))),5.);c=mix(c,hot,st*pu*.75*(1.-cap));
+  /* two bands of runes turning round it */
+  float rb=0.;for(int k=0;k<2;k++){float fk=float(k),by=.18+.5*fk,bd=abs(y-by),bm=1.-smoothstep(.016,.024,bd),gx=vU.y*28.+uT*(k==1?-.45:.35)+sd*3.+fk*7.;
+    rb+=bm*step(.35,fract(sin(floor(gx)*91.7+sd)*437.5))*step(.2,fract(gx))*step(fract(gx),.8)+(1.-smoothstep(.002,.006,abs(bd-.028)))*.45;}
+  c=mix(c,hot,clamp(rb,0.,1.)*.9);
+  /* bright facet edges, the tip and the foot, and rising into light at the end */
+  c=mix(c,hot,max(edge*.85,max(cap*(.35+.4*fr),exp(-y*12.)*.6)));c=mix(c,hot,clamp(rs*1.3,0.,1.));c*=.85+.2*min(I,2.);
+  float a=(.82+.12*fr+.1*edge)*min(1.,.55+I*.45)*vP.w*(1.-rs*.85)*mix(.5,1.,smoothstep(2.5,6.,length(vV)));gl_FragColor=vec4(min(c,vec3(1.)),clamp(a,0.,.96));}`;
+const CVX_SHELL_FS='uniform float uT;varying vec3 vN,vV,vL;varying vec2 vU;varying vec4 vP;void main(){float g=clamp(abs(dot(normalize(vN),normalize(vV)))/.45,0.,1.),y=vL.y;g*=g;'+
+  'float halo=(1.-smoothstep(.0,.42,y))*.14+exp(-y*16.)*.3,beam=smoothstep(.34,.44,y)*(1.-smoothstep(.46,.92,y))*.2*(.75+.25*sin(y*40.-uT*4.+vP.y*5.));'+
+  'float a=(halo+beam*(1.+vP.z*2.5))*g*min(vP.x,2.5)*vP.w*mix(.35,1.,smoothstep(3.5,9.,length(vV)));gl_FragColor=vec4(mix(vec3(1.,.74,.32),vec3(1.,.95,.8),g),clamp(a,0.,1.));}';
+const CVX_PRING_FS=`varying vec3 vN,vV,vL;varying vec2 vU;varying vec4 vP;${CVX_GL}
+void main(){vec2 q=(vU-.5)*2.;float r=length(q),px=max(fwidth(r),1e-4),an=atan(q.y,q.x)+vP.y;
+  float L=cvL(r-.92,.03,px)+cvL(r-.8,.015,px)*.6+step(.8,r)*step(r,.92)*cvL((fract(an*2.5465+.5)-.5)*r*.3927,.022,px)*.9+exp(-pow((r-.86)/.12,2.))*.25;
+  gl_FragColor=vec4(vec3(1.,.84,.5),clamp(L*vP.x,0.,1.));}`;
+/* a slowed foe's clock ring (aP: light, the hand's angle, the mark of an order closing on it, a flash) */
+const CVX_FRING_FS=`varying vec3 vN,vV,vL;varying vec2 vU;varying vec4 vP;${CVX_GL}
+void main(){vec2 q=(vU-.5)*3.;float r=length(q),px=max(fwidth(r),1e-4),an=atan(q.y,q.x);
+  float L=cvL(r-.84,.028,px)+cvL(r-.68,.012,px)*.4+step(.68,r)*step(r,.84)*cvL((fract(an*1.90986+.5)-.5)*r*.5236,.022,px)*.7;
+  float hm=an-vP.y;L+=step(0.,cos(hm))*step(r,.6)*step(.1,r)*cvL(sin(hm)*r,.035*(1.-r*.6),px)*.8;
+  float mk=vP.z,rr=.98+.42*(1.-mk),br=(fract((an-.7854)*.63662+.5)-.5)*r*1.5708;L+=mk*1.6*(cvL(r-rr,.036,px)*step(abs(br),.32)+cvL(br,.034,px)*step(rr-.3,r)*step(r,rr)+exp(-pow((r-rr)/.12,2.))*.3);
+  L*=1.+vP.w*2.5;gl_FragColor=vec4(mix(vec3(1.,.78,.36),vec3(1.,.97,.86),clamp(vP.w+mk*.3,0.,1.)),clamp(L*vP.x,0.,1.));}`;
+/* the Monarch: a halo of clock hands, a crown, a column of light */
+const CVX_HALO_FS=`uniform float uT,uAl,uHm,uHh,uFl;varying vec2 vU;${CVX_GL}
+void main(){vec2 q=(vU-.5)*2.;float r=length(q),px=max(fwidth(r),1e-4),an=atan(q.y,q.x);
+  float L=cvL(r-.86,.04,px)*1.1+cvL(r-.97,.016,px)*.7+step(.7,r)*step(r,.86)*cvL((fract(an*1.90986+.5)-.5)*r*.5236,.04,px)*.9;
+  float hm=an-uHm,hh=an-uHh;L+=step(0.,cos(hm))*step(r,.66)*cvL(sin(hm)*r,.045*(1.-r*.8),px)*.9+step(0.,cos(hh))*step(r,.46)*cvL(sin(hh)*r,.07*(1.-r),px)*.9;
+  L+=exp(-r*r*30.)*.9+exp(-pow((r-.86)/.14,2.))*.25;L*=1.+uFl*1.6;gl_FragColor=vec4(mix(vec3(1.,.76,.34),vec3(1.,.97,.88),clamp(L-.5,0.,1.)),clamp(L*uAl,0.,1.));}`;
+const CVX_CROWN_VS='varying vec3 vN;varying float vY;void main(){vY=position.y;vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+const CVX_CROWN_FS='uniform float uAl,uFl;varying vec3 vN;varying float vY;void main(){vec3 N=normalize(vN);float lam=.45+.55*abs(dot(N,normalize(vec3(-.3,.55,.8)))),sp=pow(abs(dot(N,normalize(vec3(.15,.35,1.)))),18.);'+
+  'gl_FragColor=vec4(mix(vec3(.92,.6,.16)*lam,vec3(1.,.96,.82),clamp(sp*.85+vY*2.2+uFl*.5,0.,1.)),uAl);}';
+const CVX_AURA_FS='uniform float uT,uAl;varying vec3 vN,vV;varying float vY;void main(){float g=clamp(abs(dot(normalize(vN),normalize(vV)))/.45,0.,1.);g*=g;'+
+  'gl_FragColor=vec4(vec3(1.,.85,.5),clamp(pow(1.-vY,1.8)*g*.22*uAl*(.7+.3*sin(vY*12.-uT*2.5)),0.,1.));}';
+/* shards (aP: light, kind: gold or dark glass) and sparks */
+const CVX_SHARD_FS='varying vec3 vN,vV,vL;varying vec2 vU;varying vec4 vP;void main(){vec3 N=normalize(vN);if(!gl_FrontFacing)N=-N;float lam=.4+.6*max(dot(N,normalize(vec3(-.35,.55,.75))),0.),gl=pow(max(dot(N,normalize(vec3(.25,.4,.9))),0.),16.);'+
+  'vec3 c=vP.y>.5?mix(vec3(.07,.04,.12)*(.6+lam),vec3(1.,.82,.48),clamp(gl+.12,0.,1.)):mix(vec3(1.,.66,.24)*lam,vec3(1.,.98,.9),gl);gl_FragColor=vec4(c,vP.x);}';
+const CVX_SPK_VS='attribute vec2 aC;uniform float uPx;varying float vA;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=clamp(aC.y*uPx/-mv.z,1.,10.);vA=aC.x;gl_Position=projectionMatrix*mv;}';
+const CVX_SPK_FS='varying float vA;void main(){float d=length(gl_PointCoord-.5)*2.,a=pow(max(0.,1.-d),1.6)*vA;if(a<.004)discard;gl_FragColor=vec4(mix(vec3(1.,.78,.36),vec3(1.,.98,.9),max(0.,1.-d*1.8)),a);}';
+/* a cut's wound: the line (uLen: how much of it is drawn), the opening (uOpen: its half width), the flash as it seals and its breaking up */
+const CVX_WND_VS='attribute vec2 aQ;uniform float uA2,uBk,uFr,uBend,uLift;varying vec2 vQ;varying vec3 vW;void main(){float x=aQ.x,v=aQ.y<0.?aQ.y*uBk:aQ.y*uFr;'+
+  'vec4 w=modelMatrix*vec4(x*uA2,uLift*(1.-.6*x*x),v-uBend*x*x,1.);vW=w.xyz;vQ=vec2(x,v);gl_Position=projectionMatrix*viewMatrix*w;}';
+const CVX_WND_FS=`uniform float uT,uOpen,uLen,uFl,uBr,uAl,uSd,uSpd;varying vec2 vQ;varying vec3 vW;${CVX_GL}
+void main(){float x=vQ.x,ax=abs(x),v=vQ.y,av=abs(v),px=max(fwidth(v),1e-4),pw=length(fwidth(vW.xz));
+  float lm=1.-smoothstep(uLen-.05,uLen,ax),tip=1.-smoothstep(.8,1.,ax),prof=pow(max(1.-x*x,0.),.6),hw=uOpen*prof;
+  float hb=cvH(vec2(floor(x*14.+uSd),uSd)),br=uBr>0.?step(uBr*1.1,hb+.05)*(1.-uBr*.5):1.;
+  float cw=max(.011+.03*uFl,px*.75)*(.35+.65*prof),core=exp(-pow(av/cw,2.))*tip;
+  float ins=(1.-smoothstep(hw-px,hw+px,av))*step(.004,hw),rim=exp(-pow((av-hw)/max(px*1.5,.022+hw*.15),2.))*step(.004,hw);
+  float glow=exp(-max(av-hw,0.)/(v<0.?.14+uSpd*.05:.09))*(.35+.65*prof)*tip*(v<0.?.42:.5);
+  vec3 gold=vec3(1.,.74,.3),hot=vec3(1.,.97,.88),c=vec3(1.,.84,.5),vc=cvVoid(vW,uSd,hw-av,pw,uT);float a=glow*.45;
+  c=mix(c,vc,ins);a=max(a,ins*.96);c=mix(c,mix(gold,hot,.8),rim);a=max(a,rim);c=mix(c,hot,core);a=max(a,core);
+  gl_FragColor=vec4(c,clamp(a*lm*br*uAl,0.,1.));}`;
+/* the final fracture on the ground: each crack's centre (aC), its normal (aN) and aS (how far along, which side, its half width, which crack) */
+const CVX_CRK_VS='attribute vec2 aC,aN;attribute vec4 aS;uniform float uY,uE,uOp,uMg;varying vec3 vW;varying vec4 vS;varying float vV,vH;'+
+  'void main(){float g=1.-smoothstep(uE-.07,uE,aS.x),hw=aS.z*uOp*g,off=aS.y*(hw+uMg*(.3+.7*g));vec3 w=vec3(aC.x+aN.x*off,uY,aC.y+aN.y*off);vW=w;vV=off;vH=hw;vS=vec4(aS.x,uE,g,aS.w);gl_Position=projectionMatrix*viewMatrix*vec4(w,1.);}';
+const CVX_CRK_FS=`uniform float uT,uFl,uAl,uSd,uSn;varying vec3 vW;varying vec4 vS;varying float vV,vH;${CVX_GL}
+void main(){float av=abs(vV),px=max(fwidth(vV),1e-4),pw=length(fwidth(vW.xz)),hw=vH,g=vS.z;
+  float ins=(1.-smoothstep(hw-px,hw+px,av))*step(.004,hw),rim=exp(-pow((av-hw)/max(px*1.4,.03+hw*.1),2.))*step(.004,hw);
+  float core=exp(-pow(av/max(.014+.032*uFl,px*.8),2.))*(.4+uFl*1.3),glow=exp(-max(av-hw,0.)/(.12+.08*uFl))*(.45+.55*uFl);
+  float tip=exp(-pow((vS.x-vS.y)*14.,2.))*(1.-uSn)*1.5;
+  vec3 gold=vec3(1.,.72,.28),hot=vec3(1.,.97,.88),c=vec3(1.,.82,.45),vc=cvVoid(vW,uSd+vS.w*5.,hw-av,pw,uT);float on=smoothstep(.02,.14,hw),a=clamp(glow*.5*(.25+.75*on),0.,1.),k=clamp(core+tip,0.,1.);
+  float sd2=exp(-pow((av-hw*1.15-.16)/.05,2.))*on*.38,lip=exp(-pow((av-hw-.055)/.045,2.))*on;
+  c=mix(c,vec3(.1,.06,.03),sd2/(a+sd2+1e-4));a=max(a,sd2);c=mix(c,mix(gold,hot,.4),lip);a=max(a,lip*.92);
+  c=mix(c,vc,ins);a=max(a,ins*.97);c=mix(c,mix(gold,hot,.55),rim);a=max(a,rim);c=mix(c,hot,k);a=max(a,k);
+  gl_FragColor=vec4(c,clamp(a*uAl*g,0.,1.));}`;
+/* the snap's shockwave: a wall of light (a cylinder, bright at its foot) and its ring on the ground */
+const CVX_SHOCK_FS='uniform float uAl;varying vec3 vN,vV;varying float vY;void main(){float f=abs(dot(normalize(vN),normalize(vV)));'+
+  'gl_FragColor=vec4(mix(vec3(1.,.8,.42),vec3(1.,.97,.9),1.-vY),clamp(pow(1.-vY,2.)*(.35+.65*(1.-f))*uAl,0.,1.));}';
+const CVX_SRING_FS='uniform float uAl;varying vec2 vU;void main(){vec2 q=(vU-.5)*2.;float r=length(q),px=max(fwidth(r),1e-4);'+
+  'gl_FragColor=vec4(vec3(1.,.86,.55),clamp((exp(-pow((r-.95)/max(.025,px*1.5),2.))*1.1+exp(-pow((r-.9)/.16,2.))*.4)*(1.-step(1.,r))*uAl,0.,1.));}';
+/* a rewind streak where a foe was thrown back (aP: light, length) */
+const CVX_STREAK_FS='uniform float uT;varying vec3 vN,vV,vL;varying vec2 vU;varying vec4 vP;void main(){float x=abs(vU.x-.5)*2.,y=1.-vU.y,ch=fract(y*vP.y*2.4-x*.5-uT*2.4);'+
+  'float c1=(1.-smoothstep(.08,.22,abs(ch-.5)))*(1.-smoothstep(.45,.95,x)),core=exp(-x*x*10.)*(.3+.7*y);'+
+  'gl_FragColor=vec4(mix(vec3(1.,.74,.3),vec3(1.,.96,.85),core),clamp((c1*.55+core*.6)*smoothstep(0.,.2,y)*vP.x,0.,1.));}';
+/* builds one cast's looks in its group (C: root, geos, mats, t: the Monarch, hx/hz/R: the domain, pil: the pillars, D: the cast's options,
+   T_SNAP) and returns what the cast drives each frame and at each event; every material and geometry goes into the cast's lists, so the
+   cast's effect disposes of them with it */
+function cvxLooks(C){const {root,geos,mats,t,hx,hz,R,pil,D}=C,TAU=Math.PI*2,y0=gy(hx,hz),V={},O=new THREE.Object3D(),v2=new THREE.Vector2(),V4=n=>Array.from({length:n},()=>new THREE.Vector4());
+  const sm=(u,vs,fs,o)=>{const m=new THREE.ShaderMaterial(Object.assign({uniforms:u,vertexShader:vs,fragmentShader:fs,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,extensions:{derivatives:true}},o||{}));mats.push(m);return m;};
+  const gg=x=>{geos.push(x);return x;},ims=[];
+  const inst=(geo,mat,n,ro)=>{const a=new THREE.InstancedBufferAttribute(new Float32Array(n*4),4);a.setUsage(THREE.DynamicDrawUsage);geo.setAttribute('aP',a);const m=new THREE.InstancedMesh(gg(geo),mat,n);
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);m.frustumCulled=false;m.count=0;m.renderOrder=ro||0;root.add(m);ims.push(m);return{m,a,n};};
+  const put=(I,i,a0,a1,a2,a3)=>{O.updateMatrix();I.m.setMatrixAt(i,O.matrix);I.a.setXYZW(i,a0,a1,a2,a3);};
+  const done=(I,n)=>{I.m.count=n;I.m.instanceMatrix.needsUpdate=true;I.a.needsUpdate=true;};
+  const flat=g=>{g.rotateX(-Math.PI/2);return g;};
+  /* ---- the domain on the ground ---- */
+  const S=R*1.5,sgU={uC:{value:new THREE.Vector2(hx,hz)},uT:{value:0},uR:{value:R},uRev:{value:0},uAl:{value:0},uRa:{value:0},uRb:{value:0},uRn:{value:0},uHm:{value:-1.5708},uHh:{value:-1.5708},
+    uAct:{value:0},uActA:{value:0},uFin:{value:0},uOrd:{value:0},uOrdA:{value:0},uPl:{value:V4(12)},uQk:{value:V4(4)},uQr:{value:new THREE.Vector4()},uCa:{value:V4(6)},uCb:{value:V4(6)},uWa:{value:V4(4)},uWb:{value:V4(4)},uNum:{value:cvxNumTex()}};
+  const sig=new THREE.Mesh(gg(flat(new THREE.PlaneGeometry(1,1))),sm(sgU,CVX_SIG_VS,CVX_SIG_FS,{polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}));sig.position.set(hx,y0+.045,hz);sig.scale.set(2*S,1,2*S);sig.renderOrder=1;root.add(sig);
+  const dmU={uT:{value:0},uAl:{value:0}},dome=new THREE.Mesh(gg(new THREE.SphereGeometry(1,64,12,0,TAU,0,Math.PI/2)),sm(dmU,CVX_DOME_VS,CVX_DOME_FS,{side:THREE.DoubleSide}));dome.position.set(hx,y0,hz);dome.scale.set(R,.01,R);dome.renderOrder=3;root.add(dome);
+  const MN=Math.round(150+R*18),mA=new Float32Array(MN*4);for(let i=0;i<MN;i++){mA[i*4]=Math.random()*TAU;mA[i*4+1]=Math.sqrt(Math.random());mA[i*4+2]=Math.random();mA[i*4+3]=Math.random();}
+  const mtG=gg(new THREE.BufferGeometry());mtG.setAttribute('position',new THREE.BufferAttribute(new Float32Array(MN*3),3));mtG.setAttribute('aS',new THREE.BufferAttribute(mA,4));
+  const mtU={uT:{value:0},uR:{value:R},uRev:{value:0},uAl:{value:0},uPx:{value:600}},motes=new THREE.Points(mtG,sm(mtU,CVX_MOTE_VS,CVX_MOTE_FS));motes.position.set(hx,y0,hz);motes.frustumCulled=false;motes.renderOrder=4;root.add(motes);
+  /* ---- the pillars (crystal, glow and beam, two clock rings each) ---- */
+  const NP=pil.length,CF=.34,uTc={value:0};
+  const cry=inst(cvxPrism(),sm({uT:uTc},CVX_IVS,CVX_CRY_FS,{blending:THREE.NormalBlending,side:THREE.DoubleSide}),NP,5);
+  const shell=inst(new THREE.LatheGeometry([[1.5,0],[1.34,.05],[1.24,.2],[1.17,.33],[.95,.39],[.4,.45],[.22,.6],[.13,1]].map(a=>new THREE.Vector2(a[0],a[1])),14),sm({uT:uTc},CVX_IVS,CVX_SHELL_FS,{side:THREE.DoubleSide}),NP,6);
+  const prg=inst(flat(new THREE.PlaneGeometry(1,1)),sm({},CVX_IVS,CVX_PRING_FS,{side:THREE.DoubleSide}),NP,6);
+  pil.forEach(p=>{p.vx={vis:false,ww:0,sy:0,yo:0,I:0,rs:0,ft:0};});
+  /* ---- the Monarch ---- */
+  const hlU={uT:{value:0},uAl:{value:0},uHm:{value:0},uHh:{value:0},uFl:{value:0}},halo=new THREE.Mesh(gg(flat(new THREE.PlaneGeometry(1,1))),sm(hlU,CVX_UV_VS,CVX_HALO_FS,{side:THREE.DoubleSide}));halo.renderOrder=7;root.add(halo);
+  const crU={uAl:{value:0},uFl:{value:0}},crown=new THREE.Mesh(gg(cvxCrown()),sm(crU,CVX_CROWN_VS,CVX_CROWN_FS,{blending:THREE.NormalBlending,side:THREE.DoubleSide}));crown.renderOrder=7;root.add(crown);
+  const auG=gg(new THREE.CylinderGeometry(.4,.5,1,28,1,true));auG.translate(0,.5,0);const auU={uT:{value:0},uAl:{value:0}},aura=new THREE.Mesh(auG,sm(auU,CVX_FR_VS,CVX_AURA_FS,{side:THREE.DoubleSide}));aura.renderOrder=6;root.add(aura);
+  /* ---- foes in the domain: clock rings at their feet (and the mark of an order), rewind streaks ---- */
+  const frg=inst(flat(new THREE.PlaneGeometry(1,1)),sm({},CVX_IVS,CVX_FRING_FS,{side:THREE.DoubleSide}),48,2),fst=new Map();
+  const stk=inst(flat(new THREE.PlaneGeometry(1,1)),sm({uT:uTc},CVX_IVS,CVX_STREAK_FS,{side:THREE.DoubleSide}),24,2),sts=[];
+  /* ---- shards and sparks (pools) ---- */
+  const SH=170,shd=inst(cvxShard(),sm({},CVX_IVS,CVX_SHARD_FS,{blending:THREE.NormalBlending,side:THREE.DoubleSide}),SH,8),shs=[];
+  const SK=360,skP=new Float32Array(SK*3),skC=new Float32Array(SK*2),skG=gg(new THREE.BufferGeometry()),sks=[];
+  skG.setAttribute('position',new THREE.BufferAttribute(skP,3).setUsage(THREE.DynamicDrawUsage));skG.setAttribute('aC',new THREE.BufferAttribute(skC,2).setUsage(THREE.DynamicDrawUsage));
+  const skU={uPx:{value:600}},spk=new THREE.Points(skG,sm(skU,CVX_SPK_VS,CVX_SPK_FS));spk.frustumCulled=false;spk.renderOrder=9;root.add(spk);
+  const spark=(x,y,z,vx,vy,vz,life,s,g,dr)=>{if(sks.length<SK)sks.push({x,y,z,vx,vy,vz,life,max:life,s,g:g||0,dr:dr||0});};
+  const shard=(x,y,z,vx,vy,vz,life,s,kind,o)=>{if(shs.length>=SH)return null;const q=Object.assign({x,y,z,vx,vy,vz,life,max:life,s,kind:kind||0,rx:Math.random()*TAU,ry:Math.random()*TAU,rz:Math.random()*TAU,
+    wx:(Math.random()-.5)*14,wy:(Math.random()-.5)*14,wz:(Math.random()-.5)*10,g:7,mode:0,a:1},o||{});shs.push(q);return q;};
+  /* ---- the cuts' wounds: one a slot of the space pass (SDP.bl) ---- */
+  const wdG=gg(cvxRibbon(48)),wounds=[];
+  for(let i=0;i<6;i++){const u={uT:{value:0},uA2:{value:1},uBk:{value:1},uFr:{value:.4},uBend:{value:.3},uLift:{value:.4},uOpen:{value:0},uLen:{value:0},uFl:{value:0},uBr:{value:0},uAl:{value:0},uSd:{value:i*3.1},uSpd:{value:4}};
+    const m=new THREE.Mesh(wdG,sm(u,CVX_WND_VS,CVX_WND_FS,{blending:THREE.NormalBlending,side:THREE.DoubleSide}));m.visible=false;m.frustumCulled=false;m.renderOrder=8;root.add(m);wounds.push({m,u,s:null,op:0});}
+  /* a point on a cut's line (x: -1..1 along it), as its shader bends and lifts it */
+  const onCut=(s,x,o)=>{const a=s.a*.92,nx=-s.uz,nz=s.ux,b=s.a*.16*x*x;o.x=s.cx+nx*x*a-s.ux*b;o.z=s.cz+nz*x*a-s.uz*b;o.y=y0+.04+.4*(1-.6*x*x);return o;},P0={x:0,y:0,z:0};
+  /* ---- the fracture (built when the final order is given) ---- */
+  let fr=null;
+  /* ---- state ---- */
+  let act=-1,ord=-1,snapA=-1,hm=-1.5708,hh=-1.5708,sandT=0,lastT=0;
+  const ring=e=>{let s=fst.get(e);if(!s){s={a:0,ph:Math.random()*TAU,mk:0,fl:0};fst.set(e,s);}return s;};
+  V.rise=i=>{const p=pil[i];p.vx.ft=1.6;for(let k=0;k<12;k++){const a=Math.random()*TAU,s=.5+Math.random()*1.3;spark(p.x+Math.cos(a)*.25,y0+.12,p.z+Math.sin(a)*.25,Math.cos(a)*s,.9+Math.random()*2.2,Math.sin(a)*s,.35+Math.random()*.4,.05,2.2,1.2);}};
+  V.pil=(i,vis,ww,sy,yo,I,rs)=>{const s=pil[i].vx;if(rs>0&&!s.gone){s.gone=1;s.ft=Math.max(s.ft,1.3);const p=pil[i];for(let k=0;k<10;k++)spark(p.x+(Math.random()-.5)*.3,y0+.3+Math.random()*sy*CF,p.z+(Math.random()-.5)*.3,(Math.random()-.5)*.4,3+Math.random()*4,(Math.random()-.5)*.4,.5+Math.random()*.4,.06,-1,.6);}
+    s.vis=vis;s.ww=ww;s.sy=sy;s.yo=yo;s.I=I;s.rs=rs;};
+  V.act=()=>{act=0;cvxLog({ev:'act'});};
+  /* a cut is given: its wound draws itself at the Monarch's side (and at Edict, the mark of the order closes on its foe) */
+  V.cut=s=>{const w=wounds[s.slot];if(!w)return;w.s=s;w.op=.15*(s.amp/.7);w.u.uSd.value=Math.random()*20;w.m.visible=true;if(D.edict&&s.tg&&!s.tg.fake){const r=ring(s.tg);r.mk=.02;r.a=Math.max(r.a,.6);}cvxLog({ev:'cut',slot:s.slot});};
+  /* it lands: the wound seals with a flash and breaks into shards and sparks; the foe it marked flashes */
+  V.hit=s=>{const w=wounds[s.slot];if(w&&w.s===s){const n=Math.round(9*D.bAmp+(D.strip?3:0)),fw=Math.min(2.2,.12*s.v);
+      for(let k=0;k<n;k++){const x=(Math.random()*2-1)*.9;onCut(s,x,P0);const out=(Math.random()-.5)*1.2+x*.9;shard(P0.x,P0.y,P0.z,-s.uz*out+s.ux*fw*(.5+Math.random()),1.2+Math.random()*1.6,s.ux*out+s.uz*fw*(.5+Math.random()),.55+Math.random()*.35,.1+Math.random()*.09*D.bAmp,Math.random()<.3?1:0);}
+      for(let k=0;k<16;k++){const x=(Math.random()*2-1)*.95;onCut(s,x,P0);const a=Math.random()*TAU,v=.6+Math.random()*2.2;spark(P0.x,P0.y,P0.z,Math.cos(a)*v+s.ux*fw,.5+Math.random()*2,Math.sin(a)*v+s.uz*fw,.25+Math.random()*.3,.045,3,1.5);}}
+    const e=s.tg;if(e&&!e.fake&&!e.dead){const r=ring(e);r.fl=1;r.mk=0;r.a=Math.max(r.a,.8);for(let k=0;k<8;k++){const a=Math.random()*TAU;spark(e.x,(e.hitY||.5)*.9,e.z,Math.cos(a)*1.6,1+Math.random()*1.5,Math.sin(a)*1.6,.3,.05,3,1);}}
+    cvxLog({ev:'seal',slot:s.slot});};
+  /* a foe thrown back: a golden rewind streak from where it stood to where it lands */
+  V.thrown=(e,x0,z0)=>{if(sts.length<24&&!e.dead)sts.push({e,x0,z0,x1:e.x,z1:e.z,age:0});cvxLog({ev:'thrown'});};
+  /* the final order: the crown flares, a ring runs out, the fracture tears out from the Monarch */
+  V.order=f=>{ord=0;hlU.uFl.value=1;crU.uFl.value=1;const A=[],Nn=[],Sv=[],ix=[],plates=[],hang=[];let vi=0;
+    f.slots.forEach((q,si)=>{const ca=Math.cos(q.ang),sa=Math.sin(q.ang),dx=f.ux*ca-f.uz*sa,dz=f.ux*sa+f.uz*ca,Lq=f.L*q.len,nx=-dz,nz=dx,n=Math.max(8,Math.ceil(Lq/.28)),pts=[];
+      for(let i=0;i<=n;i++){const s=i/n,lat=q.cv*4*s*(1-s)*Lq+(i&&i<n?(Math.random()-.5)*.34*Math.min(1,s*5):0);pts.push({x:f.ox+dx*s*Lq+nx*lat,z:f.oz+dz*s*Lq+nz*lat,s,hw:q.w*.85*Math.pow(Math.sin(Math.PI*Math.min(1,.04+s*.98)),.55)*(.7+.55*Math.random())});}
+      pts.forEach((p,i)=>{const a=pts[Math.max(0,i-1)],b=pts[Math.min(n,i+1)];let tx=b.x-a.x,tz=b.z-a.z;const l=Math.hypot(tx,tz)||1;tx/=l;tz/=l;p.nx=-tz;p.nz=tx;p.tx=tx;p.tz=tz;
+        for(const sd of [-1,1]){A.push(p.x,p.z);Nn.push(p.nx,p.nz);Sv.push(p.s,sd,p.hw,si);}
+        if(i>1&&i<n-1&&i%2===0&&Math.random()<.8){const sd=Math.random()<.5?-1:1;plates.push(shard(p.x,y0,p.z,0,0,0,9,.13+Math.random()*.13,Math.random()<.4?1:0,{mode:3,p,sd,yaw:Math.random()*TAU,tl:.35+Math.random()*.55,ds:.02+Math.random()*.06,a:0}));}});
+      for(let i=0;i<n;i++){const a=vi+i*2;ix.push(a,a+1,a+2,a+1,a+3,a+2);}vi+=(n+1)*2;
+      const nh=Math.round((si?7:16)*f.L/(R*1.85)*(1+(q.w-.3)));for(let k=0;k<nh;k++){const p=pts[1+Math.floor(Math.random()*(n-1))];hang.push(shard(p.x,y0+.05,p.z,0,0,0,9,.12+Math.random()*.12,Math.random()<.45?1:0,{mode:1,hy:y0+.3+Math.random()*1.2,s0:p.s,wx:(Math.random()-.5)*2,wy:(Math.random()-.5)*2,wz:(Math.random()-.5)*2,a:0}));}});
+    const g=gg(new THREE.BufferGeometry());g.setAttribute('aC',new THREE.Float32BufferAttribute(A,2));g.setAttribute('aN',new THREE.Float32BufferAttribute(Nn,2));g.setAttribute('aS',new THREE.Float32BufferAttribute(Sv,4));
+    g.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(A.length/2*3),3));g.setIndex(ix);
+    const u={uT:{value:0},uY:{value:y0+.05},uE:{value:0},uOp:{value:0},uMg:{value:.42},uFl:{value:0},uAl:{value:1},uSd:{value:Math.random()*20},uSn:{value:0}};
+    const crack=new THREE.Mesh(g,sm(u,CVX_CRK_VS,CVX_CRK_FS,{blending:THREE.NormalBlending,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-6}));crack.frustumCulled=false;crack.renderOrder=2;root.add(crack);
+    const L0=f.L,mx=f.ox+f.ux*L0*.5,mz=f.oz+f.uz*L0*.5,yaw=Math.atan2(f.ux,f.uz);
+    const swG=gg(new THREE.CylinderGeometry(1,1,1,72,1,true));swG.translate(0,.5,0);const swU={uAl:{value:0}},wall=new THREE.Mesh(swG,sm(swU,CVX_FR_VS,CVX_SHOCK_FS,{side:THREE.DoubleSide}));wall.visible=false;wall.position.set(mx,y0,mz);wall.rotation.y=yaw;wall.renderOrder=9;root.add(wall);
+    const srU={uAl:{value:0}},sring=new THREE.Mesh(gg(flat(new THREE.PlaneGeometry(1,1))),sm(srU,CVX_UV_VS,CVX_SRING_FS,{side:THREE.DoubleSide}));sring.visible=false;sring.position.set(mx,y0+.06,mz);sring.rotation.y=yaw;sring.renderOrder=3;root.add(sring);
+    fr={f,u,crack,plates,hang,wall,swU,sring,srU,L0,big:f.L/(R*1.85)};cvxLog({ev:'order',n:plates.length,hang:hang.length});};
+  /* it snaps shut: a flash along it, the plates slam down, the shards are pulled in and thrown out, a shockwave runs out */
+  V.snap=()=>{snapA=0;hm=hh=-1.5708;if(!fr)return;fr.u.uFl.value=1;fr.u.uSn.value=1;fr.wall.visible=fr.sring.visible=true;
+    for(const q of fr.hang)if(q){q.mode=2;q.t2=0;}
+    for(const q of fr.plates)if(q){q.mode=0;const a=Math.random()*.6-.3,ox=q.p.nx*q.sd,oz=q.p.nz*q.sd,v=1.5+Math.random()*2.5;q.vx=ox*v+q.p.tx*a;q.vz=oz*v+q.p.tz*a;q.vy=1.5+Math.random()*2.5;q.life=q.max=.55+Math.random()*.4;q.a=1;}
+    fr.f.slots.forEach((q,si)=>{const ca=Math.cos(q.ang),sa=Math.sin(q.ang),dx=fr.f.ux*ca-fr.f.uz*sa,dz=fr.f.ux*sa+fr.f.uz*ca,Lq=fr.f.L*q.len;
+      for(let k=0;k<(si?14:34)*fr.big;k++){const s=Math.random(),x=fr.f.ox+dx*s*Lq,z=fr.f.oz+dz*s*Lq,a=Math.random()*TAU,v=1+Math.random()*3;spark(x,y0+.1,z,Math.cos(a)*v,1+Math.random()*3,Math.sin(a)*v,.35+Math.random()*.4,.055,4,1.4);}});
+    cvxLog({ev:'snap'});};
+  /* ---- every frame (st: the cast's state) ---- */
+  V.frame=(T,dt,st)=>{lastT=T;const gl=st.gl,acc=st.acc,k=st.k;uTc.value=T;
+    const pxs=renderer.getDrawingBufferSize(v2).y/(2*Math.tan(camera.fov*Math.PI/360));mtU.uPx.value=skU.uPx.value=pxs;
+    /* the hands: the minute hand runs faster as the cuts do, spins as the final order is given and snaps to twelve */
+    const hs=st.fsOn&&snapA<0?11:snapA>=0?0:.45+2.6*Math.pow(k,1.3);hm+=dt*hs;hh+=dt*hs/12;
+    /* the domain */
+    sgU.uT.value=dmU.uT.value=mtU.uT.value=hlU.uT.value=auU.uT.value=T;sgU.uRev.value=mtU.uRev.value=R*1.12*SMS(T,.1,2.4);
+    const fl=st.fsOn&&snapA<0?SMS(st.U,0,.5):snapA>=0?1-SMS(snapA,0,.5):0;sgU.uFin.value=fl;
+    sgU.uAl.value=.5*gl*(.9+.1*acc);sgU.uRa.value=T*.045;sgU.uRb.value=T*.1;sgU.uRn.value=-T*.02;sgU.uHm.value=hm;sgU.uHh.value=hh;
+    if(act>=0){act+=dt;const q=Math.min(1,act/.7);sgU.uAct.value=R*1.15*(1-(1-q)*(1-q));sgU.uActA.value=1-SMS(act,.35,.9);}
+    if(ord>=0){ord+=dt;const q=Math.min(1,ord/.8);sgU.uOrd.value=R*1.25*(1-(1-q)*(1-q));sgU.uOrdA.value=1-SMS(ord,.4,.9);}
+    dome.scale.set(R,Math.max(.01,R*.42*SMS(T,.8,2.6)),R);dmU.uAl.value=.5*gl;mtU.uAl.value=gl;
+    /* the pillars */
+    let ri=0;for(let i=0;i<NP;i++){const p=pil[i],s=p.vx;s.ft=Math.max(0,s.ft-dt*2.2);const fv=sgU.uPl.value[i];
+      if(s.vis){const ww=s.ww;O.position.set(p.x,y0-.12+s.yo,p.z);O.rotation.set(p.tilt,p.rot,-p.tilt*.7);O.scale.set(ww*.95,Math.max(.01,s.sy*CF),ww*.95);put(cry,i,s.I,p.seed,s.rs,1);
+        O.scale.set(ww,Math.max(.01,s.sy),ww);put(shell,i,s.I,p.seed,s.rs,1);
+        {O.position.set(p.x,y0+s.yo+s.sy*CF*.56+.06*Math.sin(T*1.2+p.seed),p.z);O.rotation.set(0,.55*T+p.seed,0);O.scale.setScalar(ww*2.5);put(prg,ri++,s.sy>1.5?Math.min(1,s.I*.45)*(1-s.rs):0,p.seed,0,0);}
+        fv.set(p.x-hx,p.z-hz,(.55*Math.min(1.6,s.I)+s.ft)*(1-SMS(s.rs,.2,.9)*.6),.32+ww*1.2);}
+      else{O.scale.set(0,0,0);put(cry,i,0,0,0,0);put(shell,i,0,0,0,0);if(s.ft>0)fv.set(p.x-hx,p.z-hz,s.ft*.6,.32+p.w*1.2);else fv.set(0,0,0,0);}}
+    done(cry,NP);done(shell,NP);done(prg,ri);
+    /* the Monarch: crown and halo over his head, the column round him */
+    const ca=SMS(T,0,.6)*(1-SMS(T,st.T_COL+.2,st.T_COL+1.6)),hy=gy(t.x,t.z),top=hy+(t.topY||.9);hlU.uFl.value*=Math.exp(-dt*2.5);crU.uFl.value*=Math.exp(-dt*2.5);
+    halo.position.set(t.x,top+.34+.03*Math.sin(T*2),t.z);halo.rotation.set(-.2,0,0);halo.scale.setScalar(.9*(1+.25*hlU.uFl.value));hlU.uAl.value=ca*.95;hlU.uHm.value=-hm;hlU.uHh.value=-hh;
+    crown.position.set(t.x,top+.04+.02*Math.sin(T*2+1),t.z);crown.rotation.set(.08*Math.sin(T*.9),T*.4,.08*Math.cos(T*.9));crU.uAl.value=ca;
+    aura.position.set(t.x,hy,t.z);aura.scale.set(1,1.5,1);auU.uAl.value=ca*(1+.6*fl);
+    /* the cuts: wounds, the light under them */
+    for(let i=0;i<6;i++){const w=wounds[i],s=w.s,cb=sgU.uCb.value[i];if(!s||SDP.bl[i]!==s){if(w.m.visible){w.m.visible=false;w.s=null;}cb.set(0,0,0,0);continue;}
+      const u=w.u;u.uT.value=T;u.uA2.value=s.a*.92;u.uBend.value=s.a*.16;u.uBk.value=.4+.11*s.v;u.uSpd.value=s.v;w.m.position.set(s.cx,y0+.04,s.cz);w.m.rotation.y=Math.atan2(s.ux,s.uz);let la=1;
+      if(s.state==='pre'){u.uLen.value=SMS(s.age,0,s.pre*.9);u.uOpen.value=0;u.uFl.value=.25;u.uBr.value=0;u.uAl.value=1;la=.5*u.uLen.value;}
+      else if(s.state==='go'){u.uLen.value=1;u.uOpen.value=w.op*SMS(s.age-s.pre,0,.14);u.uFl.value=0;u.uBr.value=0;u.uAl.value=1;}
+      else{u.uOpen.value=w.op*Math.exp(-s.t1*30);u.uFl.value=Math.exp(-s.t1*8);u.uBr.value=SMS(s.t1,.1,.45);u.uAl.value=1-SMS(s.t1,.3,.55);la=1-SMS(s.t1,.05,.4);}
+      sgU.uCa.value[i].set(s.cx-hx,s.cz-hz,s.ux,s.uz);cb.set(s.a,s.v,la,u.uOpen.value);}
+    /* the ripples where cuts land, the waves */
+    for(let i=0;i<4;i++){const q=SDP.qk[i];if(q&&q.cl&&q.age<1.2){sgU.uQk.value[i].set(q.x-hx,q.z-hz,q.age,q.amp);sgU.uQr.value.setComponent(i,q.R);}else sgU.uQk.value[i].set(0,0,0,0);
+      const w=SDP.wv[i];if(w&&w.amp>.003){sgU.uWa.value[i].set(w.x-hx,w.z-hz,w.dx,w.dz);sgU.uWb.value[i].set(w.len,w.amp,w.seed,w.wd);}else sgU.uWb.value[i].set(0,0,0,0);}
+    /* foes in the domain: their clock rings tick slowly, sand falls off them */
+    let fi=0;const on=CIT.on||T<st.T_SNAP+.2&&T>2,R2=R*R;sandT-=dt;const sand=sandT<=0;if(sand)sandT=D.crawl<CITD.crawl?.11:.22;let ns=0;
+    for(const e of enemies){if(e.dead)continue;const inn=on&&(e.x-hx)**2+(e.z-hz)**2<=R2;let r=fst.get(e);if(!r&&!inn)continue;r=r||ring(e);r.a=inn?Math.min(1,r.a+dt*4):Math.max(0,r.a-dt*3);r.fl=Math.max(0,r.fl-dt*3);
+      if(r.a<=0&&!r.mk){fst.delete(e);continue;}if(fi>=48)continue;const sz=((e.d&&e.d.size)||1)*1.05,tk=Math.floor(T*1.4)+SMS((T*1.4)%1,0,.15);
+      O.position.set(e.x,gy(e.x,e.z)+.035,e.z);O.rotation.set(0,0,0);O.scale.setScalar(sz*(1+.15*r.fl));if(r.mk>0)r.mk=inn?Math.min(1,r.mk+dt*3):0;put(frg,fi++,r.a*.45,r.ph+tk*.5236,r.mk,r.fl);
+      if(sand&&inn&&ns<14){ns++;const hY=(e.hitY||.5);spark(e.x+(Math.random()-.5)*.25,gy(e.x,e.z)+hY*(.5+Math.random()*.5),e.z+(Math.random()-.5)*.25,(Math.random()-.5)*.08,-.15-Math.random()*.2,(Math.random()-.5)*.08,.7+Math.random()*.5,.032,.35,.4);}}
+    for(const [e,r] of fst)if(e.dead){fst.delete(e);}
+    done(frg,fi);
+    /* rewind streaks */
+    let si=0;for(let i=sts.length-1;i>=0;i--){const q=sts[i];q.age+=dt;if(q.age<.16&&!q.e.dead){q.x1=q.e.x;q.z1=q.e.z;}if(q.age>.7){sts.splice(i,1);continue;}}
+    for(const q of sts){const dx=q.x1-q.x0,dz=q.z1-q.z0,l=Math.hypot(dx,dz);if(l<.12)continue;O.position.set((q.x0+q.x1)/2,gy(q.x1,q.z1)+.06,(q.z0+q.z1)/2);O.rotation.set(0,Math.atan2(dx,dz),0);O.scale.set(.5,1,l+.3);put(stk,si++,1-SMS(q.age,.25,.7),l+.3,0,0);}
+    done(stk,si);
+    /* the fracture */
+    if(fr){const f=fr.f,u=fr.u;u.uT.value=T;
+      if(snapA<0){const U=st.U;u.uE.value=SMS(U,0,.45);u.uOp.value=SMS(U,.05,.55)*(1+.1*Math.sin(T*40));u.uFl.value*=Math.exp(-dt*6);
+        const tp=u.uE.value;if(tp>0&&tp<1&&Math.random()<dt*40){f.slots.forEach((q,si)=>{const ca=Math.cos(q.ang),sa=Math.sin(q.ang),dx=f.ux*ca-f.uz*sa,dz=f.ux*sa+f.uz*ca,Lq=f.L*q.len;const a=Math.random()*TAU;spark(f.ox+dx*tp*Lq,y0+.1,f.oz+dz*tp*Lq,Math.cos(a)*1.5,1+Math.random()*2,Math.sin(a)*1.5,.3,.05,3,1);});}}
+      else{snapA+=dt;u.uOp.value=Math.exp(-snapA*45)*.9;u.uFl.value=Math.exp(-snapA*4.5);u.uAl.value=1-SMS(snapA,.25,.75);
+        const q2=Math.min(1,snapA/.62),rr=R*.85*fr.big*(1-Math.pow(1-q2,3));fr.wall.scale.set(rr+.35,Math.max(.01,.8*Math.pow(1-q2,.7)),fr.L0*.5+rr);fr.swU.uAl.value=Math.pow(1-q2,1.4)*.55;
+        fr.sring.scale.set(2*(rr+.5),1,2*(fr.L0*.5+rr+.2));fr.srU.uAl.value=Math.pow(1-q2,1.2);if(q2>=1)fr.wall.visible=fr.sring.visible=false;}
+      }
+    /* shards */
+    let ni=0;for(let i=shs.length-1;i>=0;i--){const q=shs[i];
+      if(q.mode===1){q.a=Math.min(1,q.a+dt*2.5);const tp=fr?fr.u.uE.value:1;if(q.s0>tp){q.a=0;}else{q.y+=(q.hy-q.y)*Math.min(1,dt*2.2);}q.rx+=q.wx*dt;q.ry+=q.wy*dt;q.rz+=q.wz*dt;}
+      else if(q.mode===3){const p=q.p,op=fr?fr.u.uOp.value:0,vis=fr&&p.s<fr.u.uE.value-.04;q.a=vis?Math.min(1,q.a+dt*4):0;q.gr=SMS(op,.15,1);const off=p.hw*op+q.ds;q.x=p.x+p.nx*q.sd*off;q.z=p.z+p.nz*q.sd*off;q.y=y0+.02+q.s*.8*q.gr;}
+      else if(q.mode===2){q.t2+=dt;const k2=Math.min(1,q.t2/.07);q.y+=(y0+.15-q.y)*k2*.5;if(q.t2>=.07){q.mode=0;const a=Math.random()*TAU,v=2+Math.random()*3.5;q.vx=Math.cos(a)*v;q.vz=Math.sin(a)*v;q.vy=2+Math.random()*3;q.life=q.max=.6+Math.random()*.4;q.wx=(Math.random()-.5)*18;q.wz=(Math.random()-.5)*18;q.a=1;}}
+      else{q.life-=dt;if(q.life<=0||(q.y<y0-.2)){shs.splice(i,1);continue;}q.vy-=q.g*dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;if(q.y<y0+.04&&q.vy<0){q.y=y0+.04;q.vy*=-.3;q.vx*=.6;q.vz*=.6;}q.rx+=q.wx*dt;q.ry+=q.wy*dt;q.rz+=q.wz*dt;q.a=Math.min(1,q.life/q.max*2.5);}}
+    for(const q of shs){if(q.a<=.01)continue;O.position.set(q.x,q.y,q.z);const sc=q.s*(q.mode?1:.45+.55*q.life/q.max);
+      if(q.mode===3){if(q.gr<=.01)continue;O.rotation.set(0,0,0);O.quaternion.setFromAxisAngle(CVX_V3.set(q.p.tx,0,q.p.tz),q.tl*q.sd);O.quaternion.multiply(CVX_Q.setFromAxisAngle(CVX_UP,q.yaw));O.scale.set(sc,sc*1.8*q.gr,sc);}
+      else{O.rotation.set(q.rx,q.ry,q.rz);O.scale.set(sc,sc*1.8,sc);}put(shd,ni++,q.a,q.kind,0,0);}
+    done(shd,ni);
+    /* sparks */
+    let nk=0;for(let i=sks.length-1;i>=0;i--){const q=sks[i];q.life-=dt;if(q.life<=0){sks[i]=sks[sks.length-1];sks.pop();continue;}const dr=Math.exp(-q.dr*dt);q.vx*=dr;q.vz*=dr;q.vy=q.vy*dr-q.g*dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.z+=q.vz*dt;}
+    for(const q of sks){skP[nk*3]=q.x;skP[nk*3+1]=q.y;skP[nk*3+2]=q.z;skC[nk*2]=Math.min(1,q.life/q.max*1.6);skC[nk*2+1]=q.s;nk++;}
+    skG.setDrawRange(0,nk);skG.attributes.position.needsUpdate=true;skG.attributes.aC.needsUpdate=true;};
+  V.end=()=>{for(const m of ims)m.dispose();fst.clear();sts.length=shs.length=sks.length=0;};
+  V.dbg=()=>({wounds,fr,shs,sks,fst,sts,sig,dome,motes,cry,shell,prg,halo,crown,aura,ims});
+  return V;}
+const CVX_V3=new THREE.Vector3(),CVX_UP=new THREE.Vector3(0,1,0),CVX_Q=new THREE.Quaternion();
 const CIT_STRIP_FS='varying vec2 vUv;uniform float uA;void main(){float tp=sin(3.14159*vUv.x);float d=abs(vUv.y-.5)*2.;float a=smoothstep(tp*.16+.012,0.,d)*uA;gl_FragColor=vec4(mix(vec3(.55,.85,1.),vec3(1.),smoothstep(.1,0.,d)),a);}';
 /* v460: XO (optional, the Citadel's masteries): this cast's own numbers over CITD (R: the domain's reach; cutK/wakeK: a cut's strike on its mark
    and in its wake; push: how far it throws its mark back; crawl/crawlEnd: how fast foes inside move, and at the end; actSl: the opening slow's
@@ -5192,11 +5557,14 @@ const CIT_STRIP_FS='varying vec2 vUv;uniform float uA;void main(){float tp=sin(3
    space and how large its quake; strip/stripFS: show the cut's seam (made with every cut, never shown before) and its shader;
    ghostN/ghostMax/ghostL/ghostA/ghostC: the afterimages' pool, how many a beat, their life, light and colour; brW/brAmp: the fracture's
    branches; colK: the pillars' last light). log(d) receives the events for the tests.
-   CIT.pf (tower and hero shots inside) keeps the old curve whatever crawl is. Without XO: exactly as before. */
+   CIT.pf (tower and hero shots inside) keeps the old curve whatever crawl is. Without XO: exactly as before.
+   v478: the looks are drawn by cvxLooks (above); every number, hit and timing below is as it was. */
 const CITD={R:5.2,pH:1,uI:1,cutK:2,wakeK:1,push:.25,bAmp:1,qAmp:1,qR:1,strip:0,stripFS:null,crawl:.5,crawlEnd:.1,actSl:2.5,ghostN:14,ghostMax:4,ghostL:.4,ghostA:.3,ghostC:0xffe2a0,
   edict:0,finK:8,finK2:4,finL:1.85,brW:.3,brAmp:.8,finPush:.55,colK:1,log:null};
 function castCitadel(t,c0,P,o,XO){const D=XO?Object.assign({},CITD,XO):CITD,lg=D.log;
-  sdpInit();const geos=[],mats=[],root=new THREE.Group();scene.add(root);cineLock=Math.max(cineLock,3.4);
+  /* (v478: the shared space pass is made outside an artifact set's colour context: made inside a light set's, its whole picture was turned grey
+     for the rest of the session, and Spatial Deflection's patch of it failed) */
+  asOffRun(()=>sdpInit());const geos=[],mats=[],root=new THREE.Group();scene.add(root);cineLock=Math.max(cineLock,3.4);
   const hx=t.x,hz=t.z,R=D.R,TAU=6.2832,T_ACT0=2,T_SL0=3.45,T_SL1=12.8,T_FS=13.55,T_SNAP=14.45,T_COL=14.55,END=17;
   let Tact0=0,quakeT=9,T=0,ended=false,nextSl=T_SL0,faceA=0,actDone=false,snapDone=false,fsOn=false,lastTgt=null,ghT=0,hum=null;
   /* ---- pillar placement: only open ground, ring with procedural variation ---- */
@@ -5215,29 +5583,23 @@ function castCitadel(t,c0,P,o,XO){const D=XO?Object.assign({},CITD,XO):CITD,lg=D
   pil.forEach((p,i)=>{p.t0=.55+i*.24;p.isLast=i===nr;p.vis=false;p.snd=false;});
   const order=pil.map((p,i)=>i).filter(i=>i!==nr).sort((a,b)=>Math.hypot(pil[b].x-hx,pil[b].z-hz)-Math.hypot(pil[a].x-hx,pil[a].z-hz));order.push(nr);order.forEach((i,k)=>{pil[i].tc=T_COL+k*(.95/Math.max(1,order.length-1));});
   const Tact=(pil.length?pil[pil.length-1].t0:2)+.55;
-  /* ---- pillar meshes ---- */
-  const bodyG=new THREE.CylinderGeometry(.55,1,1,6,6,true);bodyG.translate(0,.5,0);const coreG=new THREE.CylinderGeometry(.14,.26,1,5,1,true);coreG.translate(0,.5,0);const colG=new THREE.TorusGeometry(1,.035,3,6);colG.rotateX(Math.PI/2);geos.push(bodyG,coreG,colG);
-  const colM=new THREE.MeshBasicMaterial({color:0xffe6a0,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(colM);
-  pil.forEach(p=>{const g=new THREE.Group();g.position.set(p.x,0,p.z);g.rotation.set(p.tilt,p.rot,-p.tilt*.7);g.visible=false;root.add(g);
-    p.bm=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uI:{value:0},uS:{value:p.seed}},vertexShader:'varying vec2 vUv;varying vec3 vN;void main(){vUv=uv;vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:CIT_BODY_FS(),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});mats.push(p.bm);
-    p.cm=new THREE.MeshBasicMaterial({color:0xfff4d6,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(p.cm);
-    p.body=new THREE.Mesh(bodyG,p.bm);p.core=new THREE.Mesh(coreG,p.cm);p.col=new THREE.Mesh(colG,colM);g.add(p.body,p.core,p.col);p.g=g;});
-  /* ---- golden light on the ground and a warm light source ---- */
+  /* ---- v478: the looks (the domain's sigil and dome, the pillars, the Monarch, the cuts' wounds, the foes' clocks, the fracture) ---- */
+  const V=cvxLooks({root,geos,mats,t,hx,hz,R,pil,D}),VS={gl:0,acc:1,k:0,fsOn:false,U:0,T_COL,T_SNAP};
+  /* ---- golden light on the ground and a warm light source (v478: a third of their old light, so the board is never tinted) ---- */
   const pg=new THREE.PlaneGeometry(1,1);pg.rotateX(-Math.PI/2);geos.push(pg);
   const glowM=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0xffa030,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});const hazeM=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0xffc868,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(glowM,hazeM);
   const glow=new THREE.Mesh(pg,glowM),haze=new THREE.Mesh(pg,hazeM);glow.position.set(hx,.07,hz);haze.position.set(hx,.09,hz);root.add(glow,haze);
-  const heroG=new THREE.Mesh(pg,new THREE.MeshBasicMaterial({map:softDiscTex(),color:0xfff0c0,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));mats.push(heroG.material);heroG.position.set(hx,.11,hz);root.add(heroG);
   /* ---- slashes ---- */
   SDP.sl=SDP.sl||[null,null,null,null];SDP.pl=SDP.pl||[];SDP.n++;
   const stripG=new THREE.PlaneGeometry(1,1);stripG.translate(0,.5,0);geos.push(stripG);const slashes=[],ghosts=[];
   SDP.bl=[null,null,null,null,null,null];SDP.qk=[null,null,null,null];SDP.wv=[null,null,null,null];let waveT=Tact0,tickW=0;
   const freeSlot=()=>{for(let i=0;i<6;i++)if(!SDP.bl[i])return i;return -1;};
-  const quake=(x,z,Rq,amp)=>{let i=SDP.qk.findIndex(q=>!q);if(i<0){i=0;let oa=-1;SDP.qk.forEach((q,j)=>{if(q&&q.age>oa){oa=q.age;i=j;}});}return SDP.qk[i]={x,z,age:0,seed:rnd()*20,R:Rq,amp,mode:rnd()<.5?.4+rnd()*.6:0};};
+  /* (v478: cl marks the Citadel's own quakes, drawn clean by the space pass) */
+  const quake=(x,z,Rq,amp)=>{let i=SDP.qk.findIndex(q=>!q);if(i<0){i=0;let oa=-1;SDP.qk.forEach((q,j)=>{if(q&&q.age>oa){oa=q.age;i=j;}});}return SDP.qk[i]={x,z,age:0,seed:rnd()*20,R:Rq,amp,mode:rnd()<.5?.4+rnd()*.6:0,cl:1};};
   const inside=()=>enemies.filter(e=>!e.dead&&(e.x-hx)**2+(e.z-hz)**2<=R*R);
   /* how far a cut throws its mark back (D.edict: never out of the domain, where no cut could follow it) */
   const throwBack=q=>{let p=D.push;if(D.edict&&q.route){for(;p>.001;p-=.05){const w=posAt(q.dist-p,q.route);if((w[0]-hx)**2+(w[1]-hz)**2<=R*R*.94)break;}p=Math.max(0,p);}return p;};
   const segDist=(px,pz,ax,az,bx,bz)=>{const dx=bx-ax,dz=bz-az,L2=dx*dx+dz*dz||1,s=clamp(((px-ax)*dx+(pz-az)*dz)/L2,0,1);return Math.hypot(px-(ax+dx*s),pz-(az+dz*s));};
-  const sparks=(x,z,n,sp)=>{return;for(let i=0;i<n;i++){const a=rnd()*TAU;emit(1,{x,y:.25+rnd()*.5,z,vx:Math.cos(a)*sp*(.4+rnd()),vy:.4+rnd()*1.4,vz:Math.sin(a)*sp*(.4+rnd()),s:.05,s2:0,c:0xf4fdff,c2:0x7fe8ff,life:.35+rnd()*.3});}};
   /* (D.edict: the foe nearest the keep that no cut has struck yet; once every foe inside has been struck, the orders start again from the front) */
   let lastSl=-9;const struck=new Set(),toKeep=e=>(e.route||ROUTES[0]).len-e.dist;const doSlash=(ft)=>{const L=inside();if(!L.length&&!ft){nextSl+=.3;return;}lastSl=T;let tg;
     if(D.edict&&!ft){let U=L.filter(e=>!struck.has(e));if(!U.length){struck.clear();U=L;}tg=U.reduce((a,b)=>toKeep(b)<toKeep(a)?b:a);struck.add(tg);}
@@ -5245,10 +5607,11 @@ function castCitadel(t,c0,P,o,XO){const D=XO?Object.assign({},CITD,XO):CITD,lg=D
     const dx=tg.x-hx,dz=tg.z-hz,d=Math.hypot(dx,dz)||1,ux=dx/d,uz=dz/d,slot=freeSlot(),k=clamp((T-T_SL0)/(T_SL1-T_SL0),0,1);faceA=Math.atan2(dx,dz);t.faceA=faceA;t.faceLock=.5;CIT.flick=1;citSnd('slash');
     const s={slot,state:'pre',age:0,pos:0,ox:hx+ux*.8,oz:hz+uz*.8,ux,uz,dist:Math.max(.3,d-.8),speed:4.2+11*Math.pow(k,1.2),pre:.4-.28*k,a:1.5+rnd()*.9,amp:(.55+rnd()*.3)*D.bAmp,seed:rnd()*20,hit:false,tg,tx:tg.x,tz:tg.z,amp2:0,seam:0,v:1.2,t1:0,cx:hx,cz:hz};
     if(slot<0){impact(s);return;}
-    SDP.bl[slot]=s;const m=new THREE.ShaderMaterial({uniforms:{uA:{value:0}},vertexShader:VS_UV,fragmentShader:D.stripFS||CIT_STRIP_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});s.mm=m;s.mesh=new THREE.Mesh(stripG,m);s.mesh.visible=false;root.add(s.mesh);slashes.push(s);};
+    SDP.bl[slot]=s;const m=new THREE.ShaderMaterial({uniforms:{uA:{value:0}},vertexShader:VS_UV,fragmentShader:D.stripFS||CIT_STRIP_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});s.mm=m;s.mesh=new THREE.Mesh(stripG,m);s.mesh.visible=false;root.add(s.mesh);slashes.push(s);V.cut(s);};
   const impact=s=>{s.hit=true;const e=s.tg;s.tx=e.x;s.tz=e.z;citSnd('impact');const nx=-s.uz,nz=s.ux,Hh=lg?[]:null,d0=e.dist;
-    for(const q of enemies){if(q.dead)continue;const rx=q.x-s.ox,rz=q.z-s.oz,al=rx*s.ux+rz*s.uz,lat=rx*nx+rz*nz;if(q===e||(al>-.3&&al<s.dist+.8&&Math.abs(lat)<s.a*.8)){if(Hh)Hh.push(q);hurt(q,P*(q===e?D.cutK:D.wakeK),'magic',o);if(!q.boss&&q===e)q.dist=Math.max(0,q.dist-throwBack(q));sparks(q.x,q.z,q===e?8:3,2.2);}}
-    const qk=quake(s.tx,s.tz,(2.6+rnd()*.8)*D.qR,(.45+rnd()*.3)*D.qAmp);camShake=Math.max(camShake,.07);if(lg)lg({ev:'cut',e,H:Hh,ox:s.ox,oz:s.oz,ux:s.ux,uz:s.uz,dist:s.dist,a:s.a,amp:s.amp,d0,d1:e.dist,slot:s.slot,qR:qk.R,qA:qk.amp});};
+    for(const q of enemies){if(q.dead)continue;const rx=q.x-s.ox,rz=q.z-s.oz,al=rx*s.ux+rz*s.uz,lat=rx*nx+rz*nz;if(q===e||(al>-.3&&al<s.dist+.8&&Math.abs(lat)<s.a*.8)){if(Hh)Hh.push(q);hurt(q,P*(q===e?D.cutK:D.wakeK),'magic',o);if(!q.boss&&q===e){const x0=q.x,z0=q.z;q.dist=Math.max(0,q.dist-throwBack(q));V.thrown(q,x0,z0);}sparks(q.x,q.z,q===e?8:3,2.2);}}
+    const qk=quake(s.tx,s.tz,(2.6+rnd()*.8)*D.qR,(.45+rnd()*.3)*D.qAmp);camShake=Math.max(camShake,.07);if(lg)lg({ev:'cut',e,H:Hh,ox:s.ox,oz:s.oz,ux:s.ux,uz:s.uz,dist:s.dist,a:s.a,amp:s.amp,d0,d1:e.dist,slot:s.slot,qR:qk.R,qA:qk.amp});V.hit(s);};
+  const sparks=(x,z,n,sp)=>{return;for(let i=0;i<n;i++){const a=rnd()*TAU;emit(1,{x,y:.25+rnd()*.5,z,vx:Math.cos(a)*sp*(.4+rnd()),vy:.4+rnd()*1.4,vz:Math.sin(a)*sp*(.4+rnd()),s:.05,s2:0,c:0xf4fdff,c2:0x7fe8ff,life:.35+rnd()*.3});}};
   /* left click: the player throws a slash at the cursor point (nearest foe if one is close), at most one every 0.4 s */
   const manual=(x,z)=>{if(ended||fsOn||snapDone||T<T_SL0||T>=T_SL1)return false;if(T-lastSl<.4)return true;let tg=null,bd=3.2;for(const e of inside()){const d=Math.hypot(e.x-x,e.z-z);if(d<bd){bd=d;tg=e;}}
     if(!tg){let dx=x-hx,dz=z-hz;const d=Math.hypot(dx,dz)||1,m=Math.min(d,R*.92);tg={x:hx+dx/d*m,z:hz+dz/d*m,hp:0,dist:0,fake:true};}doSlash(tg);return true;};
@@ -5257,20 +5620,21 @@ function castCitadel(t,c0,P,o,XO){const D=XO?Object.assign({},CITD,XO):CITD,lg=D
   let fin=null;
   const startFinal=()=>{fsOn=true;const L=inside();let tx=hx,tz=hz-3;if(L.length){const d=densest(L);tx=d.x;tz=d.z;}let dx=tx-hx,dz=tz-hz,d=Math.hypot(dx,dz)||1;const ux=dx/d,uz=dz/d;faceA=Math.atan2(dx,dz);t.faceA=faceA;t.faceLock=1.6;CIT.flick=1.7;
     fin={ox:hx+ux*.8,oz:hz+uz*.8,ux,uz,L:R*D.finL,curve:(rnd()-.5)*.24,seed:rnd()*20};for(const i of [0,1,2])if(SDP.sl[i]&&SDP.sl[i].mm){SDP.sl[i].age=9;}
-    fin.slots=[0,1,2].map(i=>{const q={slot:i,seed:fin.seed+i*3,ang:i?(i===1?-.2:.24):0,len:i?.62:1,w:i?D.brW:.62,amp:i?D.brAmp:1.35,cv:i?-fin.curve*1.3:fin.curve};SDP.sl[i]=q;return q;});};
+    fin.slots=[0,1,2].map(i=>{const q={slot:i,seed:fin.seed+i*3,ang:i?(i===1?-.2:.24):0,len:i?.62:1,w:i?D.brW:.62,amp:i?D.brAmp:1.35,cv:i?-fin.curve*1.3:fin.curve,cl:1};SDP.sl[i]=q;return q;});V.order(fin);};
   const finalUpd=(dt)=>{const U=T-T_FS;fin.slots.forEach(q=>{const ca=Math.cos(q.ang),sa=Math.sin(q.ang),dx=fin.ux*ca-fin.uz*sa,dz=fin.ux*sa+fin.uz*ca,ext=fin.L*q.len*SMS(U,.1,.75);
     q.ax=fin.ox;q.az=fin.oz;q.bx=fin.ox+dx*ext;q.bz=fin.oz+dz*ext;const grow=SMS(U,.1,.8),sh=snapDone?Math.exp(-(T-T_SNAP)*30):1;q.amp2=q.amp*grow*sh*(1+.15*Math.sin(T*40)*(snapDone?0:grow));q.w2=q.w*(.3+.7*grow)*(snapDone?Math.max(.1,sh):1);q.curve=q.cv;});};
   const snap=()=>{snapDone=true;citSnd('final');const L=enemies.filter(e=>!e.dead&&(e.x-hx)**2+(e.z-hz)**2<=R*R*1.15);const q=fin.slots[0],xz=lg?L.map(e=>[e.x,e.z,e.dist]):null;
-    for(const e of L){const dd=segDist(e.x,e.z,q.ax,q.az,q.bx,q.bz);hurt(e,P*(dd<2?D.finK:D.finK2),'magic',o);if(!e.boss)e.dist=Math.max(0,e.dist-D.finPush);sparks(e.x,e.z,5,2.6);}
+    for(const e of L){const dd=segDist(e.x,e.z,q.ax,q.az,q.bx,q.bz),x0=e.x,z0=e.z;hurt(e,P*(dd<2?D.finK:D.finK2),'magic',o);if(!e.boss){e.dist=Math.max(0,e.dist-D.finPush);V.thrown(e,x0,z0);}sparks(e.x,e.z,5,2.6);}
     if(lg)lg({ev:'snap',L:L.slice(),xz,d1:L.map(e=>e.dist),ax:q.ax,az:q.az,bx:q.bx,bz:q.bz,fin,slots:fin.slots.map(q=>Object.assign({},q))});
     quake(hx+fin.ux*R*.6,hz+fin.uz*R*.6,6.5,.95);camShake=Math.max(camShake,.6);
-    CIT.flick=2;CIT.on=false;CIT.k=1;CIT.pf=1;};
+    CIT.flick=2;CIT.on=false;CIT.k=1;CIT.pf=1;V.snap();FXL.intensity=Math.max(FXL.intensity,1);};
   /* ---- state shared with the rest of the game ---- */
-  const finish=()=>{if(ended)return;ended=true;SG_ACTIVE.delete(finish);CIT.on=false;CIT.k=1;CIT.pf=1;CIT.hero=null;CIT.flick=0;for(let i=0;i<4;i++)SDP.sl[i]=null;SDP.bl=[null,null,null,null,null,null];SDP.qk=[null,null,null,null];SDP.wv=[null,null,null,null];SDP.pl.length=0;SDP.n=Math.max(0,SDP.n-1);FXL.intensity=0;if(hum){hum.fade(.3);hum=null;}ghosts.forEach(q=>root.remove(q.m));slashes.forEach(q=>{if(q.mm)q.mm.dispose();});scene.remove(root);if(t.faceLock>0)t.faceLock=0;};
+  const finish=()=>{if(ended)return;ended=true;SG_ACTIVE.delete(finish);CIT.on=false;CIT.k=1;CIT.pf=1;CIT.hero=null;CIT.flick=0;for(let i=0;i<4;i++)SDP.sl[i]=null;SDP.bl=[null,null,null,null,null,null];SDP.qk=[null,null,null,null];SDP.wv=[null,null,null,null];SDP.pl.length=0;SDP.n=Math.max(0,SDP.n-1);FXL.intensity=0;if(hum){hum.fade(.3);hum=null;}ghosts.forEach(q=>root.remove(q.m));slashes.forEach(q=>{if(q.mm)q.mm.dispose();});V.end();scene.remove(root);if(t.faceLock>0)t.faceLock=0;};
   SG_ACTIVE.add(finish);CIT.hero=t;CIT.x=hx;CIT.z=hz;CIT.R=R;CIT.k=1;CIT.pf=1;CIT.flick=0;
   citSnd('start');hum=citHum();t.faceLock=1.2;
-  const gM=new THREE.MeshBasicMaterial({color:0xffe2a0,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(gM);const gG=new THREE.IcosahedronGeometry(.5,0);geos.push(gG);
-  for(let i=0;i<D.ghostN;i++){const m=new THREE.Mesh(gG,new THREE.MeshBasicMaterial({color:D.ghostC,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));mats.push(m.material);m.visible=false;root.add(m);ghosts.push({m,life:0});}
+  /* temporal afterimages (v478: soft golden echoes cut in time slices) */
+  const gG=new THREE.LatheGeometry([[0,-.5],[.4,-.49],[.5,-.36],[.42,-.12],[.3,.06],[.34,.18],[.36,.3],[.28,.43],[.14,.49],[0,.5]].map(a=>new THREE.Vector2(a[0],a[1])),14);geos.push(gG);
+  for(let i=0;i<D.ghostN;i++){const m=new THREE.Mesh(gG,new THREE.MeshBasicMaterial({color:D.ghostC,alphaMap:cvxGhTex(),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));mats.push(m.material);m.visible=false;root.add(m);ghosts.push({m,life:0});}
   const prev=new Map();if(lg)lg({ev:'cast',x:hx,z:hz,R,pil,ghosts,root,D,T:()=>T});
   addFx(root,END,(f,dt)=>{if(ended){f.life=0;return;}T+=dt;CIT.flick*=Math.exp(-dt*8);
     if(!t||(t!==heroU&&!towers.includes(t))){f.life=0;return;}
@@ -5278,26 +5642,23 @@ function castCitadel(t,c0,P,o,XO){const D=XO?Object.assign({},CITD,XO):CITD,lg=D
     if(T<T_COL+1.2&&t.faceLock<.2&&!(t.walk>.15)){t.faceA=faceA||t.faceA;t.faceLock=.3;}
     const gl=SMS(T,.15,2.4)*(1-SMS(T,T_COL+.1,T_COL+1.9));
     const acc=1+.35*SMS(T,9,13)+.5*SMS(T,13,13.6)*(1-SMS(T,T_SNAP,T_SNAP+.15));
-    glow.scale.setScalar(R*2.55*SMS(T,.1,2.4));haze.scale.setScalar(R*3.4*SMS(T,.3,2.8));heroG.scale.setScalar(1.3+.5*SMS(T,0,.7));
-    glowM.opacity=.085*gl*acc;hazeM.opacity=.035*gl*acc;heroG.material.opacity=(.17*SMS(T,0,.5)*(1-SMS(T,T_COL,T_COL+1.5)))*(1+.15*Math.sin(T*5));
-    FXL.position.set(hx,1.6,hz);if(!snapDone){FXL.color.setHex(0xffb248);FXL.distance=18;FXL.intensity=1.3*gl*acc+(actDone?Math.max(0,1.2*Math.exp(-(T-Tact)*2.2)):0);}else{FXL.intensity=Math.max(1.3*gl,FXL.intensity-dt*7);if(T>T_SNAP+.3)FXL.color.setHex(0xffb248);}
+    glow.scale.setScalar(R*2.55*SMS(T,.1,2.4));haze.scale.setScalar(R*3.4*SMS(T,.3,2.8));
+    glowM.opacity=.01*gl*acc;hazeM.opacity=.005*gl*acc;
+    FXL.position.set(hx,1.6,hz);if(!snapDone){FXL.color.setHex(0xffc070);FXL.distance=10;FXL.intensity=.18*gl*acc+(actDone?Math.max(0,.6*Math.exp(-(T-Tact)*2.2)):0);}else{FXL.intensity=Math.max(.18*gl,FXL.intensity-dt*7);if(T>T_SNAP+.3)FXL.color.setHex(0xffc070);}
     /* time dilation */
     if(T>=T_ACT0&&!snapDone){const e1=T<T_ACT0+1,s1=SMS(T,T_ACT0,T_ACT0+1),s2=SMS(T,T_SL1,T_FS-.3);CIT.on=true;CIT.k=e1?1-(1-D.crawl)*s1:D.crawl-(D.crawl-D.crawlEnd)*s2;CIT.pf=Math.max(.15,e1?1-.5*s1:.5-.4*s2);}
     /* pillars */
     for(let i=0;i<pil.length;i++){const p=pil[i],u=T-p.t0,uc=T-p.tc;let sy=0,sw=0,yo=0,I=0,vis=u>0;
-      if(vis&&!p.snd){p.snd=true;citSnd('pillar',i);flash(p.x,.5,p.z,0xffe6a0,.9,.25);}
+      if(vis&&!p.snd){p.snd=true;citSnd('pillar',i);V.rise(i);}
       if(vis){if(uc<=0){const b=1-Math.pow(1-clamp((u-.12)/.5,0,1),3);sy=u<.12?.25:p.H*(.02+.98*b);sw=u<.12?.25:.35+.65*b;I=u<.12?2.2:1+1.6*(1-b);}
         else{const q=uc/.75;if(q>=1)vis=false;else if(p.isLast){if(q<.55){sw=1-.7*(q/.55);sy=p.H;I=1+q*2;}else{const r=(q-.55)/.45;sw=.3*(1-r*.4);sy=p.H*Math.max(.02,1-Math.pow(r,.6)*.98);I=3+r*3;yo=r*.4;}}
           else{if(q<.35){sw=1-.65*(q/.35);sy=p.H;I=1+q;}else{const r=(q-.35)/.65;yo=r*r*p.H*2.2;sy=Math.max(.05,p.H*(1-r)*.9+.1);sw=.35*(1-r*.5);I=1.4+r*1.5;}}}}
-      if(p.g.visible!==vis)p.g.visible=vis;
       if(vis&&uc>0)I*=D.colK;
-      if(vis){I*=p.I*acc*(.92+.08*Math.sin(T*3+p.seed));if(actDone)I+=1.1*Math.exp(-(T-Tact)*3);const ww=p.w*sw;p.body.scale.set(ww,Math.max(.01,sy),ww);p.body.position.y=.28+yo;p.core.scale.set(ww,Math.max(.01,sy),ww);p.core.position.y=.28+yo;
-        p.bm.uniforms.uT.value=T;p.bm.uniforms.uI.value=I*.62*D.uI;p.cm.opacity=Math.min(1,I*.5);p.col.visible=sy>2;if(sy>2){p.col.position.y=.28+yo+sy*(.32+.22*Math.sin(T*.5+p.seed));p.col.scale.setScalar(ww*1.5);p.col.rotation.y=T*.4+p.seed;}
-        if(Math.random()<dt*5){emit(1,{x:p.x+(Math.random()-.5)*ww*1.4,y:.4+Math.random()*sy*.7,z:p.z+(Math.random()-.5)*ww*1.4,vx:0,vy:.5+Math.random()*.5,vz:0,s:.045,s2:0,c:0xfff0c0,c2:0xffa030,life:.9});}
-        /* the world around the pillar is slightly wrong */
-        const dk=SMS(u,.4,1.3)*(1-SMS(uc,.1,.6));SDP.pl[i]={x:p.x,z:p.z,r:p.dR,amp:p.dA*dk*(1+.5*SMS(T,9,13)+.9*SMS(T,T_SL1,T_FS)*(1-SMS(T,T_SNAP,T_SNAP+.2)))};}
-      else if(SDP.pl[i])SDP.pl[i]=null;}
-    if(!actDone&&T>=Tact){actDone=true;citSnd('act');camShake=Math.max(camShake,.3);quakeT=0;const A=inside();for(const e of A){hurt(e,P*1.5,'magic',o);e.slow=Math.max(e.slow||0,.6);e.slowT=Math.max(e.slowT||0,D.actSl);}if(lg)lg({ev:'act',L:A});}
+      if(vis){I*=p.I*acc*(.92+.08*Math.sin(T*3+p.seed));if(actDone)I+=1.1*Math.exp(-(T-Tact)*3);V.pil(i,true,p.w*sw,sy,yo,I*.62*D.uI,uc>0?clamp(uc/.75,0,1):0);
+        /* the world around the pillar is slightly wrong (v478: gentler, and drawn clean: cl) */
+        const dk=SMS(u,.4,1.3)*(1-SMS(uc,.1,.6));SDP.pl[i]={x:p.x,z:p.z,r:p.dR,amp:.15*p.dA*dk*(1+.5*SMS(T,9,13)+.9*SMS(T,T_SL1,T_FS)*(1-SMS(T,T_SNAP,T_SNAP+.2))),cl:1};}
+      else{V.pil(i,false,0,0,0,0,0);if(SDP.pl[i])SDP.pl[i]=null;}}
+    if(!actDone&&T>=Tact){actDone=true;citSnd('act');camShake=Math.max(camShake,.3);quakeT=0;const A=inside();for(const e of A){hurt(e,P*1.5,'magic',o);e.slow=Math.max(e.slow||0,.6);e.slowT=Math.max(e.slowT||0,D.actSl);}if(lg)lg({ev:'act',L:A});V.act();}
     if(actDone&&quakeT<3&&T>=Tact+quakeT*.28){quakeT++;quake(hx+(rnd()-.5)*2,hz+(rnd()-.5)*2,R*1.5,.85);}
     /* spatial slashes, accelerating */
     if(!fsOn&&T>=nextSl&&T<T_SL1){doSlash();const k=clamp((T-T_SL0)/(T_SL1-T_SL0-.3),0,1);nextSl+=1.15+(.13-1.15)*Math.pow(k,1.35);}
@@ -5305,7 +5666,9 @@ function castCitadel(t,c0,P,o,XO){const D=XO?Object.assign({},CITD,XO):CITD,lg=D
       if(s.state==='pre'){s.amp2=s.amp*.6*SMS(s.age,0,s.pre);s.seam=SMS(s.age,s.pre*.45,s.pre);if(s.age>=s.pre)s.state='go';}
       else if(s.state==='go'){s.v+=(s.speed-s.v)*Math.min(1,dt*4);s.pos+=s.v*dt;s.amp2=s.amp*(.6+.4*Math.min(1,(s.age-s.pre)/.4));s.seam=1;if(s.pos>=s.dist){s.pos=s.dist;impact(s);s.state='post';s.t1=0;}}
       else{s.t1+=dt;s.amp2=s.amp*Math.exp(-s.t1*4.5);s.seam=Math.max(0,1-s.t1*4);}
-      s.cx=s.ox+s.ux*s.pos;s.cz=s.oz+s.uz*s.pos;s.mesh.position.set(s.cx,.35,s.cz);s.mesh.rotation.y=Math.atan2(-s.ux,-s.uz);s.mesh.scale.set(s.a*2,.9*s.seam+.01,1);s.mm.uniforms.uA.value=s.seam*.8;if(D.strip)s.mesh.visible=s.seam>.01;
+      s.cx=s.ox+s.ux*s.pos;s.cz=s.oz+s.uz*s.pos;s.mesh.position.set(s.cx,.35,s.cz);s.mesh.rotation.y=Math.atan2(-s.ux,-s.uz);s.mesh.scale.set(s.a*2,.9*s.seam+.01,1);s.mm.uniforms.uA.value=s.seam*.8;
+      /* (v478: the shown seam stands on the wound, leaning back, so it reads from above whichever way the cut flies) */
+      if(D.strip){s.mesh.visible=s.seam>.01;s.mesh.position.y=gy(s.cx,s.cz)+.42;s.mesh.rotation.order='YXZ';s.mesh.rotation.x=.7;}
       if(s.state==='post'&&s.t1>.55){SDP.bl[s.slot]=null;root.remove(s.mesh);s.mm.dispose();slashes.splice(i,1);}}
     SDP.qk.forEach((q,j)=>{if(q){q.age+=dt;if(q.age>1.2)SDP.qk[j]=null;}});
     /* the final order */
@@ -5321,6 +5684,8 @@ function castCitadel(t,c0,P,o,XO){const D=XO?Object.assign({},CITD,XO):CITD,lg=D
     for(const q of ghosts){if(q.life>0){q.life-=dt;q.m.material.opacity=D.ghostA*Math.max(0,q.life/D.ghostL);if(q.life<=0)q.m.visible=false;}}
     if(T>=T_COL&&CIT.on)CIT.on=false;
     if(T>=T_COL+1.1&&hum){hum.fade(1.2);hum=null;citSnd('end');}
+    /* v478: the looks follow the cast */
+    VS.gl=gl;VS.acc=acc;VS.k=clamp((T-T_SL0)/(T_SL1-T_SL0),0,1);VS.fsOn=fsOn;VS.U=T-T_FS;V.frame(T,dt,VS);
   },()=>finish(),{mats,geos});
 }
 
@@ -34113,9 +34478,9 @@ SM_D.citadel=[
 SMF.citadel={m:1};
 SMA.citadel=[1,1,1,1,1];
 SMG.citadel=[1.081,1.029,1.085,1.152,1.077];
-/* Keener Orders: the cut's seam, shown (the base cast makes it with every cut and never shows it), with a white-hot core and a cold glow
-   round it (the old shader, CIT_STRIP_FS, is a thin pale line) */
-const CIM_STRIP_FS='varying vec2 vUv;uniform float uA;void main(){float tp=sin(3.14159*vUv.x);float d=abs(vUv.y-.5)*2.;float core=smoothstep(tp*.16+.012,0.,d),hot=smoothstep(tp*.07+.006,0.,d),glow=exp(-d*d*5.)*tp*tp*.3;float a=(core*.85+hot*.6+glow)*uA;if(a<.003)discard;gl_FragColor=vec4(mix(vec3(.58,.86,1.),vec3(1.),clamp(hot+core*.45,0.,1.)),min(1.,a));}';
+/* Keener Orders: the cut's seam, shown (the base cast makes it with every cut and never shows it): v478, a blade of gold-white light rising
+   from the wound with a white-hot foot, leaning back over it (the old shader, CIT_STRIP_FS, is a thin pale line) */
+const CIM_STRIP_FS='varying vec2 vUv;uniform float uA;void main(){float tp=pow(max(sin(3.14159*vUv.x),0.),.8),y=vUv.y,core=exp(-pow(y/.06,2.))*tp,sheet=exp(-y*2.4)*tp*tp*.85*(.75+.25*sin(vUv.x*60.-y*14.)),edge=exp(-pow((y-.9*tp)/.06,2.))*tp*.7;float a=(core*1.4+sheet+edge)*uA;if(a<.003)discard;gl_FragColor=vec4(mix(vec3(1.,.78,.38),vec3(1.,.98,.92),clamp(core*1.5+edge,0.,1.)),min(1.,a));}';
 /* this cast's numbers and looks (castCitadel's XO), cumulative: Mastery L has masteries 1..L */
 function cimOpts(c){const L=c.L,a=c.a,X={};
   if(L>=1){X.R=CIM.R;X.pH=1.2;X.uI=1.15;}
