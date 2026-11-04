@@ -35236,6 +35236,321 @@ function gmxAfter(b,how){const n={};for(const [t,e0] of b){const d=(t.earned||0)
 {const k0=kill;kill=function(){const b=gmxBefore('merchant');const r=k0.apply(this,arguments);if(b.length)try{gmxAfter(b,'bounty');}catch(err){console.error(err);}return r;};}
 {const mp=mxPay;mxPay=function(t){const b=t&&GOLD_T.includes(t.type)?[[t,t.earned||0]]:[];const r=mp.apply(this,arguments);try{gmxAfter(b,'payout');}catch(err){console.error(err);}return r;};}
 /* ---- end of v476 ---- */
+/* ================= Armoured bosses (v483) ================= */
+const ARB={kits:{},stat:{},att:new WeakMap()},ARB_M=new WeakMap();
+const ARB_MET=new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:38,specular:0x34383e});
+const ARB_GILD=new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:60,specular:0x8a7040});
+const ARB_MATS={m:ARB_MET,g:ARB_GILD,d:VCMAT,e:VCMAT_GLOW};
+/* every boss model remembers its parts (wings, heads, jaws, tail, limbs, spinners), so the armour can find the moving part it sits on */
+{const em=enemyModel;enemyModel=function(){const m=em.apply(this,arguments);if(m&&m.b)ARB_M.set(m.b,m);return m;};}
+{const um=unitModel;unitModel=function(){const m=um.apply(this,arguments);if(m&&m.b)ARB_M.set(m.b,m);return m;};}
+const ARB_UB=new THREE.BoxGeometry(1,1,1),ARB_UO=new THREE.OctahedronGeometry(1,0),ARB_UI=new THREE.IcosahedronGeometry(1,0),ARB_UC=new THREE.ConeGeometry(1,1,4),ARB_UC6=new THREE.ConeGeometry(1,1,6),ARB_UY=new THREE.CylinderGeometry(1,1,1,8);
+const ARB_V=[0,1,2,3,4,5].map(()=>new THREE.Vector3()),ARB_MX=new THREE.Matrix4(),ARB_MX2=new THREE.Matrix4(),ARB_Q=new THREE.Quaternion();
+/* a kit: parts named 'part' or 'part*mat' (m steel, g gilded, d matte, e glowing), one merged geometry per part and material, cached per key */
+function arbKit(key,build){let K=ARB.kits[key];if(K)return K;const {B,P}=kitBuilder(),H=kitHelpers(P);
+  const PM=(k,geo,col,mx)=>(B[k]||(B[k]=[])).push({geo,col,m:mx.clone()});
+  const V=(a)=>Array.isArray(a)?new THREE.Vector3(a[0],a[1],a[2]):a.clone();
+  /* plate box: w,h,d at x,y,z with euler rotation */
+  const pl=(k,w,h,d,x,y,z,rx,ry,rz,col)=>P(k,ARB_UB,col,x,y,z,rx,ry,rz,w,h,d);
+  const riv=(k,x,y,z,r,col)=>P(k,ARB_UO,col,x,y,z,0,0,0,r,r,r);
+  const ball=(k,x,y,z,rx,ry,rz,col)=>P(k,ARB_UI,col,x,y,z,0,0,0,rx,ry,rz);
+  /* a cone from A along dir (len, base radius r), four- or six-sided */
+  const horn=(k,A,dir,len,r,col,six)=>{const d=V(dir).normalize();ARB_Q.setFromUnitVectors(ARB_V[5].set(0,1,0),d);ARB_MX.compose(ARB_V[4].set(A[0]+d.x*len/2,A[1]+d.y*len/2,A[2]+d.z*len/2),ARB_Q,ARB_V[3].set(r,len,r));PM(k,six?ARB_UC6:ARB_UC,col,ARB_MX);};
+  /* a box laid along a bone from A to B (thickness w x h, h along `up`) */
+  const strip=(k,A,Bp,w,h,up,col,ext)=>{const a=V(A),b=V(Bp),d=b.clone().sub(a),L=d.length();d.normalize();const u=V(up||[0,1,0]);u.sub(d.clone().multiplyScalar(u.dot(d))).normalize();const x=new THREE.Vector3().crossVectors(u,d);
+    ARB_MX.makeBasis(x,u,d);ARB_MX.scale(ARB_V[3].set(w,h,L*(ext||1)));ARB_MX.setPosition(a.add(b).multiplyScalar(.5));PM(k,ARB_UB,col,ARB_MX);};
+  /* plates on an elliptical arc round an axis: c centre, ax the axis (the plates' length), up the direction of angle 0, rx sideways (ax x up), ry along up;
+     n plates from a0 to a1; each len long and th thick, the trailing (-ax) edge lifted by tilt so the rows overlap like scales. o: {w,col2,sh (geo), riv:[r,col]} */
+  const arc=(k,c,ax,up,rx,ry,a0,a1,n,len,th,col,o)=>{o=o||{};const C0=V(c),A=V(ax).normalize(),U=V(up);U.sub(A.clone().multiplyScalar(U.dot(A))).normalize();const S=new THREE.Vector3().crossVectors(A,U);
+    const at=(a,out)=>out.copy(C0).addScaledVector(U,Math.cos(a)*ry).addScaledVector(S,Math.sin(a)*rx);const da=n>1?(a1-a0)/(n-1):(a1-a0);
+    for(let i=0;i<n;i++){const a=n>1?a0+da*i:(a0+a1)/2,p=at(a,new THREE.Vector3()),N=new THREE.Vector3().copy(U).multiplyScalar(Math.cos(a)/ry).addScaledVector(S,Math.sin(a)/rx).normalize(),T=new THREE.Vector3().crossVectors(N,A);
+      const w=o.w||at(a+da*.5,ARB_V[0]).distanceTo(at(a-da*.5,ARB_V[1]))*(o.ov||1.18);
+      ARB_MX.makeBasis(T,N,A);ARB_MX.setPosition(p);if(o.tilt)ARB_MX.multiply(ARB_MX2.makeRotationX(o.tilt));ARB_MX.scale(ARB_V[3].set(w,th,len));PM(k,o.geo||ARB_UB,(o.col2!=null&&i%2)?o.col2:col,ARB_MX);
+      if(o.riv){const q=p.clone().addScaledVector(N,th*.5).addScaledVector(A,len*.3);ARB_MX.makeTranslation(q.x,q.y,q.z);ARB_MX.scale(ARB_V[3].setScalar(o.riv[0]));PM(k,ARB_UO,o.riv[1],ARB_MX);}
+      if(o.spk){const q=p.clone().addScaledVector(N,th*.5),d=N.clone().addScaledVector(A,-o.spk[3]||0).normalize();horn(k,[q.x,q.y,q.z],d,o.spk[0],o.spk[1],o.spk[2]);}}};
+  build({P,pl,riv,ball,horn,strip,arc,seg:H.seg,spike:H.spike,V});
+  K={};for(const k in B){const[part,mt]=k.split('*');(K[part]||(K[part]=[])).push({geo:mergeParts(B[k]),mat:ARB_MATS[mt||'m']});}
+  let tri=0;for(const p in K)for(const q of K[p])tri+=q.geo.attributes.position.count/3;ARB.stat[key]={parts:Object.keys(K).length,tri:Math.round(tri)};ARB.kits[key]=K;return K;}
+/* puts each part of the kit on its part of the model: T[part] = [[object,x,y,z],...]; pieces on the body go into the dress group, the rest onto
+   their bones and leave with the dress (Bestiary toggles) */
+function arbDress(C,K,T){const g=C.g,att=[];for(const part in K){const L=T[part];if(!L)continue;for(const t of L){const obj=t[0];if(!obj)continue;
+    for(const q of K[part]){const me=new THREE.Mesh(q.geo,q.mat);me.userData.arb=part;me.position.set(t[1]||0,t[2]||0,t[3]||0);if(obj===g)g.add(me);else{obj.add(me);att.push(me);}}}}
+  if(att.length){const f=()=>{g.removeEventListener('removed',f);for(const me of att)if(me.parent)me.parent.remove(me);};g.addEventListener('removed',f);}
+  ARB.att.set(g,{type:C.type,att});return att;}
+const arbModel=C=>C.body&&C.body.parent?ARB_M.get(C.body.parent):null;
+/* ---- dragons: scale-plate barding on the flanks, a peytral on the chest, lamellar collars on every neck, a helm per style on every head, a chin guard
+   on every jaw, guards on both wing arms, plated rings down the tail and a sheath over the spade. One style per dragon. */
+const ARB_DRG={
+  dragon:{st:'war',P:0x6c737d,P2:0x535963,T:0xb88a46,R:0xe4dccb,L:0x4a2e1c},
+  dragon2:{st:'merc',P:0x4c5058,P2:0x3c4048,T:0x6a4426,R:0xb0b4bc,L:0x5a3a22},
+  dragon2a:{st:'gild',P:0xd8aa3c,P2:0xb88a2a,T:0xf0cc60,R:0xfff0b0,L:0x5a3a22},
+  dragon3:{st:'royal',P:0xa8b0ba,P2:0x8e96a2,A:0x2c3c84,T:0xd8b048,R:0xf4dc84,L:0x2a2a40},
+  dragon3a:{st:'obs',P:0x1e1e26,P2:0x2c2c36,T:0xe6b440,R:0xffdc78,L:0x1a1a20},
+  wyrm:{st:'bronze',P:0xa07a46,P2:0x86643a,A:0x5e9a86,T:0xc8a060,R:0xe8dcc0,L:0x3a2a1a}};
+function arbDragonKit(form){return arbKit('drg_'+form,({pl,riv,ball,horn,strip,arc})=>{const S=ARB_DRG[form],F=DRG_FORM[form],A=!!F.armor,SP=!!F.spiky,st=S.st;
+  const gold=st==='gild'||st==='obs'||st==='royal'||st==='war'||st==='bronze',tk=k=>gold?k+'*g':k+'*d',mk=k=>(st==='gild'?k+'*g':k);
+  const P=S.P,P2=S.P2,T=S.T,R=S.R,lift=A?.014:0;
+  /* torso barding: overlapping scale-plate bands down both flanks (the back stays open for the wings and the dorsal spikes) */
+  for(let i=0;i<7;i++){const z=.17-i*.055,f=Math.sqrt(Math.max(.05,1-((z-.02)/.2145)**2)),rx=.13*f+.008+lift,ry=.112*f+.007+lift;
+    [-1,1].forEach(s=>arc(mk('body'),[0,0,z],[0,0,-1],[0,-1,0],rx,ry,s*.62,s*1.82,4,.066,.008,i%2?P2:P,{tilt:.14,ov:1.08,riv:i%2?null:[.006,R]}));
+  }
+  /* peytral: curved lames over the lower chest, between the forelegs and the neck */
+  for(let r=0;r<3;r++){const y=-.06+r*.03;arc(mk('body'),[0,y,.1],[0,1,0],[0,0,1],.1-r*.004+lift,.135-r*.006+lift,-1.05,1.05,5,.034,.012,r%2?(S.A||P2):P,{tilt:-.3});}
+  arc(tk('body'),[0,-.012,.1],[0,1,0],[0,0,1],.104+lift,.142+lift,-1.1,1.1,7,.01,.01,T);
+  if(st==='war'||st==='royal'||st==='obs'){ball(tk('body'),0,-.03,.245+lift,.022,.022,.012,T);if(st!=='war')riv(tk('body'),0,-.03,.258+lift,.012,R);}
+  if(st==='merc'){/* leather girth strap and buckle round the barrel */arc('body*d',[0,0,-.02],[0,0,-1],[0,-1,0],.142,.124,-1.9,1.9,9,.03,.008,S.L,{});pl('body',.03,.03,.008,.142,-.0,-.02,0,1.57,0,R);}
+  /* thigh plates and knee caps on the tucked legs */
+  [-1,1].forEach(s=>{arc(mk('body'),[s*.09,-.05,-.1],[0,0,-1],[0,0,0].map((_,j)=>j===0?s:0),.07,.075,-.9,.9,3,.11,.012,P,{tilt:.15});
+    ball(mk('body'),s*.1,-.12,.18,.026,.022,.028,P2);horn(tk('body'),[s*.1,-.125,.2],[0,-.2,1],.03,.008,T);});
+  /* ---- neck collars (head kit space, so they ride every head) ---- */
+  const N=[[0,.06,.2,.078],[0,.12,.27,.068],[0,.17,.34,.06]],AX=[0,.618,.786],UP=[0,.786,-.618];
+  for(let i=0;i<6;i++){const t=i/5,q=[0,1,2,3].map(j=>N[0][j]+(N[2][j]-N[0][j])*t);
+    arc(mk('head'),[q[0],q[1]-.006,q[2]],AX,UP,q[3]+.006+lift,q[3]*1.08+.006+lift,-1.45,1.45,5,.06,.008,i%2?P2:P,{tilt:.14,ov:1.1,riv:i%2?null:[.005,R]});
+    if(i%2===0)horn(tk('head'),[q[0],q[1]+q[3]*1.08+.012+lift,q[2]-.01],[0,1,-.7],.035,.01,T);}
+  /* ---- helm (one per style) ---- */
+  const HY=.2,HZ=.43,dy=A?.022:0;
+  pl(mk('head'),.138,.012,.1,0,HY+.054+dy,HZ-.012,0,0,0,P);pl(mk('head'),.084,.01,.15,0,HY+.049+dy*.6,HZ+.1,.12,0,0,P2);pl(mk('head'),.02,.016,.24,0,HY+.06+dy,HZ+.05,.06,0,0,P);
+  pl(tk('head'),.14,.008,.012,0,HY+.061+dy,HZ+.04,0,0,0,T);
+  [-1,1].forEach(s=>{pl(mk('head'),.045,.008,.05,s*.05,HY+.054+dy,HZ+.045,0,s*.3,s*-.35,P2);pl(mk('head'),.008,.03,.07,s*.069,HY-.022,HZ+.02,0,0,s*.12,P2);riv(tk('head'),s*.074,HY-.02,HZ+.045,.006,R);});
+  if(st==='war'){horn(mk('head'),[0,HY+.062+dy,HZ+.05],[0,.55,1],.075,.015,R);[-1,1].forEach(s=>horn(mk('head'),[s*.07,HY+.06,HZ+.0],[s,.35,-.15],.075,.014,P2));}
+  if(st==='merc'){strip(tk('head'),[0,HY+.058,HZ-.05],[0,HY+.04,HZ+.18],.022,.014,[0,1,0],S.L);pl('head*d',.112,.02,.016,0,HY+.01,HZ+.13,0,0,0,S.L);
+    [-1,1].forEach(s=>pl('head',.016,.022,.02,s*.057,HY+.01,HZ+.13,0,0,0,R));for(let i=0;i<4;i++)riv('head',0,HY+.066-i*.006,HZ-.03+i*.06,.006,R);}
+  if(st==='gild'){for(let i=0;i<5;i++){const z=HZ-.04+i*.03,h=.05+Math.sin(i/4*Math.PI)*.035;pl('head*g',.008,h,.026,0,HY+.064+dy+h/2,z,-.25,0,0,i%2?P2:P);}
+    pl('head*g',.01,.012,.16,0,HY+.064+dy,HZ+.02,0,0,0,T);}
+  if(st==='royal'){for(let i=0;i<10;i++){const a=i/10*Math.PI*2,x=Math.cos(a)*.062,z=HZ-.005+Math.sin(a)*.055;horn('head*g',[x,HY+.062,z],[Math.cos(a)*.25,1,Math.sin(a)*.25],i%2?.03:.05,.01,i%2?T:R);}
+    arc('head*g',[0,HY+.066,HZ-.005],[0,1,0],[0,0,1],.066,.06,0,Math.PI*2*.95,12,.014,.008,T);ball('head',0,HY+.07,HZ+.055,.014,.014,.01,0xc02040);}
+  if(st==='obs'){pl('head*g',.11,.072,.15,0,HY-.008,HZ+.105,.0,0,0,T);pl('head',.112,.014,.152,0,HY+.03,HZ+.106,.0,0,0,P);
+    [-1,1].forEach(s=>{horn('head*g',[s*.05,HY+.07+dy,HZ+.02],[s*.4,.8,-.7],.12,.016,T,true);pl('head',.008,.008,.04,s*.03,HY+.02,HZ+.182,0,0,0,0x080808);});}
+  if(st==='bronze'){for(let i=0;i<3;i++)horn('head*g',[0,HY+.062,HZ-.04+i*.05],[0,1,-.4],.06+i*.012,.012,i%2?S.A:T);[-1,1].forEach(s=>pl('head',.012,.03,.06,s*.06,HY+.04,HZ+.1,0,0,0,P2));}
+  /* ---- chin guard on the jaw ---- */
+  pl(mk('jaw'),.092,.012,.14,0,-.031,.08,0,0,0,P);pl(tk('jaw'),.094,.008,.012,0,-.026,.148,0,0,0,T);[-1,1].forEach(s=>pl(mk('jaw'),.01,.022,.12,s*.046,-.016,.075,0,0,0,P2));
+  if(st==='obs'||st==='gild')horn('jaw*g',[0,-.036,.13],[0,-.6,.6],.04,.012,T);
+  /* ---- wing-arm guards: lames down the upper arm, a spiked couter at the elbow, a forearm guard, a knuckle cap at the wrist ---- */
+  [-1,1].forEach(s=>{const k=s<0?'wingL':'wingR',X=p=>[p[0]*s,p[1],p[2]],SH=[0,0,0],EL=[.17,.05,-.03],WR=[.33,.03,.07],r0=(A?.044:.034);
+    for(let i=0;i<3;i++){const t=.2+i*.27,c=[SH[0]+(EL[0]-SH[0])*t,SH[1]+(EL[1]-SH[1])*t,SH[2]+(EL[2]-SH[2])*t];arc(mk(k),X(c),X([EL[0]-SH[0],EL[1]-SH[1],EL[2]-SH[2]]),[0,1,0],r0,r0,-1.45,1.45,4,.06,.01,i%2?P2:P,{tilt:.22});}
+    ball(mk(k),...X(EL),.032,.026,.032,P2);horn(tk(k),X(EL),[s*.2,.4,-1],.06,.014,T);
+    for(let i=0;i<2;i++){const t=.3+i*.4,c=[EL[0]+(WR[0]-EL[0])*t,EL[1]+(WR[1]-EL[1])*t,EL[2]+(WR[2]-EL[2])*t];arc(mk(k),X(c),X([WR[0]-EL[0],WR[1]-EL[1],WR[2]-EL[2]]),[0,1,0],r0-.006,r0-.006,-1.4,1.4,4,.07,.01,i%2?P:P2,{tilt:.2});}
+    ball(tk(k),...X(WR),.026,.02,.026,T);horn(mk(k),X(WR),[s*.25,.5,1],.05,.012,R);});
+  /* ---- tail: two plated rings per segment, then a sheath over the spade with a blade ---- */
+  const TL=[.12,.11,.1,.09,.08];TL.forEach((L,i)=>{const k='tail'+i,r1=.062-i*.01,r2=Math.max(.012,.052-i*.01);
+    if(i<4){const r=r1+(r2-r1)*.5+.006+lift;arc(mk(k),[0,0,-L*.5],[0,0,-1],[0,1,0],r,r*.95,-1.35,1.35,3,L*.96,.007,i%2?P2:P,{tilt:.22,ov:1.05});
+      arc(tk(k),[0,0,-L*.14],[0,0,-1],[0,1,0],r1+.011+lift,r1*.95+.011+lift,-1.3,1.3,3,.009,.006,T,{ov:1.05});}});
+  ball(mk('tail4'),0,0,-.11,.066,.026,.1,P);ball(tk('tail4'),0,.004,-.11,.05,.024,.08,T);
+  if(!SP){horn(mk('tail4'),[0,0,-.18],[0,0,-1],.11,.02,R);[-1,1].forEach(s=>horn(mk('tail4'),[s*.05,0,-.12],[s,0,-.7],.06,.012,R));}
+  else [-1,1].forEach(s=>pl(tk('tail4'),.03,.008,.08,s*.05,0,-.13,0,s*.6,0,T));});}
+const arbDragon=C=>{const m=arbModel(C);if(!m||!m.heads||!m.tail||!m.wings){armorClass(C);return;}const K=arbDragonKit(C.type);
+  arbDress(C,K,{body:[[C.g]],head:m.heads.map(h=>[h,0,-.05,-.17]),jaw:(m.jaws||[m.jaw]).map(j=>[j]),wingL:[[m.wings[0]]],wingR:[[m.wings[1]]],
+    tail0:[[m.tail[0]]],tail1:[[m.tail[1]]],tail2:[[m.tail[2]]],tail3:[[m.tail[3]]],tail4:[[m.tail[4]]]});};
+['dragon','dragon2','dragon2a','dragon3','dragon3a','wyrm'].forEach(k=>ARMOR_D[k]=arbDragon);
+/* ---- kikimora: bark and bone. Shingled bark slabs lashed with vine over the abdomen, bone ribs arching over the back, a bone skull-cap with horns,
+   bark greaves and bone bands on all eight legs, bone vambraces on the scythe arms ---- */
+function arbKikiKit(){return arbKit('kikimora',({pl,riv,ball,horn,strip,arc})=>{const BK=0x4a3626,BK2=0x5e4530,BK3=0x3a2a1e,LI=0x5a6a3a,VI=0x33441e,BO=0xdccfb2,BO2=0xbcae90;
+  for(let i=0;i<6;i++){const z=-.06-i*.06,f=Math.sqrt(Math.max(.08,1-((z+.22)/.224)**2)),rx=.17*f+.014,ry=.139*f+.014;
+    arc('body*d',[0,.27,z],[0,0,-1],[0,1,0],rx,ry,-1.65,1.65,5,.075,.016,i%2?BK2:BK,{tilt:.24,col2:i%3?BK3:BK2});
+    if(i%2)horn('body*d',[0,.27+ry+.01,z],[0,1,-.5],.05,.014,BO);}
+  ball('body*d',-.06,.4,-.16,.035,.012,.03,LI);ball('body*d',.07,.39,-.27,.03,.012,.035,LI);
+  [-.13,-.29].forEach(z=>{const f=Math.sqrt(Math.max(.08,1-((z+.22)/.224)**2));arc('body*d',[0,.27,z],[0,0,-1],[0,1,0],.17*f+.03,.139*f+.03,-1.8,1.8,9,.012,.012,VI);});
+  /* bone ribs over the cephalothorax and a skull-cap with horns over the head (the eyes stay clear) */
+  [.02,.08,.14].forEach((z,i)=>arc('body*d',[0,.21,z],[0,0,1],[0,1,0],.13+.01,.088+.012,-1.55,1.55,7,.018,.013,i%2?BO2:BO));
+  ball('body*d',0,.282,.225,.07,.03,.06,BO);pl('body*d',.1,.012,.03,0,.272,.262,.3,0,0,BO2);
+  [-1,1].forEach(s=>{horn('body*d',[s*.04,.29,.22],[s*.5,1,-.4],.08,.016,BO,true);horn('body*d',[s*.065,.27,.25],[s,.2,.1],.04,.01,BO2);});
+  /* legs: bark greave on the upper limb, bone spur at the knee, bone bands on the shin */
+  for(let i=0;i<4;i++)[-1,1].forEach(s=>{const k='leg'+i+(s<0?'L':'R'),L=1-Math.abs(i-1.5)*.07,p1=[.2*L*s,.17,0],p2=[.42*L*s,-.21,0];
+    const mid=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+    arc(k+'*d',mid([0,0,0],p1,.55),p1,[0,1,0],.032,.032,-1.7,1.7,3,.11,.012,i%2?BK:BK2,{tilt:.12});
+    horn(k+'*d',p1,[s*.3,1,0],.06,.012,BO);
+    [.3,.52].forEach(t=>arc(k+'*d',mid(p1,p2,t),[p2[0]-p1[0],p2[1]-p1[1],0],[0,0,1],.022-t*.012,.022-t*.012,0,Math.PI*2*.86,6,.014,.008,BO2));});
+  /* scythe arms */
+  [-1,1].forEach(s=>{const k='arm'+(s<0?'L':'R')+'*d',X=q=>[q[0]*s,q[1],q[2]],E=X([.12,.2,.08]),W=X([.16,.1,.24]);
+    arc(k,X([.06,.1,.04]),X([.12,.2,.08]),[0,0,1],.03,.03,-1.5,1.5,3,.09,.01,BK2,{tilt:.1});
+    [.25,.5,.75].forEach(t=>arc(k,[E[0]+(W[0]-E[0])*t,E[1]+(W[1]-E[1])*t,E[2]+(W[2]-E[2])*t],[W[0]-E[0],W[1]-E[1],W[2]-E[2]],[0,1,0],.026,.026,0,Math.PI*2*.86,6,.016,.008,t===.5?BO2:BO));
+    horn(k,E,[s*.4,1,-.6],.06,.012,BO);});});}
+ARMOR_D.kikimora=C=>{const m=arbModel(C),L=m&&m.limbs;if(!L||!L.legs||L.legs.length!==8||!L.arms){armorClass(C);return;}const K=arbKikiKit(),T={body:[[C.g]]};
+  L.legs.forEach((q,j)=>T['leg'+(j>>1)+(q.s<0?'L':'R')]=[[q.p]]);L.arms.forEach(a=>T['arm'+(a.s<0?'L':'R')]=[[a.p]]);arbDress(C,K,T);};
+
+/* ---- the ogre, one set per variant: the Brute in scavenged scrap (a cauldron for a helm, a barrel-lid on his belly, a pot-lid pauldron), the Chieftain in
+   trophy plate (barred visor and bronze brow band, a skull-bossed breastplate, spiked pauldrons, greaves), the Scarred Ogre in riveted slabs (a bucket helm
+   with one eye-slit, chain wound round his arm). The Gem Carrier keeps his crown bare. ---- */
+function arbOgreKit(v){const sty=v===1?1:v===2?2:0,bare=v===3;return arbKit('ogre'+sty+(bare?'c':''),({pl,riv,ball,horn,strip,arc,P})=>{
+  const IR=0x4a4e56,IR2=0x3a3d44,RU=0x7a4a2c,WO=0x6a4a2a,WO2=0x5a3c22,RO=0x9a8a5a,LE=0x5a3a22,BR=0xb8863c,BO=0xe8dcc0,Hy=.47,Hz=.05;
+  if(sty===0){/* a barrel-lid strapped over the belly, rope over the shoulders, a rusty back plate */
+    P('body*d',ARB_UY,WO,0,.275,.14,Math.PI/2,0,0,.088,.016,.088);[.3,.25].forEach(y=>pl('body',.16,.014,.012,0,y,.152,0,0,0,IR));ball('body',0,.275,.152,.02,.02,.012,IR2);
+    for(let i=0;i<4;i++)riv('body',-.06+i*.04,.3,.16,.006,0xc8c0b0);
+    [-1,1].forEach(s=>{strip('body*d',[s*.07,.33,.14],[s*.1,.42,.0],.02,.01,[0,0,1],RO);strip('body*d',[s*.1,.42,.0],[s*.08,.32,-.09],.02,.01,[0,0,-1],RO);});
+    pl('body',.19,.13,.014,.0,.3,-.084,.08,0,.05,RU);pl('body',.08,.06,.016,.05,.26,-.09,.08,0,-.2,IR);
+    if(!bare){/* cauldron helm, rim, two handle lugs, a dent */P('body',ARB_UY,IR2,0,.52,Hz,0,0,0,.07,.068,.07);P('body',ARB_UY,IR,0,.488,Hz,0,0,0,.078,.012,.078);
+      [-1,1].forEach(s=>{pl('body',.014,.02,.012,s*.074,.53,Hz,0,0,0,IR);});pl('body',.03,.02,.01,.03,.54,Hz+.068,0,.3,.2,0x2e3036);strip('body*d',[-.06,.49,Hz+.02],[.06,.49,Hz+.02],.008,.008,[0,1,0],RO);}
+    [-1,1].forEach(s=>pl(s<0?'legL':'legR',.07,.05,.012,0,-.085,.05,0,0,0,IR));
+    P('armL',ARB_UY,IR,-.035,.035,0,0,0,-.6,.07,.014,.07);ball('armL',-.04,.05,0,.014,.01,.014,IR2);
+    arc('armL*d',[0,-.2,0],[0,-1,0],[0,0,1],.05,.05,0,Math.PI*2*.88,8,.03,.008,LE);arc('armR',[0,-.2,0],[0,-1,0],[0,0,1],.05,.05,0,Math.PI*2*.88,8,.04,.01,IR);}
+  if(sty===1){/* skull-bossed breastplate in three lames with a bronze top edge */
+    [.25,.3,.35].forEach((y,i)=>arc('body',[0,y,0],[0,1,0],[0,0,1],.122+i*.004,.14-i*.004,-1.25,1.25,5,.052,.012,i%2?IR2:IR,{tilt:-.15,riv:[.005,0xd0c8b8]}));
+    arc('body*g',[0,.375,0],[0,1,0],[0,0,1],.128,.138,-1.25,1.25,5,.012,.01,BR);
+    ball('body*d',0,.305,.156,.032,.03,.018,BO);[-1,1].forEach(s=>pl('body*d',.014,.012,.006,s*.012,.31,.172,0,0,0,0x1a1210));pl('body*d',.02,.008,.006,0,.292,.172,0,0,0,0x1a1210);
+    pl('body',.2,.14,.014,0,.3,-.084,.08,0,0,IR2);
+    /* barred visor and brow band over the horned helm */
+    arc('body*g',[0,.5,Hz],[0,1,0],[0,0,1],.084,.084,0,Math.PI*2*.92,12,.018,.01,BR,{riv:[.005,0xf0e0b0]});
+    for(let i=0;i<5;i++)pl('body',.007,.064,.008,-.03+i*.015,.47,Hz+.078,0,0,0,IR2);pl('body',.075,.01,.01,0,.445,Hz+.076,0,0,0,IR);
+    /* pauldrons ride the arms: two lames and three spikes */
+    [-1,1].forEach(s=>{const k=s<0?'armL':'armR';arc(k,[s*-.005,.005,0],[s,0,0],[0,1,0],.07,.07,-1.75,1.75,5,.05,.012,IR,{tilt:-.12});arc(k,[s*.03,-.012,0],[s,0,0],[0,1,0],.064,.064,-1.7,1.7,5,.04,.012,IR2,{tilt:-.12});
+      for(let j=0;j<3;j++)horn(k,[s*(.0+j*.02),.07,-.03+j*.03],[s*.4,1,0],.06,.012,0xd8d0c0);
+      arc(k,[0,-.2,0],[0,-1,0],[0,0,1],.052,.052,0,Math.PI*2*.88,8,.07,.01,IR,{});arc(k+'*g',[0,-.165,0],[0,-1,0],[0,0,1],.056,.056,0,Math.PI*2*.88,8,.012,.008,BR);
+      const g=s<0?'legL':'legR';arc(g,[0,-.1,0],[0,-1,0],[0,0,1],.054,.054,-1.85,1.85,5,.1,.01,IR,{riv:[.005,0xd0c8b8]});ball(g,0,-.06,.05,.026,.022,.016,IR2);});}
+  if(sty===2){/* riveted slabs front and back, a bucket helm with one slit (his good eye glows through), chain round the left arm */
+    arc('body',[0,.29,0],[0,1,0],[0,0,1],.122,.15,-1.15,1.15,4,.15,.014,IR,{riv:[.006,0xc8c4bc],col2:IR2});arc('body',[0,.29,0],[0,1,0],[0,0,-1],.12,.09,-1.05,1.05,4,.15,.014,IR2,{riv:[.006,0xc8c4bc]});
+    for(let i=0;i<5;i++)riv('body',-.08+i*.04,.355,.152,.006,0xc8c4bc);
+    P('body',ARB_UY,IR2,0,.485,Hz,0,0,0,.076,.1,.076);P('body',ARB_UY,IR,0,.538,Hz,0,0,0,.07,.012,.07);arc('body',[0,.45,Hz],[0,1,0],[0,0,1],.08,.08,0,Math.PI*2*.92,10,.014,.008,IR);
+    pl('body*d',.03,.008,.01,-.026,.48,Hz+.074,0,0,0,0x0a0606);pl('body*e',.012,.005,.004,-.026,.48,Hz+.077,0,0,0,0xff4020);
+    for(let i=0;i<3;i++)riv('body',.02+i*.012,.46,Hz+.077,.004,0x1a1a1a);
+    pl('armR',.07,.016,.08,.0,.055,0,0,0,0,IR);riv('armR',0,.065,0,.008,0xc8c4bc);arc('armR',[0,-.2,0],[0,-1,0],[0,0,1],.05,.05,-1.9,1.9,5,.09,.012,IR2,{riv:[.005,0xc8c4bc]});
+    for(let i=0;i<22;i++){const a=i*1.05,y=-.04-i*.0095;P('armL',LINK_GEO,IR,Math.cos(a)*.05,y,Math.sin(a)*.05,i%2?0:Math.PI/2,-a,.35,.42,.42,.42);}
+    [-1,1].forEach(s=>{const g=s<0?'legL':'legR';pl(g,.075,.06,.014,0,-.09,.052,0,0,0,IR);riv(g,-.025,-.07,.06,.005,0xc8c4bc);riv(g,.025,-.07,.06,.005,0xc8c4bc);});}});}
+ARMOR_D.ogre=C=>{const m=arbModel(C),L=m&&m.limbs;if(!L||!L.armL||!L.legL){armorClass(C);return;}const K=arbOgreKit(C.variant||0);
+  arbDress(C,K,{body:[[C.g]],armL:[[L.armL]],armR:[[L.armR]],legL:[[L.legL]],legR:[[L.legR]]});};
+/* ---- golems: iron bands round the boulders and riveted rune plates bolted into the stone. The stone golem's runes are cut and filled with copper;
+   the runebound golem's plates are blackened and its runes burn cyan, framing the chest sigil instead of covering it ---- */
+function arbGolemKit(rune){return arbKit(rune?'golem2':'golem',({pl,riv,ball,horn,strip,arc})=>{const IR=rune?0x2c2a32:0x4a4c52,IR2=rune?0x3a3842:0x5c5e66,RV=rune?0x8a8898:0xb8b4aa,RU=rune?0x6ff0ff:0xc07a3a,rk=rune?'*e':'*g';
+  const bolt=(k,x,y,z)=>riv(k,x,y,z,.009,RV);
+  /* two bands round the torso boulder */
+  [.39,.52].forEach((y,i)=>{const f=Math.sqrt(1-((y-.45)/.17)**2);arc('body',[0,y,0],[0,1,0],[0,0,1],.218*f+.012,.16*f+.012,0,Math.PI*2*.93,14,.032,.014,i?IR2:IR,{riv:[.006,RV]});});
+  /* rune plates: the stone golem a single chest plate, the runebound four plates framing its sigil */
+  if(!rune){pl('body',.11,.1,.014,0,.455,.168,-.06,0,0,IR2);[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>bolt('body',a*.046,.455+b*.041,.177));
+    [[0,.47,0,.05],[-.02,.445,.7,.035],[.02,.445,-.7,.035],[0,.43,1.57,.04]].forEach(([x,y,r,l])=>pl('body'+rk,.008,l,.004,x,y,.177,-.06,0,r,RU));}
+  else{[[-.07,.465,.03,.1],[.07,.465,.03,.1],[0,.525,.09,.03],[0,.405,.09,.03]].forEach(([x,y,w,h],i)=>{pl('body',i<2?w:.11,i<2?h:w,.014,x,y,.168,-.06,0,0,IR2);});
+    [-1,1].forEach(s=>{bolt('body',s*.07,.505,.177);bolt('body',s*.07,.425,.177);pl('body'+rk,.006,.05,.004,s*.07,.465,.177,-.06,0,0,RU);pl('body'+rk,.02,.004,.004,s*.07,.48,.177,-.06,0,0,RU);});}
+  [-1,1].forEach(s=>{/* side plates on the flanks */pl('body',.012,.09,.09,s*.232,.45,0,0,0,s*.1,IR);bolt('body',s*.24,.48,.03);bolt('body',s*.24,.42,-.03);pl('body'+rk,.004,.05,.006,s*.24,.45,0,0,0,s*.1,RU);});
+  /* iron brow band over the eyes */
+  arc('body',[0,.655,.08],[0,1,0],[0,0,1],.074,.068,-1.3,1.3,5,.024,.012,IR2,{riv:[.006,RV]});
+  /* shoulders (on the arms): an iron cap; forearm bands, a knuckle bar with studs */
+  [-1,1].forEach(s=>{const k=s<0?'armL':'armR';arc(k,[s*.0,-.02,0],[s,0,0],[0,1,0],.09,.086,-1.8,1.8,7,.06,.012,IR,{tilt:-.14,riv:[.007,RV]});arc(k,[s*.05,-.035,0],[s,0,0],[0,1,0],.084,.08,-1.75,1.75,7,.05,.012,IR2,{tilt:-.14});horn(k,[s*.05,.06,0],[s*.3,1,0],.06,.016,IR2);
+    [-.15,-.25].forEach((y,i)=>arc(k,[s*.045,y,.01],[s*.12,-1,0],[0,0,1],.066,.066,0,Math.PI*2*.88,8,.03,.012,i?IR2:IR,{riv:i?null:[.006,RV]}));
+    pl(k,.11,.034,.03,s*.055,-.325,.105,0,0,0,IR2);for(let j=-1;j<=1;j++)horn(k,[s*.055+j*.034,-.325,.12],[0,0,1],.03,.01,RV);
+    const g=s<0?'legL':'legR';arc(g,[0,-.15,0],[0,-1,0],[0,0,1],.064,.07,0,Math.PI*2*.9,8,.03,.014,IR,{riv:[.006,RV]});pl(g,.14,.03,.05,0,-.232,.115,0,0,0,IR2);bolt(g,0,-.232,.142);
+    pl(g+rk,.004,.03,.004,0,-.15,.074,0,0,0,RU);});});}
+ARMOR_D.golem=ARMOR_D.golem2=C=>{const m=arbModel(C),L=m&&m.limbs;if(!L||!L.armL||!L.legL){armorClass(C);return;}const K=arbGolemKit(C.type==='golem2');
+  arbDress(C,K,{body:[[C.g]],armL:[[L.armL]],armR:[[L.armR]],legL:[[L.legL]],legR:[[L.legR]]});};
+
+/* ---- the spined behemoth: blackened plates laid between its spines (the bone spines come up through the gaps), a horned brow plate, a plated snout,
+   a ring on the tail before the club, pauldrons and greaves on all four legs ---- */
+function arbBeastKit(){return arbKit('beast',({pl,riv,ball,horn,strip,arc})=>{const IR=0x3e3a38,IR2=0x524a44,RS=0x7a4a2e,RV=0xb0a89a;
+  const top=z=>{const f1=Math.sqrt(Math.max(0,1-(z/.304)**2)),f2=Math.sqrt(Math.max(0,1-((z-.13)/.143)**2)),f3=Math.sqrt(Math.max(0,1-((z+.19)/.132)**2));
+    return{ry:Math.max(.136*f1,.09+.117*f2,.03+.102*f3)+.014,rx:Math.max(.184*f1,.15*f2,.132*f3)+.014};};
+  for(let i=0;i<8;i++){const z=.245-i*.07,q=top(z);arc('body',[0,.34,z],[0,0,-1],[0,1,0],q.rx,q.ry,-1.3,1.3,5,.05,.012,i%2?IR2:IR,{tilt:.12,col2:i%3?IR:RS,riv:[.006,RV]});}
+  /* head: brow plate between the horns, snout plate, cheek guards */
+  pl('body',.17,.016,.13,0,.438,.445,0,0,0,IR2);pl('body',.124,.014,.09,0,.384,.565,.1,0,0,IR);riv('body',0,.447,.47,.008,RV);
+  [-1,1].forEach(s=>{pl('body',.014,.07,.1,s*.087,.37,.45,0,0,0,IR);riv('body',s*.095,.39,.43,.006,RV);riv('body',s*.095,.35,.47,.006,RV);});
+  horn('body',[0,.446,.5],[0,.3,1],.07,.018,RV);
+  arc('body',[0,.33,-.45],[0,-.25,-1],[0,1,0],.058,.058,0,Math.PI*2*.88,8,.05,.012,IR2,{riv:[.006,RV]});
+  [['FL',-1,1],['FR',1,1],['BL',-1,-1],['BR',1,-1]].forEach(([k,s,f])=>{const K2='leg'+k;
+    arc(K2,[s*.015,-.215,.003],[s*-.01,-1,-f*.02],[0,0,1],.05,.052,-1.9,1.9,5,.11,.012,IR,{tilt:.1,riv:[.006,RV]});
+    arc(K2,[s*.01,-.05,0],[s*.02,-1,f*.02],[s,0,0],.07,.07,-1.7,1.7,4,.09,.012,IR2,{tilt:-.1});horn(K2,[s*.07,-.04,0],[s,.5,0],.05,.012,RV);
+    pl(K2,.09,.02,.05,s*.01,-.29,.05,.2,0,0,IR2);});});}
+ARMOR_D.beast=C=>{const m=arbModel(C),q=m&&m.limbs&&m.limbs.quad;if(!q){armorClass(C);return;}arbDress(C,arbBeastKit(),{body:[[C.g]],legFL:[[q.FL]],legFR:[[q.FR]],legBL:[[q.BL]],legBR:[[q.BR]]});};
+
+/* ---- arachne: polished chitin capping plates with silver edges over the abdomen (her red hourglass painted again on the top plates), greaves on
+   both segments of all eight legs, a silver gorget and shoulder caps on the woman's torso, bracers on her arms ---- */
+function arbArachneKit(){return arbKit('arachne',({pl,riv,ball,horn,strip,arc})=>{const CH=0x2a2236,CH2=0x3a2e4a,SI=0xa8acc0,RD=0x9a1424;
+  for(let i=0;i<6;i++){const z=-.09-i*.055,f=Math.sqrt(Math.max(.08,1-((z+.25)/.208)**2)),rx=.16*f+.012,ry=.131*f+.012;
+    arc('body',[0,.25,z],[0,0,-1],[0,1,0],rx,ry,-1.7,1.7,5,.064,.012,i%2?CH2:CH,{tilt:.16});arc('body',[0,.25,z+.03],[0,0,-1],[0,1,0],rx+.006,ry+.006,-1.6,1.6,5,.008,.006,SI);}
+  ball('body',0,.392,-.2,.03,.01,.045,RD);ball('body',0,.39,-.33,.03,.01,.04,RD);ball('body',0,.394,-.265,.012,.01,.02,RD);
+  arc('body',[0,.2,.04],[0,0,1],[0,1,0],.125,.085,-1.5,1.5,5,.08,.012,CH2,{tilt:.1});
+  const mid=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+  for(let i=0;i<4;i++)[-1,1].forEach(s=>{const k='leg'+i+(s<0?'L':'R'),L=1-Math.abs(i-1.5)*.06,p1=[.19*L*s,.16,0],p2=[.4*L*s,-.2,0];
+    arc(k,mid([0,0,0],p1,.55),p1,[0,1,0],.03,.03,-1.75,1.75,4,.12,.01,CH2,{tilt:.1});ball(k,...p1,.019,.019,.019,0x7a7e92);
+    arc(k,mid(p1,p2,.3),[p2[0]-p1[0],p2[1]-p1[1],0],[s,1,0],.018,.018,-1.6,1.6,3,.12,.007,CH2,{tilt:.06});horn(k,mid(p1,p2,.12),[s,.6,0],.04,.008,SI);});
+  /* torso (kit space of the woman): gorget, shoulder caps, a silver-edged plackart */
+  arc('torso',[0,.455,.16],[0,1,0],[0,0,1],.072,.06,0,Math.PI*2*.92,10,.02,.01,SI);
+  [-1,1].forEach(s=>{arc('torso',[s*.09,.468,.16],[s,0,0],[0,1,0],.046,.044,-1.6,1.6,4,.04,.009,CH2,{tilt:-.12});riv('torso',s*.1,.512,.16,.006,SI);});
+  pl('torso',.09,.05,.012,0,.355,.205,-.15,0,0,CH2);pl('torso',.092,.008,.014,0,.381,.207,-.15,0,0,SI);
+  [-1,1].forEach(s=>{const k='arm'+(s<0?'L':'R'),X=q=>[q[0]*s,q[1],q[2]],E=X([.05,-.1,.03]),W=X([.06,-.17,.12]);
+    arc(k,mid(E,W,.5),[W[0]-E[0],W[1]-E[1],W[2]-E[2]],[0,1,0],.02,.02,0,Math.PI*2*.86,6,.06,.008,SI);});});}
+ARMOR_D.arachne=C=>{const m=arbModel(C),L=m&&m.limbs;if(!L||!L.legs||!L.arms||!L.arms[0].p.parent){armorClass(C);return;}const T={body:[[C.g]],torso:[[L.arms[0].p.parent,0,-.24,-.13]]};
+  L.legs.forEach((q,j)=>T['leg'+(j>>1)+(q.s<0?'L':'R')]=[[q.p]]);L.arms.forEach(a=>T['arm'+(a.s<0?'L':'R')]=[[a.p]]);arbDress(C,arbArachneKit(),T);};
+/* ---- the Colossus: dark siege plate rimmed in bronze. A visored great helm on the turning head (its glowing eye-slit left open), a gorget, plates
+   framing the furnace core, stacked pauldrons and vambraces on the arms, a riveted band on the club, greaves and knee cops ---- */
+function arbColossusKit(){return arbKit('colossus',({pl,riv,ball,horn,strip,arc})=>{const IR=0x34322e,IR2=0x45413a,BR=0x9a7840,RV=0xc0b49a;
+  /* helm in the head's own space (the head mesh is a .18 cube at its centre) */
+  pl('head',.21,.07,.21,0,.06,0,0,0,0,IR);pl('head',.21,.06,.21,0,-.07,0,0,0,0,IR2);[-1,1].forEach(s=>pl('head',.02,.2,.2,s*.1,0,0,0,0,0,IR));pl('head',.2,.02,.02,0,-.03,.108,0,0,0,IR);
+  pl('head*g',.215,.012,.215,0,.098,0,0,0,0,BR);pl('head*g',.016,.06,.012,0,.055,.11,0,0,0,BR);for(let i=0;i<4;i++)riv('head',-.075+i*.05,-.075,.108,.007,RV);
+  horn('head',[0,.1,0],[0,1,-.25],.12,.03,IR2);[-1,1].forEach(s=>horn('head*g',[s*.1,.06,0],[s,.5,-.2],.08,.02,BR));
+  /* gorget, chest plates round the core, belly lames, back plate */
+  arc('body',[0,1.08,.02],[0,1,0],[0,0,1],.15,.15,-1.6,1.6,6,.04,.016,IR2,{riv:[.008,RV]});
+  [-1,1].forEach(s=>{pl('body',.13,.3,.024,s*.155,.83,.18,0,s*.12,0,IR);pl('body*g',.014,.3,.028,s*.09,.83,.192,0,s*.12,0,BR);for(let i=0;i<3;i++)riv('body',s*.2,.73+i*.1,.195,.008,RV);});
+  pl('body',.12,.07,.024,0,.95,.182,0,0,0,IR2);for(let i=0;i<2;i++)arc('body',[0,.63-i*.06,0],[0,1,0],[0,0,1],.24,.165,-1.2,1.2,5,.055,.014,i?IR2:IR,{tilt:-.12});
+  pl('body',.42,.3,.022,0,.85,-.19,0,0,0,IR2);
+  [-1,1].forEach(s=>{const k=s<0?'armL':'armR';for(let j=0;j<3;j++)arc('body',[s*(.32+j*.05),1.05-j*.035,0],[s,-.35,0],[0,1,0],.2-j*.015,.15-j*.015,-1.8,1.8,7,.06,.016,j%2?IR2:IR,{tilt:-.15,riv:j?null:[.008,RV]});
+    arc('body*g',[s*.3,1.06,0],[s,-.35,0],[0,1,0],.206,.156,-1.8,1.8,7,.012,.01,BR);for(let j=0;j<2;j++)horn('body',[s*(.34+j*.06),1.2-j*.02,-.03+j*.06],[s*.3,1,0],.11,.024,IR2);
+    arc(k,[0,-.45,0],[0,-1,0],[0,0,1],.1,.1,0,Math.PI*2*.9,8,.18,.016,IR,{riv:[.008,RV]});arc(k+'*g',[0,-.35,0],[0,-1,0],[0,0,1],.104,.104,0,Math.PI*2*.9,8,.014,.01,BR);
+    const g=s<0?'legL':'legR';arc(g,[0,-.38,0],[0,-1,0],[0,0,1],.15,.15,-2.1,2.1,6,.2,.018,IR,{riv:[.008,RV]});ball(g,0,-.27,.14,.07,.06,.035,IR2);horn(g,[0,-.27,.17],[0,.2,1],.06,.02,BR);
+    arc(g+'*g',[0,-.48,0],[0,-1,0],[0,0,1],.154,.154,-2.1,2.1,6,.014,.01,BR);});
+  arc('club',[0,.55,0],[0,1,0],[0,0,1],.135,.135,0,Math.PI*2*.9,8,.06,.016,IR,{riv:[.008,RV]});for(let i=0;i<6;i++){const a=i/6*6.283;horn('club',[Math.cos(a)*.15,.85,Math.sin(a)*.15],[Math.cos(a),.2,Math.sin(a)],.1,.022,IR2);}});}
+ARMOR_D.colossus=C=>{const m=arbModel(C),L=m&&m.limbs;const inner=L&&L.legL&&L.legL.parent,head=inner&&inner.children.find(o=>o.isMesh&&o.geometry===box(.18,.18,.18)),club=L&&L.armR&&L.armR.children.find(o=>o.isGroup);
+  if(!inner||!head||!club){armorClass(C);return;}arbDress(C,arbColossusKit(),{head:[[head]],body:[[inner]],armL:[[L.armL]],armR:[[L.armR]],legL:[[L.legL]],legR:[[L.legR]],club:[[club]]});};
+
+/* ---- the Dread Knight: blackened plate over his own, edged in blood red with runes that smoulder: a bevor and crested great helm, stacked spiked
+   pauldrons, tassets, couters and vambraces, spiked greaves, an iron boss and rim on the shield ----
+   ---- the Void Knight: obsidian plate split by violet seams round the open void in his chest, bone-white trim, shard pauldrons, a shard crown ---- */
+function arbKnightKit(v){return arbKit(v?'voidk':'dreadk',({pl,riv,ball,horn,strip,arc})=>{const IR=v?0x16121e:0x121218,IR2=v?0x241e30:0x20202a,TR=v?0x7a6a92:0x7a0c10,GL=v?0x9a50ff:0xff3020,TRk=v?'*d':'',RV=v?0xcfc8d8:0x5a5a66;
+  /* bevor and helm (the head is a .14 x .16 box at y 1.04) */
+  arc('body',[0,.99,.02],[0,1,0],[0,0,1],.1,.105,-1.7,1.7,6,.06,.014,IR,{tilt:-.15});arc('body'+TRk,[0,1.02,.02],[0,1,0],[0,0,1],.104,.109,-1.6,1.6,6,.01,.01,TR);
+  pl('body',.16,.018,.17,0,1.125,.02,0,0,0,IR2);
+  if(!v){for(let i=0;i<5;i++){const h=.06+Math.sin(i/4*Math.PI)*.05;pl('body',.012,h,.03,0,1.13+h/2,-.06+i*.035,-.2,0,0,i%2?IR:TR);}pl('body*e',.1,.005,.004,0,1.072,.098,0,0,0,GL);}
+  else{for(let i=0;i<5;i++){const a=(i-2)*.45;horn('body*d',[Math.sin(a)*.07,1.13,.02+Math.cos(a)*.03],[Math.sin(a)*.6,1,-.1],.08+(i===2?.05:0),.014,i%2?0x6a5a80:TR);}}
+  /* chest: the dread knight's breastplate is covered, the void knight keeps his open core between two plates */
+  if(!v){pl('body',.36,.2,.02,0,.8,.125,-.05,0,0,IR2);pl('body',.04,.2,.024,0,.8,.137,-.05,0,0,TR);[-1,1].forEach(s=>{for(let i=0;i<3;i++)riv('body',s*.14,.73+i*.07,.138,.008,RV);pl('body*e',.006,.12,.004,s*.07,.8,.138,-.05,0,s*.3,GL);});}
+  else[-1,1].forEach(s=>{pl('body',.1,.26,.02,s*.13,.76,.12,0,s*.25,0,IR2);pl('body*e',.008,.24,.006,s*.08,.76,.128,0,s*.25,0,GL);pl('body*d',.012,.26,.024,s*.18,.76,.11,0,s*.25,0,TR);});
+  /* tassets and fauld */
+  for(let i=0;i<2;i++)arc('body',[0,.5-i*.055,0],[0,1,0],[0,0,1],.17+i*.01,.12+i*.01,-1.9,1.9,6,.06,.014,i%2?IR2:IR,{tilt:-.2});
+  arc('body'+TRk,[0,.47,0],[0,1,0],[0,0,1],.172,.122,-1.9,1.9,6,.01,.01,TR);
+  /* pauldrons sit on the shoulder balls of the body */
+  [-1,1].forEach(s=>{for(let j=0;j<3;j++)arc('body',[s*(.2+j*.03),.95-j*.03,0],[s,-.3,0],[0,1,0],.135-j*.012,.09-j*.01,-1.8,1.8,6,.05,.014,j%2?IR2:IR,{tilt:-.2});
+    arc('body'+TRk,[s*.18,.96,0],[s,-.3,0],[0,1,0],.139,.094,-1.8,1.8,6,.01,.01,TR);
+    if(!v)for(let j=0;j<3;j++)horn('body',[s*(.22+j*.03),1.07-j*.02,-.04+j*.04],[s*.4,1,0],.09,.016,IR2);
+    else for(let j=0;j<3;j++)horn('body*e',[s*(.22+j*.03),1.06-j*.02,-.04+j*.04],[s*.5,1,(j-1)*.3],.07+j*.02,.014,GL);
+    const k=s<0?'armL':'armR';ball(k,0,-.25,-.03,.05,.05,.05,IR2);horn(k,[0,-.25,-.07],[0,0,-1],.07,.016,v?TR:IR);
+    arc(k,[0,-.36,0],[0,-1,0],[0,0,1],.064,.064,0,Math.PI*2*.88,8,.14,.012,IR,{});arc(k+(v?'*e':TRk),[0,-.3,0],[0,-1,0],[0,0,1],.068,.068,0,Math.PI*2*.88,8,.01,.008,v?GL:TR);
+    const g=s<0?'legL':'legR';arc(g,[0,-.38,0],[0,-1,0],[0,0,1],.075,.075,-2,2,6,.2,.014,IR,{riv:v?null:[.007,RV]});ball(g,0,-.26,.06,.05,.045,.03,IR2);horn(g,[0,-.26,.09],[0,.1,1],.07,.016,v?TR:IR2);
+    if(v)pl(g+'*e',.006,.16,.004,0,-.38,.077,0,0,0,GL);else pl(g+TRk,.012,.18,.012,0,-.38,.078,0,0,0,TR);});
+  if(!v){/* shield (pivot space): iron boss, studded rim, a spike */ball('shield',.0,0,.05,.06,.06,.04,IR2);horn('shield',[.01,0,.05],[1,0,0],.08,.02,IR);
+    [[0,.21],[0,-.21]].forEach(([z,y])=>pl('shield',.05,.02,.31,-.01,y,.05,0,0,0,IR));[-1,1].forEach(s=>pl('shield',.05,.42,.02,-.01,0,.05+s*.155,0,0,0,IR));}});}
+ARMOR_D.dreadk=ARMOR_D.voidk=C=>{const m=arbModel(C),L=m&&m.limbs,v=C.type==='voidk';const inner=L&&L.legL&&L.legL.parent,sh=!v&&L&&L.armL&&L.armL.children.find(o=>o.isGroup);
+  if(!inner||(!v&&!sh)){armorClass(C);return;}arbDress(C,arbKnightKit(v),{body:[[inner]],armL:[[L.armL]],armR:[[L.armR]],legL:[[L.legL]],legR:[[L.legR]],shield:sh?[[sh]]:null});};
+
+/* ---- wyrms: each body segment gets its own plating. The Mire Wyrm in rusted iron hoops split round its spines and a barred muzzle; the Armoured Wyrm
+   gilded overplates and a gold blade crest over its steel; the Fiend blackened bone-iron with magma seams, a horned skull helm, greaves and wing guards ---- */
+const ARB_WY={wyrm2:{n:9,R:.13,st:0},wyrm2a:{n:9,R:.14,st:1},wyrmf:{n:11,R:.17,st:2}};
+function arbWyrmKit(type){return arbKit(type,({pl,riv,ball,horn,strip,arc})=>{const W=ARB_WY[type],R=W.R,st=W.st;
+  const IR=[0x55504a,0x9aa0aa,0x1c1416][st],IR2=[0x7a4a2c,0x7e848e,0x2a1e20][st],TR=[0x8a6a40,0xe0b040,0xff5a14][st],RV=[0xa89a84,0xfff0b0,0xe8dcc0][st],tk=['*d','*g','*e'][st];
+  for(let i=0;i<W.n;i++){const k='s'+i,f=i/(W.n-1),r=R*(1-.62*f)+.02,cy=r+.02,ry=r*.9+.012+(st===1?.03:0),rx=r+.012+(st===1?.02:0),len=r*1.25*1.6;
+    if(st===0){[-1,1].forEach(s=>arc(k,[0,cy,0],[0,0,1],[0,1,0],rx,ry,s*.3,s*1.5,3,len,.012,i%2?IR2:IR,{tilt:.12,riv:[.006,RV]}));arc(k+tk,[0,cy,len*.36],[0,0,1],[0,1,0],rx+.004,ry+.004,-1.5,1.5,6,.012,.01,TR);}
+    if(st===1){arc(k+'*g',[0,cy,0],[0,0,1],[0,1,0],rx,ry,-.95,.95,3,len*.8,.012,i%2?0xb8862a:0xc8962c,{tilt:.14});arc(k+'*g',[0,cy,len*.38],[0,0,1],[0,1,0],rx+.004,ry+.004,-.95,.95,3,.014,.01,0xf0cc60);if(i<W.n-1)horn(k+'*g',[0,cy+ry+.006,0],[0,1,-.5],r*.7,r*.22,0xfff0b0);
+      [-1,1].forEach(s=>riv(k+'*g',s*rx*.75,cy+ry*.68,len*.3,.008,0xfff0b0));}
+    if(st===2){[-1,1].forEach(s=>{arc(k,[0,cy,0],[0,0,1],[0,1,0],rx,ry,s*.3,s*1.05,2,len,.012,IR,{tilt:.12,riv:[.007,RV]});arc(k+'*e',[0,cy,len*.45],[0,0,1],[0,1,0],rx+.003,ry+.003,s*.3,s*1.05,2,.008,.008,TR);});}}
+  /* head (hd pivot space) */
+  if(st===0){pl('hd',R*1.6,.014,R*1.6,0,R*.58,R*.5,0,0,0,IR);for(let i=0;i<4;i++)pl('hd',.012,R*.8,.012,-R*.45+i*R*.3,-R*.05,R*2.34,0,0,0,IR2);pl('hd',R*1.25,.014,.014,0,R*.36,R*2.34,0,0,0,IR2);pl('hd',R*1.25,.014,.014,0,-R*.4,R*2.34,0,0,0,IR2);
+    [-1,1].forEach(s=>strip('hd',[s*R*.62,R*.36,R*2.3],[s*R*.78,R*.5,R*.6],.012,.012,[0,1,0],IR2));}
+  if(st===1){pl('hd*g',R*1.66,.016,.03,0,R*.53,R*1.0,0,0,0,0xd8a838);pl('hd*g',.03,.018,R*2.4,0,R*.54,R*.65,0,0,0,0xc8962c);for(let i=0;i<5;i++)horn('hd*g',[(i-2)*R*.3,R*.56,R*.2],[(i-2)*.25,1,-.5],R*(.5+(i===2?.4:0)),R*.1,0xfff0b0);pl('hd*g',R*1.24,.014,.024,0,R*.32,R*2.3,0,0,0,0xe0b040);}
+  if(st===2){pl('hd',R*1.62,.02,R*1.5,0,R*.7,R*.45,0,0,0,IR);[-1,1].forEach(s=>{horn('hd',[s*R*.55,R*.72,R*.3],[s*.6,.9,-.5],R*1.1,R*.14,IR2,true);pl('hd*e',.006,.006,R*1.2,s*R*.4,R*.72,R*.55,0,0,0,TR);pl('hd',.014,R*.6,R*1.2,s*R*.8,R*.15,R*.7,0,0,0,IR2);});
+    ['L','R'].forEach((q,j)=>{const s=j?1:-1;arc('leg'+q,[0,-.1,0],[0,-1,0],[0,0,1],.055,.055,-1.9,1.9,5,.16,.012,IR,{riv:[.006,RV]});horn('leg'+q,[0,-.03,.05],[0,.3,1],.04,.012,RV);
+      for(let t=0;t<3;t++)arc('wing'+q,[s*(.12+t*.17),0,0],[s,0,0],[0,1,0],.034,.034,-1.5,1.5,4,.13,.01,t%2?IR2:IR,{tilt:.12});horn('wing'+q,[s*.6,.0,0],[s,.3,.4],.08,.016,RV);});}
+  pl('jaw'+(st===1?'*g':''),R*1.3,.014,R*2.0,0,-R*.2,R*.9,0,0,0,st===1?0xd8a838:IR);});}
+ARMOR_D.wyrm2=ARMOR_D.wyrm2a=ARMOR_D.wyrmf=C=>{const m=arbModel(C),L=m&&m.limbs;if(!L||!L.snake||!L.hd||L.snake.length!==ARB_WY[C.type].n){armorClass(C);return;}const T={hd:[[L.hd]],jaw:[[L.jaw]]};
+  L.snake.forEach((s,i)=>T['s'+i]=[[s]]);if(L.legs&&L.legs.length===2){T.legL=[[L.legs[0]]];T.legR=[[L.legs[1]]];}if(L.wings&&L.wings.length===2){T.wingL=[[L.wings[0].o]];T.wingR=[[L.wings[1].o]];}arbDress(C,arbWyrmKit(C.type),T);};
+
+/* ---- the angels: gilded plate bands on the outer and inner rim of every wheel (between the eyes), a gilded collar round the great eye, and on every
+   wing pale steel feather-plates with gold edges laid over the outer feathers ---- */
+function arbAngelKit(strong){return arbKit(strong?'seraph':'ophanim',({pl,riv,ball,horn,strip,arc})=>{const S=strong?1.25:1,GO=0xe8b84a,GO2=0xc89a30,ST=0xdce0ea,ST2=0xb8bfcc;
+  const rings=strong?[.26,.32,.38]:[.26,.31],ne=strong?14:10;
+  rings.forEach((R,j)=>{const k='r'+j+'*g';arc(k,[0,0,0],[0,0,1],[1,0,0],R*S+.02*S,R*S+.02*S,Math.PI/ne,Math.PI*2-Math.PI/ne,ne,.04*S,.01*S,GO,{w:R*S*Math.PI*2/ne*.5,col2:GO2});
+    arc(k,[0,0,0],[0,0,1],[1,0,0],R*S-.02*S,R*S-.02*S,Math.PI/ne,Math.PI*2-Math.PI/ne,ne,.034*S,.008*S,GO2,{w:R*S*Math.PI*2/ne*.4});});
+  arc('core*g',[0,0,.02],[0,0,1],[0,1,0],.105*S,.105*S,0,Math.PI*2*.92,12,.03*S,.012*S,GO,{col2:GO2});for(let i=0;i<4;i++){const a=i/4*6.283+.785;horn('core*g',[Math.cos(a)*.11*S,Math.sin(a)*.11*S,.02],[Math.cos(a),Math.sin(a),.3],.05*S,.012*S,GO2);}
+  const set=strong?[.62,.75,.5]:[.55,.48];set.forEach((len0,w)=>[-1,1].forEach((s,h)=>{const k='w'+(w*2+h),len=len0*S,n=7;
+    for(let i=0;i<n;i++){const t=i/(n-1),L=len*(.55+.45*Math.sin(t*Math.PI*.9+.2)),ph=s*(-.15+t*1.1),X=L*.83,c=Math.cos(ph),sn=Math.sin(ph),z=-i*.004+.012;
+      pl(k,L*.3,.064,.008,s*c*X,s*sn*X,z,0,0,ph,i%2?ST2:ST);pl(k+'*g',L*.3,.01,.011,s*c*X-sn*.032,s*sn*X+c*.032,z,0,0,ph,GO);}}));});}
+ARMOR_D.ophanim=ARMOR_D.seraph=C=>{const m=arbModel(C),strong=C.type==='seraph';if(!m||!m.wings||!m.spin){armorClass(C);return;}
+  const wheels=m.spin.map(q=>q.o).filter(o=>o.children.some(c=>c.isMesh&&c.geometry&&c.geometry.type==='TorusGeometry'&&c.geometry.parameters.tube>.012));const core=m.b.children.find(o=>o.isGroup&&o.position.y===.3&&!m.spin.some(q=>q.o===o));
+  if(wheels.length!==(strong?3:2)||m.wings.length!==(strong?6:4)||!core){armorClass(C);return;}const T={core:[[core]]};wheels.forEach((w,i)=>T['r'+i]=[[w]]);m.wings.forEach((w,i)=>T['w'+i]=[[w]]);arbDress(C,arbAngelKit(strong),T);};
+/* ---- end of v483 ---- */
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
