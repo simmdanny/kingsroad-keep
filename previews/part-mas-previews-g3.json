@@ -156,5 +156,63 @@
   "seed": 1,
   "bytes": 3190927,
   "note": "The void swallows the land and its cuts begin (the first 13 seconds of the cast)."
+ },
+ "expanse-1": {
+  "k": "expanse",
+  "L": 1,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 3177349,
+  "note": "Every cut strikes harder, with wider, whiter strokes.",
+  "ev": {
+   "opts": 1,
+   "snap": 1,
+   "cut": 65
+  }
+ },
+ "citadel-4": {
+  "k": "citadel",
+  "L": 4,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 4029829,
+  "note": "Each cut aims at the foe nearest the keep no cut has struck yet, and throws it back.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "aim": 16,
+   "act": 1,
+   "cut": 14
+  }
+ },
+ "expanse-2": {
+  "k": "expanse",
+  "L": 2,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 3302822,
+  "note": "Eleven foes: more cuts a second.",
+  "ev": {
+   "opts": 1,
+   "snap": 1,
+   "cut": 82
+  }
+ },
+ "expanse-5": {
+  "k": "expanse",
+  "L": 5,
+  "len": 6.5,
+  "seed": 1,
+  "bytes": 1753979,
+  "note": "In the last 3 seconds great screen-wide cuts, then one last cut on every foe as reality returns (the clip joins it there).",
+  "ev": {
+   "opts": 1,
+   "snap": 1,
+   "cut": 179,
+   "great": 4,
+   "erase": 1,
+   "final": 1,
+   "collapse": 1
+  }
  }
 }
