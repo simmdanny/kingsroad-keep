@@ -3384,7 +3384,7 @@
    "L": 1,
    "len": 15.8,
    "seed": 1,
-   "bytes": 3147364,
+   "bytes": 3472203,
    "note": "The hole takes hold sooner and holds longer, drawn larger.",
    "ev": {
     "cast": 1,
@@ -3395,17 +3395,17 @@
   "singularity-0": {
    "k": "singularity",
    "L": 0,
-   "len": 16.13,
+   "len": 16.4,
    "seed": 1,
-   "bytes": 3134025,
+   "bytes": 3390516,
    "note": ""
   },
   "singularity-3": {
    "k": "singularity",
    "L": 3,
-   "len": 8.37,
+   "len": 15.1,
    "seed": 1,
-   "bytes": 1551779,
+   "bytes": 3590462,
    "note": "Three foes are low on health: each that dies while pinned feeds the hole.",
    "ev": {
     "cast": 1,
@@ -3416,9 +3416,9 @@
   "singularity-2": {
    "k": "singularity",
    "L": 2,
-   "len": 16.3,
+   "len": 15.8,
    "seed": 1,
-   "bytes": 3367204,
+   "bytes": 3705327,
    "note": "The drain tears harder at the pinned foes.",
    "ev": {
     "cast": 1,
@@ -3431,7 +3431,7 @@
    "L": 4,
    "len": 16.27,
    "seed": 1,
-   "bytes": 3431688,
+   "bytes": 3763307,
    "note": "Rocks tear up from beneath every pinned foe, one a second.",
    "ev": {
     "cast": 1,
@@ -3443,9 +3443,9 @@
   "singularity-5": {
    "k": "singularity",
    "L": 5,
-   "len": 16.53,
+   "len": 15.8,
    "seed": 1,
-   "bytes": 3785380,
+   "bytes": 4115073,
    "note": "The collapse strikes every foe on the map for 500%.",
    "ev": {
     "cast": 1,
@@ -3466,15 +3466,15 @@
   "wormhole-1": {
    "k": "wormhole",
    "L": 1,
-   "len": 13.13,
+   "len": 12.0,
    "seed": 1,
-   "bytes": 1734864,
-   "note": "Foes at the road\u2019s edges: the first wormhole yawns wider and draws in every foe within 1.6 tiles.",
+   "bytes": 1422951,
+   "note": "Here a second road joins the first: the first wormhole yawns wider and draws in foes from both roads (knights from the other road, labelled).",
    "ev": {
     "opts": 1,
     "cast": 1,
-    "cross": 6,
-    "collapse": 2,
+    "cross": 9,
+    "collapse": 6,
     "end": 1
    }
   },
@@ -4544,6 +4544,320 @@
     "plunge": 1,
     "final": 1,
     "land": 1
+   }
+  },
+  "abyss-1": {
+   "k": "abyss",
+   "L": 1,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 3107130,
+   "note": "Foes drown faster: streams of bubbles rise off every one.",
+   "ev": {
+    "opts": 1,
+    "drown": 96,
+    "lunge": 3,
+    "bite": 18
+   }
+  },
+  "abyss-0": {
+   "k": "abyss",
+   "L": 0,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 3099637,
+   "note": "The sea rises over the field and its leviathans hunt (the first 13 seconds of the cast)."
+  },
+  "abyss-3": {
+   "k": "abyss",
+   "L": 3,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 3205364,
+   "note": "The leviathans lunge more often, bite harder and reach further.",
+   "ev": {
+    "opts": 1,
+    "drown": 96,
+    "lunge": 4,
+    "bite": 24
+   }
+  },
+  "abyss-2": {
+   "k": "abyss",
+   "L": 2,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 2984105,
+   "note": "The pack walks on: the sea slows it 70%.",
+   "ev": {
+    "opts": 1,
+    "drown": 96,
+    "lunge": 3,
+    "bite": 18
+   }
+  },
+  "abyss-5": {
+   "k": "abyss",
+   "L": 5,
+   "len": 9.5,
+   "seed": 1,
+   "bytes": 3730332,
+   "note": "Halfway through the eldest leviathan bursts up out of the deep and joins the hunt (the clip joins it there).",
+   "ev": {
+    "opts": 1,
+    "elder": 1,
+    "drown": 180,
+    "lunge": 7,
+    "bite": 42,
+    "rise": 1,
+    "wave": 6
+   }
+  },
+  "abyss-4": {
+   "k": "abyss",
+   "L": 4,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 3850917,
+   "note": "A foe a leviathan bites drowns 50% faster, a column of bubbles rising from it.",
+   "ev": {
+    "opts": 1,
+    "drown": 96,
+    "lunge": 4,
+    "bite": 24
+   }
+  },
+  "citadel-0": {
+   "k": "citadel",
+   "L": 0,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 3445352,
+   "note": "The domain rises and its cuts begin (the first 13 seconds of the cast)."
+  },
+  "citadel-1": {
+   "k": "citadel",
+   "L": 1,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 3425989,
+   "note": "The foes are spread out: the domain reaches 6 tiles.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "aim": 16,
+    "act": 1,
+    "cut": 15
+   }
+  },
+  "citadel-2": {
+   "k": "citadel",
+   "L": 2,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 3882809,
+   "note": "Each cut strikes harder, and harder in its wake.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "aim": 16,
+    "act": 1,
+    "cut": 14
+   }
+  },
+  "citadel-5": {
+   "k": "citadel",
+   "L": 5,
+   "len": 6,
+   "seed": 1,
+   "bytes": 1694479,
+   "note": "The final fracture tears across the domain (the clip joins it near its end).",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "aim": 19,
+    "act": 1,
+    "cut": 19,
+    "snap": 1
+   }
+  },
+  "citadel-3": {
+   "k": "citadel",
+   "L": 3,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 4319749,
+   "note": "The pack walks on: inside the domain it crawls.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "aim": 16,
+    "act": 1,
+    "cut": 15
+   }
+  },
+  "expanse-0": {
+   "k": "expanse",
+   "L": 0,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 3190927,
+   "note": "The void swallows the land and its cuts begin (the first 13 seconds of the cast)."
+  },
+  "expanse-1": {
+   "k": "expanse",
+   "L": 1,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 3177349,
+   "note": "Every cut strikes harder, with wider, whiter strokes.",
+   "ev": {
+    "opts": 1,
+    "snap": 1,
+    "cut": 65
+   }
+  },
+  "citadel-4": {
+   "k": "citadel",
+   "L": 4,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 4029829,
+   "note": "Each cut aims at the foe nearest the keep no cut has struck yet, and throws it back.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "aim": 16,
+    "act": 1,
+    "cut": 14
+   }
+  },
+  "expanse-2": {
+   "k": "expanse",
+   "L": 2,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 3302822,
+   "note": "Eleven foes: more cuts a second.",
+   "ev": {
+    "opts": 1,
+    "snap": 1,
+    "cut": 82
+   }
+  },
+  "expanse-5": {
+   "k": "expanse",
+   "L": 5,
+   "len": 6.5,
+   "seed": 1,
+   "bytes": 1753979,
+   "note": "In the last 3 seconds great screen-wide cuts, then one last cut on every foe as reality returns (the clip joins it there).",
+   "ev": {
+    "opts": 1,
+    "snap": 1,
+    "cut": 179,
+    "great": 4,
+    "erase": 1,
+    "final": 1,
+    "collapse": 1
+   }
+  },
+  "expanse-3": {
+   "k": "expanse",
+   "L": 3,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 3184556,
+   "note": "The pack walks on: in the void it crawls at 15%.",
+   "ev": {
+    "opts": 1,
+    "snap": 1,
+    "cut": 70
+   }
+  },
+  "expanse-4": {
+   "k": "expanse",
+   "L": 4,
+   "len": 13.83,
+   "seed": 1,
+   "bytes": 3564118,
+   "note": "Four foes are worn down: a cut leaves them under 15%, and they are erased.",
+   "ev": {
+    "opts": 1,
+    "snap": 1,
+    "cut": 65,
+    "erase": 4
+   }
+  },
+  "firsttree-0": {
+   "k": "firsttree",
+   "L": 0,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 1135174,
+   "note": "The tree rises and its roots begin to burst (the first 13 seconds of the cast)."
+  },
+  "firsttree-1": {
+   "k": "firsttree",
+   "L": 1,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 1164854,
+   "note": "Each eruption reaches further, with more root spikes.",
+   "ev": {
+    "opts": 1,
+    "erupt": 2
+   }
+  },
+  "firsttree-2": {
+   "k": "firsttree",
+   "L": 2,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 1165696,
+   "note": "The roots drink twice as much; motes of life fly to the trunk.",
+   "ev": {
+    "opts": 1,
+    "erupt": 2
+   }
+  },
+  "firsttree-3": {
+   "k": "firsttree",
+   "L": 3,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 1191331,
+   "note": "The roots burst more often and strike the same foe again sooner.",
+   "ev": {
+    "opts": 1,
+    "erupt": 3
+   }
+  },
+  "firsttree-5": {
+   "k": "firsttree",
+   "L": 5,
+   "len": 6.5,
+   "seed": 1,
+   "bytes": 817423,
+   "note": "The world in bloom: the bloom strikes harder for every foe the roots drank from (the clip joins it there).",
+   "ev": {
+    "opts": 1,
+    "erupt": 5,
+    "bloom": 1
+   }
+  },
+  "firsttree-4": {
+   "k": "firsttree",
+   "L": 4,
+   "len": 14.83,
+   "seed": 1,
+   "bytes": 1300782,
+   "note": "Three foes are worn down: the roots leave them under 20% and drag them under the earth.",
+   "ev": {
+    "opts": 1,
+    "erupt": 3,
+    "swallow": 3,
+    "sunk": 3
    }
   }
  },
