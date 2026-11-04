@@ -32988,7 +32988,7 @@ function tpxBuild(root,reg,regM,hx,G0,hz,ph,D,zT,zB){
         'float body=smoothstep(uEye,uEye+.9,r)*(1.-smoothstep(uOut*.72,uOut,r));'+
         /* the dense overcast round the eye: billows turning as one, barely twisted */
         'float cr=uRot*1.2;vec2 qc=vec2(d.x*cos(cr)-d.y*sin(cr),d.x*sin(cr)+d.y*cos(cr));float cdo=smoothstep(uEye+.1,uEye+.7,r)*(1.-smoothstep(uEye+1.6,uEye+3.6,r))*smoothstep(.22,.8,tf(qc*.42)*.72+tf(qc*1.5+vec2(3.1,0.))*.28)*(.55+.45*arms);'+
-        'return clamp(max(body*(.12+.88*arms*arms)*smoothstep(.32,.74,n)*1.3,cdo*.9)+wall*smoothstep(.25,.62,n)*1.05,0.,1.);}'+
+        'return clamp(max(body*(.12+.88*arms*arms)*smoothstep(.32,.74,n)*1.3,cdo*.5)+wall*smoothstep(.25,.62,n)*.7,0.,1.);}'+
       'void main(){vec2 d=vW-uC;float r=length(d);float k=dens(d);if(k<.004)discard;'+
         /* lit from above and from the sun side: the density a little toward the light, less there = a lit top */
         'float kl=dens(d+vec2(-.35,-.45));float lit=clamp(.55+(k-kl)*1.6,0.,1.);'+
@@ -33002,7 +33002,7 @@ function tpxBuild(root,reg,regM,hx,G0,hz,ph,D,zT,zB){
         'float st=floor(uT*9.);float fl=step(.55,th(vec2(st,1.)));float an=atan(d.y,d.x);'+
         'float rdg=1.-abs(tn(vec2(r*2.2-uT*.6,an*3.+st*.7))*2.-1.);float cr=pow(rdg,14.)*smoothstep(.35,.75,k)*uCrawl*fl;c+=vec3(.9,.8,1.)*cr*1.6;'+
         'c=mix(c,vec3(1.,.97,1.),uWhite*.75);'+
-        'gl_FragColor=vec4(c,min(.6,k*uDen*.8)*uA*(1.-.35*uWhite));}'}));
+        'gl_FragColor=vec4(c,min(.52,k*uDen*.75)*uA*(1.-.35*uWhite));}'}));
   /* one plane, wider than the board, high over it; its cloud is all in the shader */
   const deck=new THREE.Mesh(reg(new THREE.PlaneGeometry(x1-x0+30,zB-zT+34).rotateX(-Math.PI/2)),deckM);deck.position.set((x0+x1)/2,DY,(zT+zB)/2);deck.renderOrder=46;deck.frustumCulled=false;root.add(deck);
   /* the wind and rain sheet: fast streaks swirling into the eye */
@@ -33028,7 +33028,7 @@ function tpxBuild(root,reg,regM,hx,G0,hz,ph,D,zT,zB){
      merged into one mesh (one draw a cloud); their layout comes from a seeded random of its own (the game's random is untouched). */
   const CR=mulberry(4771),CLD=[],NC=(wide?22:16)+(hur?2:0),CY0=G0+6.1;
   const CG=[0,1,2].map(i=>jitterGeo(new THREE.IcosahedronGeometry(1,i===2?0:1),.24).toNonIndexed());
-  const CCOL=[0x7c7894,0x8c88a6,0x6a6684,0x9c98b8,0x76728e].map(h=>new THREE.Color(h));
+  const CCOL=[0x9496a2,0xa4a6b4,0x84868f,0xb4b6c2,0x8e909b].map(h=>new THREE.Color(h));/* grey (the storm's violet light tints them, as the Stormcaller's blue light tints its own) */
   const M4=new THREE.Matrix4(),Q4=new THREE.Quaternion(),E4=new THREE.Euler(),P4=new THREE.Vector3(),S4=new THREE.Vector3(),V4=new THREE.Vector3();
   for(let i=0;i<NC;i++){const ring=i%3,rr=(3.3+ring*3.2+CR()*2)*(wide&&ring===2?1.4:1),a0=i/NC*TAU*2.37+CR()*.7,S=1.05+CR()*1.05,n=9+Math.floor(CR()*7);
     const pos=[],col=[];const c1=CCOL[Math.floor(CR()*5)],c2=CCOL[Math.floor(CR()*5)];
@@ -33041,7 +33041,7 @@ function tpxBuild(root,reg,regM,hx,G0,hz,ph,D,zT,zB){
     CLD.push({me,m,r:rr,a:a0,y:CY0+CR()*.9,S,op:.17+CR()*.17,fl:0,dl:CR()*1.4,sp:.85+CR()*.3,wob:CR()*6});}
   const CF=new THREE.Vector3();
   /* the cloud nearest a point over the ground (within reach), and where a bolt leaves it: its underside */
-  const nearC=(x,z,R)=>{let b=null,bd=(R||3.4)**2;for(const c of CLD){if(c.k<.3)continue;const p=c.me.position,d=(p.x-x)**2+(p.z-z)**2;if(d<bd){bd=d;b=c;}}return b;};
+  const nearC=(x,z,R)=>{let b=null,bd=(R||4.2)**2;for(const c of CLD){if(c.k<.3)continue;const p=c.me.position,d=(p.x-x)**2+(p.z-z)**2;if(d<bd){bd=d;b=c;}}return b;};
   const under=(c,x,z,out,f)=>{const p=c.me.position,k=.35;out.x=p.x+(x-p.x)*k*.5;out.z=p.z+(z-p.z)*k*.5;out.y=p.y-.32*c.S;c.fl=Math.max(c.fl,f==null?1.4:f);return out;};
   /* strike flares and scorches: pools, reused */
   const flG=reg(new THREE.PlaneGeometry(1,1).translate(0,.5,0)),scG=reg(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2)),FL=[],SC=[];
@@ -33062,9 +33062,10 @@ function tpxBuild(root,reg,regM,hx,G0,hz,ph,D,zT,zB){
       thru(x,g+.6,z,DY,P2);const q=FX[xi++%NF];q.set(P2.x,P2.y,big?1.5:1,big?3.2:2.2);S.flashes++;lit=Math.min(1.6,lit+(big?.6:.35));},
     clouds:CLD,
     /* no cloud over the target: the nearest cloud not already gathering over another drifts over it while the bolt charges (the clouds gather where the storm strikes) */
-    pull(x,z){const C=deckU.uC.value,dx=x-C.x,dz=(z-C.y)/.92,d=Math.hypot(dx,dz),ta=Math.atan2(dz,dx);let b=null,bd=1e9;
+    pull(x,z){for(const c of CLD)if(c.pullT>0&&(c.wx-x)**2+(c.wz-z)**2<9)return c;/* one gathering cloud for foes close together */
+      const C=deckU.uC.value,dx=x-C.x,dz=(z-C.y)/.92,d=Math.hypot(dx,dz),ta=Math.atan2(dz,dx);let b=null,bd=1e9;
       for(const c of CLD){if(c.k<.3||c.pullT>0)continue;const px=c.me.position.x,pz=c.me.position.z,q=(px-x)**2+(pz-z)**2;if(q<bd){bd=q;b=c;}}
-      if(!b)return null;b.tr=d;b.ta=b.a+Math.atan2(Math.sin(ta-b.a),Math.cos(ta-b.a));b.pullT=1.3;return b;},
+      if(!b)return null;b.tr=d;b.ta=b.a+Math.atan2(Math.sin(ta-b.a),Math.cos(ta-b.a));b.pullT=1.3;b.wx=x;b.wz=z;return b;},
     /* where a precise strike's bolt and its leader come down from: the cloud over it (kept for the strike), else straight above as before */
     org(s,fire){const x=s.x+s.jx,z=s.z+s.jz;if(s.oc===undefined)s.oc=nearC(x,z)||S.pull(x,z);
       /* the bolt leaves the cloud where it is now (the clouds wheel on while the leader feels its way down); the cloud glows as it charges, flashes as it fires */
@@ -33095,7 +33096,7 @@ function tpxBuild(root,reg,regM,hx,G0,hz,ph,D,zT,zB){
         const r=(c.r+(1-c.k)*5)*rk,px=deckU.uC.value.x+Math.cos(c.a)*r,pz=deckU.uC.value.y+Math.sin(c.a)*r*.92;
         c.me.position.set(px,c.y+Math.sin(Tm*.3+c.wob)*.12,pz);c.me.rotation.y+=dt*.12*c.sp;const br=1+.05*Math.sin(Tm*.7+c.wob);c.me.scale.set(br,1+.04*Math.sin(Tm*.9+c.wob),br);
         const camF=clamp((cy-c.y-1.4)/3.2,0,1),op=c.op*c.k*(1-blow*.7)*camF*(1-.4*white);c.m.opacity=op;c.me.visible=op>.004;
-        c.fl=Math.max(0,c.fl-dt*4.5);c.m.emissiveIntensity=(.06+c.fl*.8+lit*.1)*c.k;}
+        c.fl=Math.max(0,c.fl-dt*4.5);c.m.emissiveIntensity=(.02+c.fl*.8+lit*.08)*c.k;}
       for(const f of FL){if(!f.me.visible)continue;f.t+=dt;const k=f.t/f.d;if(k>=1){f.me.visible=false;continue;}
         f.me.quaternion.copy(camera.quaternion);f.me.scale.set(.55*f.s*(1+k*.6),3.2*f.s*(1-k*.3),1);f.m.opacity=(1-k)*(1-k)*.95;}
       for(const s of SC){if(!s.me.visible)continue;s.t+=dt;const k=s.t/s.d;if(k>=1){s.me.visible=false;continue;}s.me.scale.setScalar(s.s*(1+k*.5));s.m.opacity=.7*(1-k)*(1-k*.5);}
