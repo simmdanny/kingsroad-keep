@@ -14735,12 +14735,66 @@ function castAeon(t,PW,o,XO){const D=XO?Object.assign({},AEOD,XO):AEOD;
 {const ts=tStats;tStats=function(t,P){const s=ts.apply(this,arguments);const L=ANC.live.aeon;if(s&&s.rate&&L&&L.T>=AEON_ACT[0]&&L.T<AEON_ACT[1]&&t&&!t.isHero)s.rate*=L.tr||1.2;return s;};}
 /* ================= ANCIENT: the Eldritch Tree (the First Tree until v302), which stood before the first star burned ================= */
 /* bark with sap veins: a tube that grows from its root end (uGrow 0..1 along the length) and tapers towards its tip */
-function treeRootMat(regM,r0){return regM(new THREE.ShaderMaterial({uniforms:{uGrow:{value:0},uT:{value:0},uSap:{value:1},uR0:{value:r0}},
-  vertexShader:'uniform float uR0;varying vec2 vU;varying vec3 vN;void main(){vU=uv;float tp=mix(1.,.16,pow(uv.x,.8));vec3 p=position-normal*uR0*(1.-tp);vN=normalize(mat3(modelMatrix)*normal);gl_Position=projectionMatrix*viewMatrix*modelMatrix*vec4(p,1.);}',
-  fragmentShader:'uniform float uGrow,uT,uSap;varying vec2 vU;varying vec3 vN;void main(){if(vU.x>uGrow)discard;float d=max(0.,dot(normalize(vN),normalize(vec3(-.35,.85,.4))));'+
-    'float gr=.82+.18*sin(vU.y*43.98+sin(vU.x*37.)*1.5);vec3 c=mix(vec3(.2,.13,.08),vec3(.34,.24,.15),gr)*(.42+.78*d);c=mix(c,vec3(.2,.3,.12),.35*smoothstep(.6,1.,sin(vU.x*23.+vU.y*6.28)));'+
-    'float vein=smoothstep(.93,1.,sin(vU.y*18.85+vU.x*31.));float p=fract(vU.x*4.-uT*.7);float pulse=smoothstep(0.,.06,p)*smoothstep(.22,.06,p);'+
-    'c+=vec3(.75,1.,.35)*vein*(.25+1.6*pulse)*uSap;float tip=smoothstep(uGrow-.025,uGrow,vU.x)*step(uGrow,.995);c+=vec3(.9,1.,.5)*tip*1.4;gl_FragColor=vec4(c,1.);}'}));}
+/* v476 (Simon: "enhance the elder tree scroll make the visuals 10x better"): looks only, every number, hold and timing as before.
+   treeRootMat: bark knots, moss on the upper side, a rim of canopy light, darker where a root dives under, and the sap pulses now flow
+   in towards the trunk (the roots drink). perV: one merged mesh of many small roots, each growing on its own (attribute aG: start, end;
+   uNow: the cast's clock, uFd: the fade at the end). */
+function treeRootMat(regM,r0,perV){const G=perV?'vG':'uGrow';return regM(new THREE.ShaderMaterial({uniforms:Object.assign({uGrow:{value:0},uT:{value:0},uSap:{value:1},uR0:{value:r0}},perV?{uNow:{value:0},uFd:{value:1}}:{}),
+  vertexShader:(perV?'attribute vec2 aG;uniform float uNow,uFd;varying float vG;':'')+'uniform float uR0;varying vec2 vU;varying vec3 vN,vW;void main(){vU=uv;'+(perV?'vG=clamp((uNow-aG.x)/max(.01,aG.y-aG.x),0.,1.)*uFd;':'')+
+    'float tp=mix(1.,.16,pow(uv.x,.8));vec3 p=position-normal*uR0*(1.-tp);vN=normalize(mat3(modelMatrix)*normal);vec4 w=modelMatrix*vec4(p,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
+  fragmentShader:'uniform float uGrow,uT,uSap;varying vec2 vU;varying vec3 vN,vW;'+(perV?'varying float vG;':'')+'void main(){if(vU.x>'+G+')discard;vec3 N=normalize(vN);float d=max(0.,dot(N,normalize(vec3(-.35,.85,.4))));'+
+    'float gr=.82+.18*sin(vU.y*43.98+sin(vU.x*37.)*1.5);float kn=smoothstep(.55,1.,sin(vU.x*61.+sin(vU.y*6.28)*2.)*sin(vU.y*12.57+vU.x*9.));'+
+    'vec3 c=mix(vec3(.2,.13,.08),vec3(.36,.25,.15),gr)*(1.-.4*kn)*(.4+.8*d);c=mix(c,vec3(.2,.32,.12),.6*smoothstep(.3,.85,N.y)*smoothstep(.1,.9,sin(vU.x*23.+vU.y*6.28)*.5+.55));'+
+    'float vein=smoothstep(.93,1.,sin(vU.y*18.85+vU.x*31.));float p=fract(vU.x*4.+uT*.7);float pulse=smoothstep(0.,.06,p)*smoothstep(.22,.06,p);'+
+    'c+=vec3(.75,1.,.35)*vein*(.3+1.8*pulse)*uSap;vec3 V=normalize(cameraPosition-vW);c+=vec3(.85,1.,.55)*pow(1.-max(0.,dot(N,V)),3.)*.24;c*=mix(.5,1.,smoothstep(-.3,.3,vW.y));'+
+    'float tip=smoothstep('+G+'-.025,'+G+',vU.x)*step('+G+',.995);c+=vec3(.9,1.,.5)*tip*1.6;gl_FragColor=vec4(c,1.);}'}));}
+/* the Eldritch Tree's bark: deep twisting furrows between ridged plates, moss and lichen low down, the canopy's light on its rim, the foot
+   dark where it tears out of the earth; sap glows in the furrows (uSap), and the whole bark blazes gold and pink as the Tree blooms (uBl).
+   vertexColors keeps the trunk's old bark and moss colours (and lets the tests find the trunk as before). */
+function treeBarkMat(regM){return regM(new THREE.ShaderMaterial({vertexColors:true,uniforms:{uT:{value:0},uSap:{value:0},uBl:{value:0}},
+  vertexShader:'varying vec3 vC,vN,vL,vW;void main(){vC=color;vL=position;vN=normalize(mat3(modelMatrix)*normal);vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
+  fragmentShader:'uniform float uT,uSap,uBl;varying vec3 vC,vN,vL,vW;float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}'+
+    'float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}'+
+    'void main(){float a=atan(vL.z,vL.x),y=vL.y;float u=(a-y*.05)*3.8197+(n2(vec2(a*3.,y*.5))-.5)*1.6;float f=abs(fract(u)-.5)*2.;'+
+    'float br=smoothstep(.93,.99,abs(sin(y*1.3+n2(vec2(floor(u)*3.7,y*.4))*6.)));float cr=max(smoothstep(.7,.96,f),br*step(f,.75)*.8);float rid=1.-f*f;'+
+    'vec3 N=normalize(vN);vec3 al=vC*(.7+.55*rid+.25*(n2(vec2(u*2.,y*3.))-.5));al*=mix(1.,.18,cr);'+
+    'float mm=smoothstep(.42,.72,n2(vec2(a*2.2,y*.7)))*exp(-y*.11);al=mix(al,vec3(.2,.34,.11)*(.75+.5*n2(vec2(a*9.,y*4.))),mm*.85*(1.-cr*.6));'+
+    'al+=vec3(.16,.18,.12)*step(.86,n2(vec2(a*14.,y*6.)))*(1.-cr)*.6;'+
+    'float d=max(0.,dot(N,normalize(vec3(-.35,.85,.4)))*.8+.2);vec3 c=al*(.34+.1*N.y+.85*d);'+
+    'vec3 V=normalize(cameraPosition-vW);c+=vec3(1.,.9,.58)*pow(1.-max(0.,dot(N,V)),3.)*.2*(.4+.6*rid);c*=mix(.4,1.,smoothstep(-.3,2.4,vW.y));'+
+    'float p=fract(y*.11-uT*.32+floor(u)*.137);float pu=smoothstep(0.,.07,p)*smoothstep(.32,.07,p);c+=vec3(.5,1.,.28)*cr*(.05+.5*pu)*uSap*smoothstep(13.,1.,y);'+
+    'c+=mix(vec3(1.,.62,.86),vec3(1.,.95,.6),rid)*uBl*(cr*1.6+.12);gl_FragColor=vec4(c,1.);}'}));}
+/* cracks of light in the torn earth (a flat plane): uN jagged cracks running out from the middle, a shock ring racing out and a glowing core,
+   all fading with uT (seconds since it burst) and uA */
+function treeCrackMat(regM,n){return regM(new THREE.ShaderMaterial({uniforms:{uT:{value:9},uA:{value:0},uN:{value:n}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform float uT,uA,uN;varying vec2 vU;void main(){vec2 p=(vU-.5)*2.;float r=length(p),a=atan(p.y,p.x);'+
+    'float s=a/6.2832*uN+sin(r*7.+a*2.)*.16+sin(r*19.+a)*.05;float dl=abs(fract(s)-.5)/uN*6.2832*r;float ln=mix(.5,1.,fract(sin(floor(s)*91.7)*437.5));'+
+    'float cr=smoothstep(.045,0.,dl)*smoothstep(ln,ln*.35,r)*smoothstep(.04,.16,r);float sh=exp(-pow((r-min(1.,uT*2.4))*8.,2.))*(1.-smoothstep(.2,.5,uT));float co=exp(-r*r*12.)*.7;'+
+    'float k=(cr*(.8+1.8*exp(-uT*3.5))+sh+co*exp(-uT*2.5))*uA;gl_FragColor=vec4(mix(vec3(.5,1.,.28),vec3(1.,.96,.62),clamp(sh+co*.6,0.,1.)),k);}'}));}
+/* real clods of earth and stones (one instanced draw, lit by the scene): thrown out, bouncing and rolling, shrinking away at the end */
+function treeDebris(par,reg,regM,N,vr){const im=new THREE.InstancedMesh(reg(new THREE.DodecahedronGeometry(1,0)),regM(new THREE.MeshLambertMaterial({color:0xffffff})),N);im.frustumCulled=false;im.castShadow=true;par.add(im);
+  const D=[],M=new THREE.Matrix4(),Q=new THREE.Quaternion(),E=new THREE.Euler(),S=new THREE.Vector3(),V=new THREE.Vector3(),c=new THREE.Color();let head=0;M.makeScale(0,0,0);
+  for(let i=0;i<N;i++){D.push({l:0});im.setMatrixAt(i,M);im.setColorAt(i,c.setHex(0x5a4028));}
+  return{im,sp(x,y,z,vx,vy,vz,s,col,life){const i=head;head=(head+1)%N;D[i]={x,y,z,vx,vy,vz,s,l:life,L:life,rx:vr()*6,ry:vr()*6,rz:vr()*6,wx:(vr()-.5)*14,wy:(vr()-.5)*14,wz:(vr()-.5)*14,sq:.6+vr()*.5};im.setColorAt(i,c.setHex(col));im.instanceColor.needsUpdate=true;},
+    step(dt){let any=false;for(let i=0;i<N;i++){const d=D[i];if(d.l<=0)continue;any=true;d.l-=dt;if(d.l<=0){M.makeScale(0,0,0);im.setMatrixAt(i,M);continue;}
+      d.vy-=9.5*dt;d.x+=d.vx*dt;d.y+=d.vy*dt;d.z+=d.vz*dt;const fl=d.s*.45;if(d.y<fl){d.y=fl;if(d.vy<0)d.vy*=-.3;d.vx*=.7;d.vz*=.7;d.wx*=.7;d.wy*=.7;d.wz*=.7;}
+      d.rx+=d.wx*dt;d.ry+=d.wy*dt;d.rz+=d.wz*dt;const k=Math.min(1,d.l/(d.L*.35));S.set(d.s*k,d.s*k*d.sq,d.s*k);Q.setFromEuler(E.set(d.rx,d.ry,d.rz));M.compose(V.set(d.x,d.y,d.z),Q,S);im.setMatrixAt(i,M);}
+      if(any)im.instanceMatrix.needsUpdate=true;}};}
+/* many tubes in one geometry, each with its own growth window (aG), for treeRootMat's perV */
+function treeMerge(list){const P=[],Nn=[],U=[],G=[],I=[];let o=0;for(const[g,t0,t1]of list){const a=g.attributes;for(let i=0;i<a.position.count;i++){P.push(a.position.getX(i),a.position.getY(i),a.position.getZ(i));Nn.push(a.normal.getX(i),a.normal.getY(i),a.normal.getZ(i));U.push(a.uv.getX(i),a.uv.getY(i));G.push(t0,t1);}
+  const ix=g.index.array;for(let i=0;i<ix.length;i++)I.push(ix[i]+o);o+=a.position.count;g.dispose();}
+  const B=new THREE.BufferGeometry();B.setAttribute('position',new THREE.Float32BufferAttribute(P,3));B.setAttribute('normal',new THREE.Float32BufferAttribute(Nn,3));B.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));B.setAttribute('aG',new THREE.Float32BufferAttribute(G,2));B.setIndex(I);return B;}
+/* a flat ribbon on the ground along a curve (u along it, v across), for the glowing seams the roots tear as they crawl */
+function treeRibbon(pts,w,t0,t1){const cv=new THREE.CatmullRomCurve3(pts),n=Math.max(24,pts.length*10),Q=cv.getSpacedPoints(n),P=[],U=[],G=[],I=[];
+  for(let i=0;i<=n;i++){const a=Q[Math.max(0,i-1)],b=Q[Math.min(n,i+1)];let tx=b.x-a.x,tz=b.z-a.z;const l=Math.hypot(tx,tz)||1;tx/=l;tz/=l;const ww=w*(1-.6*i/n);
+    P.push(Q[i].x-tz*ww,.05,Q[i].z+tx*ww,Q[i].x+tz*ww,.05,Q[i].z-tx*ww);U.push(i/n,0,i/n,1);G.push(t0,t1,t0,t1);if(i<n){const k=i*2;I.push(k,k+1,k+2,k+1,k+3,k+2);}}
+  const B=new THREE.BufferGeometry();B.setAttribute('position',new THREE.Float32BufferAttribute(P,3));B.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));B.setAttribute('aG',new THREE.Float32BufferAttribute(G,2));B.setIndex(I);return B;}
+function treeMergeFlat(list){const P=[],U=[],G=[],I=[];let o=0;for(const g of list){const a=g.attributes;for(let i=0;i<a.position.count;i++){P.push(a.position.getX(i),a.position.getY(i),a.position.getZ(i));U.push(a.uv.getX(i),a.uv.getY(i));G.push(a.aG.getX(i),a.aG.getY(i));}
+  for(const x of g.index.array)I.push(x+o);o+=a.position.count;g.dispose();}
+  const B=new THREE.BufferGeometry();B.setAttribute('position',new THREE.Float32BufferAttribute(P,3));B.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));B.setAttribute('aG',new THREE.Float32BufferAttribute(G,2));B.setIndex(I);return B;}
+/* a leaf with a pointed tip and a stem end (instead of a rectangle) */
+function treeLeafGeo(){const s=new THREE.Shape();s.moveTo(-.14,0);s.quadraticCurveTo(-.04,.085,.14,0);s.quadraticCurveTo(-.04,-.085,-.14,0);return new THREE.ShapeGeometry(s,3);}
 /* v462: XO (optional, the Eldritch Tree's masteries): this cast's own numbers over TRD (reach: how far an eruption strikes from its knot;
    drink/drinkB: the share of max health the roots drink (bosses); gap: seconds between eruptions; lock: seconds before the roots may strike
    a foe again; spare: the roots hold a foe only if its Resolve can take the whole hold, so they never make it Unstoppable; swallow: a foe
@@ -14769,13 +14823,22 @@ function castFirstTree(t,PW,o,XO){
   /* no free spot on the whole board: it grows beside the board, on the low ground */
   if(!P)P=new THREE.Vector3(V.c.x>0?W/2+3:-W/2-3,-1.6+GLY,clamp(V.top+2.4,zT+2,zB-3));
   /* ---- the trunk: twisted, ridged, its foot flaring into buttresses, mossy low down ---- */
-  const TH=18,tree=new THREE.Group();tree.position.set(P.x,P.y-TH-1,P.z);root.add(tree);
+  const TH=18,tree=new THREE.Group(),barkM=treeBarkMat(regM);tree.position.set(P.x,P.y-TH-1,P.z);root.add(tree);
   const trR=(a,y)=>(1.3-y*.011)*(1+.75*Math.exp(-y*.9)*(.6+.4*Math.pow(Math.abs(Math.sin(a*3+.5)),3)));
   {const g=reg(new THREE.CylinderGeometry(1,1,TH,24,34,true));g.translate(0,TH/2,0);const A=g.attributes.position,cols=[],bark=new THREE.Color(0x4a3424),moss=new THREE.Color(0x3e5a2a),cc=new THREE.Color();
     for(let i=0;i<A.count;i++){const x=A.getX(i),y=A.getY(i),z=A.getZ(i),a=Math.atan2(z,x),r=trR(a,y)*(1+.07*Math.sin(a*11+y*.35)+.04*Math.sin(a*23-y*.6)),aa=a+y*.05;A.setXYZ(i,Math.cos(aa)*r,y,Math.sin(aa)*r);
       cc.copy(bark).lerp(moss,Math.max(0,Math.sin(a*5+y*.2))*.55*Math.exp(-y*.15));cc.offsetHSL(0,0,(Math.sin(a*11+y*.35)-.3)*.04);cols.push(cc.r,cc.g,cc.b);}
     g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));g.computeVertexNormals();
-    const m=new THREE.Mesh(g,regM(new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:4})));m.castShadow=true;tree.add(m);}
+    const m=new THREE.Mesh(g,barkM);m.castShadow=true;tree.add(m);}
+  /* v476: the looks added since (their own group, their own seeded random: the game's random stream is untouched) */
+  const vr=mulberry(((P.x*73+P.z*31)*1000)|0),fx=new THREE.Group();root.add(fx);const XI=[];
+  const gp=ancPool(fx,1100,reg,regM,41);const dust=ancPool(fx,420,reg,regM,36,'varying vec4 vC;void main(){vec2 d=gl_PointCoord-.5;float r=length(d)*2.;if(r>1.)discard;float k=1.-r;gl_FragColor=vec4(vC.rgb,vC.a*k*k*.75);}');
+  fx.children[fx.children.length-1].material.blending=THREE.NormalBlending;
+  const deb=treeDebris(fx,reg,regM,260,vr);XI.push(deb.im);const DIRT=[0x5a4028,0x4a3420,0x6a5034,0x3a5a24,0x77705e];const dirtC=()=>DIRT[Math.floor(vr()*5)];
+  /* shelf fungi on the bark, glowing faintly; spores drift off them */
+  const FUN=[];{const im=new THREE.InstancedMesh(reg(new THREE.SphereGeometry(1,9,4,0,TAU,0,Math.PI/2)),regM(new THREE.MeshLambertMaterial({color:0xb8a27a,emissive:0x1a2c0e})),22),M=new THREE.Matrix4(),Q=new THREE.Quaternion(),E=new THREE.Euler(),S=new THREE.Vector3(),V=new THREE.Vector3();
+    for(let i=0;i<22;i++){const a=vr()*TAU,y=.9+Math.pow(vr(),1.4)*8,r=trR(a,y)*.97,aa=a+y*.05,s2=.13+vr()*.13;V.set(Math.cos(aa)*r,y,Math.sin(aa)*r);Q.setFromEuler(E.set(0,-aa,0));S.set(s2*1.3,s2*.42,s2);M.compose(V,Q,S);im.setMatrixAt(i,M);FUN.push(V.clone());}
+    tree.add(im);XI.push(im);}
   /* sap veins climbing the bark */
   const veinM=regM(new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:0},uD:{value:new THREE.Vector4(-9,-9,-9,-9)},uS:{value:-1},uE:{value:0},uK:{value:1}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
     vertexShader:'varying float vU;void main(){vU=uv.x;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
@@ -14792,6 +14855,24 @@ function castFirstTree(t,PW,o,XO){
     const pts=[new THREE.Vector3(P.x+Math.sin(h)*.6,1.1,P.z+Math.cos(h)*.6)];let x=P.x+Math.sin(h)*1.9,z=P.z+Math.cos(h)*1.9;pts.push(new THREE.Vector3(x,.25,z));
     for(let k=0;k<16;k++){h+=(rnd()-.5)*.55;h=h*.94;x+=Math.sin(h)*1.45;z+=Math.cos(h)*1.45;if(Math.abs(x)>W/2-.3||z>zB-.3||z<zT+.3)break;pts.push(new THREE.Vector3(x,k%3===2?-.3:.04,z));}
     if(pts.length>3)addRoot(pts,.3,3+i*.15,5.6+i*.15);}
+  /* v476: small roots branching off every giant root (one draw), and the seam of light each one tears in the earth as it crawls, its sap flowing home (one draw) */
+  const RL=[],SEAM=[];for(const R2 of ROOTS){if(R2.m.uniforms.uR0.value<.4){const n=R2.pts.length;SEAM.push(treeRibbon(R2.pts,.3,R2.t0,R2.t1));
+    for(let k=0;k<4;k++){const j=1+Math.floor(vr()*(n-2)),b=R2.pts[j],c=R2.pts[Math.min(n-1,j+1)],sd=vr()<.5?-1:1;let dx=c.x-b.x,dz=c.z-b.z;const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;const L2=.9+vr()*.9;
+      const q=[new THREE.Vector3(b.x,Math.max(.05,b.y+.12),b.z)];for(let s2=1;s2<=3;s2++){const f=s2/3,w=(vr()-.5)*.3;q.push(new THREE.Vector3(b.x+(-dz*sd*(.6+w)+dx*.5)*L2*f,.12-.3*f*f,b.z+(dx*sd*(.6+w)+dz*.5)*L2*f));}
+      const t0=R2.t0+(R2.t1-R2.t0)*j/n;RL.push([new THREE.TubeGeometry(new THREE.CatmullRomCurve3(q),14,.1,5,false),t0,t0+.55]);}}}
+  const rlM=treeRootMat(regM,.1,true);{const g=new THREE.Group();fx.add(g);g.add(new THREE.Mesh(reg(treeMerge(RL)),rlM));}
+  const seamM=regM(new THREE.ShaderMaterial({uniforms:{uNow:{value:0},uFd:{value:1},uT:{value:0},uA:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+    vertexShader:'attribute vec2 aG;uniform float uNow,uFd;varying vec2 vU;varying float vG;void main(){vU=uv;vG=clamp((uNow-aG.x)/max(.01,aG.y-aG.x),0.,1.)*uFd;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader:'uniform float uT,uA;varying vec2 vU;varying float vG;void main(){if(vU.x>vG)discard;float e=1.-abs(vU.y*2.-1.);float p=fract(vU.x*5.+uT*.9);float pu=smoothstep(0.,.05,p)*smoothstep(.25,.05,p);'+
+      'float tip=smoothstep(vG-.05,vG,vU.x)*step(vG,.995);float k=e*e*e*(.25+1.*pu)+tip*e*1.8;gl_FragColor=vec4(mix(vec3(.5,1.,.3),vec3(1.,1.,.6),tip),k*uA*.22);}'}));
+  {const m=new THREE.Mesh(reg(treeMergeFlat(SEAM)),seamM);m.renderOrder=30;fx.add(m);}
+  /* a low green mist over the field, thickest round the trunk */
+  const mistM=regM(new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:0},uP:{value:new THREE.Vector2(P.x,P.z)}},transparent:true,depthWrite:false,
+    vertexShader:'varying vec2 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xz;gl_Position=projectionMatrix*viewMatrix*w;}',
+    fragmentShader:'uniform float uT,uA;uniform vec2 uP;varying vec2 vW;float n(vec2 p){return sin(p.x*.9+sin(p.y*.7+uT*.3)*1.6)*sin(p.y*.8+sin(p.x*.6-uT*.23)*1.8);}'+
+      'void main(){vec2 p=vW*.55;float k=.5+.3*n(p)+.2*n(p*2.3+3.);float t=exp(-length(vW-uP)*.22);gl_FragColor=vec4(mix(vec3(.62,.8,.5),vec3(.85,.95,.7),t),uA*(.1*k+.22*t));}'}));
+  {const m=new THREE.Mesh(reg(new THREE.PlaneGeometry(BW+16,zB-zT+18)),mistM);m.rotation.x=-Math.PI/2;m.position.set(0,.22,(zT+zB)/2);m.renderOrder=31;fx.add(m);}
+  const footM=treeCrackMat(regM,11);{const m=new THREE.Mesh(reg(new THREE.PlaneGeometry(10,10)),footM);m.rotation.x=-Math.PI/2;m.position.set(P.x,P.y+.06,P.z);m.renderOrder=29;fx.add(m);}
   /* ---- the canopy is too high to see: its shade and its sun spots fall on the field, shafts of light come through ---- */
   const dapM=regM(new THREE.ShaderMaterial({uniforms:{uT:{value:0},uA:{value:0}},transparent:true,depthWrite:false,
     vertexShader:'varying vec2 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xz;gl_Position=projectionMatrix*viewMatrix*w;}',
@@ -14800,32 +14881,42 @@ function castFirstTree(t,PW,o,XO){
   {const m=new THREE.Mesh(reg(new THREE.PlaneGeometry(BW+16,zB-zT+18)),dapM);m.rotation.x=-Math.PI/2;m.position.set(0,.075,(zT+zB)/2);m.renderOrder=29;root.add(m);}
   const rayM=regM(new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
     vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader:'uniform float uA,uT;varying vec2 vU;void main(){float s=.55+.45*sin(vU.x*19.+uT*.6);gl_FragColor=vec4(vec3(1.,.95,.6),pow(vU.y,1.4)*s*uA*.2);}'}));
+    fragmentShader:'uniform float uA,uT;varying vec2 vU;void main(){float s=.55+.45*sin(vU.x*19.+uT*.6);gl_FragColor=vec4(vec3(1.,.93,.6),pow(vU.y,1.4)*s*uA*.3);}'}));
   const rayG=reg(new THREE.CylinderGeometry(.2,1.1,9,10,1,true)),RAYS=[];
-  for(let i=0;i<8;i++){const m=new THREE.Mesh(rayG,rayM);m.position.set(V.c.x+(rnd()-.5)*V.hw*2,4.3,V.c.z+(rnd()-.5)*V.hh*2);m.rotation.set(.32,0,(rnd()-.5)*.3);m.renderOrder=58;root.add(m);RAYS.push({m,ph:rnd()*6});}
+  for(let i=0;i<12;i++){const m=new THREE.Mesh(rayG,rayM);m.position.set(V.c.x+(rnd()-.5)*V.hw*2,4.3,V.c.z+(rnd()-.5)*V.hh*2);m.rotation.set(.32,0,(rnd()-.5)*.3);m.renderOrder=58;root.add(m);RAYS.push({m,ph:rnd()*6});}
   /* falling leaves */
-  const leafG=reg(new THREE.PlaneGeometry(.26,.15)),LEAFM=[0x4a8a2e,0x6aa83a,0x3a6a24,0xc8a83a,0xa8c84a].map(c=>regM(new THREE.MeshLambertMaterial({color:c,side:THREE.DoubleSide})));const LEAF=[];
+  const leafG=reg(treeLeafGeo()),LEAFM=[0x4a8a2e,0x6aa83a,0x3a6a24,0xc8a83a,0xa8c84a].map(c=>regM(new THREE.MeshLambertMaterial({color:c,side:THREE.DoubleSide})));const LEAF=[];
   const leafAt=(f,first)=>{f.m.position.set(V.c.x+(rnd()-.5)*V.hw*2.4,first?rnd()*7:5+rnd()*3,V.c.z+(rnd()-.5)*V.hh*2.3-1.5);f.v=.45+rnd()*.5;f.ph=rnd()*6;f.rest=0;};
   for(let i=0;i<80;i++){const m=new THREE.Mesh(leafG,LEAFM[i%5]);m.visible=false;root.add(m);const f={m};leafAt(f,true);LEAF.push(f);}
   /* ---- the roots burst up round the thickest knot of foes, bind them and drink ---- */
-  const spikeG=reg(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0,-.15,0),new THREE.Vector3(.04,.45,0),new THREE.Vector3(-.12,.92,0),new THREE.Vector3(-.42,1.2,0),new THREE.Vector3(-.62,1.1,0)]),24,.12,6,false));
+  const spikeG=reg(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0,-.15,0),new THREE.Vector3(.04,.45,0),new THREE.Vector3(-.12,.92,0),new THREE.Vector3(-.42,1.2,0),new THREE.Vector3(-.62,1.1,0)]),28,.15,7,false));
   const spikeM=treeRootMat(regM,.12);spikeM.uniforms.uGrow.value=1;const ringM=regM(new THREE.MeshBasicMaterial({color:0xb8f08a,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}));
   const NS=D.spikes,rk=D.reach/1.35;
   const ERU=[];for(let i=0;i<7;i++){const g=new THREE.Group();g.visible=false;root.add(g);for(let k=0;k<NS;k++){const a=k/NS*TAU+rnd()*.3,s=new THREE.Mesh(spikeG,spikeM);s.position.set(Math.cos(a)*.62*rk,0,Math.sin(a)*.62*rk);s.rotation.set(0,-a,(rnd()-.5)*.2);s.scale.setScalar(.85+rnd()*.35);s.scale.y*=D.spikeH;s.castShadow=true;g.add(s);}
-    const rg=new THREE.Mesh(reg(new THREE.RingGeometry(.5*rk,1.4*rk,28)),ringM.clone());regM(rg.material);rg.rotation.x=-Math.PI/2;rg.position.y=.06;g.add(rg);ERU.push({g,rg,t:-1});}
+    const rg=new THREE.Mesh(reg(new THREE.RingGeometry(.5*rk,1.4*rk,28)),ringM.clone());regM(rg.material);rg.rotation.x=-Math.PI/2;rg.position.y=.06;g.add(rg);const ck=new THREE.Mesh(reg(new THREE.PlaneGeometry(3.4*rk,3.4*rk)),treeCrackMat(regM,9));ck.rotation.x=-Math.PI/2;ck.visible=false;ck.renderOrder=30;fx.add(ck);ERU.push({g,rg,ck,t:-1});}
+  /* v476: a root coils round every foe the roots hold, and lets go when the hold ends */
+  const coilG=reg(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(Array.from({length:22},(_,i)=>{const f=i/21,a=f*TAU*2.4;return new THREE.Vector3(Math.cos(a)*(.36-.1*f),f*.8,Math.sin(a)*(.36-.1*f));})),70,.05,5,false)),COIL=[],coilP=new THREE.Group();fx.add(coilP);
+  for(let i=0;i<20;i++){const m=treeRootMat(regM,.05),me=new THREE.Mesh(coilG,m);me.visible=false;coilP.add(me);COIL.push({me,m,e:null,t:0,h:0,out:0});}
+  const bind=(e,h)=>{let C2=COIL.find(q=>q.e===e)||COIL.find(q=>!q.e)||COIL.reduce((a,q)=>q.t>a.t?q:a);C2.e=e;C2.t=0;C2.h=h;C2.out=0;C2.me.visible=true;C2.me.rotation.y=vr()*TAU;const sz=e.d&&e.d.size||1;C2.me.scale.set(sz,sz*(e.boss?1.3:1),sz);};
   const lastHit=new Map(),drank=new Set(),DQ=[-9,-9,-9,-9];let eruT=.3,eruI=0,dqI=0,leafAcc=0,bloomed=false,waveR=-1,bloomK=1,FI=null;const waveHit=new Set(),FLW=[];
   const flowerM=[0xffd8ec,0xffffff,0xffb8d8].map(c=>regM(new THREE.MeshBasicMaterial({color:c}))),flowerG=reg(new THREE.IcosahedronGeometry(.16,0));
   function erupt(){const A=alive().filter(e=>!(lastHit.get(e)>time-D.lock));if(!A.length)return;const c=densest(A)||A[0];const E=ERU[eruI++%ERU.length];letGo(E);E.t=0;E.g.position.set(c.x,0,c.z);E.g.rotation.y=rnd()*6;E.g.visible=true;
     const hits=lg?[]:null;let dr=0;
     for(const e of A){if((e.x-c.x)**2+(e.z-c.z)**2>D.reach*D.reach)continue;lastHit.set(e,time);hurt(e,PW*4,'magic',o);if(hits)hits.push(e);if(e.dead)continue;hurt(e,e.maxHp*(e.boss?D.drinkB:D.drink),'magic',{src:o.src});drank.add(e);dr++;
-      {const hd=e.boss?.4:1.2;if(!e.dead&&!(D.spare&&rsvLeft(e)<=hd-Math.max(0,e.stunT||0)+1e-4))stunE(e,hd);}
+      {const hd=e.boss?.4:1.2;if(!e.dead&&!(D.spare&&rsvLeft(e)<=hd-Math.max(0,e.stunT||0)+1e-4)){stunE(e,hd);bind(e,hd);}}
       /* Swallowed: the spikes clench round a foe the roots leave too weak to stand, and drag it under (it is held while it sinks; towers let it go) */
       if(D.swallow&&!e.dead&&!e.boss&&e.hp<e.maxHp*D.swallow){e.stunT=Math.max(e.stunT||0,1.1);e.burrow=1;(E.sw=E.sw||[]).push({e,h:e.fly?e.y+.9:Math.max(.6,(e.hitY||.45)*2.2)});lg&&lg({ev:'swallow',e,hp:e.hp/e.maxHp});}
-      for(let i=0;i<D.motes;i++){const y=e.y+e.hitY*.6;pool.sp(e.x,y,e.z,(P.x-e.x)/1.3,(2.4-y)/1.3,(P.z-e.z)/1.3,rnd()<.5?0xc8ff8a:0xffe88a,.9,.06+rnd()*.04,1.3,0,0);}}
+      for(let i=0;i<D.motes;i++){const y=e.y+e.hitY*.6;pool.sp(e.x,y,e.z,(P.x-e.x)/1.3,(2.4-y)/1.3,(P.z-e.z)/1.3,rnd()<.5?0xc8ff8a:0xffe88a,.9,.06+rnd()*.04,1.3,0,0);}
+      for(let i=0;i<3;i++){const y=e.y+e.hitY*.6;gp.sp(e.x,y,e.z,(P.x-e.x)/1.3+(vr()-.5)*.6,(2.4-y)/1.3+vr()*.8,(P.z-e.z)/1.3+(vr()-.5)*.6,0xe8ffb0,.6,.16+vr()*.06,1.3,0,.6);}}
     for(let i=0;i<22;i++){const a=rnd()*TAU;pool.sp(c.x+Math.cos(a)*.5*rk,.1,c.z+Math.sin(a)*.5*rk,Math.cos(a)*(.6+rnd()),1+rnd()*1.6,Math.sin(a)*(.6+rnd()),rnd()<.6?0x5a4028:0x3a5a24,.85,.07+rnd()*.05,.7+rnd()*.4,1,3.5);}
     /* Thirst: each draught climbs the sap veins when its motes reach the trunk */
     if(D.draught&&dr){DQ[dqI++%4]=time+1.3;}
     lg&&lg({ev:'erupt',x:c.x,z:c.z,hits,n:dr});
+    /* v476: the earth breaks: cracks of light, real clods and stones, dust, sparks of sap */
+    E.ck.position.set(c.x,.07,c.z);E.ck.rotation.z=vr()*TAU;E.ck.visible=true;E.ck.material.uniforms.uT.value=0;
+    for(let i=0;i<16;i++){const a=vr()*TAU,r=vr()*.6*rk,sp=1+vr()*2.2;deb.sp(c.x+Math.cos(a)*r,.1,c.z+Math.sin(a)*r,Math.cos(a)*sp,2.5+vr()*3,Math.sin(a)*sp,.035+vr()*.06,dirtC(),1.6+vr()*1.2);}
+    for(let i=0;i<9;i++){const a=vr()*TAU,r=.3+vr()*.8*rk;dust.sp(c.x+Math.cos(a)*r,.2+vr()*.3,c.z+Math.sin(a)*r,Math.cos(a)*.9,.25+vr()*.4,Math.sin(a)*.9,vr()<.5?0x8a7458:0x9a8a6a,.5,.55+vr()*.5,1.1+vr()*.6,1.6,-.1);}
+    for(let i=0;i<14;i++){const a=vr()*TAU;gp.sp(c.x+Math.cos(a)*.4*rk,.2,c.z+Math.sin(a)*.4*rk,Math.cos(a)*(.5+vr()),2+vr()*2.5,Math.sin(a)*(.5+vr()),vr()<.5?0xd8ff8a:0xfff2a0,.95,.07+vr()*.05,.6+vr()*.5,1.2,1.5);}
     camShake=Math.max(camShake,.06*SPACE_K+.03);if(typeof sfxBoom==='function')sfxBoom(.1,true);}
   /* a swallowing eruption reused (or the cast ending) lets go of any foe it still holds */
   function letGo(E){if(!E.sw)return;for(const q of E.sw)if(!q.e.dead){q.e.burrow=0;q.e.swal=0;}E.sw=null;}
@@ -14834,7 +14925,7 @@ function castFirstTree(t,PW,o,XO){
     E.g.children.forEach((ch,i)=>{if(i<NS)ch.rotation.z=-Math.min(1,t*2)*.18*(1-cl)+.55*cl;});E.g.position.y=-1.9*u*u;
     for(const q of E.sw){const e=q.e;if(q.done||e.dead)continue;
       if(t<.9){e.swal=1;e.g.position.y=-q.h*u*u;if(u>0&&rnd()<.7)pool.sp(e.x+(rnd()-.5)*.5,.08,e.z+(rnd()-.5)*.5,(rnd()-.5)*.8,.8+rnd()*1.2,(rnd()-.5)*.8,rnd()<.6?0x5a4028:0x3a5a24,.85,.06+rnd()*.05,.6+rnd()*.3,1,3.5);continue;}
-      q.done=1;e.swal=0;const x=e.x,z=e.z;hurt(e,e.hp+(e.shield||0)+1,'magic',{src:o.src,noReact:true});
+      q.done=1;e.swal=0;const x=e.x,z=e.z;hurt(e,e.hp+(e.shield||0)+1,'magic',{src:o.src,noReact:true});for(let i=0;i<10;i++){const a=vr()*TAU;deb.sp(x+Math.cos(a)*.2,.1,z+Math.sin(a)*.2,Math.cos(a)*(.6+vr()*1.4),2+vr()*2.5,Math.sin(a)*(.6+vr()*1.4),.04+vr()*.06,dirtC(),1.3+vr());}
       if(!e.dead){e.burrow=0;e.g.position.y=0;continue;}lg&&lg({ev:'sunk',e});
       for(let i=0;i<16;i++){const a=rnd()*TAU;pool.sp(x+Math.cos(a)*.3,.1,z+Math.sin(a)*.3,Math.cos(a)*(.5+rnd()*1.2),1.2+rnd()*1.8,Math.sin(a)*(.5+rnd()*1.2),rnd()<.6?0x5a4028:0x3a5a24,.9,.07+rnd()*.06,.7+rnd()*.4,1,3.5);}
       for(let i=0;i<10;i++)pool.sp(x+(rnd()-.5)*.3,.15,z+(rnd()-.5)*.3,(P.x-x)/1.3,(2.4-.15)/1.3,(P.z-z)/1.3,rnd()<.5?0xc8ff8a:0xffe88a,.9,.07+rnd()*.04,1.3,0,0);}
@@ -14852,15 +14943,45 @@ function castFirstTree(t,PW,o,XO){
     if(u<0){U.uS.value=-1;U.uE.value=0;return;}U.uS.value=.15+u*1.1;U.uE.value=bloomK*SMS(u,0,.12)*(1-SMS(u,1.1,2.2));
     if(u<1){const y0=tree.position.y,top=Math.min(11.5,(.15+u*1.1)*11.85);for(let i=0;i<6;i++){const v=Math.floor(rnd()*7),y=.2+rnd()*top,a=v/7*TAU+.3+Math.sin(y*.6+v)*.18,r=trR(a,y)*1.03+.08,aa=a+y*.05;
       pool.sp(P.x+Math.cos(aa)*r,y0+y,P.z+Math.sin(aa)*r,Math.cos(aa)*.3,3+rnd()*4,Math.sin(aa)*.3,rnd()<.5?0xe8ff9a:0xfff0b0,.9,.07+rnd()*.05,.5+rnd()*.4,.5,0);}}}
+  /* v476: the bloom's wave front, a gold and pink ring racing over the field with the pollen (uR: waveR) */
+  const waveM=regM(new THREE.ShaderMaterial({uniforms:{uR:{value:-1},uA:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+    vertexShader:'varying vec2 vL;void main(){vL=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader:'uniform float uR,uA;varying vec2 vL;void main(){float r=length(vL),a=atan(vL.y,vL.x),x=r-uR;float b=exp(-x*x*1.6)*(.75+.25*sin(a*40.+r*2.))+exp(-max(0.,-x)*.35)*step(x,0.)*.16;'+
+      'gl_FragColor=vec4(mix(vec3(1.,.6,.85),vec3(1.,.95,.6),exp(-x*x*5.)),b*uA);}'}));
+  const waveP=new THREE.Mesh(reg(new THREE.PlaneGeometry(96,96)),waveM);waveP.rotation.x=-Math.PI/2;waveP.position.set(P.x,.09,P.z);waveP.visible=false;waveP.renderOrder=32;fx.add(waveP);
+  /* petals raining over the field as it blooms (one instanced draw) */
+  const NPT=240,PET=[],petM=new THREE.Matrix4(),petQ=new THREE.Quaternion(),petE=new THREE.Euler(),petS=new THREE.Vector3(),petV=new THREE.Vector3();
+  const petI=new THREE.InstancedMesh(reg(treeLeafGeo().scale(.75,1.2,1)),regM(new THREE.MeshLambertMaterial({side:THREE.DoubleSide,emissive:0x3a2430})),NPT);petI.frustumCulled=false;petI.visible=false;fx.add(petI);XI.push(petI);
+  {const pc=[0xffc8e0,0xffffff,0xffa8d0,0xffe0ec],c=new THREE.Color();for(let i=0;i<NPT;i++){petI.setColorAt(i,c.setHex(pc[i%4]));PET.push({x:V.c.x+(vr()-.5)*V.hw*2.5,y:4+vr()*6,z:V.c.z+(vr()-.5)*V.hh*2.4-1,v:.55+vr()*.6,ph:vr()*6,d:vr()*1.6,rest:0});}}
+  /* blossoms on the trunk too, opening with the roots' (one instanced draw, inside the trunk's group so they sink with it) */
+  const TBL=[];const tbI=new THREE.InstancedMesh(reg(D.flwG?D.flwG():new THREE.IcosahedronGeometry(.16,0)),regM(new THREE.MeshBasicMaterial({vertexColors:!!D.flwG})),46);tbI.frustumCulled=false;tree.add(tbI);XI.push(tbI);
+  {const c=new THREE.Color();for(let i=0;i<46;i++){const a=vr()*TAU,y=1.2+vr()*9,r=trR(a,y)*1.02,aa=a+y*.05;tbI.setColorAt(i,c.copy(flowerM[i%3].color));
+    TBL.push({p:new THREE.Vector3(Math.cos(aa)*r,y,Math.sin(aa)*r),q:new THREE.Quaternion().setFromEuler(new THREE.Euler(0,-aa,Math.PI/2)),d:vr()*.9});fM.makeScale(0,0,0);tbI.setMatrixAt(i,fM);}}
+  let ffA=0,spA=0;
   /* ---- the frame ---- */
   return ancRun(C,LIFE,(T,dt,dtR)=>{const tt=time;
     const up=SMS(T,.2,2.2),down=SMS(T,END+1.3,END+2.9),A=up*(1-down);
     L.k=SMS(T,.4,3)*(1-SMS(T,END+1,END+2.9));darkTarget=Math.max(darkTarget,.16*L.k);vigTarget=Math.max(vigTarget,.38*L.k);
     /* the trunk tears out of the earth, and goes back into it at the end */
     const rise=SMS(T,.3,3.6),sink=SMS(T,END+1.4,END+2.9);tree.position.y=P.y-TH-1+(TH+1)*rise-(TH+1)*sink;crackM.opacity=.6*A;
-    if((rise>.02&&rise<.98)||(sink>.02&&sink<.98)){camShake=Math.max(camShake,.1*SPACE_K+.04);for(let i=0;i<4;i++){const a=rnd()*TAU,r=1.4+rnd()*1.6;pool.sp(P.x+Math.cos(a)*r,.1,P.z+Math.sin(a)*r,Math.cos(a)*(1+rnd()*2),1.5+rnd()*3,Math.sin(a)*(1+rnd()*2),rnd()<.5?0x5a4028:0x7a6040,.9,.09+rnd()*.08,.8+rnd()*.6,.6,5);}}
+    if((rise>.02&&rise<.98)||(sink>.02&&sink<.98)){camShake=Math.max(camShake,.1*SPACE_K+.04);for(let i=0;i<4;i++){const a=rnd()*TAU,r=1.4+rnd()*1.6;pool.sp(P.x+Math.cos(a)*r,.1,P.z+Math.sin(a)*r,Math.cos(a)*(1+rnd()*2),1.5+rnd()*3,Math.sin(a)*(1+rnd()*2),rnd()<.5?0x5a4028:0x7a6040,.9,.09+rnd()*.08,.8+rnd()*.6,.6,5);}
+      for(let i=0;i<3;i++){const a=vr()*TAU,r=1.3+vr()*1.4;deb.sp(P.x+Math.cos(a)*r,P.y+.2,P.z+Math.sin(a)*r,Math.cos(a)*(1+vr()*2),2.5+vr()*3,Math.sin(a)*(1+vr()*2),.04+vr()*.07,dirtC(),2+vr()*1.2);}
+      for(let i=0;i<2;i++){const a=vr()*TAU,r=1.6+vr()*1.6;dust.sp(P.x+Math.cos(a)*r,P.y+.3+vr()*.5,P.z+Math.sin(a)*r,Math.cos(a)*1.4,.4+vr()*.6,Math.sin(a)*1.4,vr()<.5?0x8a7458:0x9a8a6a,.55,1+vr()*.9,1.6+vr(),1.1,-.15);}}
+    footM.uniforms.uT.value=Math.max(0,T-.3)*.35;footM.uniforms.uA.value=.38*SMS(T,.3,1)*(1-SMS(T,END+1.4,END+2.9));
     if(T<.35+dt&&T>=.3&&typeof sfxRumble==='function')sfxRumble(3.2,.5);
     veinM.uniforms.uT.value=tt;veinM.uniforms.uA.value=A;
+    {const u=T-END;barkM.uniforms.uT.value=tt;barkM.uniforms.uSap.value=A*(1+Math.min(.8,drank.size*.05));barkM.uniforms.uBl.value=u<0?0:SMS(u,0,.15)*(1-SMS(u,.9,2.6));}
+    {const fd=1-SMS(T,END+1.1,END+2.4);rlM.uniforms.uNow.value=T;rlM.uniforms.uFd.value=fd*1.001;rlM.uniforms.uT.value=tt;seamM.uniforms.uNow.value=T;seamM.uniforms.uFd.value=fd*1.001;seamM.uniforms.uT.value=tt;seamM.uniforms.uA.value=A*(1+.8*Math.max(0,1-Math.abs(T-END-.3)*1.5));}
+    mistM.uniforms.uT.value=tt;mistM.uniforms.uA.value=SMS(T,1,4)*(1-down);
+    /* fireflies over the field; spores off the fungi and in the shafts of light */
+    ffA+=dtR*30*A;while(ffA>=1){ffA--;gp.sp(V.c.x+(vr()-.5)*V.hw*2.3,.25+vr()*2.4,V.c.z+(vr()-.5)*V.hh*2.2,(vr()-.5)*.35,(vr()-.3)*.25,(vr()-.5)*.35,vr()<.6?0xd8ff6a:0xfff0a0,.85,.06+vr()*.06,2.4+vr()*2,.25,-.03);}
+    spA+=dtR*14*A;while(spA>=1){spA--;if(vr()<.5){const f=FUN[Math.floor(vr()*FUN.length)];gp.sp(P.x+f.x*1.04,tree.position.y+f.y,P.z+f.z*1.04,f.x*.12+(vr()-.5)*.2,.05+vr()*.15,f.z*.12+(vr()-.5)*.2,0xb8ffd0,.75,.05+vr()*.03,2+vr()*1.5,.4,-.05);}
+      else{const R2=RAYS[Math.floor(vr()*RAYS.length)].m.position;gp.sp(R2.x+(vr()-.5)*1.4,.4+vr()*3.6,R2.z+(vr()-.5)*1.4,(vr()-.5)*.1,-.05,(vr()-.5)*.1,0xfff6c8,.6,.04+vr()*.03,2.5,.1,0);}}
+    for(const C2 of COIL){if(!C2.e)continue;const e=C2.e;C2.t+=dt;if(!C2.out&&(e.dead&&!e.swal||C2.t>C2.h+.15||!e.g))C2.out=C2.t;
+      const g=C2.out?1-SMS(C2.t-C2.out,0,.3):SMS(C2.t,0,.28);C2.m.uniforms.uGrow.value=g*1.001;C2.m.uniforms.uT.value=tt;C2.m.uniforms.uSap.value=1.4;if(e.g)C2.me.position.set(e.x,e.g.position.y-.05,e.z);
+      if(C2.out&&g<=0){C2.e=null;C2.me.visible=false;}}
+    for(const E of ERU){const u=E.ck.material.uniforms;if(!E.ck.visible)continue;u.uT.value+=dt;u.uA.value=1-SMS(u.uT.value,.9,1.6);if(u.uT.value>1.6)E.ck.visible=false;}
+    deb.step(dt);dust.step(dtR);gp.step(dtR);
     if(D.veinX){const U=veinM.uniforms;U.uD.value.set(DQ[0],DQ[1],DQ[2],DQ[3]);if(D.surge)surgeFx(T,U);}
     for(const R2 of ROOTS){R2.m.uniforms.uT.value=tt;R2.m.uniforms.uGrow.value=SMS(T,R2.t0,R2.t1)*(1-SMS(T,END+1.1,END+2.4))*1.001;R2.m.uniforms.uSap.value=1+2*Math.max(0,1-Math.abs(T-END-.3)*1.5);}
     dapM.uniforms.uT.value=tt;dapM.uniforms.uA.value=SMS(T,1.5,4)*(1-down);rayM.uniforms.uT.value=tt;rayM.uniforms.uA.value=SMS(T,2,4.5)*(1-down);for(const R2 of RAYS)R2.m.rotation.z=Math.sin(tt*.25+R2.ph)*.1;
@@ -14873,17 +14994,24 @@ function castFirstTree(t,PW,o,XO){
     if(T>RISE&&T<END){eruT-=dt;if(eruT<=0){eruT=D.gap;erupt();}}
     for(const E of ERU){if(E.t<0)continue;E.t+=dt;const s=E.t<.16?E.t/.16*1.12:E.t<.3?1.12-(E.t-.16)/.14*.12:E.t<1.15?1:Math.max(0,1-(E.t-1.15)/.3);E.g.scale.set(1,s,1);
       if(E.sw)swallowFx(E);else E.g.children.forEach((ch,i)=>{if(i<NS)ch.rotation.z=-(E.t<1.15?Math.min(1,E.t*2)*.18:0);});
-      E.rg.material.opacity=.7*Math.max(0,1-E.t*2.2);E.rg.scale.setScalar(1+E.t*1.2);if(E.t>1.45){E.t=-1;E.g.visible=false;}}
+      E.rg.material.opacity=.32*Math.max(0,1-E.t*2.2);E.rg.scale.setScalar(1+E.t*1.2);if(E.t>1.45){E.t=-1;E.g.visible=false;}}
     /* the bloom: blossoms open along every root, a wave of pollen rolls over the whole field */
     if(T>=END&&!bloomed){bloomed=true;waveR=0;bloomK=1+Math.min(D.bloomMax,D.bloomPer*drank.size);lg&&lg({ev:'bloom',n:drank.size,k:bloomK});lives+=3;toast('The Eldritch Tree blooms and mends the keep: +3 lives','lvl');flashA=Math.max(flashA,.3*SPACE_K+.1);flashCol='#ffe8f4';flashDecay=1.4;if(typeof sfxBoom==='function')sfxBoom(.4,false);
-      for(let i=0;i<3;i++)setTimeout(()=>shockwave(P.x,P.z,6+i*6,i%2?0xfff0a0:0xffd8ec,1.2),i*220);
+      for(let i=0;i<3;i++)setTimeout(()=>shockwave(P.x,P.z,6+i*6,i%2?0xfff0a0:0xffd8ec,1.2),i*220);waveP.visible=true;petI.visible=true;
+      for(let i=0;i<140;i++){const a=vr()*TAU,y=tree.position.y+1+vr()*10,r=trR(a,y)+.2;gp.sp(P.x+Math.cos(a)*r,y,P.z+Math.sin(a)*r,Math.cos(a)*(1+vr()*2.5),vr()*2,Math.sin(a)*(1+vr()*2.5),vr()<.5?0xffd8ec:0xfff2a0,.95,.08+vr()*.08,1.4+vr()*1.2,.9,.2);}
       if(D.flw)blossoms();else for(const R2 of ROOTS)for(let k=0;k<10;k++){const p=R2.pts[1+Math.floor(rnd()*(R2.pts.length-1))];const m=new THREE.Mesh(flowerG,flowerM[k%3]);m.position.set(p.x+(rnd()-.5)*.3,Math.max(.12,p.y+.25),p.z+(rnd()-.5)*.3);m.scale.setScalar(.001);root.add(m);FLW.push({m,d:rnd()*.7});}
       for(let i=0;i<420;i++)pool.sp(V.c.x+(rnd()-.5)*V.hw*2.4,4+rnd()*4,V.c.z+(rnd()-.5)*V.hh*2.4,(rnd()-.5)*.8,-.4-rnd()*.6,(rnd()-.5)*.8,rnd()<.6?0xffd0e8:0xffffff,.9,.06+rnd()*.05,3+rnd()*2,.2,.05);}
     if(FI)blossomFx(T,tt);else for(const F of FLW){const k=SMS(T,END+F.d,END+F.d+.4)*(1-SMS(T,END+1.2,END+2.2));F.m.scale.setScalar(Math.max(.001,k*(1.3+.2*Math.sin(tt*4+F.d*9))));}
+    if(waveR>=0){waveM.uniforms.uR.value=waveR;waveM.uniforms.uA.value=(1-SMS(waveR,26,40))*SMS(waveR,0,1.5);}
+    {const u=T-END;for(let i=0;i<TBL.length;i++){const F=TBL[i],k=u<0?0:SMS(u,F.d,F.d+.4)*(1-SMS(u,1.4,2.4));fS.setScalar(Math.max(.001,k*(1.5+.2*Math.sin(tt*4+F.d*9))));fM.compose(F.p,F.q,fS);tbI.setMatrixAt(i,fM);}tbI.instanceMatrix.needsUpdate=true;
+      if(petI.visible){for(let i=0;i<NPT;i++){const F=PET[i];if(u<F.d||F.rest>1.4){petM.makeScale(0,0,0);petI.setMatrixAt(i,petM);continue;}
+        if(F.y>.04){F.y-=F.v*dt;F.x+=Math.sin(tt*1.7+F.ph)*dt*.7;F.z+=Math.cos(tt*1.3+F.ph)*dt*.3;petQ.setFromEuler(petE.set(Math.sin(tt*2.2+F.ph)*1.3,tt*1.1+F.ph,Math.cos(tt*1.9+F.ph)*1.1));}
+        else{F.y=.04;F.rest+=dt;petQ.setFromEuler(petE.set(-Math.PI/2,0,F.ph));}const k=1-SMS(F.rest,.8,1.4);petS.setScalar(Math.max(.001,k*(1-SMS(u,4.2,5.2))));petM.compose(petV.set(F.x,F.y,F.z),petQ,petS);petI.setMatrixAt(i,petM);}
+        petI.instanceMatrix.needsUpdate=true;}}
     if(waveR>=0){waveR+=dt*16;if(waveR<40)for(let i=0;i<14*D.waveK;i++){const a=rnd()*TAU;pool.sp(P.x+Math.cos(a)*waveR,.25+rnd()*.4*D.waveH,P.z+Math.sin(a)*waveR,Math.cos(a)*1.2,.3+rnd()*.5,Math.sin(a)*1.2,rnd()<.5?0xfff0a0:0xffd8ec,.85,(.07+rnd()*.05)*D.waveS,.9,1,.2);}
       const all=T>END+2.2;for(const e of alive()){if(waveHit.has(e))continue;if(all||(e.x-P.x)**2+(e.z-P.z)**2<waveR*waveR){waveHit.add(e);hurt(e,PW*D.bloom*bloomK,'magic',o);if(!e.dead)stunE(e,e.boss?.5:1.5);}}}
     pool.step(dtR);
-  },()=>{delete ANC.fs.firsttree;for(const E of ERU)letGo(E);if(FI)for(const im of FI)im.dispose();},END);}
+  },()=>{delete ANC.fs.firsttree;for(const E of ERU)letGo(E);if(FI)for(const im of FI)im.dispose();for(const im of XI)im.dispose();},END);}
 /* ================= v303: bosses carry no modifiers (patched in spawnEnemy by p_balance.py), and no other foe outgrows a boss ================= */
 /* the health a boss would have if it walked in at wave w: the same formula as spawnEnemy (bosses get no elite, gem, omen or Starfall change any more) */
 function bossHpAt(B,w){const d=B&&EN[B.type];if(!d)return Infinity;let h=d.hp*hpScale(w)*(B.hpMul||1)*BAL.boss;const a=arenaNow();
@@ -35302,7 +35430,8 @@ const NOTES_HTML=`<h3>\u2726 Six elemental heroes</h3><ul>
 <li><b>Uncommon scrolls:</b> masteries reworked for Dark Pulse, Basic Beam, Grasping Shadows, Soul Lantern, Graveburst, Rime Bloom, Ball Lightning, Sunflare, Catch Flame, Wall of Fire and Bramble Patch.</li>
 <li><b>Uncommon and Rare masteries are open to everyone:</b> cast an Uncommon or Rare scroll in any game and it earns mastery XP, all the way to Mastery 5. Scrolls above Rare follow in a later update.</li>
 <li><b>Rare scrolls:</b> masteries reworked for Spatial Deflection, Riftfang, Piercing Verdict, Magma Geyser, Murder of Crows, Lightning Cloud, Ice Tomb, Fire Tornado, Frost Wolves and Entangling Roots.</li>
-<li><b>Lightning Cloud:</b> its storm cloud floats twice as high and is a little see-through, so you can see the road under it.</li></ul>`;
+<li><b>Lightning Cloud:</b> its storm cloud floats twice as high and is a little see-through, so you can see the road under it.</li>
+<li><b>The Eldritch Tree:</b> redrawn. Furrowed, mossy bark with glowing shelf fungi and sap in its cracks, small roots branching off the giant ones and seams of light in the earth behind them, real clods of earth and dust where the roots burst, a root coiling round every foe they hold, fireflies and spores in the shafts of light, and a bloom that sends a gold and pink wave over the field with petals raining down. It strikes exactly as before.</li></ul>`;
 function showNotes(force){if(!force&&meta.notesSeen===NOTES_V)return;let o=$('#notesPop');if(!o){o=document.createElement('div');o.id='notesPop';document.body.appendChild(o);}
   o.innerHTML=`<div class="np-card"><div class="np-top"><small>Update</small><h2>What's new</h2></div><div class="np-body">${NOTES_HTML}</div><button class="np-log">See the full changelog</button><button class="np-ok">Got it</button></div>`;
   o.classList.add('on');o.querySelector('.np-ok').onclick=()=>{o.classList.remove('on');meta.notesSeen=NOTES_V;saveMeta();};{const lb=o.querySelector('.np-log');if(lb)lb.onclick=()=>{o.classList.remove('on');meta.notesSeen=NOTES_V;saveMeta();showChangelog();};}}
