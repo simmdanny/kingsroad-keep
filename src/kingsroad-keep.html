@@ -2875,15 +2875,23 @@ function eliteMats(){if(EM_REGEN)return;EM_REGEN=new THREE.MeshPhongMaterial({co
   SHIELD_G=new THREE.IcosahedronGeometry(1,1);SHIELD_EG=new THREE.EdgesGeometry(SHIELD_G);
   RIBBON_G=new THREE.PlaneGeometry(.045,.34,1,4);RIBBON_G.translate(0,-.17,0);
   const p=RIBBON_G.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i),k=-y/.34;p.setX(i,p.getX(i)*(1-k*.6));}p.needsUpdate=true;}
-function eliteDress(type,affs,body){eliteMats();let B=Object.assign({},EBODY[type]||EBODY.soldier);const g=new THREE.Group(),fx={ribbons:[],shield:null,regen:false,swift:false};
+/* v479: each modifier's look is built by its own function, ELD[affix](C), animated by ELA[affix](fx,t,dt,moving,e) (e is the foe, or null in the Bestiary),
+   with in-game particles from ELP[affix](e,fx,dt), so each modifier can be reworked on its own. C={type,variant,affs,B,g,fx,fz,tw,plate,rivets,body}.
+   Armour uses ARMOR_D[type](C) when that unit has a design of its own, else the old class template, armorClass(C). The marker under the foe is eliteRing(a,i). */
+const ELD={},ELA={},ELP={},ARMOR_D={};
+function eliteRing(a,i){const ring=new THREE.Mesh(new THREE.RingGeometry(.2+i*.08,.27+i*.08,12),new THREE.MeshBasicMaterial({color:AFFIX[a].c,transparent:true,opacity:.85,depthWrite:false,side:THREE.DoubleSide}));
+  ring.rotation.x=-Math.PI/2;ring.position.y=.03+i*.002;return ring;}
+function eliteDress(type,affs,body,variant){eliteMats();let B=Object.assign({},EBODY[type]||EBODY.soldier);const g=new THREE.Group(),fx={ribbons:[],shield:null,regen:false,swift:false};
   /* humanoids: measure the real torso/head from the merged body mesh so the gear fits every model */
   let fz=0;if(!B.horse&&!B.siege&&!B.bird&&!B.beast&&body&&body.geometry){const G=body.geometry;if(!G.boundingBox)G.computeBoundingBox();const bb=G.boundingBox,H=bb.max.y-bb.min.y,hx=(bb.max.x-bb.min.x)/2,hz=(bb.max.z-bb.min.z)/2;
     B.tw=Math.max(.05,Math.min(hx*.8,hz*1.4));B.cy=bb.min.y+H*.36;B.sy=bb.min.y+H*.6;B.hy=bb.max.y;B.H=H;fz=(bb.max.z+bb.min.z)/2;B.dz=hz*.95;}
   const tw=B.tw;
   const plate=(w,h,d,x,y,z,rx,ry,rz,mat)=>{const m=add(g,box(w,h,d),mat||EM_METAL,x,y,z,false);m.rotation.set(rx||0,ry||0,rz||0);return m;};
   const rivets=(x,y,z,n,dx,dy)=>{for(let i=0;i<n;i++)add(g,ico(.008,0),EM_RIVET,x+dx*i,y+dy*i,z,false);};
-  for(const a of affs){
-    if(a==='armored'){
+  const C={type,variant,affs,B,g,fx,fz,tw,plate,rivets,body};for(const a of affs)if(ELD[a])ELD[a](C);
+  return{g,fx};}
+ELD.armored=C=>{const f=ARMOR_D[C.type];if(f)f(C);else armorClass(C);};
+function armorClass(C){const{type,B,g,fz,tw,plate,rivets}=C;
       if(B.horse){[-1,1].forEach(s=>{plate(.02,.13,.34,s*.1,.27,0);for(let i=0;i<5;i++)add(g,ico(.008,0),EM_RIVET,s*.112,.32,-.14+i*.07,false);});plate(.17,.13,.02,0,.3,.21,-.2);
         plate(tw*1.5,.1,.02,0,B.cy,tw*.85);[-1,1].forEach(s=>plate(tw*.7,.03,tw*.8,s*tw*1.05,B.sy,0,0,0,s*-.35));}
       else if(B.siege){[-1,1].forEach(s=>{plate(.02,.17,.5,s*.2,.24,0);for(let i=0;i<6;i++)add(g,ico(.01,0),EM_RIVET,s*.212,.3,-.22+i*.088,false);});plate(.38,.15,.02,0,.25,.32);plate(.42,.02,.56,0,.37,0,0,0,0,EM_DARK);}
@@ -2901,21 +2909,21 @@ function eliteDress(type,affs,body){eliteMats();let B=Object.assign({},EBODY[typ
         const PH=(B.H||B.hy*.6)*.26,DZ=B.dz||tw*.92;plate(tw*1.55,PH,.022,0,B.cy,fz+DZ,-.08);plate(tw*1.5,PH,.022,0,B.cy,fz-DZ,.08);rivets(-tw*.6,B.cy+PH*.35,fz+DZ+.004,4,tw*.4,0);
         [-1,1].forEach(s=>{const p=plate(tw*.8,.03,(B.dz||tw)*1.6,s*tw*1.1,B.sy,fz,0,0,s*-.38);add(g,ico(.01,0),EM_RIVET,s*tw*1.12,B.sy+.025,fz,false);plate(.016,PH*1.1,.01,s*tw*.55,B.cy+.02,fz+DZ+.006,0,0,s*.25,EM_DARK);});
         const hm=add(g,cyl(tw*.62,tw*.7,.035,8),EM_METAL,0,B.hy-.01,fz,false);}}
-    if(a==='swift'){fx.swift=true;const pts=B.horse?[[-.05,B.sy,-.05],[.05,B.sy,-.05],[0,.3,-.2]]:B.siege?[[-.15,.42,-.25],[.15,.42,-.25]]:B.bird?[[-.02,.0,-.08],[.02,.0,-.08]]:B.beast?[[-.03,.05,-.25],[.03,.05,-.25]]:[[-tw*.6,B.sy,fz-(B.dz||tw*.7)],[tw*.6,B.sy,fz-(B.dz||tw*.7)],[0,B.cy-.04,fz-(B.dz||tw*.85)]];
+ELD.swift=C=>{const{B,g,fx,fz,tw}=C;fx.swift=true;const pts=B.horse?[[-.05,B.sy,-.05],[.05,B.sy,-.05],[0,.3,-.2]]:B.siege?[[-.15,.42,-.25],[.15,.42,-.25]]:B.bird?[[-.02,.0,-.08],[.02,.0,-.08]]:B.beast?[[-.03,.05,-.25],[.03,.05,-.25]]:[[-tw*.6,B.sy,fz-(B.dz||tw*.7)],[tw*.6,B.sy,fz-(B.dz||tw*.7)],[0,B.cy-.04,fz-(B.dz||tw*.85)]];
       pts.forEach((p,i)=>{const pv=new THREE.Group();pv.position.set(p[0],p[1],p[2]);g.add(pv);const r=new THREE.Mesh(RIBBON_G,i%2?EM_RED2:EM_RED);r.scale.setScalar(B.bird?.5:B.siege?1.3:1);pv.add(r);fx.ribbons.push({pv,ph:i*1.7});});
-      if(!B.horse&&!B.siege&&!B.bird&&!B.beast)add(g,cyl(tw*.6,tw*.6,.025,8),EM_RED,0,B.hy-(B.H||.4)*.14,fz,false);}
-    if(a==='regen'){fx.regen=true;const n=B.siege?8:6;for(let i=0;i<n;i++){const ang=i/n*6.28+rnd()*.6,y=B.siege?.15+rnd()*.25:B.cy-.06+rnd()*(B.sy-B.cy+.06),r=(B.siege?.2:B.horse?tw*1.6:Math.max(tw,B.dz||0))*1.02;
+      if(!B.horse&&!B.siege&&!B.bird&&!B.beast)add(g,cyl(tw*.6,tw*.6,.025,8),EM_RED,0,B.hy-(B.H||.4)*.14,fz,false);};
+ELD.regen=C=>{const{B,g,fx,fz,tw}=C;fx.regen=true;const n=B.siege?8:6;for(let i=0;i<n;i++){const ang=i/n*6.28+rnd()*.6,y=B.siege?.15+rnd()*.25:B.cy-.06+rnd()*(B.sy-B.cy+.06),r=(B.siege?.2:B.horse?tw*1.6:Math.max(tw,B.dz||0))*1.02;
       const x=Math.cos(ang)*r,z=Math.sin(ang)*r*(B.siege?1.4:1)+fz;const s=B.bird?.5:1;for(let k=0;k<3;k++)add(g,ico(.024*s*(1-k*.2),0),k%2?EM_GROW2:EM_GROW,x+(rnd()-.5)*.03,y+(rnd()-.5)*.03,z+(rnd()-.5)*.03,false);
-      const w=add(g,ico(.014*s,0),EM_REGEN,x*1.08,y,z*1.08,false);w.scale.set(1,1.6,1);}}
-    if(a==='shielded'){const sh=new THREE.Group();const R=B.siege?.48:B.horse?.55:B.bird?.18:B.beast?.4:B.hy*.52;sh.position.y=B.siege?.22:B.horse?.42:B.bird?.03:B.beast?.06:B.hy*.5;sh.position.z=fz;
-      const in1=new THREE.Mesh(SHIELD_G,SHIELD_M);in1.scale.setScalar(R);sh.add(in1);const ed=new THREE.LineSegments(SHIELD_EG,SHIELD_L);ed.scale.setScalar(R*1.005);sh.add(ed);g.add(sh);fx.shield=sh;}}
-  return{g,fx};}
-function animEliteFx(fx,t,dt,moving){if(!fx)return;for(const r of fx.ribbons){r.pv.rotation.x=-1.15-(moving?.25:0)+Math.sin(t*11+r.ph)*.2;r.pv.rotation.z=Math.sin(t*7+r.ph)*.15;}
-  if(fx.shield){fx.shield.rotation.y+=dt*.5;fx.shield.rotation.x=Math.sin(t*.7)*.1;}}
+      const w=add(g,ico(.014*s,0),EM_REGEN,x*1.08,y,z*1.08,false);w.scale.set(1,1.6,1);}};
+ELD.shielded=C=>{const{B,g,fx,fz}=C;const sh=new THREE.Group();const R=B.siege?.48:B.horse?.55:B.bird?.18:B.beast?.4:B.hy*.52;sh.position.y=B.siege?.22:B.horse?.42:B.bird?.03:B.beast?.06:B.hy*.5;sh.position.z=fz;
+      const in1=new THREE.Mesh(SHIELD_G,SHIELD_M);in1.scale.setScalar(R);sh.add(in1);const ed=new THREE.LineSegments(SHIELD_EG,SHIELD_L);ed.scale.setScalar(R*1.005);sh.add(ed);g.add(sh);fx.shield=sh;};
+function animEliteFx(fx,t,dt,moving,e){if(!fx)return;for(const k in ELA)ELA[k](fx,t,dt,moving,e);}
+ELA.swift=(fx,t,dt,moving)=>{for(const r of fx.ribbons){r.pv.rotation.x=-1.15-(moving?.25:0)+Math.sin(t*11+r.ph)*.2;r.pv.rotation.z=Math.sin(t*7+r.ph)*.15;}};
+ELA.shielded=(fx,t,dt)=>{if(fx.shield){fx.shield.rotation.y+=dt*.5;fx.shield.rotation.x=Math.sin(t*.7)*.1;}};
 const ELITE_PULSE=t=>{if(EM_REGEN)EM_REGEN.emissiveIntensity=.55+.45*Math.sin(t*4);if(SHIELD_M)SHIELD_M.opacity=.16+.06*Math.sin(t*3);};
-function animElite(e,dt){animEliteFx(e.eliteFx,time,dt,true);const f=e.eliteFx;
-  if(f.regen&&rnd()<dt*2.5)emit(1,{x:e.x+(rnd()-.5)*.25,y:e.y+e.hitY*(.3+rnd()*.5),z:e.z+(rnd()-.5)*.25,vx:0,vy:.3,vz:0,s:.04,s2:0,c:0x6aff5a,c2:0x1a5a1a,life:.7});
-  if(f.swift&&rnd()<dt*5)emit(0,{x:e.x,y:.05,z:e.z,vx:(rnd()-.5)*.2,vy:.1,vz:(rnd()-.5)*.2,s:.07,s2:.14,c:0x8a7a62,c2:0x5a4a3a,a:.4,life:.5});}
+function animElite(e,dt){const f=e.eliteFx;animEliteFx(f,time,dt,true,e);for(const k in ELP)ELP[k](e,f,dt);}
+ELP.regen=(e,f,dt)=>{if(f.regen&&rnd()<dt*2.5)emit(1,{x:e.x+(rnd()-.5)*.25,y:e.y+e.hitY*(.3+rnd()*.5),z:e.z+(rnd()-.5)*.25,vx:0,vy:.3,vz:0,s:.04,s2:0,c:0x6aff5a,c2:0x1a5a1a,life:.7});};
+ELP.swift=(e,f,dt)=>{if(f.swift&&rnd()<dt*5)emit(0,{x:e.x,y:.05,z:e.z,vx:(rnd()-.5)*.2,vy:.1,vz:(rnd()-.5)*.2,s:.07,s2:.14,c:0x8a7a62,c2:0x5a4a3a,a:.4,life:.5});};
 const rollElite=(w,type)=>{const ks=Object.keys(AFFIX).filter(k=>!((type==='knight'||type==='monk')&&k==='armored')),a=pick(ks);if(w>=35&&rnd()<.25){let b;do{b=pick(ks);}while(b===a);return[a,b];}return a;};
 
 /* ================= Formations ================= */
@@ -2952,8 +2960,7 @@ function spawnEnemy(e,w){
   let sc=d.size*1.25;
   if(e.elite){let affs=(Array.isArray(e.elite)?e.elite:[e.elite]).slice(0,d.boss?1:9);if(e.type==='knight'||e.type==='monk'){affs=affs.map(a=>a==='armored'?pick(['swift','regen','shielded','giant'].filter(x=>!affs.includes(x))):a);}en.elite=affs[0];en.elites=affs;const two=affs.length>1;en.maxHp*=1.8*(two?1.35:1);en.gold*=2.5*affs.length;en.xp*=2*affs.length;
     affs.forEach((a,i)=>{if(a==='armored')en.armor=Math.min(.85,en.armor+.25);if(a==='swift')en.spd*=1.4;if(a==='regen')en.regen=.025;if(a==='giant'){en.maxHp*=2.2;sc*=1.5;en.hitY*=1.5;en.lives+=1;}
-      const ring=new THREE.Mesh(new THREE.RingGeometry(.2+i*.08,.27+i*.08,12),new THREE.MeshBasicMaterial({color:AFFIX[a].c,transparent:true,opacity:.85,depthWrite:false,side:THREE.DoubleSide}));
-      ring.rotation.x=-Math.PI/2;ring.position.y=.03+i*.002;en.g.add(ring);if(!i)en.aura=ring;else en.aura2=ring;});
+      const ring=eliteRing(a,i);en.g.add(ring);if(!i)en.aura=ring;else en.aura2=ring;});
     if(affs.includes('shielded')){en.shield=en.maxHp*.5;en.maxShield=en.shield;}
   }
   en.wv=w;
@@ -2963,7 +2970,7 @@ function spawnEnemy(e,w){
     const gr=new THREE.Mesh(new THREE.RingGeometry(.22,.32,14),haloMat(en.gem));gr.rotation.x=-Math.PI/2;gr.position.y=.035;gr.scale.setScalar(sc);en.g.add(gr);en.gemRing=gr;}
   if((!d.boss||w>=100)&&!en.gem&&(forceScroll||rnd()<.00075)){en.scroll=true;en.spT=0;const sfB=!forceScrollR&&!bmActive()&&sfActive(),rr=forceScrollR?RB[forceScrollR]:(bmActive()||sfB?RB.unique:rollRarity());en.scrollR=rr.id;en.sfScroll=sfB;en.scrollCol=rr.hex;if(state==='playing'){scrollBearerAnn(rr);if(rr.i>=5)scrollBearerEvent(en,rr);}{const si=specialIdx(e.type,'scroll');if(si>=0){const m2=e.type==='peasant'?peasantModel(7,rr.hex):unitModel(e.type,si,rr.hex,rr.i);swapM(m2);if(e.type==='peasant'&&rr.i>=4){const pm=new THREE.Mesh(new THREE.CylinderGeometry(.03,.07,3.2,8,1,true),haloMat(rr.hex));pm.position.set(0,1.95,.12);m2.b.add(pm);}}else en.b.add(scrollProp(e.type,rr.hex,rr.i));}
     const sr=new THREE.Mesh(new THREE.RingGeometry(.22,.32+.02*rr.i,14),haloMat(rr.hex));sr.rotation.x=-Math.PI/2;sr.position.y=.035;sr.scale.setScalar(sc);en.g.add(sr);en.gemRing=sr;}
-  if(en.elites){const D=eliteDress(e.type,en.elites,en.b.children[0]);en.b.add(D.g);en.eliteFx=D.fx;if(D.fx.shield&&en.shield>0)en.bubble=D.fx.shield;}
+  if(en.elites){const D=eliteDress(e.type,en.elites,en.b.children[0],en.variant);en.b.add(D.g);en.eliteFx=D.fx;if(D.fx.shield&&en.shield>0)en.bubble=D.fx.shield;}
   if(en.snow&&snowOk(e.type)){snowify(en.b);snowGear(en);}if(en.tun&&snowOk(e.type)){tundrify(en.b);tunGear(en,d.boss);}if(en.ww&&snowOk(e.type)){wwify(en.b);wwGear(en,d.boss);}if(en.tg&&snowOk(e.type)){tgify(en.b);tgGear(en,d.boss);}if(en.hl)hlDress(en,e.type);{const tr=tierOf(e.type,v0);en.tier=tr;en.maxHp*=TIER_HP[tr];en.gold*=TIER_GOLD[tr];if(d.boss&&e.hpMul)en.gold*=e.hpMul;}en.res=resOf(e.type,en.variant);en.hp=en.maxHp;en.b.scale.setScalar(sc);if(en.elites&&en.elites.includes('giant'))en.b.scale.set(sc*1.12,sc,sc*1.12);en.g.traverse(o=>{if(o.isMesh)o.castShadow=false;});
   const blob=new THREE.Mesh(blobGeo,blobMat);blob.rotation.x=-Math.PI/2;blob.position.y=.015;blob.scale.setScalar(sc*(en.fly?.6:1));en.g.add(blob);
   if(en.aura)en.aura.scale.setScalar(sc);if(en.aura2)en.aura2.scale.setScalar(sc);
@@ -11200,7 +11207,7 @@ $('#pOk').addEventListener('click',confirmPlacing);
 $('#bCam').addEventListener('click',camReset);$('#bGallery').addEventListener('click',openGallery);$('#bGalBack').addEventListener('click',()=>{if(CAM.gal==='var')closeVar();else closeGallery();});$('#gvPrev').addEventListener('click',()=>varStep(-1));
 const ELITE_CYCLE=[[],['armored'],['swift'],['regen'],['shielded'],['giant'],['giant','armored'],['armored','regen'],['swift','shielded']];
 function galElite(step){if(!GV)return;const CY=(GV.type==='knight'||GV.type==='monk')?ELITE_CYCLE.filter(c=>!c.includes('armored')):ELITE_CYCLE;GV.eIdx=step?((GV.eIdx||0)+1)%CY.length:0;const affs=CY[GV.eIdx];
-  GV.items.forEach(it=>{if(it.dress){it.m.b.remove(it.dress);it.dress=null;it.fx=null;}it.m.b.scale.set(1,1,1);if(affs.length){const D=eliteDress(GV.type,affs,it.m.b.children[0]);it.m.b.add(D.g);it.dress=D.g;it.fx=D.fx;if(affs.includes('giant'))it.m.b.scale.set(1.3*1.12,1.3,1.3*1.12);}});
+  GV.items.forEach(it=>{if(it.dress){it.m.b.remove(it.dress);it.dress=null;it.fx=null;}it.m.b.scale.set(1,1,1);if(affs.length){const D=eliteDress(GV.type,affs,it.m.b.children[0],it.m.variant);it.m.b.add(D.g);it.dress=D.g;it.fx=D.fx;if(affs.includes('giant'))it.m.b.scale.set(1.3*1.12,1.3,1.3*1.12);}});
   $('#gvElite').textContent='Elite: '+(affs.length?affs.map(a=>ELITE_N[a]).join(' + '):'None');}
 $('#gvElite').addEventListener('click',()=>galElite(true));
 document.querySelectorAll('#spTabs button').forEach(b=>b.addEventListener('click',()=>spTab(b.dataset.sp)));

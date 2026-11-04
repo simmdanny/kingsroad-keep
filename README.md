@@ -2576,3 +2576,15 @@ Simon: "we have to rework how money earning buildings gain masteries, they shoul
   - kill XP is unchanged, and the cards say the right thing.
 
   `tests/mastery-test.js` now uses the Bell Tower as its support building.
+
+
+## Elite looks, one builder per modifier (v479)
+A refactor with no change to how anything looks or plays. It lets each elite modifier's look be reworked on its own branch.
+- `eliteDress(type,affs,body,variant)` builds each modifier through `ELD[affix](C)`, where `C={type,variant,affs,B,g,fx,fz,tw,plate,rivets,body}`. Both callers now pass the unit's variant.
+- `ELD.armored` uses `ARMOR_D[type](C)` when a unit has a design of its own. Otherwise it uses `armorClass(C)`, the old class templates.
+- `ELA[affix](fx,t,dt,moving,e)` animates the gear; `e` is the foe, or null in the Bestiary. `ELP[affix](e,fx,dt)` emits the in-game particles.
+- `eliteRing(a,i)` makes the marker under the foe.
+- **Tests:** `tests/elb-test.js` (in run-all as 'elb'):
+  - every Bestiary unit takes every modifier it can roll, in game and in the Bestiary, without an error;
+  - an `ARMOR_D` entry is used and is told the variant;
+  - the class template still dresses a unit that has no design of its own.
