@@ -3228,6 +3228,34 @@
    "seed": 1,
    "bytes": 3161238,
    "note": "The dial forms and its great hand starts to turn (the first 12 seconds of the cast)."
+  },
+  "aeon-1": {
+   "k": "aeon",
+   "L": 1,
+   "len": 12.03,
+   "seed": 1,
+   "bytes": 3240679,
+   "note": "Each pass of the great hand takes 2% of a foe’s max health.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "pass": 18,
+    "turn": 2
+   }
+  },
+  "aeon-2": {
+   "k": "aeon",
+   "L": 2,
+   "len": 12.03,
+   "seed": 1,
+   "bytes": 3266537,
+   "note": "Each pass ages the foes slower, up to 50%.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "pass": 18,
+    "turn": 2
+   }
   }
  },
  "made": "2026-10-29"
