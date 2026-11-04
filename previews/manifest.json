@@ -2398,7 +2398,7 @@
    "len": 7.4,
    "seed": 1,
    "bytes": 2045491,
-   "note": "The folding beams set the foes ringing like bells: the lance\u2019s power runs through them into the foes beside them.",
+   "note": "The folding beams set the foes ringing like bells: the lance’s power runs through them into the foes beside them.",
    "ev": {
     "cast": 1,
     "lock": 1,
@@ -2625,7 +2625,7 @@
    "len": 7.17,
    "seed": 1,
    "bytes": 2948603,
-   "note": "Seven standing stones rise in a ring at the rune\u2019s edge: the foes walking through are fenced in until the sky falls.",
+   "note": "Seven standing stones rise in a ring at the rune’s edge: the foes walking through are fenced in until the sky falls.",
    "ev": {
     "cast": 1,
     "stone": 7,
@@ -2856,7 +2856,7 @@
    "len": 6.8,
    "seed": 1,
    "bytes": 1683339,
-   "note": "A Frost Spire\u2019s ice shatters the fractured foes.",
+   "note": "A Frost Spire’s ice shatters the fractured foes.",
    "ev": {
     "comet": 1,
     "eye": 12,
@@ -3063,7 +3063,7 @@
    "len": 12.37,
    "seed": 1,
    "bytes": 1749050,
-   "note": "The blast at the blade\u2019s tip strikes harder and wider.",
+   "note": "The blast at the blade’s tip strikes harder and wider.",
    "ev": {
     "cast": 1,
     "blow": 1,
@@ -3146,7 +3146,7 @@
    "L": 0,
    "len": 8.7,
    "seed": 1,
-   "bytes": 1345098,
+   "bytes": 1538508,
    "note": ""
   },
   "eternalwinter-1": {
@@ -3154,7 +3154,7 @@
    "L": 1,
    "len": 8.7,
    "seed": 1,
-   "bytes": 1359372,
+   "bytes": 1538412,
    "note": "The frost strikes harder as it reaches each foe, and leaves larger ice.",
    "ev": {
     "cast": 1,
@@ -3167,7 +3167,7 @@
    "L": 2,
    "len": 9.3,
    "seed": 1,
-   "bytes": 1425575,
+   "bytes": 1689549,
    "note": "The Heart gathers itself longer: the foes stay frozen, then slowed, longer.",
    "ev": {
     "cast": 1,
@@ -3180,7 +3180,7 @@
    "L": 3,
    "len": 9.3,
    "seed": 1,
-   "bytes": 1459685,
+   "bytes": 1704135,
    "note": "When the Heart bursts, six shards fly at the nearest foes.",
    "ev": {
     "cast": 1,
@@ -3235,7 +3235,7 @@
    "len": 12.03,
    "seed": 1,
    "bytes": 3240679,
-   "note": "Each pass of the great hand takes 2% of a foe\u2019s max health.",
+   "note": "Each pass of the great hand takes 2% of a foe’s max health.",
    "ev": {
     "opts": 1,
     "cast": 1,
@@ -3469,7 +3469,7 @@
    "len": 13.13,
    "seed": 1,
    "bytes": 1734864,
-   "note": "Foes at the road\u2019s edges: the first wormhole yawns wider and draws in every foe within 1.6 tiles.",
+   "note": "Foes at the road’s edges: the first wormhole yawns wider and draws in every foe within 1.6 tiles.",
    "ev": {
     "opts": 1,
     "cast": 1,
@@ -3661,7 +3661,7 @@
    "len": 5.5,
    "seed": 1,
    "bytes": 2768825,
-   "note": "The last thunder, and the hero\u2019s fall rolls out over the whole field (the clip joins it there).",
+   "note": "The last thunder, and the hero’s fall rolls out over the whole field (the clip joins it there).",
    "ev": {
     "opts": 1,
     "cast": 1,
