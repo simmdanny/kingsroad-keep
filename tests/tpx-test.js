@@ -33,8 +33,13 @@ try{
    ok('before the last thunder the spiral winds tight and spins faster',tw1>tw0+.4&&sp2>sp1*1.8,'twist '+tw0.toFixed(2)+' -> '+tw1.toFixed(2)+', spin '+sp1.toFixed(2)+' -> '+sp2.toFixed(2)+' a second');}
   /* Simon: "make the lightnings strike from translucent clouds like in stormcaller but make it a tiny bit more cloudy" */
   {const C=S.clouds,ops=C.map(c=>c.op);
-   ok('translucent storm clouds hang over the storm, a third more opaque than the Stormcaller\'s (0.17 to 0.34), one draw a cloud',C.length>=16&&Math.min(...ops)>=.17&&Math.max(...ops)<=.34&&C.every(c=>c.me.isMesh&&c.me.material.transparent&&c.me.material.flatShading&&!c.me.material.depthWrite),C.length+' clouds');
-   ok('they fade near the camera (none in its face)',C.every(c=>!c.me.visible||camera.position.y-c.me.position.y>1.4));}
+   ok('a few dark, see-through storm clouds over the eye wall, a little more than the Stormcaller\'s (opacity 0.08 to 0.16, its own 0.06 to 0.12), one draw a cloud',C.length>=7&&C.length<=10&&Math.min(...ops)>=.08&&Math.max(...ops)<=.16&&C.every(c=>c.me.isMesh&&c.me.material.transparent&&c.me.material.flatShading&&!c.me.material.depthWrite),C.length+' clouds');
+   ok('they fade near the camera (none in its face)',C.every(c=>!c.me.visible||camera.position.y-c.me.position.y>1.4));
+   /* the view stays clear: a cloud over a foe (where the camera sees through it to the ground) thins away unless it is flashing */
+   {const e=enemies.find(q=>!q.dead),c=C[0],cp=camera.position,k0=c.k;const kk=(cp.y-c.me.position.y)/((cp.y-gy(e.x,e.z))||1);
+    const f=(c.me.position.y-cp.y)/((gy(e.x,e.z)-cp.y)||-1),wx=cp.x+(e.x-cp.x)*f,wz=cp.z+(e.z-cp.z)*f,U=S.deckU.uC.value;/* where the camera sees the foe through the clouds' height */
+    c.pullT=9;c.tr=Math.hypot(wx-U.x,(wz-U.y)/.92);c.ta=Math.atan2((wz-U.y)/.92,wx-U.x);c.fl=0;e.spd=0;run(1.2);
+    const over=c.clr,op=c.m.opacity;c.pullT=0;ok('a cloud over a foe thins away so the foe reads through it',over<.3&&op<.03,'clear '+over.toFixed(2)+', opacity '+op.toFixed(3));}}
   runTo(18.6);ok('at the fall the storm blows out and clears',S.deckU.uBlow.value>.6&&S.deckU.uA.value<.3,'blow '+S.deckU.uBlow.value.toFixed(2)+', alpha '+S.deckU.uA.value.toFixed(2));
   run(4);ok('and when the storm is over its deck is gone',!TPX.on&&!inScene(S.deck)&&!inScene(S.sheet));
   /* the masteries grow it: the arms reach across the whole board at Mastery 2 */

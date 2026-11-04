@@ -14908,7 +14908,7 @@ const CLOG=[
     'The Primordial Tempest looks like a real hurricane now. Spiral arms of storm cloud wheel over the whole board round a clear eye that always frames the hero, the wall of the eye lit bright by the lightning inside it.',
     'Every bolt lights the cloud above it from within, sheet lightning lights the whole storm and lightning crawls along its arms. A sheet of wind and rain swirls into the eye, and every bolt that lands leaves a flare of light and a glowing scorch.',
     'The hero, lifted into the eye, burns as a core of light. The storm gathers from the edge of the board, spins up at the crown bolt, winds tight and bright before the last thunder and blows apart at the fall. With Mastery 2 and the full hurricane its arms reach across the whole board.',
-    'Its lightning comes down from translucent storm clouds, like the Stormcaller\u2019s but a little cloudier, wheeling round the eye with the storm; each cloud glows as its bolt charges and flashes from inside as it strikes.',
+    'Its lightning comes down from dark, see-through storm clouds over the eye wall, like the Stormcaller\u2019s but a little cloudier; each cloud glows as its bolt charges and flashes from inside as it strikes, and thins away while it is over a foe or the road, so the view stays clear.',
     'Looks only: the Tempest strikes exactly as before.']},
   {t:'Previews for the Mythic, Ancient and Secret masteries',d:'4 Nov',v:'v475',li:[
     'The 23 Mythic, Ancient and Secret scrolls have recorded previews now, like every other scroll: no mastery and Masteries 1 to 5, 138 clips (for now in developer mode, like their masteries). Before, hovering one of their masteries started the slow live preview.',
@@ -33026,19 +33026,19 @@ function tpxBuild(root,reg,regM,hx,G0,hz,ph,D,zT,zB){
      like the Stormcaller's (low-poly puffs, flat shaded, see-through, fading near the camera), a third more of them and a third more opaque, wheeling
      round the eye with the spiral; every bolt that comes down leaves from the cloud above its target, which flashes from inside. Each cloud's puffs are
      merged into one mesh (one draw a cloud); their layout comes from a seeded random of its own (the game's random is untouched). */
-  const CR=mulberry(4771),CLD=[],NC=(wide?22:16)+(hur?2:0),CY0=G0+6.1;
+  const CR=mulberry(4771),CLD=[],NC=7+(wide?2:0)+(hur?1:0),CY0=G0+6.1;
   const CG=[0,1,2].map(i=>jitterGeo(new THREE.IcosahedronGeometry(1,i===2?0:1),.24).toNonIndexed());
-  const CCOL=[0x9496a2,0xa4a6b4,0x84868f,0xb4b6c2,0x8e909b].map(h=>new THREE.Color(h));/* grey (the storm's violet light tints them, as the Stormcaller's blue light tints its own) */
+  const CCOL=[0x1b1f27,0x252a33,0x2f3541,0x3a404c,0x2a2f3a].map(h=>new THREE.Color(h));/* the Stormcaller's dark storm greys */
   const M4=new THREE.Matrix4(),Q4=new THREE.Quaternion(),E4=new THREE.Euler(),P4=new THREE.Vector3(),S4=new THREE.Vector3(),V4=new THREE.Vector3();
-  for(let i=0;i<NC;i++){const ring=i%3,rr=(3.3+ring*3.2+CR()*2)*(wide&&ring===2?1.4:1),a0=i/NC*TAU*2.37+CR()*.7,S=1.05+CR()*1.05,n=9+Math.floor(CR()*7);
+  for(let i=0;i<NC;i++){const rr=2.8+CR()*2.4+(wide&&i>=7?2.5:0),a0=i/NC*TAU+CR()*.5,S=.9+CR()*.8,n=8+Math.floor(CR()*5);
     const pos=[],col=[];const c1=CCOL[Math.floor(CR()*5)],c2=CCOL[Math.floor(CR()*5)];
     for(let k=0;k<n;k++){const a=CR()*TAU,d=(k===0?0:.3+CR()*.85)*S,sc=S*(k===0?.7:.3+CR()*.38),G=CG[k%3].attributes.position;
       E4.set(CR()*.5,CR()*6,CR()*.5);Q4.setFromEuler(E4);P4.set(Math.cos(a)*d,(CR()-.4)*.35*S,Math.sin(a)*d*.8);S4.set(sc*(1+CR()*.5),sc*(.42+CR()*.3),sc*(1+CR()*.5));M4.compose(P4,Q4,S4);
       const cc=k%2?c2:c1;for(let j=0;j<G.count;j++){V4.fromBufferAttribute(G,j).applyMatrix4(M4);pos.push(V4.x,V4.y,V4.z);col.push(cc.r,cc.g,cc.b);}}
     const g=reg(new THREE.BufferGeometry());g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.computeVertexNormals();
-    const m=regM(new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x8a64ff,emissiveIntensity:0,flatShading:true,shininess:0,transparent:true,opacity:0,depthWrite:false}));
+    const m=regM(new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x9a70ff,emissiveIntensity:0,flatShading:true,shininess:0,transparent:true,opacity:0,depthWrite:false}));
     const me=new THREE.Mesh(g,m);me.renderOrder=47;me.frustumCulled=false;root.add(me);
-    CLD.push({me,m,r:rr,a:a0,y:CY0+CR()*.9,S,op:.17+CR()*.17,fl:0,dl:CR()*1.4,sp:.85+CR()*.3,wob:CR()*6});}
+    CLD.push({me,m,r:rr,a:a0,y:CY0+CR()*.9,S,op:.08+CR()*.08,fl:0,dl:CR()*1.4,sp:.85+CR()*.3,wob:CR()*6,clr:1});}
   const CF=new THREE.Vector3();
   /* the cloud nearest a point over the ground (within reach), and where a bolt leaves it: its underside */
   const nearC=(x,z,R)=>{let b=null,bd=(R||4.2)**2;for(const c of CLD){if(c.k<.3)continue;const p=c.me.position,d=(p.x-x)**2+(p.z-z)**2;if(d<bd){bd=d;b=c;}}return b;};
@@ -33095,8 +33095,14 @@ function tpxBuild(root,reg,regM,hx,G0,hz,ph,D,zT,zB){
         if(c.pullT>0){c.pullT-=dt;const w=Math.min(1,dt*7);c.r+=(c.tr/rk-(1-c.k)*5-c.r)*w;c.a+=(c.ta-c.a)*w;}else c.a+=dt*spin*c.sp*.55;
         const r=(c.r+(1-c.k)*5)*rk,px=deckU.uC.value.x+Math.cos(c.a)*r,pz=deckU.uC.value.y+Math.sin(c.a)*r*.92;
         c.me.position.set(px,c.y+Math.sin(Tm*.3+c.wob)*.12,pz);c.me.rotation.y+=dt*.12*c.sp;const br=1+.05*Math.sin(Tm*.7+c.wob);c.me.scale.set(br,1+.04*Math.sin(Tm*.9+c.wob),br);
-        const camF=clamp((cy-c.y-1.4)/3.2,0,1),op=c.op*c.k*(1-blow*.7)*camF*(1-.4*white);c.m.opacity=op;c.me.visible=op>.004;
-        c.fl=Math.max(0,c.fl-dt*4.5);c.m.emissiveIntensity=(.02+c.fl*.8+lit*.08)*c.k;}
+        /* the view stays clear: a cloud thins away while the ground the camera sees through it holds a foe or the road (its flash still shows as it fires) */
+        {const cpn=camera.position,kk=(cpn.y-G0)/((cpn.y-c.me.position.y)||1e-6),gx=cpn.x+(c.me.position.x-cpn.x)*kk,gz=cpn.z+(c.me.position.z-cpn.z)*kk,R2=(c.S*1.25)**2;let over=false;
+          for(const e of enemies){if(!e.dead&&(e.x-gx)**2+(e.z-gz)**2<R2){over=true;break;}}
+          if(!over)for(let j=0;j<5&&!over;j++){const ox=j?Math.cos(j*1.571)*c.S*.7:0,oz=j?Math.sin(j*1.571)*c.S*.7:0,tc=Math.round(gx+ox+OX),tr=Math.round(gz+oz+OZ);if(tr>=0&&tr<H&&tc>=0&&tc<W&&grid[tr][tc]===1)over=true;}
+          c.clr+=((over?.08:1)-c.clr)*Math.min(1,dt*4);}
+        c.fl=Math.max(0,c.fl-dt*4.5);
+        const camF=clamp((cy-c.y-1.4)/3.2,0,1),op=c.op*c.k*(1-blow*.7)*camF*(1-.4*white)*Math.max(c.clr,Math.min(1,c.fl*.7));c.m.opacity=op;c.me.visible=op>.004;
+        c.m.emissiveIntensity=c.fl*.9*c.k;}
       for(const f of FL){if(!f.me.visible)continue;f.t+=dt;const k=f.t/f.d;if(k>=1){f.me.visible=false;continue;}
         f.me.quaternion.copy(camera.quaternion);f.me.scale.set(.55*f.s*(1+k*.6),3.2*f.s*(1-k*.3),1);f.m.opacity=(1-k)*(1-k)*.95;}
       for(const s of SC){if(!s.me.visible)continue;s.t+=dt;const k=s.t/s.d;if(k>=1){s.me.visible=false;continue;}s.me.scale.setScalar(s.s*(1+k*.5));s.m.opacity=.7*(1-k)*(1-k*.5);}
