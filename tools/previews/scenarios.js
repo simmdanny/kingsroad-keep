@@ -373,7 +373,7 @@ const S = {
     4: { pack: [ONE({ at: 0 })], enter: [{ t: 'soldier', at: .3, off: .1, time: 2.9 }, { t: 'peasant', at: 0, off: -.1, time: 3.2 }, { t: 'soldier', at: -.3, off: .05, time: 3.5 }], probe: "BNM.dbg.some(d=>d.ev==='wait')", note: 'One foe with 1 HP: the first needle kills it, the rest wait glowing in the orbit, and fly at the foes that come next.' },
     5: { pack: swap(2, TOUGH({ tag: 'Strongest' })), probe: "BNM.dbg.some(d=>d.ev==='halo')", note: 'The orbit fills to 12 and, after 24 have flown, looses all at once at the strongest foe (the ram).' } },
   bloodeye: {
-    base: { dbg: 'BEY', cap: 13.5, sky: 3.5, probe: "BEY.dbg.some(d=>d.ev==='lash')" },
+    base: { dbg: 'BEY', fixedCam: true, track: false, zoom: 1.05, fw: .5, cz: -2.1, cap: 13.5, sky: 3.5, probe: "BEY.dbg.some(d=>d.ev==='lash')" },
     0: { probe: null },
     1: { pack: BIG, note: 'Eleven foes: the eye brands 7 within 10 tiles.' },
     2: { note: 'Branded foes take 40% more from everything, for 10s.' },
@@ -381,7 +381,7 @@ const S = {
     4: { pack: BIG.map((p, j) => j < 3 ? Object.assign({}, p, { frac: .08, tag: 'Low HP', tc: TAG.hp1 }) : p), probe: "BEY.dbg.some(d=>d.ev==='move')", note: 'Three foes are low on health: when a branded foe dies the gaze swings to the strongest unbranded one.' },
     5: { probe: "BEY.dbg.some(d=>d.ev==='last')", note: 'Before the lids close, one great lash strikes every brand at once.' } },
   moonfall: {
-    base: { dbg: 'MFM', cap: 12.5, sky: 4, probe: "MFM.dbg.some(d=>d.ev==='impact')" },
+    base: { dbg: 'MFM', fixedCam: true, track: false, zoom: 1.05, fw: .5, cz: -2.1, cap: 12.5, sky: 4, probe: "MFM.dbg.some(d=>d.ev==='impact')" },
     0: { probe: null },
     1: { pack: PACK.map(p => Object.assign({}, p, { at: p.at * 2, off: p.off * 1.6 })), note: 'The foes are spread out: the fuller moon’s impact reaches 4.6 tiles.' },
     2: { trail: TRAIL, note: 'The crater of molten blood spreads wider and burns longer; foes behind walk into it.' },
@@ -389,7 +389,7 @@ const S = {
     4: { spd: .7, probe: "MFM.dbg.some(d=>d.ev==='slow')", note: 'The pack walks on: under the falling moon’s shadow it slows.' },
     5: { trail: [{ t: 'soldier', at: -5, off: .1 }, { t: 'peasant', at: -6.5, off: -.12 }, { t: 'soldier', at: -8, off: .05 }], probe: "MFM.dbg.some(d=>d.ev==='wave')", note: 'Moonbreaker: a wave of blood rolls out to 10.6 tiles and strikes the foes further back.' } },
   constellation: {
-    base: { dbg: 'CSM', cap: 9.5, sky: 3.5, probe: "CSM.dbg.some(d=>d.ev==='fall')" },
+    base: { dbg: 'CSM', fixedCam: true, track: false, zoom: .95, fw: .5, cz: -1.1, cap: 9.5, sky: 3.5, probe: "CSM.dbg.some(d=>d.ev==='fall')" },
     0: { probe: null },
     1: { note: 'The stars burn larger and fall as thicker lances.' },
     2: { pack: BIG, note: 'Eleven foes: the figure kindles over the 8 strongest.' },
@@ -414,7 +414,8 @@ const S = {
     4: { spd: .5, probe: "PSM.dbg.some(d=>d.ev==='sear')", note: 'The pack walks on over the burnt ground: it sears them.' },
     5: { from: null, len: null, cap: 24, probe: "PSM.dbg.some(d=>d.ev==='blast')", focus: { ev: 'imp', before: 2.5, after: 4 }, note: 'Supernova: the implosion draws the rings in, and the blast reaches 8.5 tiles (the clip joins it there).' } },
   singularity: {
-    base: { dbg: 'SGM', hp: 120, cap: 16.5, sky: 3.5, zmax: 1, probe: "SGM.dbg.some(d=>d.ev==='grip')" },
+    /* the hole settles high in the upper part of the view the cast sees: a still, wide camera keeps it in */
+    base: { dbg: 'SGM', hp: 120, cap: 16.5, minLen: 14.5, fixedCam: true, track: false, zoom: .95, fw: .5, cz: -.6, probe: "SGM.dbg.some(d=>d.ev==='grip')" },
     0: { probe: null },
     1: { note: 'The hole takes hold sooner and holds longer, drawn larger.' },
     2: { note: 'The drain tears harder at the pinned foes.' },
