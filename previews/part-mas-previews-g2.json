@@ -260,5 +260,83 @@
    "break": 1,
    "land": 154
   }
+ },
+ "vael-2": {
+  "k": "vael",
+  "L": 2,
+  "len": 13.5,
+  "seed": 1,
+  "bytes": 3094608,
+  "note": "Every strike that lands arcs on into one or two foes nearby.",
+  "ev": {
+   "opts": 1,
+   "bursts": 1,
+   "strike": 27,
+   "arcs": 17,
+   "net": 1,
+   "tick": 5,
+   "final": 1,
+   "crater": 8,
+   "end": 1
+  }
+ },
+ "vael-3": {
+  "k": "vael",
+  "L": 3,
+  "len": 13.1,
+  "seed": 1,
+  "bytes": 3147792,
+  "note": "Every foe in the storm joins the network, and it tears harder at them.",
+  "ev": {
+   "opts": 1,
+   "bursts": 1,
+   "strike": 25,
+   "arcs": 22,
+   "net": 1,
+   "tick": 5,
+   "final": 1,
+   "crater": 8,
+   "end": 1
+  }
+ },
+ "vael-4": {
+  "k": "vael",
+  "L": 4,
+  "len": 13.1,
+  "seed": 1,
+  "bytes": 3106243,
+  "note": "The pack walks on: the storm re-centres and glides after it.",
+  "ev": {
+   "opts": 1,
+   "bursts": 1,
+   "recentre": 5,
+   "strike": 28,
+   "arcs": 18,
+   "net": 1,
+   "tick": 5,
+   "final": 1,
+   "crater": 8,
+   "end": 1
+  }
+ },
+ "vael-5": {
+  "k": "vael",
+  "L": 5,
+  "len": 15,
+  "seed": 1,
+  "bytes": 3508632,
+  "note": "The final strike hits 1260% within 3.2 tiles; the crater stays live longer.",
+  "ev": {
+   "opts": 1,
+   "bursts": 1,
+   "recentre": 5,
+   "strike": 29,
+   "arcs": 24,
+   "net": 1,
+   "tick": 5,
+   "final": 1,
+   "crater": 14,
+   "end": 1
+  }
  }
 }
