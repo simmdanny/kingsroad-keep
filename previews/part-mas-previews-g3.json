@@ -214,5 +214,52 @@
    "final": 1,
    "collapse": 1
   }
+ },
+ "expanse-3": {
+  "k": "expanse",
+  "L": 3,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 3184556,
+  "note": "The pack walks on: in the void it crawls at 15%.",
+  "ev": {
+   "opts": 1,
+   "snap": 1,
+   "cut": 70
+  }
+ },
+ "expanse-4": {
+  "k": "expanse",
+  "L": 4,
+  "len": 13.83,
+  "seed": 1,
+  "bytes": 3564118,
+  "note": "Four foes are worn down: a cut leaves them under 15%, and they are erased.",
+  "ev": {
+   "opts": 1,
+   "snap": 1,
+   "cut": 65,
+   "erase": 4
+  }
+ },
+ "firsttree-0": {
+  "k": "firsttree",
+  "L": 0,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 1135174,
+  "note": "The tree rises and its roots begin to burst (the first 13 seconds of the cast)."
+ },
+ "firsttree-1": {
+  "k": "firsttree",
+  "L": 1,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 1164854,
+  "note": "Each eruption reaches further, with more root spikes.",
+  "ev": {
+   "opts": 1,
+   "erupt": 2
+  }
  }
 }
