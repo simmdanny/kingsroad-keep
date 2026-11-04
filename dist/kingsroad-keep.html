@@ -5237,7 +5237,7 @@ function cvxCrown(){const P=[],N=[],ix=[],n=16;for(let k=0;k<=n;k++){const a=k/n
 function cvxRibbon(n){const q=[],ix=[];for(let i=0;i<=n;i++){const x=-1+2*i/n;q.push(x,-1,x,1);}for(let i=0;i<n;i++){const a=i*2;ix.push(a,a+1,a+2,a+1,a+3,a+2);}
   const g=new THREE.BufferGeometry();g.setAttribute('aQ',new THREE.Float32BufferAttribute(q,2));g.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array((n+1)*6),3));g.setIndex(ix);return g;}
 /* ---- shaders ---- */
-const CVX_GL='float cvH(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}'+
+const CVX_GL='float cvQ(float x){return x*x;}float cvH(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}'+
   'float cvN(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(cvH(i),cvH(i+vec2(1.,0.)),f.x),mix(cvH(i+vec2(0.,1.)),cvH(i+vec2(1.,1.)),f.x),f.y);}'+
   /* an antialiased line of half width w at d=0, never thinner than about a pixel */
   'float cvL(float d,float w,float px){w=max(w,px*.55);return 1.-smoothstep(w-px*.75,w+px*.75,abs(d));}'+
@@ -5260,9 +5260,9 @@ const CVX_SIG_VS='uniform vec2 uC;varying vec2 vQ;void main(){vec4 w=modelMatrix
 const CVX_SIG_FS=`uniform vec2 uC;uniform float uT,uR,uRev,uAl,uRa,uRb,uRn,uHm,uHh,uAct,uActA,uFin,uOrd,uOrdA;uniform vec4 uPl[12],uQk[4],uQr,uCa[6],uCb[6],uWa[4],uWb[4];uniform sampler2D uNum;varying vec2 vQ;
 ${CVX_GL}
 float cvA(float a,float b){return abs(mod(a-b+3.14159,6.28318)-3.14159);}
-void main(){float r=length(vQ),px=max(fwidth(r),1e-4),rn=r/uR,an=atan(vQ.y,vQ.x);float rev=1.-smoothstep(uRev-.8,uRev,r);float L=0.;
+void main(){float r=length(vQ),px=max(fwidth(r),1e-4),rn=r/uR,an=atan(vQ.y,vQ.x),rev=1.-smoothstep(uRev-.8,uRev,r),L=0.;bool far=r>uR*1.62;
   /* the reach: a double ring with two lights running round it, the minute and hour ticks */
-  L+=cvL(r-uR,.032,px)*(1.+.9*exp(-pow(cvA(an,uT*.55)*r/1.3,2.))+.9*exp(-pow(cvA(an,uT*.55+3.14159)*r/1.3,2.)));
+  L+=cvL(r-uR,.032,px)*(1.+.9*exp(-cvQ(cvA(an,uT*.55)*r/1.3))+.9*exp(-cvQ(cvA(an,uT*.55+3.14159)*r/1.3)));
   L+=cvL(r-uR*.972,.012,px)*.6;
   float ta=an+uRa,tk=(fract(ta*9.5493+.5)-.5)*6.28318*r/60.,hk=(fract(ta*1.90986+.5)-.5)*6.28318*r/12.;
   L+=step(uR*.938,r)*step(r,uR*.972)*cvL(tk,.011,px)*.45+step(uR*.9,r)*step(r,uR*.972)*cvL(hk,.03,px)*.95;
@@ -5280,19 +5280,19 @@ void main(){float r=length(vQ),px=max(fwidth(r),1e-4),rn=r/uR,an=atan(vQ.y,vQ.x)
   /* the Monarch's seal under his feet */
   L+=cvL(r-uR*.088,.02,px)*.9+cvL(r-uR*.07,.008,px)*.5;float seal=exp(-r*r/(uR*uR*.005))*.5;
   /* the pillars' feet (x, z, light, radius) */
-  float F=0.;for(int i=0;i<12;i++){vec4 P=uPl[i];if(P.z<=0.)continue;vec2 d=vQ-P.xy;float l=length(d);if(l>P.w*2.6)continue;float pa=atan(d.y,d.x);
+  float F=0.;if(!far){for(int i=0;i<12;i++){vec4 P=uPl[i];if(P.z<=0.)continue;vec2 d=vQ-P.xy;float l=length(d);if(l>P.w*2.6)continue;float pa=atan(d.y,d.x);
     F+=(cvL(l-P.w,.024,px)*.9+cvL(l-P.w*1.5,.011,px)*(.35+.3*sin(pa*6.+uT*1.5))+exp(-l*l/(P.w*P.w*.45))*.6+step(P.w,l)*step(l,P.w*1.5)*cvL((fract(pa*1.2732+.5)-.5)*l*.7854,.014,px)*.55)*P.z;}
   /* the ripples where cuts land (x, z, age, depth; uQr: their reach) */
   for(int i=0;i<4;i++){vec4 Q=uQk[i];if(Q.w<=0.)continue;float l=length(vQ-Q.xy),rr=Q.z*6.5,Rq=i==0?uQr.x:i==1?uQr.y:i==2?uQr.z:uQr.w;
-    L+=exp(-pow((l-rr)/(.045+Q.z*.06),2.))*min(Q.w,.7)*.55*(1.-smoothstep(.4,1.1,Q.z))*(1.-smoothstep(Rq*.45,Rq*1.05,rr));}
+    L+=exp(-cvQ((l-rr)/(.045+Q.z*.06)))*min(Q.w,.7)*.55*(1.-smoothstep(.4,1.1,Q.z))*(1.-smoothstep(Rq*.45,Rq*1.05,rr));}
   /* the light each cut throws on the ground under it, and its wake (x, z, its way; reach, speed, light) */
   for(int i=0;i<6;i++){vec4 A=uCa[i],B=uCb[i];if(B.z<=0.)continue;vec2 d=A.zw,nn=vec2(-d.y,d.x),q=vQ-A.xy;float u=dot(q,d),v=dot(q,nn),lat=1.-smoothstep(B.x*.5,B.x*.95,abs(v)),u2=u+.3*v*v/B.x;
-    L+=(exp(-pow(u2/.16,2.))*.5+step(u2,0.)*exp(u2/(.3+B.y*.04))*.2)*lat*B.z;}
+    L+=(exp(-cvQ(u2/.16))*.5+step(u2,0.)*exp(u2/(.3+B.y*.04))*.2)*lat*B.z;}
   /* the waves of bent space drifting over the field */
-  for(int i=0;i<4;i++){vec4 A=uWa[i],B=uWb[i];if(B.y<=0.)continue;vec2 d=A.zw,nn=vec2(-d.y,d.x),q=vQ-A.xy;float u=dot(q,d),v=dot(q,nn),bd=exp(-pow(u/B.w,2.))*exp(-pow(v/B.x,2.)),st=.5+.5*sin(u*13.-uT*3.+B.z);L+=bd*st*st*st*B.y*1.;}
+  for(int i=0;i<4;i++){vec4 A=uWa[i],B=uWb[i];if(B.y<=0.)continue;vec2 d=A.zw,nn=vec2(-d.y,d.x),q=vQ-A.xy;float u=dot(q,d),v=dot(q,nn),bd=exp(-cvQ(u/B.w))*exp(-cvQ(v/B.x)),st=.5+.5*sin(u*13.-uT*3.+B.z);L+=bd*st*st*st*B.y*1.;}}
   /* the opening strike's ring, the final order's ring and the front of the light as it spreads */
-  L+=exp(-pow((r-uAct)/(.18+uAct*.03),2.))*uActA*1.1+exp(-pow((r-uOrd)/(.1+uOrd*.015),2.))*uOrdA*.5;
-  float front=exp(-pow((r-uRev)/.22,2.))*(1.-smoothstep(uR,uR*1.12,uRev))*step(.05,uRev),haze=exp(-abs(uR-r)/(uR*.05))*.08+.015*(1.-smoothstep(0.,uR,r));
+  L+=exp(-cvQ((r-uAct)/(.18+uAct*.03)))*uActA*1.1+exp(-cvQ((r-uOrd)/(.1+uOrd*.015)))*uOrdA*.5;
+  float front=exp(-cvQ((r-uRev)/.22))*(1.-smoothstep(uR,uR*1.12,uRev))*step(.05,uRev),haze=exp(-abs(uR-r)/(uR*.05))*.08+.015*(1.-smoothstep(0.,uR,r));
   float lit=((L+Nm*.75)*(1.+uFin*.4)+F+seal+haze)*rev+front*1.1;
   gl_FragColor=vec4(mix(vec3(1.,.72,.3),vec3(1.,.95,.8),clamp(lit-.55,0.,1.)),clamp(lit*uAl,0.,1.));}`;
 /* the dome over the reach: only its rim and its foot glow (seen from above the board stays clear) */
@@ -5303,7 +5303,7 @@ const CVX_DOME_FS='uniform float uT,uAl;varying vec3 vN,vV;varying float vY;void
 const CVX_MOTE_VS='uniform float uT,uR,uRev,uAl,uPx;attribute vec4 aS;varying float vA,vK;void main(){float sd=step(.72,aS.w),ang=aS.x+uT*(.04+.06*aS.z)*(1.-sd*1.5),r=aS.y*uR*1.02,ph=fract(aS.z*7.31+uT*mix(.05,.11,sd)),y=mix(.08+ph*3.,2.3-ph*2.2,sd);'+
   'vec4 mv=modelViewMatrix*vec4(cos(ang)*r,y,sin(ang)*r,1.);gl_PointSize=clamp(mix(.075,.04,sd)*(.6+.8*fract(aS.z*53.7))*uPx/-mv.z,1.2,14.);'+
   'vA=uAl*smoothstep(0.,.12,ph)*(1.-smoothstep(.72,1.,ph))*(1.-smoothstep(uRev-.6,uRev,r))*(.55+.45*sin(uT*2.4+aS.z*40.));vK=sd;gl_Position=projectionMatrix*mv;}';
-const CVX_MOTE_FS='varying float vA,vK;void main(){float d=length(gl_PointCoord-.5)*2.,a=pow(max(0.,1.-d),2.)*vA;if(a<.004)discard;gl_FragColor=vec4(mix(vec3(1.,.8,.4),vec3(1.,.97,.85),max(0.,1.-d*1.6)),a);}';
+const CVX_MOTE_FS='float cvQ(float x){return x*x;}varying float vA,vK;void main(){float d=length(gl_PointCoord-.5)*2.,a=cvQ(max(0.,1.-d))*vA;if(a<.004)discard;gl_FragColor=vec4(mix(vec3(1.,.8,.4),vec3(1.,.97,.85),max(0.,1.-d*1.6)),a);}';
 /* the pillars: the crystal (aP: light, seed, rising into light, fade), its glow and beam, its clock rings */
 const CVX_CRY_FS=`uniform float uT;varying vec3 vN,vV,vL;varying vec2 vU;varying vec4 vP;
 ${CVX_GL}
@@ -5319,27 +5319,27 @@ void main(){vec3 N=normalize(vN),V=normalize(vV);float nv=abs(dot(N,V)),fr=1.-nv
   c=mix(c,hot,clamp(rb,0.,1.)*.9);
   /* bright facet edges, the tip and the foot, and rising into light at the end */
   c=mix(c,hot,max(edge*.85,max(cap*(.35+.4*fr),exp(-y*12.)*.6)));c=mix(c,hot,clamp(rs*1.3,0.,1.));c*=.85+.2*min(I,2.);
-  float a=(.82+.12*fr+.1*edge)*min(1.,.55+I*.45)*vP.w*(1.-rs*.85)*mix(.5,1.,smoothstep(2.5,6.,length(vV)));gl_FragColor=vec4(min(c,vec3(1.)),clamp(a,0.,.96));}`;
+  float a=(.82+.12*fr+.1*edge)*min(1.,.55+I*.45)*vP.w*(1.-rs*.85)*mix(.5,1.,smoothstep(2.5,6.,length(vV)))*mix(1.,.5,smoothstep(.22,.85,y));gl_FragColor=vec4(min(c,vec3(1.)),clamp(a,0.,.96));}`;
 const CVX_SHELL_FS='uniform float uT;varying vec3 vN,vV,vL;varying vec2 vU;varying vec4 vP;void main(){float g=clamp(abs(dot(normalize(vN),normalize(vV)))/.45,0.,1.),y=vL.y;g*=g;'+
-  'float halo=(1.-smoothstep(.0,.42,y))*.14+exp(-y*16.)*.3,beam=smoothstep(.34,.44,y)*(1.-smoothstep(.46,.92,y))*.2*(.75+.25*sin(y*40.-uT*4.+vP.y*5.));'+
+  'float halo=(1.-smoothstep(.0,.42,y))*.11+exp(-y*16.)*.26,beam=smoothstep(.34,.44,y)*(1.-smoothstep(.46,.92,y))*.2*(.75+.25*sin(y*40.-uT*4.+vP.y*5.));'+
   'float a=(halo+beam*(1.+vP.z*2.5))*g*min(vP.x,2.5)*vP.w*mix(.35,1.,smoothstep(3.5,9.,length(vV)));gl_FragColor=vec4(mix(vec3(1.,.74,.32),vec3(1.,.95,.8),g),clamp(a,0.,1.));}';
 const CVX_PRING_FS=`varying vec3 vN,vV,vL;varying vec2 vU;varying vec4 vP;${CVX_GL}
 void main(){vec2 q=(vU-.5)*2.;float r=length(q),px=max(fwidth(r),1e-4),an=atan(q.y,q.x)+vP.y;
-  float L=cvL(r-.92,.03,px)+cvL(r-.8,.015,px)*.6+step(.8,r)*step(r,.92)*cvL((fract(an*2.5465+.5)-.5)*r*.3927,.022,px)*.9+exp(-pow((r-.86)/.12,2.))*.25;
+  float L=cvL(r-.92,.03,px)+cvL(r-.8,.015,px)*.6+step(.8,r)*step(r,.92)*cvL((fract(an*2.5465+.5)-.5)*r*.3927,.022,px)*.9+exp(-cvQ((r-.86)/.12))*.25;
   gl_FragColor=vec4(vec3(1.,.84,.5),clamp(L*vP.x,0.,1.));}`;
 /* a slowed foe's clock ring (aP: light, the hand's angle, the mark of an order closing on it, a flash) */
 const CVX_FRING_FS=`varying vec3 vN,vV,vL;varying vec2 vU;varying vec4 vP;${CVX_GL}
 void main(){vec2 q=(vU-.5)*3.;float r=length(q),px=max(fwidth(r),1e-4),an=atan(q.y,q.x);
   float L=cvL(r-.84,.028,px)+cvL(r-.68,.012,px)*.4+step(.68,r)*step(r,.84)*cvL((fract(an*1.90986+.5)-.5)*r*.5236,.022,px)*.7;
   float hm=an-vP.y;L+=step(0.,cos(hm))*step(r,.6)*step(.1,r)*cvL(sin(hm)*r,.035*(1.-r*.6),px)*.8;
-  float mk=vP.z,rr=.98+.42*(1.-mk),br=(fract((an-.7854)*.63662+.5)-.5)*r*1.5708;L+=mk*1.6*(cvL(r-rr,.036,px)*step(abs(br),.32)+cvL(br,.034,px)*step(rr-.3,r)*step(r,rr)+exp(-pow((r-rr)/.12,2.))*.3);
+  float mk=vP.z,rr=.98+.42*(1.-mk),br=(fract((an-.7854)*.63662+.5)-.5)*r*1.5708;L+=mk*1.6*(cvL(r-rr,.036,px)*step(abs(br),.32)+cvL(br,.034,px)*step(rr-.3,r)*step(r,rr)+exp(-cvQ((r-rr)/.12))*.3);
   L*=1.+vP.w*2.5;gl_FragColor=vec4(mix(vec3(1.,.78,.36),vec3(1.,.97,.86),clamp(vP.w+mk*.3,0.,1.)),clamp(L*vP.x,0.,1.));}`;
 /* the Monarch: a halo of clock hands, a crown, a column of light */
 const CVX_HALO_FS=`uniform float uT,uAl,uHm,uHh,uFl;varying vec2 vU;${CVX_GL}
 void main(){vec2 q=(vU-.5)*2.;float r=length(q),px=max(fwidth(r),1e-4),an=atan(q.y,q.x);
   float L=cvL(r-.86,.04,px)*1.1+cvL(r-.97,.016,px)*.7+step(.7,r)*step(r,.86)*cvL((fract(an*1.90986+.5)-.5)*r*.5236,.04,px)*.9;
   float hm=an-uHm,hh=an-uHh;L+=step(0.,cos(hm))*step(r,.66)*cvL(sin(hm)*r,.045*(1.-r*.8),px)*.9+step(0.,cos(hh))*step(r,.46)*cvL(sin(hh)*r,.07*(1.-r),px)*.9;
-  L+=exp(-r*r*30.)*.9+exp(-pow((r-.86)/.14,2.))*.25;L*=1.+uFl*1.6;gl_FragColor=vec4(mix(vec3(1.,.76,.34),vec3(1.,.97,.88),clamp(L-.5,0.,1.)),clamp(L*uAl,0.,1.));}`;
+  L+=exp(-r*r*30.)*.9+exp(-cvQ((r-.86)/.14))*.25;L*=1.+uFl*1.6;gl_FragColor=vec4(mix(vec3(1.,.76,.34),vec3(1.,.97,.88),clamp(L-.5,0.,1.)),clamp(L*uAl,0.,1.));}`;
 const CVX_CROWN_VS='varying vec3 vN;varying float vY;void main(){vY=position.y;vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
 const CVX_CROWN_FS='uniform float uAl,uFl;varying vec3 vN;varying float vY;void main(){vec3 N=normalize(vN);float lam=.45+.55*abs(dot(N,normalize(vec3(-.3,.55,.8)))),sp=pow(abs(dot(N,normalize(vec3(.15,.35,1.)))),18.);'+
   'gl_FragColor=vec4(mix(vec3(.92,.6,.16)*lam,vec3(1.,.96,.82),clamp(sp*.85+vY*2.2+uFl*.5,0.,1.)),uAl);}';
@@ -5357,8 +5357,8 @@ const CVX_WND_FS=`uniform float uT,uOpen,uLen,uFl,uBr,uAl,uSd,uSpd;varying vec2 
 void main(){float x=vQ.x,ax=abs(x),v=vQ.y,av=abs(v),px=max(fwidth(v),1e-4),pw=length(fwidth(vW.xz));
   float lm=1.-smoothstep(uLen-.05,uLen,ax),tip=1.-smoothstep(.8,1.,ax),prof=pow(max(1.-x*x,0.),.6),hw=uOpen*prof;
   float hb=cvH(vec2(floor(x*14.+uSd),uSd)),br=uBr>0.?step(uBr*1.1,hb+.05)*(1.-uBr*.5):1.;
-  float cw=max(.011+.03*uFl,px*.75)*(.35+.65*prof),core=exp(-pow(av/cw,2.))*tip;
-  float ins=(1.-smoothstep(hw-px,hw+px,av))*step(.004,hw),rim=exp(-pow((av-hw)/max(px*1.5,.022+hw*.15),2.))*step(.004,hw);
+  float cw=max(.011+.03*uFl,px*.75)*(.35+.65*prof),core=exp(-cvQ(av/cw))*tip;
+  float ins=(1.-smoothstep(hw-px,hw+px,av))*step(.004,hw),rim=exp(-cvQ((av-hw)/max(px*1.5,.022+hw*.15)))*step(.004,hw);
   float glow=exp(-max(av-hw,0.)/(v<0.?.14+uSpd*.05:.09))*(.35+.65*prof)*tip*(v<0.?.42:.5);
   vec3 gold=vec3(1.,.74,.3),hot=vec3(1.,.97,.88),c=vec3(1.,.84,.5),vc=cvVoid(vW,uSd,hw-av,pw,uT);float a=glow*.45;
   c=mix(c,vc,ins);a=max(a,ins*.96);c=mix(c,mix(gold,hot,.8),rim);a=max(a,rim);c=mix(c,hot,core);a=max(a,core);
@@ -5368,19 +5368,19 @@ const CVX_CRK_VS='attribute vec2 aC,aN;attribute vec4 aS;uniform float uY,uE,uOp
   'void main(){float g=1.-smoothstep(uE-.07,uE,aS.x),hw=aS.z*uOp*g,off=aS.y*(hw+uMg*(.3+.7*g));vec3 w=vec3(aC.x+aN.x*off,uY,aC.y+aN.y*off);vW=w;vV=off;vH=hw;vS=vec4(aS.x,uE,g,aS.w);gl_Position=projectionMatrix*viewMatrix*vec4(w,1.);}';
 const CVX_CRK_FS=`uniform float uT,uFl,uAl,uSd,uSn;varying vec3 vW;varying vec4 vS;varying float vV,vH;${CVX_GL}
 void main(){float av=abs(vV),px=max(fwidth(vV),1e-4),pw=length(fwidth(vW.xz)),hw=vH,g=vS.z;
-  float ins=(1.-smoothstep(hw-px,hw+px,av))*step(.004,hw),rim=exp(-pow((av-hw)/max(px*1.4,.03+hw*.1),2.))*step(.004,hw);
-  float core=exp(-pow(av/max(.014+.032*uFl,px*.8),2.))*(.4+uFl*1.3),glow=exp(-max(av-hw,0.)/(.12+.08*uFl))*(.45+.55*uFl);
-  float tip=exp(-pow((vS.x-vS.y)*14.,2.))*(1.-uSn)*1.5;
+  float ins=(1.-smoothstep(hw-px,hw+px,av))*step(.004,hw),rim=exp(-cvQ((av-hw)/max(px*1.4,.03+hw*.1)))*step(.004,hw);
+  float core=exp(-cvQ(av/max(.014+.032*uFl,px*.8)))*(.4+uFl*1.3),glow=exp(-max(av-hw,0.)/(.12+.08*uFl))*(.45+.55*uFl);
+  float tip=exp(-cvQ((vS.x-vS.y)*14.))*(1.-uSn)*1.5;
   vec3 gold=vec3(1.,.72,.28),hot=vec3(1.,.97,.88),c=vec3(1.,.82,.45),vc=cvVoid(vW,uSd+vS.w*5.,hw-av,pw,uT);float on=smoothstep(.02,.14,hw),a=clamp(glow*.5*(.25+.75*on),0.,1.),k=clamp(core+tip,0.,1.);
-  float sd2=exp(-pow((av-hw*1.15-.16)/.05,2.))*on*.38,lip=exp(-pow((av-hw-.055)/.045,2.))*on;
+  float sd2=exp(-cvQ((av-hw*1.15-.16)/.05))*on*.38,lip=exp(-cvQ((av-hw-.055)/.045))*on;
   c=mix(c,vec3(.1,.06,.03),sd2/(a+sd2+1e-4));a=max(a,sd2);c=mix(c,mix(gold,hot,.4),lip);a=max(a,lip*.92);
   c=mix(c,vc,ins);a=max(a,ins*.97);c=mix(c,mix(gold,hot,.55),rim);a=max(a,rim);c=mix(c,hot,k);a=max(a,k);
   gl_FragColor=vec4(c,clamp(a*uAl*g,0.,1.));}`;
 /* the snap's shockwave: a wall of light (a cylinder, bright at its foot) and its ring on the ground */
-const CVX_SHOCK_FS='uniform float uAl;varying vec3 vN,vV;varying float vY;void main(){float f=abs(dot(normalize(vN),normalize(vV)));'+
-  'gl_FragColor=vec4(mix(vec3(1.,.8,.42),vec3(1.,.97,.9),1.-vY),clamp(pow(1.-vY,2.)*(.35+.65*(1.-f))*uAl,0.,1.));}';
-const CVX_SRING_FS='uniform float uAl;varying vec2 vU;void main(){vec2 q=(vU-.5)*2.;float r=length(q),px=max(fwidth(r),1e-4);'+
-  'gl_FragColor=vec4(vec3(1.,.86,.55),clamp((exp(-pow((r-.95)/max(.025,px*1.5),2.))*1.1+exp(-pow((r-.9)/.16,2.))*.4)*(1.-step(1.,r))*uAl,0.,1.));}';
+const CVX_SHOCK_FS='float cvQ(float x){return x*x;}uniform float uAl;varying vec3 vN,vV;varying float vY;void main(){float f=abs(dot(normalize(vN),normalize(vV)));'+
+  'gl_FragColor=vec4(mix(vec3(1.,.8,.42),vec3(1.,.97,.9),1.-vY),clamp(cvQ(1.-vY)*(.35+.65*(1.-f))*uAl,0.,1.));}';
+const CVX_SRING_FS='float cvQ(float x){return x*x;}uniform float uAl;varying vec2 vU;void main(){vec2 q=(vU-.5)*2.;float r=length(q),px=max(fwidth(r),1e-4);'+
+  'gl_FragColor=vec4(vec3(1.,.86,.55),clamp((exp(-cvQ((r-.95)/max(.025,px*1.5)))*1.1+exp(-cvQ((r-.9)/.16))*.4)*(1.-step(1.,r))*uAl,0.,1.));}';
 /* a rewind streak where a foe was thrown back (aP: light, length) */
 const CVX_STREAK_FS='uniform float uT;varying vec3 vN,vV,vL;varying vec2 vU;varying vec4 vP;void main(){float x=abs(vU.x-.5)*2.,y=1.-vU.y,ch=fract(y*vP.y*2.4-x*.5-uT*2.4);'+
   'float c1=(1.-smoothstep(.08,.22,abs(ch-.5)))*(1.-smoothstep(.45,.95,x)),core=exp(-x*x*10.)*(.3+.7*y);'+
@@ -5482,7 +5482,7 @@ function cvxLooks(C){const {root,geos,mats,t,hx,hz,R,pil,D}=C,TAU=Math.PI*2,y0=g
     /* the domain */
     sgU.uT.value=dmU.uT.value=mtU.uT.value=hlU.uT.value=auU.uT.value=T;sgU.uRev.value=mtU.uRev.value=R*1.12*SMS(T,.1,2.4);
     const fl=st.fsOn&&snapA<0?SMS(st.U,0,.5):snapA>=0?1-SMS(snapA,0,.5):0;sgU.uFin.value=fl;
-    sgU.uAl.value=.5*gl*(.9+.1*acc);sgU.uRa.value=T*.045;sgU.uRb.value=T*.1;sgU.uRn.value=-T*.02;sgU.uHm.value=hm;sgU.uHh.value=hh;
+    sgU.uAl.value=.46*gl*(.9+.1*acc);sgU.uRa.value=T*.045;sgU.uRb.value=T*.1;sgU.uRn.value=-T*.02;sgU.uHm.value=hm;sgU.uHh.value=hh;
     if(act>=0){act+=dt;const q=Math.min(1,act/.7);sgU.uAct.value=R*1.15*(1-(1-q)*(1-q));sgU.uActA.value=1-SMS(act,.35,.9);}
     if(ord>=0){ord+=dt;const q=Math.min(1,ord/.8);sgU.uOrd.value=R*1.25*(1-(1-q)*(1-q));sgU.uOrdA.value=1-SMS(ord,.4,.9);}
     dome.scale.set(R,Math.max(.01,R*.42*SMS(T,.8,2.6)),R);dmU.uAl.value=.5*gl;mtU.uAl.value=gl;
@@ -5513,7 +5513,7 @@ function cvxLooks(C){const {root,geos,mats,t,hx,hz,R,pil,D}=C,TAU=Math.PI*2,y0=g
     let fi=0;const on=CIT.on||T<st.T_SNAP+.2&&T>2,R2=R*R;sandT-=dt;const sand=sandT<=0;if(sand)sandT=D.crawl<CITD.crawl?.11:.22;let ns=0;
     for(const e of enemies){if(e.dead)continue;const inn=on&&(e.x-hx)**2+(e.z-hz)**2<=R2;let r=fst.get(e);if(!r&&!inn)continue;r=r||ring(e);r.a=inn?Math.min(1,r.a+dt*4):Math.max(0,r.a-dt*3);r.fl=Math.max(0,r.fl-dt*3);
       if(r.a<=0&&!r.mk){fst.delete(e);continue;}if(fi>=48)continue;const sz=((e.d&&e.d.size)||1)*1.05,tk=Math.floor(T*1.4)+SMS((T*1.4)%1,0,.15);
-      O.position.set(e.x,gy(e.x,e.z)+.035,e.z);O.rotation.set(0,0,0);O.scale.setScalar(sz*(1+.15*r.fl));if(r.mk>0)r.mk=inn?Math.min(1,r.mk+dt*3):0;put(frg,fi++,r.a*.45,r.ph+tk*.5236,r.mk,r.fl);
+      O.position.set(e.x,gy(e.x,e.z)+.035,e.z);O.rotation.set(0,0,0);O.scale.setScalar(sz*(1+.15*r.fl));if(r.mk>0)r.mk=inn?Math.min(1,r.mk+dt*3):0;put(frg,fi++,r.a*.36,r.ph+tk*.5236,r.mk,r.fl);
       if(sand&&inn&&ns<14){ns++;const hY=(e.hitY||.5);spark(e.x+(Math.random()-.5)*.25,gy(e.x,e.z)+hY*(.5+Math.random()*.5),e.z+(Math.random()-.5)*.25,(Math.random()-.5)*.08,-.15-Math.random()*.2,(Math.random()-.5)*.08,.7+Math.random()*.5,.032,.35,.4);}}
     for(const [e,r] of fst)if(e.dead){fst.delete(e);}
     done(frg,fi);
@@ -5526,7 +5526,7 @@ function cvxLooks(C){const {root,geos,mats,t,hx,hz,R,pil,D}=C,TAU=Math.PI*2,y0=g
       if(snapA<0){const U=st.U;u.uE.value=SMS(U,0,.45);u.uOp.value=SMS(U,.05,.55)*(1+.1*Math.sin(T*40));u.uFl.value*=Math.exp(-dt*6);
         const tp=u.uE.value;if(tp>0&&tp<1&&Math.random()<dt*40){f.slots.forEach((q,si)=>{const ca=Math.cos(q.ang),sa=Math.sin(q.ang),dx=f.ux*ca-f.uz*sa,dz=f.ux*sa+f.uz*ca,Lq=f.L*q.len;const a=Math.random()*TAU;spark(f.ox+dx*tp*Lq,y0+.1,f.oz+dz*tp*Lq,Math.cos(a)*1.5,1+Math.random()*2,Math.sin(a)*1.5,.3,.05,3,1);});}}
       else{snapA+=dt;u.uOp.value=Math.exp(-snapA*45)*.9;u.uFl.value=Math.exp(-snapA*4.5);u.uAl.value=1-SMS(snapA,.25,.75);
-        const q2=Math.min(1,snapA/.62),rr=R*.85*fr.big*(1-Math.pow(1-q2,3));fr.wall.scale.set(rr+.35,Math.max(.01,.8*Math.pow(1-q2,.7)),fr.L0*.5+rr);fr.swU.uAl.value=Math.pow(1-q2,1.4)*.55;
+        const q2=Math.min(1,snapA/.62),rr=R*.85*fr.big*(1-Math.pow(1-q2,3));fr.wall.scale.set(rr+.35,Math.max(.01,.8*Math.pow(1-q2,.7)),fr.L0*.5+rr);fr.swU.uAl.value=Math.pow(1-q2,1.4)*.45;
         fr.sring.scale.set(2*(rr+.5),1,2*(fr.L0*.5+rr+.2));fr.srU.uAl.value=Math.pow(1-q2,1.2);if(q2>=1)fr.wall.visible=fr.sring.visible=false;}
       }
     /* shards */
@@ -5544,7 +5544,8 @@ function cvxLooks(C){const {root,geos,mats,t,hx,hz,R,pil,D}=C,TAU=Math.PI*2,y0=g
     for(const q of sks){skP[nk*3]=q.x;skP[nk*3+1]=q.y;skP[nk*3+2]=q.z;skC[nk*2]=Math.min(1,q.life/q.max*1.6);skC[nk*2+1]=q.s;nk++;}
     skG.setDrawRange(0,nk);skG.attributes.position.needsUpdate=true;skG.attributes.aC.needsUpdate=true;};
   V.end=()=>{for(const m of ims)m.dispose();fst.clear();sts.length=shs.length=sks.length=0;};
-  V.dbg=()=>({wounds,fr,shs,sks,fst,sts,sig,dome,motes,cry,shell,prg,halo,crown,aura,ims});
+  V.dbg=()=>({wounds,get fr(){return fr;},shs,sks,fst,sts,sig,dome,motes,cry,shell,prg,frg,stk,shd,spk,halo,crown,aura,ims,root});
+  cvxLog({ev:'looks',V,R,n:pil.length});
   return V;}
 const CVX_V3=new THREE.Vector3(),CVX_UP=new THREE.Vector3(0,1,0),CVX_Q=new THREE.Quaternion();
 const CIT_STRIP_FS='varying vec2 vUv;uniform float uA;void main(){float tp=sin(3.14159*vUv.x);float d=abs(vUv.y-.5)*2.;float a=smoothstep(tp*.16+.012,0.,d)*uA;gl_FragColor=vec4(mix(vec3(.55,.85,1.),vec3(1.),smoothstep(.1,0.,d)),a);}';
@@ -5642,7 +5643,7 @@ function castCitadel(t,c0,P,o,XO){const D=XO?Object.assign({},CITD,XO):CITD,lg=D
     const acc=1+.35*SMS(T,9,13)+.5*SMS(T,13,13.6)*(1-SMS(T,T_SNAP,T_SNAP+.15));
     glow.scale.setScalar(R*2.55*SMS(T,.1,2.4));haze.scale.setScalar(R*3.4*SMS(T,.3,2.8));
     glowM.opacity=.01*gl*acc;hazeM.opacity=.005*gl*acc;
-    FXL.position.set(hx,1.6,hz);if(!snapDone){FXL.color.setHex(0xffc070);FXL.distance=10;FXL.intensity=.18*gl*acc+(actDone?Math.max(0,.6*Math.exp(-(T-Tact)*2.2)):0);}else{FXL.intensity=Math.max(.18*gl,FXL.intensity-dt*7);if(T>T_SNAP+.3)FXL.color.setHex(0xffc070);}
+    FXL.position.set(hx,1.6,hz);if(!snapDone){FXL.color.setHex(0xffc070);FXL.distance=10;FXL.intensity=.14*gl*acc+(actDone?Math.max(0,.5*Math.exp(-(T-Tact)*2.2)):0);}else{FXL.intensity=Math.max(.14*gl,FXL.intensity-dt*7);if(T>T_SNAP+.3)FXL.color.setHex(0xffc070);}
     /* time dilation */
     if(T>=T_ACT0&&!snapDone){const e1=T<T_ACT0+1,s1=SMS(T,T_ACT0,T_ACT0+1),s2=SMS(T,T_SL1,T_FS-.3);CIT.on=true;CIT.k=e1?1-(1-D.crawl)*s1:D.crawl-(D.crawl-D.crawlEnd)*s2;CIT.pf=Math.max(.15,e1?1-.5*s1:.5-.4*s2);}
     /* pillars */
@@ -34478,7 +34479,7 @@ SMA.citadel=[1,1,1,1,1];
 SMG.citadel=[1.081,1.029,1.085,1.152,1.077];
 /* Keener Orders: the cut's seam, shown (the base cast makes it with every cut and never shows it): v478, a blade of gold-white light rising
    from the wound with a white-hot foot, leaning back over it (the old shader, CIT_STRIP_FS, is a thin pale line) */
-const CIM_STRIP_FS='varying vec2 vUv;uniform float uA;void main(){float tp=pow(max(sin(3.14159*vUv.x),0.),.8),y=vUv.y,core=exp(-pow(y/.06,2.))*tp,sheet=exp(-y*2.4)*tp*tp*.85*(.75+.25*sin(vUv.x*60.-y*14.)),edge=exp(-pow((y-.9*tp)/.06,2.))*tp*.7;float a=(core*1.4+sheet+edge)*uA;if(a<.003)discard;gl_FragColor=vec4(mix(vec3(1.,.78,.38),vec3(1.,.98,.92),clamp(core*1.5+edge,0.,1.)),min(1.,a));}';
+const CIM_STRIP_FS='varying vec2 vUv;uniform float uA;void main(){float tp=pow(max(sin(3.14159*vUv.x),0.),.8),y=vUv.y,y1=y/.06,y2=(y-.9*tp)/.06,core=exp(-y1*y1)*tp,sheet=exp(-y*2.4)*tp*tp*.85*(.75+.25*sin(vUv.x*60.-y*14.)),edge=exp(-y2*y2)*tp*.7;float a=(core*1.4+sheet+edge)*uA;if(a<.003)discard;gl_FragColor=vec4(mix(vec3(1.,.78,.38),vec3(1.,.98,.92),clamp(core*1.5+edge,0.,1.)),min(1.,a));}';
 /* this cast's numbers and looks (castCitadel's XO), cumulative: Mastery L has masteries 1..L */
 function cimOpts(c){const L=c.L,a=c.a,X={};
   if(L>=1){X.R=CIM.R;X.pH=1.2;X.uI=1.15;}

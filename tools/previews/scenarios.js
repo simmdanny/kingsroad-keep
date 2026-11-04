@@ -318,7 +318,8 @@ const S = {
     4: { probe: "ABM.dbg.some(d=>d.ev==='bite')", note: 'A foe a leviathan bites drowns 50% faster, a column of bubbles rising from it.' },
     5: { from: null, len: null, cap: 26, probe: "ABM.dbg.some(d=>d.ev==='rise')", focus: { ev: 'rise', before: 1.5, after: 8 }, note: 'Halfway through the eldest leviathan bursts up out of the deep and joins the hunt (the clip joins it there).' } },
   citadel: {
-    base: { zmin: .78, zmax: 1.05, dbg: 'CIM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "CIM.dbg.some(d=>d.ev==='cut')" },
+    /* v478: the domain, its ring of pillars and its fracture: a still, wide camera from higher up keeps the hero, the pack and the reach */
+    base: { fixedCam: true, track: false, zoom: 2.1, fw: .35, cz: .1, dbg: 'CIM', hp: 120, from: 1.2, len: 14, cap: 13.5, probe: "CIM.dbg.some(d=>d.ev==='cut')" },
     0: { probe: null, note: 'The domain rises and its cuts begin (the first 13 seconds of the cast).' },
     1: { pack: PACK.map(p => Object.assign({}, p, { at: p.at * 2.4, off: p.off * 1.5 })), note: 'The foes are spread out: the domain reaches 6 tiles.' },
     2: { note: 'Each cut strikes harder, and harder in its wake.' },
