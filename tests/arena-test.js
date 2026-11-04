@@ -124,16 +124,16 @@ try{
     for(let i=0;i<3000&&spawners.length;i++){update(.05);updFx(.05);}};
   toW200();ok('wave 200 is the Ophanim wave',wave===200&&enemies.some(e=>e.type==='ophanim'&&!e.dead));
   {const w0=wave;callWave();ok('wave 201 cannot be called while wave 200 is undecided',wave===w0&&waveLocked(),wave);}
-  {const c0=meta.crowns;for(const e of enemies.slice())if(!e.dead)kill(e,null);for(let i=0;i<10;i++){update(.05);updFx(.05);}const v=$('#vict');
+  {const c0=meta.crowns;for(let k=0;k<3;k++)for(const e of enemies.slice())if(!e.dead)kill(e,null);/* v485: a Splitting foe leaves two halves */for(let i=0;i<10;i++){update(.05);updFx(.05);}const v=$('#vict');
     ok('clearing wave 200 is the victory',V200&&v&&!v.hidden&&paused,v&&v.hidden);ok('the victory opens the new lands',meta.arenas.snow===1&&meta.arenas.tundra===1&&meta.mapIntro===1&&meta.wonA.plains===1);
     ok('the leave button shows the crowns',/\+\d/.test($('#vLeave').textContent),$('#vLeave').textContent);
     $('#vLeave').click();ok('leaving ends the run as a victory',state==='over'&&/Victory/.test(document.querySelector('#over .title h1').textContent)&&meta.crowns>c0,meta.crowns-c0);
     ok('the next game over is a normal one again',(()=>{newGame(1);lives=1;gameOver();return /fallen/.test(document.querySelector('#over .title h1').textContent);})());}
-  toW200();for(const e of enemies.slice())if(!e.dead)kill(e,null);for(let i=0;i<10;i++){update(.05);updFx(.05);}
+  toW200();for(let k=0;k<3;k++)for(const e of enemies.slice())if(!e.dead)kill(e,null);for(let i=0;i<10;i++){update(.05);updFx(.05);}
   $('#vStay').click();ok('fighting on resumes the game',!paused&&state==='playing'&&$('#vict').hidden);callWave();ok('after the victory wave 201 can start',wave===201,wave);
   ok('a run saved after the victory remembers it',serializeRun().v200===1&&serializeRun().arena==='plains');
   {const r=serializeRun();r.wave=200;resetRun();ok('a fresh run has not won yet',!V200);meta.arena='plains';loadRun(r);ok('loading it brings the victory back',V200===true&&!v200Lock());}
-  {go('tundra');newGame(1);paused=false;lives=1e9;wave=199;nextQ=buildWave(200);callWave();for(let i=0;i<3000&&spawners.length;i++){update(.05);updFx(.05);}for(const e of enemies.slice())if(!e.dead)kill(e,null);for(let i=0;i<10;i++){update(.05);updFx(.05);}
+  {go('tundra');newGame(1);paused=false;lives=1e9;wave=199;nextQ=buildWave(200);callWave();for(let i=0;i<3000&&spawners.length;i++){update(.05);updFx(.05);}for(let k=0;k<3;k++)for(const e of enemies.slice())if(!e.dead)kill(e,null);for(let i=0;i<10;i++){update(.05);updFx(.05);}
     ok('winning wave 200 in the tundra',V200&&/Greywind Tundra is safe/.test($('#vSub').textContent)&&meta.wonA.tundra===1,$('#vSub').textContent);$('#vStay').click();clean();state='menu';}
   /* runs know their arena */
   go('snow');newGame(1);paused=true;callWave();{const r=lsGet(KR);ok('a Frostvale run is saved as Frostvale',r&&r.arena==='snow',r&&r.arena);
