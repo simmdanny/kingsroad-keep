@@ -4204,6 +4204,347 @@
     "crater": 14,
     "end": 1
    }
+  },
+  "bloodeye-0": {
+   "k": "bloodeye",
+   "L": 0,
+   "len": 10.3,
+   "seed": 1,
+   "bytes": 1244812,
+   "note": ""
+  },
+  "bloodeye-2": {
+   "k": "bloodeye",
+   "L": 2,
+   "len": 13.53,
+   "seed": 1,
+   "bytes": 1808330,
+   "note": "Branded foes take 40% more from everything, for 10s.",
+   "ev": {
+    "cast": 1,
+    "open": 1,
+    "marks": 1,
+    "brand": 1,
+    "lash": 6
+   }
+  },
+  "bloodeye-3": {
+   "k": "bloodeye",
+   "L": 3,
+   "len": 13.53,
+   "seed": 1,
+   "bytes": 1825806,
+   "note": "The blood lightning lashes every brand 7 times.",
+   "ev": {
+    "cast": 1,
+    "open": 1,
+    "marks": 1,
+    "brand": 1,
+    "lash": 7
+   }
+  },
+  "bloodeye-1": {
+   "k": "bloodeye",
+   "L": 1,
+   "len": 12.6,
+   "seed": 1,
+   "bytes": 1826484,
+   "note": "Eleven foes: the eye brands 7 within 10 tiles.",
+   "ev": {
+    "cast": 1,
+    "open": 1,
+    "marks": 1,
+    "brand": 1,
+    "lash": 6
+   }
+  },
+  "bloodeye-4": {
+   "k": "bloodeye",
+   "L": 4,
+   "len": 5.87,
+   "seed": 1,
+   "bytes": 976644,
+   "note": "Three foes are low on health: when a branded foe dies the gaze swings to the strongest unbranded one.",
+   "ev": {
+    "cast": 1,
+    "open": 1,
+    "marks": 1,
+    "brand": 1,
+    "lash": 7,
+    "fall": 3,
+    "move": 3
+   }
+  },
+  "bloodeye-5": {
+   "k": "bloodeye",
+   "L": 5,
+   "len": 13.53,
+   "seed": 1,
+   "bytes": 1850743,
+   "note": "Before the lids close, one great lash strikes every brand at once.",
+   "ev": {
+    "cast": 1,
+    "open": 1,
+    "marks": 1,
+    "brand": 1,
+    "lash": 7,
+    "last": 1
+   }
+  },
+  "moonfall-0": {
+   "k": "moonfall",
+   "L": 0,
+   "len": 11.1,
+   "seed": 1,
+   "bytes": 1213718,
+   "note": ""
+  },
+  "moonfall-1": {
+   "k": "moonfall",
+   "L": 1,
+   "len": 11.1,
+   "seed": 1,
+   "bytes": 1256340,
+   "note": "The foes are spread out: the fuller moon\u2019s impact reaches 4.6 tiles.",
+   "ev": {
+    "cast": 1,
+    "impact": 1,
+    "shard": 16,
+    "end": 1
+   }
+  },
+  "moonfall-2": {
+   "k": "moonfall",
+   "L": 2,
+   "len": 12.1,
+   "seed": 1,
+   "bytes": 1373646,
+   "note": "The crater of molten blood spreads wider and burns longer; foes behind walk into it.",
+   "ev": {
+    "cast": 1,
+    "impact": 1,
+    "shard": 16,
+    "end": 1
+   }
+  },
+  "constellation-0": {
+   "k": "constellation",
+   "L": 0,
+   "len": 6.9,
+   "seed": 1,
+   "bytes": 732234,
+   "note": ""
+  },
+  "moonfall-3": {
+   "k": "moonfall",
+   "L": 3,
+   "len": 12.2,
+   "seed": 1,
+   "bytes": 1378231,
+   "note": "The moon\u2019s 16 shards are thrown at the foes round the crater.",
+   "ev": {
+    "cast": 1,
+    "aim": 1,
+    "impact": 1,
+    "shard": 16,
+    "end": 1
+   }
+  },
+  "moonfall-4": {
+   "k": "moonfall",
+   "L": 4,
+   "len": 12.1,
+   "seed": 1,
+   "bytes": 1527228,
+   "note": "The pack walks on: under the falling moon\u2019s shadow it slows.",
+   "ev": {
+    "cast": 1,
+    "aim": 1,
+    "impact": 1,
+    "shard": 16,
+    "slow": 1,
+    "end": 1
+   }
+  },
+  "moonfall-5": {
+   "k": "moonfall",
+   "L": 5,
+   "len": 12.33,
+   "seed": 1,
+   "bytes": 1494974,
+   "note": "Moonbreaker: a wave of blood rolls out to 10.6 tiles and strikes the foes further back.",
+   "ev": {
+    "cast": 1,
+    "aim": 1,
+    "impact": 1,
+    "wave": 9,
+    "shard": 16,
+    "slow": 1,
+    "end": 1
+   }
+  },
+  "constellation-1": {
+   "k": "constellation",
+   "L": 1,
+   "len": 6.9,
+   "seed": 1,
+   "bytes": 739579,
+   "note": "The stars burn larger and fall as thicker lances.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "fall": 6,
+    "burn": 6,
+    "end": 1
+   }
+  },
+  "constellation-3": {
+   "k": "constellation",
+   "L": 3,
+   "len": 6.9,
+   "seed": 1,
+   "bytes": 882996,
+   "note": "The lines burn wider and stay alight: foes behind walk onto them.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "fall": 8,
+    "burn": 9,
+    "end": 1
+   }
+  },
+  "constellation-2": {
+   "k": "constellation",
+   "L": 2,
+   "len": 7.17,
+   "seed": 1,
+   "bytes": 924478,
+   "note": "Eleven foes: the figure kindles over the 8 strongest.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "fall": 8,
+    "burn": 10,
+    "end": 1
+   }
+  },
+  "constellation-4": {
+   "k": "constellation",
+   "L": 4,
+   "len": 6.9,
+   "seed": 1,
+   "bytes": 754249,
+   "note": "The pack walks on: each foe under a star is held there until it falls.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "hold": 6,
+    "fall": 6,
+    "burn": 6,
+    "end": 1
+   }
+  },
+  "constellation-5": {
+   "k": "constellation",
+   "L": 5,
+   "len": 9.2,
+   "seed": 1,
+   "bytes": 988877,
+   "note": "When the lines have burnt the figure kindles again and falls a second time.",
+   "ev": {
+    "opts": 1,
+    "cast": 2,
+    "hold": 12,
+    "fall": 12,
+    "burn": 12,
+    "twice": 1,
+    "end": 2
+   }
+  },
+  "bloodcurse-1": {
+   "k": "bloodcurse",
+   "L": 1,
+   "len": 15.53,
+   "seed": 1,
+   "bytes": 6185423,
+   "note": "The opening blast reaches 5 tiles.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "blast": 1,
+    "erupt": 139,
+    "final": 1
+   }
+  },
+  "bloodcurse-0": {
+   "k": "bloodcurse",
+   "L": 0,
+   "len": 15.53,
+   "seed": 1,
+   "bytes": 6072480,
+   "note": ""
+  },
+  "bloodcurse-2": {
+   "k": "bloodcurse",
+   "L": 2,
+   "len": 15.53,
+   "seed": 1,
+   "bytes": 6398141,
+   "note": "Every eruption strikes harder, its columns taller and hotter.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "blast": 1,
+    "erupt": 139,
+    "final": 1
+   }
+  },
+  "bloodcurse-3": {
+   "k": "bloodcurse",
+   "L": 3,
+   "len": 15.53,
+   "seed": 1,
+   "bytes": 6252857,
+   "note": "Each stage of the escalation grows the eruptions 18%.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "blast": 1,
+    "erupt": 130,
+    "final": 1
+   }
+  },
+  "bloodcurse-4": {
+   "k": "bloodcurse",
+   "L": 4,
+   "len": 15.53,
+   "seed": 1,
+   "bytes": 6216269,
+   "note": "Each greater scroll the curse seals on the hero makes every eruption stronger.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "blast": 1,
+    "erupt": 130,
+    "final": 1
+   }
+  },
+  "bloodcurse-5": {
+   "k": "bloodcurse",
+   "L": 5,
+   "len": 15.53,
+   "seed": 1,
+   "bytes": 6206048,
+   "note": "The final eruption is half again as large, and the blast after it strikes 1500%.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "blast": 1,
+    "erupt": 136,
+    "plunge": 1,
+    "final": 1,
+    "land": 1
+   }
   }
  },
  "made": "2026-11-04"
