@@ -176,5 +176,83 @@
    "slow": 1,
    "end": 1
   }
+ },
+ "constellation-1": {
+  "k": "constellation",
+  "L": 1,
+  "len": 6.9,
+  "seed": 1,
+  "bytes": 739579,
+  "note": "The stars burn larger and fall as thicker lances.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "fall": 6,
+   "burn": 6,
+   "end": 1
+  }
+ },
+ "constellation-3": {
+  "k": "constellation",
+  "L": 3,
+  "len": 6.9,
+  "seed": 1,
+  "bytes": 882996,
+  "note": "The lines burn wider and stay alight: foes behind walk onto them.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "fall": 8,
+   "burn": 9,
+   "end": 1
+  }
+ },
+ "constellation-2": {
+  "k": "constellation",
+  "L": 2,
+  "len": 7.17,
+  "seed": 1,
+  "bytes": 924478,
+  "note": "Eleven foes: the figure kindles over the 8 strongest.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "fall": 8,
+   "burn": 10,
+   "end": 1
+  }
+ },
+ "constellation-4": {
+  "k": "constellation",
+  "L": 4,
+  "len": 6.9,
+  "seed": 1,
+  "bytes": 754249,
+  "note": "The pack walks on: each foe under a star is held there until it falls.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "hold": 6,
+   "fall": 6,
+   "burn": 6,
+   "end": 1
+  }
+ },
+ "constellation-5": {
+  "k": "constellation",
+  "L": 5,
+  "len": 9.2,
+  "seed": 1,
+  "bytes": 988877,
+  "note": "When the lines have burnt the figure kindles again and falls a second time.",
+  "ev": {
+   "opts": 1,
+   "cast": 2,
+   "hold": 12,
+   "fall": 12,
+   "burn": 12,
+   "twice": 1,
+   "end": 2
+  }
  }
 }
