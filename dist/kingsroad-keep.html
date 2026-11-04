@@ -5068,15 +5068,18 @@ function spaceQuake(x,z,Rq,amp){sdpInit();if(!SDP.qk)SDP.qk=[null,null,null,null
 var SDP_WA=[0,1,2,3].map(()=>new THREE.Vector4()),SDP_WB=[0,1,2,3].map(()=>new THREE.Vector4());
 var SDP_SA=[0,1,2,3].map(()=>new THREE.Vector4()),SDP_SB=[0,1,2,3].map(()=>new THREE.Vector4()),SDP_PL=[0,1,2,3,4,5,6,7,8,9,10,11].map(()=>new THREE.Vector4());
 var SDP={n:0,z:[],rt:null,sc:null,cam:null,mat:null,v2:new THREE.Vector2()};
+/* v479: Wormhole's mouths twist the ground round them (SDP.wh: x, z, reach, twist; a negative twist turns the other way; a slot not set this
+   frame is off) */
+var SDP_WH=[new THREE.Vector4(),new THREE.Vector4()];
 /* Calm space-bending scrolls (meta.spaceCalm): while a space-bending scroll runs, SPACE_K eases to SPACE_CALM and scales its warps,
    flashes, darkness and shake. SPACE_T keeps it on for scrolls that use no warp pass (Wormhole). */
 var SPACE_K=1,SPACE_T=0,SPACE_CALM=.15;
 function spaceStep(dt){SPACE_T=Math.max(0,SPACE_T-dt);const on=!!meta.spaceCalm&&(SDP.n>0||SGL.n>0||!!(DOM.post&&DOM.post.on)||DOM.on||SPACE_T>0),tg=on?SPACE_CALM:1;SPACE_K+=(tg-SPACE_K)*Math.min(1,dt*5);if(Math.abs(SPACE_K-tg)<.002)SPACE_K=tg;}
 function sdpInit(){if(SDP.mat)return;SDP.sc=new THREE.Scene();SDP.cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   SDP.uZ=[new THREE.Vector4(),new THREE.Vector4()];SDP.uP=[new THREE.Vector4(),new THREE.Vector4()];SDP.uD=[new THREE.Vector4(),new THREE.Vector4()];
-  SDP.mat=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{uSa:{value:SDP_SA},uWv:{value:SDP_WA},uWw:{value:SDP_WB},uBa:{value:SDP_BA},uBb:{value:SDP_BB},uQa:{value:SDP_QA},uQb:{value:SDP_QB},uSb:{value:SDP_SB},uPl:{value:SDP_PL},tD:{value:null},uInv:{value:new THREE.Matrix4()},uVP:{value:new THREE.Matrix4()},uZ:{value:SDP.uZ},uP:{value:SDP.uP},uD:{value:SDP.uD},uFo:{value:new THREE.Vector4()},uFA:{value:new THREE.Vector4()},uFB:{value:new THREE.Vector4()},uFC:{value:new THREE.Vector4()},uCa:{value:new THREE.Vector4()},uCb:{value:new THREE.Vector4()},uCc:{value:new THREE.Vector4()},uCd:{value:new THREE.Vector4()},uS:{value:[0,1,2,3,4,5].map(()=>new THREE.Vector4())},uWd:{value:[0,1,2].map(()=>new THREE.Vector4())},uWa:{value:new THREE.Vector4()},uWc:{value:new THREE.Vector4()},uCe:{value:new THREE.Vector4()},uTa:{value:new THREE.Vector4()},uTb:{value:new THREE.Vector4()},uTc:{value:new THREE.Vector4()},uT:{value:0},uK:{value:1}},
+  SDP.mat=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{uWh:{value:SDP_WH},uSa:{value:SDP_SA},uWv:{value:SDP_WA},uWw:{value:SDP_WB},uBa:{value:SDP_BA},uBb:{value:SDP_BB},uQa:{value:SDP_QA},uQb:{value:SDP_QB},uSb:{value:SDP_SB},uPl:{value:SDP_PL},tD:{value:null},uInv:{value:new THREE.Matrix4()},uVP:{value:new THREE.Matrix4()},uZ:{value:SDP.uZ},uP:{value:SDP.uP},uD:{value:SDP.uD},uFo:{value:new THREE.Vector4()},uFA:{value:new THREE.Vector4()},uFB:{value:new THREE.Vector4()},uFC:{value:new THREE.Vector4()},uCa:{value:new THREE.Vector4()},uCb:{value:new THREE.Vector4()},uCc:{value:new THREE.Vector4()},uCd:{value:new THREE.Vector4()},uS:{value:[0,1,2,3,4,5].map(()=>new THREE.Vector4())},uWd:{value:[0,1,2].map(()=>new THREE.Vector4())},uWa:{value:new THREE.Vector4()},uWc:{value:new THREE.Vector4()},uCe:{value:new THREE.Vector4()},uTa:{value:new THREE.Vector4()},uTb:{value:new THREE.Vector4()},uTc:{value:new THREE.Vector4()},uT:{value:0},uK:{value:1}},
     vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
-    fragmentShader:`uniform sampler2D tD;uniform mat4 uInv,uVP;uniform vec4 uZ[2],uP[2],uD[2],uFo,uFA,uFB,uFC,uCa,uCb,uCc,uCd;uniform vec4 uS[6],uWd[3],uWa,uWc,uCe,uTa,uTb,uTc;uniform vec4 uSa[4],uSb[4],uPl[12],uWv[4],uWw[4],uBa[6],uBb[6],uQa[4],uQb[4];uniform float uT,uK;varying vec2 vUv;
+    fragmentShader:`uniform sampler2D tD;uniform mat4 uInv,uVP;uniform vec4 uZ[2],uP[2],uD[2],uFo,uFA,uFB,uFC,uCa,uCb,uCc,uCd;uniform vec4 uS[6],uWd[3],uWa,uWc,uCe,uTa,uTb,uTc;uniform vec4 uSa[4],uSb[4],uPl[12],uWv[4],uWw[4],uBa[6],uBb[6],uQa[4],uQb[4],uWh[2];uniform float uT,uK;varying vec2 vUv;
       vec3 gAt(vec2 n,float y){vec4 a=uInv*vec4(n,-1.,1.);a/=a.w;vec4 b=uInv*vec4(n,1.,1.);b/=b.w;vec3 r=b.xyz-a.xyz;return a.xyz+r*((y-a.y)/r.y);}
       vec2 toUv(vec3 w){vec4 c=uVP*vec4(w,1.);return c.xy/c.w*.5+.5;}
       /* zone i: x,y = centre (xz), z = radius, w = seed | uP: x = shift amount, y = ring radius (x radius), z = ring strength, w = lock lines | uD: x,y = shift direction */
@@ -5139,6 +5142,8 @@ for(int i=0;i<6;i++){vec4 A=uBa[i],B=uBb[i];if(B.y<=0.)continue;vec2 d=A.zw,nn=v
           vec2 rd=q/(l+1e-3),tg=vec2(-rd.y,rd.x);float rad=-Qb.z*(1.-smoothstep(0.,.18,age))+smoothstep(0.,.2,age)*sin(l*3.-age*14.+sd)*.8;float tq=floor(age*14.);
           vec2 jt=(vec2(h21(floor(G.xz*2.5)+tq*3.1+sd),h21(floor(G.xz*2.5)+tq*7.7-sd))-.5)*1.4;vec2 D=(rd*rad+tg*sin(an*4.+sd+age*18.)*.5+jt*.7)*Qb.y*env;sh[0]+=D*.93;sh[1]+=D;sh[2]+=D*1.07;anyZ=1.;}
         for(int i=0;i<4;i++){vec4 A=uWv[i],B=uWw[i];if(B.y<=0.)continue;vec2 d=A.zw,nn=vec2(-d.y,d.x),q=G.xz-A.xy;float u=dot(q,d),v=dot(q,nn);float band=exp(-pow(u/B.w,2.))*exp(-pow(v/B.x,2.));vec2 D=(nn*sin(u*5.+B.z+uT*3.)*.8+d*cos(v*3.+B.z-uT*2.)*.5)*B.y*band;sh[0]+=D*.93;sh[1]+=D;sh[2]+=D*1.07;anyZ=1.;}
+        for(int i=0;i<2;i++){vec4 Q=uWh[i];if(Q.z<=0.)continue;vec2 q=G.xz-Q.xy;float l=length(q);if(l>=Q.z)continue;float Ri=Q.z*.36,f=1.-smoothstep(Ri,Q.z,l),w=smoothstep(Ri*.7,Ri*1.1,l);
+          float tw=Q.w*f*f*f*w*(1.+.1*sin(l*5.-uT*3.*sign(Q.w))),c=cos(tw),s=sin(tw);vec2 qr=vec2(c*q.x-s*q.y,s*q.x+c*q.y)*(1.+abs(Q.w)*.18*f*f*w);vec2 D=q-qr;sh[0]+=D*.985;sh[1]+=D;sh[2]+=D*1.015;anyZ=1.;}
         b0=mix(G.xz,b0,uK);b1=mix(G.xz,b1,uK);b2=mix(G.xz,b2,uK);sh[0]*=uK;sh[1]*=uK;sh[2]*=uK;glow*=uK;
         vec3 col;if(anyZ>0.){col=vec3(texture2D(tD,clamp(toUv(vec3(b0.x-sh[0].x,.35,b0.y-sh[0].y)),.001,.999)).r,texture2D(tD,clamp(toUv(vec3(b1.x-sh[1].x,.35,b1.y-sh[1].y)),.001,.999)).g,texture2D(tD,clamp(toUv(vec3(b2.x-sh[2].x,.35,b2.y-sh[2].y)),.001,.999)).b);}else col=texture2D(tD,vUv).rgb;
         gl_FragColor=vec4(col*(1.-clamp(dk,0.,.88))+glow,1.);}`});
@@ -5154,6 +5159,7 @@ function sdpRender(){const sz=renderer.getDrawingBufferSize(SDP.v2);
     for(let i=0;i<3;i++){const W=C.wv[i];u.uWd.value[i].set(W.d[0],W.d[1],W.d[2],W.d[3]);}u.uWa.value.set(C.wv[0].amp,C.wv[1].amp,C.wv[2].amp,0);u.uWc.value.set(C.wv[0].cv,C.wv[1].cv,C.wv[2].cv,0);u.uCe.value.set(C.fold,C.fold2,C.tear,0);}else u.uCb.value.set(0,0,0,0);}
   for(let i=0;i<4;i++){const q=SDP.sl&&SDP.sl[i];if(q&&q.amp2>0&&isFinite(q.ax)){SDP_SA[i].set(q.ax,q.az,q.bx,q.bz);SDP_SB[i].set(q.w2,q.amp2,q.curve,q.seed);}else SDP_SB[i].set(0,0,0,0);}
   for(let i=0;i<12;i++){const q=SDP.pl&&SDP.pl[i];if(q&&q.amp>0)SDP_PL[i].set(q.x,q.z,q.r,q.amp);else SDP_PL[i].set(0,0,0,0);}
+  for(let i=0;i<2;i++){const q=SDP.wh&&SDP.wh[i];if(q&&Math.abs(time-q.at)<.5&&q.R>0)SDP_WH[i].set(q.x,q.z,q.R,q.amp);else SDP_WH[i].set(0,0,0,0);}
   for(let i=0;i<6;i++){const q=SDP.bl&&SDP.bl[i];if(q&&q.amp2>0.003&&q.seam!==undefined){SDP_BA[i].set(q.cx,q.cz,q.ux,q.uz);SDP_BB[i].set(q.a,q.amp2,q.seam,q.seed);}else SDP_BB[i].set(0,0,0,0);}
   for(let i=0;i<4;i++){const q=SDP.qk&&SDP.qk[i];if(q&&q.age<1.2){SDP_QA[i].set(q.x,q.z,q.age,q.seed);SDP_QB[i].set(q.R,q.amp*Math.max(0,1-q.age/1.2),q.mode,0);}else SDP_QB[i].set(0,0,0,0);}
   for(let i=0;i<4;i++){const q=SDP.wv&&SDP.wv[i];if(q&&q.amp>0.003){SDP_WA[i].set(q.x,q.z,q.dx,q.dz);SDP_WB[i].set(q.len,q.amp,q.seed,q.wd);}else SDP_WB[i].set(0,0,0,0);}
@@ -8204,26 +8210,82 @@ function castConstellation(t,list,P,o,XO){const D=XO?Object.assign({},CSL,XO):CS
     ()=>{stars.forEach(s=>nsFree(s.g));lines.forEach(L=>nsFree(L.g));if(!keep){darkTarget=0;vigTarget=0;}if(lg)lg({ev:'end',second:!!D.second,T:tt});},XO?{mats,geos,csFig:1}:{mats,geos});}
 
 /* ---- Wormhole: twin wormholes, one ahead of the enemy and one far back up the road; whatever walks into the first comes out of the second ---- */
-let WH_TEX=null;
-function whTex(){if(WH_TEX)return WH_TEX;const S=256,cv=document.createElement('canvas');cv.width=cv.height=S;const x=cv.getContext('2d'),C=S/2;x.globalCompositeOperation='lighter';
-  for(let arm=0;arm<4;arm++)for(let i=0;i<260;i++){const u=i/260,a=arm*Math.PI/2+u*7.5,r=C*(.12+u*.86),px=C+Math.cos(a)*r,py=C+Math.sin(a)*r,s=2+u*7,g=x.createRadialGradient(px,py,0,px,py,s);
-    const c=u<.35?'255,255,255':u<.7?'160,170,255':'120,60,220';g.addColorStop(0,'rgba('+c+','+(.5*(1-u*.6))+')');g.addColorStop(1,'rgba('+c+',0)');x.fillStyle=g;x.fillRect(px-s,py-s,s*2,s*2);}
-  const rg=x.createRadialGradient(C,C,C*.6,C,C,C);rg.addColorStop(0,'rgba(0,0,0,0)');rg.addColorStop(.8,'rgba(90,60,220,.35)');rg.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=rg;x.fillRect(0,0,S,S);
-  WH_TEX=new THREE.CanvasTexture(cv);return WH_TEX;}
+/* v479: the wormholes' looks, rebuilt (Simon: "make the wormhole scroll 10x better visually"). Each mouth is a window into folded space: a
+   tunnel of stars streaming away behind a black horizon (the far mouth's light glowing at the end of it), ringed by a turning accretion disk
+   (white hot at its rim, the mouth's colour further out, waves of space rippling in beyond it, or out of the far one), a thin photon ring,
+   a vortex of light streaks over it (falling into the first mouth, rising out of the far one), shards of rock spiralling in or flung out,
+   and the ground itself twisting round it (the space pass, SDP.wh). It tears open as a slit that widens, spins up and burns brighter just
+   before it collapses, and each foe torn through it is wrung down into it in a spiral of light. Every number, hit and timing is as it was. */
+const WH_VS='varying vec2 vP;varying vec2 vU;void main(){vP=position.xz;vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+let WH_DISK_FS=null;
+const whDiskFS=()=>WH_DISK_FS||(WH_DISK_FS=`uniform float uT,uO,uSp,uIn,uHot,uKick;uniform vec3 uC,uC2;varying vec2 vP;${sgNoiseGLSL()}
+  vec2 rot(vec2 v,float a){float c=cos(a),s=sin(a);return vec2(c*v.x-s*v.y,s*v.x+c*v.y);}
+  float lay(vec2 p,float r,float ph,vec2 o){float tw=uSp*(ph*(1.5+uHot*3.)/(r+.2)+2.2*log(r));vec2 q=rot(p,tw);float n=sf(q*2.3+o+vec2(0.,ph*.5*uIn));
+    float arm=.5+.5*sin(atan(q.y,q.x)*3.+n*2.5);return n*(.4+.6*arm*arm);}
+  void main(){float r=length(vP);if(r<.34||r>2.3)discard;
+    float p1=fract(uT*.2),p2=fract(uT*.2+.5),w=abs(p1*2.-1.);
+    float n=mix(lay(vP,r,p1*5.,vec2(0.)),lay(vP,r,p2*5.,vec2(17.3,5.1)),w);
+    float inner=smoothstep(.34,.46,r),body=pow(1.-smoothstep(.46,1.45,r),1.6),I=inner*body*(.12+1.35*n*n);
+    float rim=exp(-pow((r-.475)/.035,2.))*(.95+uKick*1.1+uHot*.8);
+    vec3 c=mix(uC*.45,uC*.95,smoothstep(1.4,.8,r));c=mix(c,uC2,smoothstep(.75,.5,r)*.7);
+    float rip=exp(-pow((fract(r*1.15+uT*.55*uIn)-.5)/.07,2.))*smoothstep(.9,1.25,r)*(1.-smoothstep(1.5,2.3,r))*.2;
+    vec3 col=c*I*(1.+uHot*.9+uKick*.7)+vec3(.93,.9,1.)*rim+uC*rip*(1.+uKick);
+    gl_FragColor=vec4(col*uO,1.);}`);
+const WH_HOLE_FS=`uniform float uT,uO,uSp;uniform vec3 uC,uFar;varying vec2 vP;
+  float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+  void main(){float r=length(vP)/.5;if(r>1.)discard;float a=atan(vP.y,vP.x)/6.28318;
+    float z=.3/(r+.04),v=z+uT*1.3,u=a+uSp*(z*.1+uT*.04);vec3 st=vec3(0.);
+    for(int k=0;k<2;k++){float N=k==0?28.:17.;vec2 g=vec2(u*N,v*(k==0?2.:1.4)+float(k)*.37);vec2 id=floor(g),f=fract(g);id.x=mod(id.x,N);float hs=h1(id+float(k)*7.1);
+      float s=step(.72,hs)*exp(-pow((f.x-.5)/.09,2.))*exp(-pow((f.y-.5)/.32,2.));st+=mix(vec3(.78,.82,1.),uFar,h1(id+3.3))*s*(.6+.8*fract(hs*13.));}
+    float band=.5+.5*sin(v*6.28318+a*12.566*uSp),vis=smoothstep(.06,.45,r)*(1.-smoothstep(.72,.97,r));
+    vec3 col=vec3(.004,0.,.016)+uC*.16*band*vis+st*vis*1.1+uFar*(exp(-r*r/.012)*1.4+exp(-r/.22)*.22);
+    col*=1.-smoothstep(.78,1.,r)*.95;gl_FragColor=vec4(col,uO*(1.-smoothstep(.93,1.,r)));}`;
+const WH_COL_VS='varying vec2 vU;varying float vF;void main(){vU=uv;\n#ifdef USE_COLOR\nvF=color.r;\n#else\nvF=1.;\n#endif\ngl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+const WH_COL_FS=`uniform float uT,uO,uSp,uIn;uniform vec3 uC;varying vec2 vU;varying float vF;
+  void main(){float y=vU.y,a=vU.x*6.28318;
+    float s1=pow(max(0.,sin(a*6.+y*7.*uSp+uT*3.2*uIn*uSp)),12.),s2=pow(max(0.,sin(a*9.-y*4.*uSp+uT*2.1*uIn+1.7)),16.)*.7;
+    float dash=.35+.65*smoothstep(.3,.9,sin(y*11.+uT*7.*uIn+a*2.)),fade=pow(1.-y,2.6)*smoothstep(0.,.05,y)*vF;
+    gl_FragColor=vec4(uC*(.05+(s1+s2)*dash*.5)*fade*uO,1.);}`;
+/* (the fold between the mouths: a faint river of starlight running from the first to the far one; not Torn Through the Stars' comet) */
+const WH_RIV_FS=`uniform float uT,uO;uniform vec3 uC;varying vec2 vU;
+  void main(){float x=vU.x,d=pow(fract(x*7.-uT*.9),5.)+pow(fract(x*13.-uT*1.6+.3),9.)*.6,e=smoothstep(0.,.12,x)*smoothstep(1.,.88,x);gl_FragColor=vec4(uC*(.03+d*.55)*e*uO,1.);}`;
+const whSM=(mats,u,vs,fs,o)=>{const m=new THREE.ShaderMaterial(Object.assign({uniforms:u,vertexShader:vs,fragmentShader:fs,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide},o||{}));mats.push(m);return m;};
 /* v473: an open cylinder whose vertices are coloured from white at its foot to black at its top (drawn additive, it melts into the air
    instead of ending in an edge); full until fade of the way up. Wormhole's taller columns (Held Open) and its rising walls of light */
 function whFadeCyl(r1,r0,h,seg,fade){const g=new THREE.CylinderGeometry(r1,r0,h,seg,8,true);g.translate(0,h/2,0);const P=g.attributes.position,c=new Float32Array(P.count*3),f=fade||1;
   for(let i=0;i<P.count;i++){const u=P.getY(i)/h,k=Math.pow(clamp((1-u)/f,0,1),1.3);c[i*3]=c[i*3+1]=c[i*3+2]=k;}g.setAttribute('color',new THREE.BufferAttribute(c,3));return g;}
+/* v479: shards of rock round a mouth, spiralling down into it (out: flung up and out of it); sg the way it turns */
+function whShards(mats,geos,col,n,out){const g=new THREE.TetrahedronGeometry(1,0);geos.push(g);const m=new THREE.MeshPhongMaterial({color:0x403a52,emissive:col,emissiveIntensity:.16,flatShading:true,shininess:40,specular:0x8a80b0});mats.push(m);
+  const im=new THREE.InstancedMesh(g,m,n),S=[],o=new THREE.Object3D(),R=Math.random;im.frustumCulled=false;
+  for(let i=0;i<n;i++)S.push({ph:i/n+R()*.04,a:R()*6.28,s:.035+R()*.05,sp:.2+R()*.12,rx:R()*6,ry:R()*6,h:.12+R()*.45});
+  im.upd=(t,sg)=>{for(let i=0;i<n;i++){const q=S[i],k=(t*q.sp+q.ph)%1;let r,y,sc;
+      if(!out){r=.42+1.95*Math.pow(1-k,1.25);y=q.h*(1-k)*(1-k)+.05;sc=q.s*Math.min(1,k*6)*(1-Math.pow(k,5));}
+      else{r=.38+2.1*k;y=.06+Math.sin(k*Math.PI)*q.h*1.7;sc=q.s*Math.min(1,k*8)*(1-k*k);}
+      const a=q.a+sg*(out?k*2.4:Math.pow(k,1.7)*7.5);o.position.set(Math.cos(a)*r,y,Math.sin(a)*r);o.rotation.set(q.rx+t*2.2,q.ry+t*1.4,0);o.scale.setScalar(Math.max(1e-4,sc));o.updateMatrix();im.setMatrixAt(i,o.matrix);}
+    im.instanceMatrix.needsUpdate=true;};
+  return im;}
 /* v473: colH (optional, Wormhole's Held Open): the column of light colH times as tall, as bright as before up to about its old height and
-   fading out above it; 0 or none: as before */
-function whPortal(mats,geos,col,colH){const g=new THREE.Group(),dg=new THREE.CircleGeometry(1,40);dg.rotateX(-Math.PI/2);geos.push(dg);
-  const dm=new THREE.MeshBasicMaterial({map:whTex(),color:col,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-3});mats.push(dm);
-  const cm=new THREE.MeshBasicMaterial({color:0x020008,transparent:true,opacity:.92,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});mats.push(cm);const core=new THREE.Mesh(dg,cm);core.scale.setScalar(.42);core.position.y=.01;g.add(core);
-  const disk=new THREE.Mesh(dg,dm);disk.position.y=.02;g.add(disk);const disk2=new THREE.Mesh(dg,dm);disk2.scale.setScalar(.66);disk2.position.y=.03;g.add(disk2);
-  const tg=new THREE.TorusGeometry(1,.035,6,48);tg.rotateX(Math.PI/2);geos.push(tg);const ring=new THREE.Mesh(tg,nsAM(mats,0xd8d0ff,.85));ring.position.y=.06;g.add(ring);const ring2=new THREE.Mesh(tg,nsAM(mats,col,.4));ring2.position.y=.18;ring2.scale.setScalar(1.12);g.add(ring2);
-  let col2;if(colH){const cg=whFadeCyl(.62,1,2.4*colH,28,1-1/colH+.05);geos.push(cg);const m=nsAM(mats,col,.13);m.vertexColors=true;col2=new THREE.Mesh(cg,m);}
-  else{const cg=new THREE.CylinderGeometry(.62,1,2.4,28,1,true);cg.translate(0,1.2,0);geos.push(cg);col2=new THREE.Mesh(cg,nsAM(mats,col,.13));}g.add(col2);
-  return{g,disk,disk2,core,ring,ring2,col:col2};}
+   fading out above it; 0 or none: as before. v479: out (the far mouth, and a boss's small far mouth): light pours out of it instead of
+   falling in; far: the colour seen at the end of its tunnel (the other mouth's). upd(dt, t, sg, hot) runs its looks: sg the way it turns,
+   hot (0 to 1) how hard it spins and burns as it is about to collapse; kick (set by a crossing) a flare of its rim that fades. */
+function whPortal(mats,geos,col,colH,out,far){const g=new THREE.Group(),C=new THREE.Color(col),io=out?-1:1;
+  const dg=new THREE.RingGeometry(.34,2.3,96,1);dg.rotateX(-Math.PI/2);geos.push(dg);
+  const dU={uT:{value:0},uO:{value:1},uSp:{value:1},uIn:{value:io},uHot:{value:0},uKick:{value:0},uC:{value:C},uC2:{value:new THREE.Color(out?0xbfeaff:0xd8c8ff)}};
+  const disk=new THREE.Mesh(dg,whSM(mats,dU,WH_VS,whDiskFS(),{polygonOffset:true,polygonOffsetFactor:-3}));disk.position.y=.03;disk.renderOrder=4;g.add(disk);
+  const hg=new THREE.CircleGeometry(.5,48);hg.rotateX(-Math.PI/2);geos.push(hg);
+  const hU={uT:{value:0},uO:{value:.96},uSp:{value:1},uC:{value:C},uFar:{value:new THREE.Color(far==null?(out?0x8a6aff:0x5ac8ff):far)}};
+  const core=new THREE.Mesh(hg,whSM(mats,hU,WH_VS,WH_HOLE_FS,{blending:THREE.NormalBlending,polygonOffset:true,polygonOffsetFactor:-2}));core.position.y=.02;core.renderOrder=3;g.add(core);
+  const tg=new THREE.TorusGeometry(1,.035,6,64);tg.rotateX(Math.PI/2);geos.push(tg);
+  const ring=new THREE.Mesh(tg,nsAM(mats,0xf2eeff,.9));ring.position.y=.05;ring.scale.set(.475,.6,.475);ring.renderOrder=5;g.add(ring);
+  const ring2=new THREE.Mesh(tg,nsAM(mats,col,.04));ring2.position.y=.1;ring2.scale.setScalar(1.5);g.add(ring2);
+  const cU={uT:{value:0},uO:{value:1},uSp:{value:1},uIn:{value:io},uC:{value:C}},rT=out?.95:1.2,rB=.52;let col2;
+  if(colH){const cg=whFadeCyl(rT,rB,2.4*colH,28,1-1/colH+.05);geos.push(cg);col2=new THREE.Mesh(cg,whSM(mats,cU,WH_COL_VS,WH_COL_FS,{vertexColors:true}));}
+  else{const cg=new THREE.CylinderGeometry(rT,rB,2.4,28,1,true);cg.translate(0,1.2,0);geos.push(cg);col2=new THREE.Mesh(cg,whSM(mats,cU,WH_COL_VS,WH_COL_FS));}col2.renderOrder=6;g.add(col2);
+  const sh=whShards(mats,geos,col,out?14:20,out);g.add(sh);
+  const P={g,disk,disk2:core,core,ring,ring2,col:col2,sh,kick:0};
+  P.upd=(dt,t,sg,hot)=>{hot=hot||0;P.kick=Math.max(0,P.kick-dt*2.5);dU.uT.value=t;dU.uSp.value=sg;dU.uHot.value=hot;dU.uKick.value=P.kick;hU.uT.value=t*(1+hot*1.5);hU.uSp.value=sg;cU.uT.value=t;cU.uSp.value=sg;
+    ring.material.opacity=.75+.2*Math.sin(t*9)+.25*hot;ring2.position.y=.1+.06*Math.sin(t*3+sg);ring2.scale.setScalar(1.5+.06*Math.sin(t*4)+.25*P.kick);ring2.material.opacity=.04+.12*P.kick;sh.upd(t,sg);};
+  return P;}
 /* v473 (Torn Through the Stars): a comet of light running the arc between the mouths with each crossing (a bright head, a fading tail) */
 const WH_COM_VS='varying float vU;void main(){vU=uv.x;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
 const WH_COM_FS='varying float vU;uniform float uH,uA;uniform vec3 uC;void main(){float d=uH-vU,a=uA*(d>=0.?exp(-d*11.):smoothstep(.03,0.,-d));if(a<.004)discard;gl_FragColor=vec4(mix(uC,vec3(1.),exp(-abs(d)*26.)),min(1.,a));}';
@@ -8238,8 +8300,11 @@ function whBurst(x,y,z,col,R,h,K,dur){K=K||1;dur=dur||.42;const m=new THREE.Mesh
   for(let i=0;i<Math.round(8+R*5);i++){const a=rnd()*6.28,r=R*(.15+rnd()*.2);emit(1,{x:x+Math.cos(a)*r,y:y+.05,z:z+Math.sin(a)*r,vx:Math.cos(a)*R*1.2,vy:1.2+rnd()*1.8*Math.min(1.6,h*2),vz:Math.sin(a)*R*1.2,s:.05,s2:0,c:0xffffff,c2:col,life:.4+rnd()*.3,drag:1.2});}
   addFx(w,dur,(f,dt)=>{tt+=dt;const k=SMS(tt,0,dur*.85);w.scale.set(R*(.25+.75*k),h*(1-.55*k)+.02,R*(.25+.75*k));m.opacity=.9*K*Math.min(1,tt/.05)*(1-k);},null,{mat:m});}
 /* v473 (No Weight Too Great): where a boss comes out, a small far mouth flickers open and shut */
-function whExit(x,y,z){const mats=[],geos=[],P2=whPortal(mats,geos,0x5ac8ff);P2.col.visible=false;P2.g.position.set(x,y,z);P2.g.scale.setScalar(.001);nsOwn(P2.g);let tt=0;
-  addFx(new THREE.Group(),.8,(f,dt)=>{tt+=dt;const k=SMS(tt,0,.12)*(1-SMS(tt,.45,.8));P2.g.scale.setScalar(Math.max(.001,.62*k));P2.disk.rotation.y-=dt*4;P2.disk2.rotation.y+=dt*6;},()=>nsFree(P2.g),{mats,geos});}
+function whExit(x,y,z){const mats=[],geos=[],P2=whPortal(mats,geos,0x5ac8ff,0,true);P2.col.visible=false;P2.g.position.set(x,y,z);P2.g.scale.setScalar(.001);nsOwn(P2.g);let tt=0;
+  addFx(new THREE.Group(),.8,(f,dt)=>{tt+=dt;const k=SMS(tt,0,.12)*(1-SMS(tt,.45,.8));P2.g.scale.setScalar(Math.max(.001,.62*k));P2.upd(dt,tt,-1,0);},()=>nsFree(P2.g),{mats,geos});}
+/* v479: a foe torn through the first mouth is wrung down into it: a spiral of light from where it stood to the heart of the mouth */
+function whWring(ep,cx,cy,cz){const R=Math.random;for(let i=0;i<12;i++){const u=i/12,a=u*9+R()*.4,r=.55*(1-u)+.05,x=cx+(ep.x-cx)*(1-u)+Math.cos(a)*r,z=cz+(ep.z-cz)*(1-u)+Math.sin(a)*r,y=cy+.1+(ep.y-cy)*(1-u)+.2*(1-u),lf=.18+.25*u;
+  emit(1,{x,y,z,vx:(cx-x)/lf,vy:(cy+.05-y)/lf,vz:(cz-z)/lf,s:.09*(1-u*.5),s2:0,c:0xffffff,c2:0x9a7aff,life:lf});}}
 /* v473: XO (optional, Wormhole's masteries): this cast's own numbers over WHL (LIFE: how long the mouths stay open, dec: their ground
    shadows' life; hit: the crossing's strike; back: how far behind the first mouth the far one opens; col/colR: the collapse's strike and
    reach; catchR: the first mouth also draws in every foe within catchR of it, on any road; bossBack: bosses go through too, coming out
@@ -8255,8 +8320,13 @@ const WHL={LIFE:9.2,dec:9.8,hit:4,back:13,col:3,colR:1.6,catchR:0,bossBack:0,bos
 function castWormhole(t,list,P,o,XO){const D=XO?Object.assign({},WHL,XO):WHL,lg=D.log,LIFE=D.LIFE;
   const pool=enemies.filter(e=>!e.dead&&!e.fake&&e.dist!=null);let lead=null;for(const e of pool)if(!lead||e.dist>lead.dist)lead=e;
   let rt,dIn;if(lead){rt=lead.route||ROUTES[0];dIn=Math.min(rt.len-.6,lead.dist+(lead.spd||0)*1.2+1.4);}else{const q=nsRouteNear(list[0].x,list[0].z);rt=q.rt;dIn=Math.min(rt.len-.6,q.d+1.4);}
-  const dOut=Math.max(.4,dIn-D.back),pI=posAt(dIn,rt),pO=posAt(dOut,rt),mats=[],geos=[],A=whPortal(mats,geos,0x8a6aff,D.colH),B=whPortal(mats,geos,0x5ac8ff,D.colH);
-  const yI=gy(pI[0],pI[1])+.03,yO=gy(pO[0],pO[1])+.03;A.g.position.set(pI[0],yI,pI[1]);B.g.position.set(pO[0],yO,pO[1]);A.g.scale.setScalar(.001);B.g.scale.setScalar(.001);nsOwn(A.g);nsOwn(B.g);
+  const dOut=Math.max(.4,dIn-D.back),pI=posAt(dIn,rt),pO=posAt(dOut,rt),mats=[],geos=[],A=whPortal(mats,geos,0x8a6aff,D.colH,false),B=whPortal(mats,geos,0x5ac8ff,D.colH,true);
+  const yI=gy(pI[0],pI[1])+.03,yO=gy(pO[0],pO[1])+.03;A.g.position.set(pI[0],yI,pI[1]);B.g.position.set(pO[0],yO,pO[1]);A.g.scale.setScalar(.001);B.g.scale.setScalar(.001);A.g.rotation.y=-pI[2]||0;B.g.rotation.y=-pO[2]||0;nsOwn(A.g);nsOwn(B.g);
+  /* (v479: the ground twists round each mouth, the far one the other way, through the space pass) */
+  sdpInit();SDP.n++;SDP.wh=SDP.wh||[null,null];const wA={x:pI[0],z:pI[1],R:0,amp:0,at:-9},wB={x:pO[0],z:pO[1],R:0,amp:0,at:-9};SDP.wh[0]=wA;SDP.wh[1]=wB;
+  /* (v479: space tears: a flash and a ring of light whirling out from each mouth as it opens) */
+  for(const[px,py,pz,cc]of[[pI[0],yI,pI[1],0x9a7aff],[pO[0],yO,pO[1],0x6ac8ff]]){flash(px,py+.3,pz,cc,.8,.35);
+    for(let i=0;i<26;i++){const a=i/26*6.28;emit(1,{x:px+Math.cos(a)*.2,y:py+.12,z:pz+Math.sin(a)*.2,vx:Math.cos(a)*3.2-Math.sin(a)*1.5,vy:.3,vz:Math.sin(a)*3.2+Math.cos(a)*1.5,s:.07,s2:0,c:0xffffff,c2:cc,life:.55,drag:2.2});}}
   const decA=nsDecal(pI[0],pI[1],1.4*D.mouthK,0x2a1a6a,0,D.dec,{manual:true}),decB=nsDecal(pO[0],pO[1],1.4,0x1a3a6a,0,D.dec,{manual:true});
   cineLock=Math.max(cineLock,3);darkTarget=Math.max(darkTarget,.32);vigTarget=Math.max(vigTarget,.32);if(typeof sfxWind==='function')sfxWind(2.6,.2);if(typeof sfxRumble==='function')sfxRumble(1.6,.25);
   /* (Held Open: the Calm space setting covers the longer opening; the cast's wrapper gives 10.5s, the old opening's) */
@@ -8273,6 +8343,9 @@ function castWormhole(t,list,P,o,XO){const D=XO?Object.assign({},WHL,XO):WHL,lg=
     /* (The Last Crossing's rush: streaks on arcs fanned out to either side of the first and above and below it) */
     rushTube=i=>{const dx=pO[0]-pI[0],dz=pO[1]-pI[1],L=Math.hypot(dx,dz)||1,sd=[-1.3,1.3,-.65,.65,0][i%5],c=C.clone();c.x-=dz/L*sd;c.z+=dx/L*sd;c.y+=[.5,-.3,.9,.2,-.7][i%5];
       return arcTube(new THREE.Vector3(pI[0],yI,pI[1]),c,new THREE.Vector3(pO[0],yO,pO[1]));};
+  /* (v479: the fold between the mouths, a faint river of starlight from the first to the far one) */
+  const rivU={uT:{value:0},uO:{value:0},uC:{value:new THREE.Color(0x9a8aff)}},rivG=new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(new THREE.Vector3(pI[0],yI,pI[1]),C,new THREE.Vector3(pO[0],yO,pO[1])),64,.035,6,false);geos.push(rivG);
+  const riv=nsOwn(new THREE.Mesh(rivG,whSM(mats,rivU,WH_VS,WH_RIV_FS)));riv.renderOrder=4;
   /* where a foe comes out: the far mouth, or (a boss, with bossBack) bossBack tiles behind the first one */
   const land=e=>e.boss&&D.bossBack?Math.max(0,dIn-D.bossBack):dOut;
   /* (a foe off the road it stands on goes through only if it comes out further from its road's end, on a road to the same place) */
@@ -8281,11 +8354,11 @@ function castWormhole(t,list,P,o,XO){const D=XO?Object.assign({},WHL,XO):WHL,lg=
      strikes them), then thrown out of the far mouth; a boss is only slowed (with bossBack it goes through too, coming out bossBack tiles
      back, still slowed) */
   const cross=(e,how,dl)=>{sent.add(e);const ep=tpos2(e);
-    if(how!=='last')hurt(e,P*D.hit,'magic',o);sprayP(1,ep.x,ep.y,ep.z,14,{c:0xffffff,c2:0x8a6aff,sp:1.6,up:.3,s:.05,s2:0,life:.45,g:1});if(XO&&how!=='road'&&how!=='swept')whPull(ep,pI[0],yI,pI[1]);
+    if(how!=='last')hurt(e,P*D.hit,'magic',o);sprayP(1,ep.x,ep.y,ep.z,14,{c:0xffffff,c2:0x8a6aff,sp:1.6,up:.3,s:.05,s2:0,life:.45,g:1});if(XO&&how!=='road'&&how!=='swept')whPull(ep,pI[0],yI,pI[1]);whWring(ep,pI[0],yI,pI[1]);A.kick=1;
     if(e.dead){if(lg)lg({ev:'cross',e,how,dead:1,T:tt});return;}
     if(e.boss&&!D.bossBack){e.slow=Math.max(e.slow||0,D.bossSlow);e.slowT=Math.max(e.slowT||0,D.bossSlowT);if(lg)lg({ev:'cross',e,how,boss:1,slowed:1,T:tt});return;}
     const r0=e.route||ROUTES[0],d0=e.dist,boss=!!e.boss;
-    e.dist=Math.max(0,land(e)+(rnd()-.5)*.3);if(r0!==rt){e.route=rt;e.ox=0;e.oz=0;}e.blockBy=null;moveEnemy(e,0);const np=tpos2(e),lk=how==='last';
+    e.dist=Math.max(0,land(e)+(rnd()-.5)*.3);if(r0!==rt){e.route=rt;e.ox=0;e.oz=0;}e.blockBy=null;moveEnemy(e,0);const np=tpos2(e),lk=how==='last';if(!boss||!D.bossBack)B.kick=1;
     /* (the last crossing's foes come out together: each a softer flash, one burst for them all, so they never stack into a white blot) */
     flash(np.x,np.y,np.z,0x9fe4ff,lk?.3:D.burst?.9:.6,.2);sprayP(1,np.x,np.y,np.z,lk?10:D.burst?26:16,{c:0xffffff,c2:0x5ac8ff,sp:2,up:.4,s:.05,s2:0,life:.5,g:1});
     if(!XO){riders.push({u:0});return;}
@@ -8296,14 +8369,17 @@ function castWormhole(t,list,P,o,XO){const D=XO?Object.assign({},WHL,XO):WHL,lg=
     riders.push(R);if(D.burst&&(!lk||!dl))whBurst(np.x,gy(np.x,np.z)+.03,np.z,0x7ad8ff,boss?.9:.75,.7,lk?.7:1);
     if(lg)lg({ev:'cross',e,how,boss,d0,d1:e.dist,r0,r1:rt,lost:(rt.len-e.dist)-(r0.len-d0),T:tt});};
   addFx(new THREE.Group(),LIFE+.4,(f,dt)=>{tt+=dt;const open=SMS(tt,0,.8)*(1-SMS(tt,LIFE-.45,LIFE));
-    for(const[P2,sg]of[[A,1],[B,-1]]){P2.g.scale.setScalar(Math.max(.001,open*(1+.05*Math.sin(tt*5))*(sg>0?D.mouthK:1)));P2.disk.rotation.y+=dt*3.2*sg;P2.disk2.rotation.y-=dt*5*sg;P2.ring2.position.y=.18+.1*Math.sin(tt*3+sg);P2.ring2.scale.setScalar(1.12+.08*Math.sin(tt*4));P2.col.material.opacity=.13*(.8+.2*Math.sin(tt*6+sg));}
+    /* (v479: each mouth tears open as a slit that widens, and spins up and burns brighter just before it collapses) */
+    const hot=SMS(tt,LIFE-1.3,LIFE-.45),slit=SMS(tt,.05,.75);
+    for(const[P2,sg]of[[A,1],[B,-1]]){const k=Math.max(.001,open*(1+.05*Math.sin(tt*5))*(sg>0?D.mouthK:1)*(1-.12*hot));P2.g.scale.set(k,k,Math.max(.001,k*(.06+.94*slit)));P2.upd(dt,tt,sg,hot);}
+    wA.R=2.1*D.mouthK*open;wA.amp=.24*open*(1+.8*hot);wA.at=time;wB.R=1.9*open;wB.amp=-.2*open*(1+.8*hot);wB.at=time;rivU.uT.value=tt;rivU.uO.value=open*(1-hot*.5);
     /* (No Weight Too Great: the first mouth shudders as a boss goes through) */
     if(D.shudder){if(shud>0){shud=Math.max(0,shud-dt);const k=shud/.7;A.g.position.set(pI[0]+(rnd()-.5)*.14*k,yI,pI[1]+(rnd()-.5)*.14*k);A.g.scale.multiplyScalar(1+.07*k*Math.sin(tt*55));A.ring2.position.y+=.12*k*Math.sin(tt*40);}else A.g.position.set(pI[0],yI,pI[1]);}
     decA.material.opacity=.6*open;decB.material.opacity=.6*open;
     if(dt>0&&open>.2){for(let i=0;i<4;i++){const a=rnd()*6.28,r=1.2+rnd()*.7;
         emit(1,{x:pI[0]+Math.cos(a)*r,y:yI+.08+rnd()*.3,z:pI[1]+Math.sin(a)*r,vx:-Math.cos(a)*r*1.5-Math.sin(a)*1.2,vy:-.15,vz:-Math.sin(a)*r*1.5+Math.cos(a)*1.2,s:.05,s2:0,c:0xffffff,c2:0x7a5aff,life:.6,drag:.4});
         const b2=rnd()*6.28;emit(1,{x:pO[0]+Math.cos(b2)*.25,y:yO+.1,z:pO[1]+Math.sin(b2)*.25,vx:Math.cos(b2)*2.4,vy:1.2+rnd()*1.2,vz:Math.sin(b2)*2.4,s:.05,s2:0,c:0xffffff,c2:0x5ac8ff,life:.7,drag:.8});}
-      if(rnd()<.8){const u=(tt*.35+rnd()*.15)%1;bez(u,tv);emit(1,{x:tv.x+(rnd()-.5)*.3,y:tv.y+(rnd()-.5)*.3,z:tv.z+(rnd()-.5)*.3,vx:0,vy:0,vz:0,s:.06,s2:0,c:0xdfe4ff,c2:0x6a4aff,life:.9});}
+      if(rnd()<.8){const u=(tt*.35+rnd()*.15)%1;bez(u,tv);emit(1,{x:tv.x+(rnd()-.5)*.3,y:tv.y+(rnd()-.5)*.3,z:tv.z+(rnd()-.5)*.3,vx:0,vy:0,vz:0,s:.045,s2:0,c:0xc8c0ff,c2:0x6a4aff,life:.9});}
       if(XO){/* (Hungry Mouth: a thicker swirl, drawn from further out; The Last Crossing: in the last moments before the mouths close it
           pulls from all the way out to lastR; Held Open: motes rise up the taller columns; Torn Through the Stars: more stars on the arc) */
         const nIn=Math.round(4*(D.swirl-1))+(D.last&&tt>LIFE-1&&tt<LIFE-.45?6:0),rIn=D.last&&tt>LIFE-1&&tt<LIFE-.45?D.lastR:1.9*D.mouthK;
@@ -8325,6 +8401,9 @@ function castWormhole(t,list,P,o,XO){const D=XO?Object.assign({},WHL,XO):WHL,lg=
       for(let j=0;j<3;j++)emit(1,{x:tv.x,y:tv.y,z:tv.z,vx:(rnd()-.5)*.3,vy:(rnd()-.5)*.3,vz:(rnd()-.5)*.3,s:.12,s2:0,c:0xffffff,c2:0x7a8aff,life:.4});
       if(r.m){const a=(r.ka||1)*Math.min(1,r.u*8)*(1-SMS(r.u,.85,1));r.m.children.forEach((me,i)=>{const U=me.material.uniforms;U.uH.value=r.u;U.uA.value=a*(i?.32:.85);});for(let j=0;j<3;j++)emit(1,{x:tv.x+(rnd()-.5)*.2,y:tv.y+(rnd()-.5)*.2,z:tv.z+(rnd()-.5)*.2,vx:(rnd()-.5)*.5,vy:(rnd()-.5)*.5,vz:(rnd()-.5)*.5,s:.07,s2:0,c:0xffffff,c2:0x9a7aff,life:.55});}}
     if(!pulsed&&tt>=LIFE-.45){pulsed=true;
+      /* (v479: each mouth implodes: a ring of light rushing into it) */
+      for(const[px,py,pz,cc]of[[pI[0],yI,pI[1],0x9a7aff],[pO[0],yO,pO[1],0x6ac8ff]])for(let i=0;i<30;i++){const a=i/30*6.28,r=2.2;
+        emit(1,{x:px+Math.cos(a)*r,y:py+.15,z:pz+Math.sin(a)*r,vx:-Math.cos(a)*r/.32+Math.sin(a)*2,vy:.2,vz:-Math.sin(a)*r/.32-Math.cos(a)*2,s:.08,s2:0,c:0xffffff,c2:cc,life:.32});}
       /* The Last Crossing: as the mouths close, the first swallows every foe within lastR of it not yet sent, a rush of streaks across the
          stars, and throws them out of the far one, just before both collapse */
       if(D.last){let k=0;for(const e of enemies){if(e.dead||e.fake||sent.has(e)||e.dist==null)continue;if((e.x-pI[0])**2+(e.z-pI[1])**2>=D.lastR*D.lastR)continue;if(!loses(e))continue;cross(e,'last',Math.min(k,10)*.1);k++;}
@@ -8332,7 +8411,7 @@ function castWormhole(t,list,P,o,XO){const D=XO?Object.assign({},WHL,XO):WHL,lg=
       for(const[px,pz]of[[pI[0],pI[1]],[pO[0],pO[1]]]){shockwave(px,pz,1.8*D.collK,0xb8a8ff,.5,0x140a3a);flash(px,1,pz,0xdfe0ff,Math.min(1.2,1*D.collK),.25);if(D.collK>1)whBurst(px,gy(px,pz)+.03,pz,px===pI[0]&&pz===pI[1]?0x9a7aff:0x6ac8ff,D.colR,1.1,1,.5);
         for(const e of enemies){if(e.dead)continue;if((e.x-px)**2+(e.z-pz)**2<D.colR*D.colR){hurt(e,P*D.col,'magic',o);if(lg)lg({ev:'collapse',e,at:px===pI[0]&&pz===pI[1]?'A':'B',T:tt});}}}camShake=Math.max(camShake,.16*(D.collK>1?1.35:1));}
     if(tt>LIFE-.6){darkTarget=Math.max(0,darkTarget-dt*.5);vigTarget=Math.max(0,vigTarget-dt*.5);}},
-    ()=>{nsFree(A.g);nsFree(B.g);if(G2)nsFree(G2);darkTarget=0;vigTarget=0;if(lg)lg({ev:'end',T:tt});},{mats,geos,whCast:1});}
+    ()=>{nsFree(A.g);nsFree(B.g);nsFree(riv);if(G2)nsFree(G2);SDP.n=Math.max(0,SDP.n-1);if(SDP.wh){if(SDP.wh[0]===wA)SDP.wh[0]=null;if(SDP.wh[1]===wB)SDP.wh[1]=null;}darkTarget=0;vigTarget=0;if(lg)lg({ev:'end',T:tt});},{mats,geos,whCast:1});}
 
 /* ---- hooks ---- */
 Object.assign(NSP,{bloodeye:(t,s,l,P,o)=>castBloodEye(t,l,P,o),moonfall:(t,s,l,P,o)=>castMoonfall(t,l,P,o),constellation:(t,s,l,P,o)=>castConstellation(t,l,P,o),wormhole:(t,s,l,P,o)=>castWormhole(t,l,P,o)});
@@ -14902,6 +14981,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Wormhole, redrawn',d:'4 Nov',v:'v479',li:[
+    'Wormhole (Secret) looks new. Each mouth is now a window into folded space: a tunnel of stars streaming away behind a black horizon, with the other mouth\u2019s light glowing at its far end, ringed by a turning disk of light that burns white at its rim.',
+    'The ground twists round each mouth (the far one the other way), shards of rock spiral down into the first and are flung out of the far one, a vortex of light streaks falls into one and pours out of the other, and a faint river of starlight runs between them.',
+    'The mouths tear open as a slit that widens, spin up and burn brighter just before they collapse, and implode in a ring of light. Each foe torn through is wrung down into the mouth in a spiral of light.',
+    'Only the looks changed: every number, hit and timing is as it was, and the Calm space setting softens the twisting ground like the other space-bending scrolls. Its 6 preview clips are re-recorded.']},
   {t:'Previews for the Mythic, Ancient and Secret masteries',d:'4 Nov',v:'v475',li:[
     'The 23 Mythic, Ancient and Secret scrolls have recorded previews now, like every other scroll: no mastery and Masteries 1 to 5, 138 clips (for now in developer mode, like their masteries). Before, hovering one of their masteries started the slow live preview.',
     'Each clip is set up for what its mastery says, with the camera following the action: worn-down foes for the masteries that finish foes off, an Ogre for the ones about bosses, archer towers for the ones that speed towers up, foes further back for the ones that reach down the road, and a board where two roads meet for Wormhole\u2019s Hungry Mouth.',
