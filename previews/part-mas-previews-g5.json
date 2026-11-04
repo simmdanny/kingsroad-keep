@@ -254,5 +254,43 @@
    "twice": 1,
    "end": 2
   }
+ },
+ "bloodcurse-1": {
+  "k": "bloodcurse",
+  "L": 1,
+  "len": 15.53,
+  "seed": 1,
+  "bytes": 6185423,
+  "note": "The opening blast reaches 5 tiles.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "blast": 1,
+   "erupt": 139,
+   "final": 1
+  }
+ },
+ "bloodcurse-0": {
+  "k": "bloodcurse",
+  "L": 0,
+  "len": 15.53,
+  "seed": 1,
+  "bytes": 6072480,
+  "note": ""
+ },
+ "bloodcurse-2": {
+  "k": "bloodcurse",
+  "L": 2,
+  "len": 15.53,
+  "seed": 1,
+  "bytes": 6398141,
+  "note": "Every eruption strikes harder, its columns taller and hotter.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "blast": 1,
+   "erupt": 139,
+   "final": 1
+  }
  }
 }
