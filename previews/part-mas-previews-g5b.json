@@ -85,6 +85,14 @@
    "last": 1
   }
  },
+ "moonfall-0": {
+  "k": "moonfall",
+  "L": 0,
+  "len": 11.1,
+  "seed": 1,
+  "bytes": 725269,
+  "note": ""
+ },
  "moonfall-1": {
   "k": "moonfall",
   "L": 1,
@@ -96,6 +104,68 @@
    "cast": 1,
    "impact": 1,
    "shard": 16,
+   "end": 1
+  }
+ },
+ "moonfall-2": {
+  "k": "moonfall",
+  "L": 2,
+  "len": 12.1,
+  "seed": 1,
+  "bytes": 851813,
+  "note": "The crater of molten blood spreads wider and burns longer; foes behind walk into it.",
+  "ev": {
+   "cast": 1,
+   "impact": 1,
+   "shard": 16,
+   "end": 1
+  }
+ },
+ "moonfall-3": {
+  "k": "moonfall",
+  "L": 3,
+  "len": 12.2,
+  "seed": 1,
+  "bytes": 839647,
+  "note": "The moon’s 16 shards are thrown at the foes round the crater.",
+  "ev": {
+   "cast": 1,
+   "aim": 1,
+   "impact": 1,
+   "shard": 16,
+   "end": 1
+  }
+ },
+ "moonfall-4": {
+  "k": "moonfall",
+  "L": 4,
+  "len": 12.1,
+  "seed": 1,
+  "bytes": 802873,
+  "note": "The pack walks on: under the falling moon’s shadow it slows.",
+  "ev": {
+   "cast": 1,
+   "aim": 1,
+   "impact": 1,
+   "shard": 16,
+   "slow": 1,
+   "end": 1
+  }
+ },
+ "moonfall-5": {
+  "k": "moonfall",
+  "L": 5,
+  "len": 12.33,
+  "seed": 1,
+  "bytes": 808300,
+  "note": "Moonbreaker: a wave of blood rolls out to 10.6 tiles and strikes the foes further back.",
+  "ev": {
+   "cast": 1,
+   "aim": 1,
+   "impact": 1,
+   "wave": 9,
+   "shard": 16,
+   "slow": 1,
    "end": 1
   }
  }
