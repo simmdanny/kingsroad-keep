@@ -117,10 +117,10 @@ try{
    clean();let inv=null;for(let i=0;i<40&&!inv;i++){spawnFormation({form:'shield',elite:true,hpMul:1},60);inv=enemies.find(e=>e.role==='front'&&e.invis);if(!inv)clean();}
    if(inv){let solid=0;inv.b.traverse(o=>{if(o.isMesh&&o.visible&&!(o.material.userData&&o.material.userData.nmxGhost))solid++;});ok('Invisible: a formation’s tower shield is cloaked with its bearer',solid===0,solid+' solid parts');}
    else ok('Invisible: a formation’s tower shield is cloaked with its bearer (no invisible bearer rolled in 40 tries)',true,'skipped');
-   clean();const e=foe('soldier',['shielded','invisible'],60);let lines=0;e.b.traverse(o=>{if(o.isLineSegments&&o.visible)lines++;});
+   clean();const e=foe('soldier',['shielded','invisible'],60);/* the bubble's own parts (lines on the old bubble; one hex-shader shell since v484) */const bubN=()=>{let n=0;if(e.bubble&&e.bubble.visible)e.bubble.traverse(o=>{if((o.isMesh||o.isLineSegments)&&o.visible)n++;});return n;};let lines=bubN();
    ok('the marker dims when Invisible is the second modifier, and the bubble’s lines hide too',e.aura2&&e.aura2.material.opacity===.35&&lines===0,'ring '+(e.aura2&&e.aura2.material.opacity)+', lines '+lines);
-   e.revealT=1;statusTick(e,.01);let back=0,gl=0;e.b.traverse(o=>{if(o.isLineSegments&&o.visible)back++;if(o.isMesh&&o.material.userData&&o.material.userData.nmxGhost)gl++;});
-   ok('revealed, every part is solid again and the hidden lines come back',!e.ghostOn&&back>0&&gl===0,back+' lines, '+gl+' cloaked');
+   e.revealT=1;statusTick(e,.01);let back=bubN(),gl=0;e.b.traverse(o=>{if(o.isMesh&&o.material.userData&&o.material.userData.nmxGhost)gl++;});
+   ok('revealed, every part is solid again and the hidden bubble comes back',!e.ghostOn&&back>0&&gl===0,back+' bubble parts, '+gl+' cloaked');
    e.revealT=0;statusTick(e,.01);ok('and it cloaks again when the reveal ends',e.ghostOn);clean();
    /* Old Tobin, the melee hero, cannot see it */
    meta.owned.tobin=true;meta.equipped='tobin';despawnHero();let spot=null;for(let r=0;r<H&&!spot;r++)for(let c=0;c<W&&!spot;c++){if(heroTileOk('tobin',c,r)){const q=tw(c,r);for(let d=0;d<ROUTES[0].len;d+=.2){const p=posAt(d,ROUTES[0]);if((p[0]-q.x)**2+(p[1]-q.z)**2<.36){spot={c,r,d};break;}}}}
