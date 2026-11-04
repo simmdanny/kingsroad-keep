@@ -5,7 +5,7 @@
    200, the shatter 1200), and each foe's hold and slow are read the frame the frost reaches it (the cast sets them after its hurt). The
    frost reaches a foe at the same distance the wave later does, so a foe held "until the wave" is held from its frost hit to its shatter
    hit plus 0.05s. EWM.dbg logs the masteries' events. Puts the account back afterwards. */
-const out=[],ok=(n,c,d)=>out.push([n,!!c,d===undefined?'':String(d)]);const m0=JSON.stringify(meta),r0=lsGet(KR),H0=hurt,S0=scene.add,F0=nsFreezeFoe;
+const out=[],ok=(n,c,d)=>out.push([n,!!c,d===undefined?'':String(d)]);const m0=JSON.stringify(meta),r0=lsGet(KR),H0=hurt,S0=scene.add,F0=myWinterFreeze;
 let errs=0;const ce=console.error;console.error=function(){errs++;return ce.apply(console,arguments);};
 const run=s=>{for(let i=0;i<Math.round(s/.05);i++){heroU&&(heroU.cd=1e9);update(.05);updFx(.05);}};
 function go(){lsSet(KR,null);meta.arena='plains';meta.dev=true;meta.scrAuto=false;meta.spaceCalm=false;meta.mapIntro=0;state='menu';clearWorld();buildMap(777);MAP.fresh=true;newGame(1);auto=0;lives=1e9;
@@ -26,7 +26,7 @@ const stage=()=>{const G=go(),L=[];for(let i=0;i<9;i++)L.push(foe(G.R,G.d0-2+i*.
 function trial(L,o){o=o||{};const S=stage();EWM.dbg=[];setL(L);const log=[],added=[],H=new Map(),cine=[];let frontF=null,filt='',vis=[],ice=[];
   hurt=function(e,amt,kind,oo){log.push({e,amt,smx:!!(oo&&oo.smx),t:time});return H0.apply(this,arguments);};
   scene.add=function(...a){added.push(...a);return S0.apply(this,a);};
-  nsFreezeFoe=function(e,hold,list){const r=F0.apply(this,arguments);if(list.length)ice.push({e,z:list[list.length-1]});return r;};
+  myWinterFreeze=function(e,hold,list){const r=F0.apply(this,arguments);if(list.length)ice.push({e,z:list[list.length-1]});return r;};
   const t0=time;try{
     if(o.plain)NSP.eternalwinter(heroU,heroStats(),S.F.slice(),100,{src:heroU,el:'ice',spell:'eternalwinter'});else castScrollNow('eternalwinter',heroU,heroStats(),S.F.slice(),100,oF());
     cine.push(cineLock);frontF=MY_FROST.material.uniforms.uF.value;let late=null;
@@ -35,7 +35,7 @@ function trial(L,o){o=o||{};const S=stage();EWM.dbg=[];setL(L);const log=[],adde
       if(o.late&&!late&&tt>=o.late){late=foe(S.G.R,S.G.d0+.4,-.3);late.boss=true;S.late=late;}
       if(Math.abs(tt-4)<.026){filt=$('#myAurora')?$('#myAurora').style.filter:'';}
       if(Math.abs(tt-o.visAt[0])<.026||Math.abs(tt-o.visAt[1])<.026)vis.push(MY_FROST.visible);}
-  }finally{hurt=H0;scene.add=S0;nsFreezeFoe=F0;setL(0);}
+  }finally{hurt=H0;scene.add=S0;myWinterFreeze=F0;setL(0);}
   const hits=(e,amt,smx)=>log.filter(h=>h.e===e&&near(h.amt,amt)&&h.smx===!!smx),tOf=(e,amt)=>{const h=log.find(h=>h.e===e&&near(h.amt,amt)&&!h.smx);return h?h.t-t0:null;};
   return{S,log,H,hits,tOf,cine:cine[0],frontF,filt,vis,ice,left:left(added),leftD:leftL(added).slice(0,6).map(desc).join(' '),floorOff:!MY_FROST.visible,aurOff:!$('#myAurora')||$('#myAurora').style.display==='none',filtEnd:$('#myAurora')?$('#myAurora').style.filter:''};}
 /* a foe held until the wave: from its frost hit to its shatter hit, plus 0.05s (within a frame) */
@@ -55,13 +55,13 @@ try{
     ok('Mastery 0: foes are held until the wave reaches them, slowed 1.5s after; the boss is held 1.2s',S.L.every(e=>untilWave(T,e,1200)&&near(T.H.get(e).slow,T.H.get(e).hold+1.5,1e-9))&&near(T.H.get(S.B).hold,1.2)&&near(T.H.get(S.B).slow,2.7),S.L.map(e=>T.H.get(e)&&T.H.get(e).hold.toFixed(2)).join(','));
     ok('Mastery 0: the burst at 4.5s (the first shatter hit within 0.3s of it), the cinematic lock 5.8s, the floor gone at 6.8s, no bright cracks, no mastery events',
       (()=>{const ts=Math.min(...S.F.map(e=>T.tOf(e,1200)));return ts>=4.5&&ts<4.8;})()&&near(T.cine,5.8)&&T.vis.join()==='true,false'&&T.frontF===0&&T.filt===''&&!EWM.dbg.length,T.cine+' '+T.vis.join());
-    ok('Mastery 0: the ice on a frozen foe is the plain block',T.ice.length===S.F.length&&T.ice.every(q=>q.z.g.children.length===5&&!q.z.n));
+    ok('Mastery 0: the ice on a frozen foe is the plain shell (one gem and five crystals at its feet)',T.ice.length===S.F.length&&T.ice.every(q=>q.z.g.children.length===6&&!q.z.n));
     ok('Mastery 0: nothing is left behind (the floor and the aurora put away)',T.left===0&&T.floorOff&&T.aurOff&&T.filtEnd==='',T.left+' '+T.leftD);}
   /* ---- M1 Biting Frost ---- */
   let M1=null;
   {const T=M1=trial(1,{visAt:[6.7,6.95]}),{S}=T;
     ok('M1: the frost strikes 320% (200% before); the shatter is still 1200%',S.F.every(e=>T.hits(e,320).length===1&&T.hits(e,1200).length===1&&!T.hits(e,200).length)&&T.log.length===2*S.F.length);
-    ok('M1: the ice is larger (x1.18) with longer spikes (x1.7)',T.ice.length===S.F.length&&T.ice.every(q=>{const e=q.e,h=(e.hitY||.4)/(e.g.scale.y||1)*1.3,b=q.z.g.children[0];return near(b.scale.x,h*.95*1.18,1e-6)&&q.z.g.children.slice(1,5).every(m=>m.scale.y>h*.25*1.18*1.7*.99);}));
+    ok('M1: the ice is larger (x1.18) with longer spikes (x1.7)',T.ice.length===S.F.length&&T.ice.every(q=>{const e=q.e,h=(e.hitY||.4)/(e.g.scale.y||1)*1.3,b=q.z.g.children[0];return near(b.scale.x,h*.44*1.18,1e-6)&&q.z.g.children.slice(1,6).every(m=>m.scale.y>h*.2*1.18*1.7*.99);}));
     ok('M1: the cracks behind the frost\'s front light up (the floor\'s uF)',T.frontF===1);
     ok('M1: no other change (holds, slows, timing, boss 1.2s)',S.L.every(e=>untilWave(T,e,1200)&&near(T.H.get(e).slow,T.H.get(e).hold+1.5,1e-9))&&near(T.H.get(S.B).hold,1.2)&&near(T.cine,5.8)&&!ev('aim').length);
     ok('M1: nothing is left behind',T.left===0&&T.floorOff&&T.aurOff,T.left+' '+T.leftD);}
@@ -90,7 +90,7 @@ try{
     const hw=hb?T.tOf(S.B,1200)-hb.tf+.05:0;
     ok('M4: a boss stays frozen until the wave reaches it too, up to 2.4s (1.2 before)',hb&&near(hb.hold,Math.min(2.4,Math.max(1.2,hw)),.051)&&hb.hold>2.3&&near(hb.slow,hb.hold+2.5,1e-9),hb&&hb.hold.toFixed(2)+' wave '+hw.toFixed(2));
     ok('M4: never less than before: a boss the frost reaches late (the wave due sooner) is still held 1.2s',hl&&near(hl.hold,1.2)&&T.tOf(S.late,1200)!=null&&T.tOf(S.late,1200)-hl.tf<1.1,hl&&hl.hold.toFixed(2));
-    ok('M4: in thicker ice (a second shell, crystals at its foot; more splinters when it thaws); the other foes\' ice as at Mastery 1',(()=>{const q=T.ice.find(q=>q.e===S.B),o=T.ice.filter(q=>!q.e.boss);return q&&q.z.g.children.length===13&&q.z.n===9&&o.every(q=>q.z.g.children.length===5&&q.z.n===5);})());
+    ok('M4: in thicker ice (a second shell, crystals at its foot; more splinters when it thaws); the other foes\' ice as at Mastery 1',(()=>{const q=T.ice.find(q=>q.e===S.B),o=T.ice.filter(q=>!q.e.boss);return q&&q.z.g.children.length===14&&q.z.n===9&&o.every(q=>q.z.g.children.length===6&&q.z.n===5);})());
     ok('M4: the other foes are held as before (until the wave)',S.L.every(e=>untilWave(T,e,1200)));
     ok('M4: nothing is left behind',T.left===0&&T.floorOff,T.left+' '+T.leftD);}
   {const T=trial(3,{visAt:[7.3,7.55]});ok('M4 needs Mastery 4 (the boss held 1.2s at Mastery 3)',near(T.H.get(T.S.B).hold,1.2));}
@@ -113,5 +113,5 @@ try{
     ok('the real cast path at every mastery (with deaths) runs without errors and tidies up',errs===e0&&!MY_FROST.visible,(errs-e0)+' errors');}
   ok('no console errors',errs===0,errs);
 }catch(e){ok('ran without throwing',false,e.message+' '+(e.stack||'').split('\n')[1]);}
-finally{console.error=ce;hurt=H0;scene.add=S0;nsFreezeFoe=F0;EWM.dbg=null;try{for(const e of enemies.slice())removeEnemy(e);enemies=[];state='menu';paused=false;speed=1;clearWorld();meta=migrateMeta(JSON.parse(m0));saveMeta();ART_V++;AS.k=null;lsSet(KR,r0);buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;showOverlay('menu');try{goTab('battle');}catch(e){}}catch(e){}}
+finally{console.error=ce;hurt=H0;scene.add=S0;myWinterFreeze=F0;EWM.dbg=null;try{for(const e of enemies.slice())removeEnemy(e);enemies=[];state='menu';paused=false;speed=1;clearWorld();meta=migrateMeta(JSON.parse(m0));saveMeta();ART_V++;AS.k=null;lsSet(KR,r0);buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;showOverlay('menu');try{goTab('battle');}catch(e){}}catch(e){}}
 return JSON.stringify(out);})()

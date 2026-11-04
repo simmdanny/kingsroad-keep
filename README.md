@@ -59,6 +59,9 @@ older mythics (Vael'Thoruun, Eclipse): one / pack of 8 / column of 24 at P 100.
   swells out of them (`formed` burst), dives (cubic ease-in) with an `nsTrail` comet tail, and lands at `LAND` = 1.6 (unchanged, so damage
   timing is the same) with icy cracks and `mkNova()`: two rings of spikes that skip road tiles and foes and stand until the shatter. The frost floor (`myFrostFloor`, one shader plane over the board) spreads from it (`uR`);
   each foe it reaches is frozen until the shatter wave (`uW`, 17 u/s) reaches it, then shatters for 1200%. The CSS aurora is `#myAurora`.
+  Since v475 the frost is a thin rime the board shows through (value-noise coverage, a ragged front, glints, dimmed by `uL` with the scene's
+  darkness), frozen foes wear `myWinterFreeze` (a clear gem and five foot crystals; Glacial Rift keeps `nsFreezeFoe`'s block), and
+  `myHeartSpot` keeps the Heart off the camera's side of the pack.
 * **Lance of the Seraph** (light, cd 70; about 4500 / 25400 / 14000-16000). `mySeraph` is a real 3D figure (since v286): it turns to the
   camera once when cast (yaw, leaning back by half the camera's elevation) and then keeps that place, so turning the camera shows it
   from the side. Each of its six wings is a group at the shoulder (`wingG`) that sweeps back, opens and beats; its feathers hang from a
