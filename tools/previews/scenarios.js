@@ -309,7 +309,8 @@ const S = {
     5: { cap: 16, trail: TRAIL, note: 'The final strike hits 1260% within 3.2 tiles; the crater stays live longer.' } },
   abyss: {
     /* the sea stands about 20s: windows of it */
-    base: { zmin: .78, zmax: 1.05, dbg: 'ABM', hp: 200, from: 1.2, len: 14, cap: 13.5, sky: 3, probe: "ABM.dbg.some(d=>d.ev==='bite')" },
+    /* the sea and its leviathans fill the air over the field: a still, wide camera from high up keeps the hero, the pack and the sea's edge */
+    base: { fixedCam: true, track: false, zoom: 2.1, fw: .55, cz: .3, dbg: 'ABM', hp: 200, from: 1.2, len: 14, cap: 13.5, probe: "ABM.dbg.some(d=>d.ev==='bite')" },
     0: { probe: null, note: 'The sea rises over the field and its leviathans hunt (the first 13 seconds of the cast).' },
     1: { note: 'Foes drown faster: streams of bubbles rise off every one.' },
     2: { spd: .5, note: 'The pack walks on: the sea slows it 70%.' },
@@ -349,7 +350,8 @@ const S = {
     4: { spd: .6, towers: [{ t: 'archer', at: .3 }, { t: 'archer', at: -1.2, side: -1 }], note: 'Foes move 50% slower, and the archer towers attack 35% faster.' },
     5: { from: null, len: null, cap: 24, probe: "NVM.dbg.some(d=>d.ev==='great')", focus: { ev: 'fin', before: 2, after: 4 }, note: 'The last fall: the great stars land for real (the clip joins it there).' } },
   tempest: {
-    base: { dbg: 'TPM', hp: 150, from: 1.2, len: 14, cap: 13.5, sky: 3.5, zmax: 1, probe: "TPM.dbg.some(d=>d.ev==='volley')" },
+    /* the hero is lifted into the eye and the wall towers round the pack: a still, wide camera */
+    base: { fixedCam: true, track: false, zoom: 1.4, fw: .5, cz: .1, dbg: 'TPM', hp: 150, from: 1.2, len: 14, cap: 13.5, probe: "TPM.dbg.some(d=>d.ev==='volley')" },
     0: { probe: null, note: 'The hurricane forms round the hero, its eye wall rising (the first 13 seconds of the cast).' },
     1: { probe: "TPM.dbg.some(d=>d.ev==='crown')", note: 'The crown bolt strikes every foe on the field and leaves them Charged.' },
     2: { pack: BIG, note: 'Every volley locks onto one more foe.' },

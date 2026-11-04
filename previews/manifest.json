@@ -2398,7 +2398,7 @@
    "len": 7.4,
    "seed": 1,
    "bytes": 2045491,
-   "note": "The folding beams set the foes ringing like bells: the lance\u2019s power runs through them into the foes beside them.",
+   "note": "The folding beams set the foes ringing like bells: the lance’s power runs through them into the foes beside them.",
    "ev": {
     "cast": 1,
     "lock": 1,
@@ -2625,7 +2625,7 @@
    "len": 7.17,
    "seed": 1,
    "bytes": 2948603,
-   "note": "Seven standing stones rise in a ring at the rune\u2019s edge: the foes walking through are fenced in until the sky falls.",
+   "note": "Seven standing stones rise in a ring at the rune’s edge: the foes walking through are fenced in until the sky falls.",
    "ev": {
     "cast": 1,
     "stone": 7,
@@ -2856,7 +2856,7 @@
    "len": 6.8,
    "seed": 1,
    "bytes": 1683339,
-   "note": "A Frost Spire\u2019s ice shatters the fractured foes.",
+   "note": "A Frost Spire’s ice shatters the fractured foes.",
    "ev": {
     "comet": 1,
     "eye": 12,
@@ -3063,7 +3063,7 @@
    "len": 12.37,
    "seed": 1,
    "bytes": 1749050,
-   "note": "The blast at the blade\u2019s tip strikes harder and wider.",
+   "note": "The blast at the blade’s tip strikes harder and wider.",
    "ev": {
     "cast": 1,
     "blow": 1,
@@ -3235,7 +3235,7 @@
    "len": 12.03,
    "seed": 1,
    "bytes": 3240679,
-   "note": "Each pass of the great hand takes 2% of a foe\u2019s max health.",
+   "note": "Each pass of the great hand takes 2% of a foe’s max health.",
    "ev": {
     "opts": 1,
     "cast": 1,
@@ -3622,7 +3622,7 @@
    "L": 1,
    "len": 12.83,
    "seed": 1,
-   "bytes": 5076098,
+   "bytes": 3844721,
    "note": "The crown bolt strikes every foe on the field and leaves them Charged.",
    "ev": {
     "opts": 1,
@@ -3637,7 +3637,7 @@
    "L": 0,
    "len": 12.83,
    "seed": 1,
-   "bytes": 4894397,
+   "bytes": 3845862,
    "note": "The hurricane forms round the hero, its eye wall rising (the first 13 seconds of the cast)."
   },
   "tempest-2": {
@@ -3645,7 +3645,7 @@
    "L": 2,
    "len": 12.83,
    "seed": 1,
-   "bytes": 5480728,
+   "bytes": 4213099,
    "note": "Every volley locks onto one more foe.",
    "ev": {
     "opts": 1,
@@ -3660,12 +3660,12 @@
    "L": 5,
    "len": 5.5,
    "seed": 1,
-   "bytes": 2768825,
-   "note": "The last thunder, and the hero\u2019s fall rolls out over the whole field (the clip joins it there).",
+   "bytes": 2167086,
+   "note": "The last thunder, and the hero’s fall rolls out over the whole field (the clip joins it there).",
    "ev": {
     "opts": 1,
     "cast": 1,
-    "wall": 68,
+    "wall": 63,
     "crown": 9,
     "volley": 13,
     "leap": 58,
@@ -3678,7 +3678,7 @@
    "L": 3,
    "len": 12.83,
    "seed": 1,
-   "bytes": 5361073,
+   "bytes": 4323444,
    "note": "Each precise strike leaps on further and harder.",
    "ev": {
     "opts": 1,
@@ -3693,13 +3693,13 @@
    "L": 4,
    "len": 12.83,
    "seed": 1,
-   "bytes": 5382458,
+   "bytes": 4555371,
    "note": "The lightning racing round the eye wall strikes the foes it passes.",
    "ev": {
     "opts": 1,
     "cast": 1,
-    "wall": 12,
     "crown": 6,
+    "wall": 20,
     "volley": 9,
     "leap": 31
    }
@@ -4305,7 +4305,7 @@
    "len": 11.1,
    "seed": 1,
    "bytes": 764932,
-   "note": "The foes are spread out: the fuller moon\u2019s impact reaches 4.6 tiles.",
+   "note": "The foes are spread out: the fuller moon’s impact reaches 4.6 tiles.",
    "ev": {
     "cast": 1,
     "impact": 1,
@@ -4341,7 +4341,7 @@
    "len": 12.2,
    "seed": 1,
    "bytes": 839647,
-   "note": "The moon\u2019s 16 shards are thrown at the foes round the crater.",
+   "note": "The moon’s 16 shards are thrown at the foes round the crater.",
    "ev": {
     "cast": 1,
     "aim": 1,
@@ -4356,7 +4356,7 @@
    "len": 12.1,
    "seed": 1,
    "bytes": 802873,
-   "note": "The pack walks on: under the falling moon\u2019s shadow it slows.",
+   "note": "The pack walks on: under the falling moon’s shadow it slows.",
    "ev": {
     "cast": 1,
     "aim": 1,
@@ -4551,7 +4551,7 @@
    "L": 1,
    "len": 12.83,
    "seed": 1,
-   "bytes": 3107130,
+   "bytes": 1930896,
    "note": "Foes drown faster: streams of bubbles rise off every one.",
    "ev": {
     "opts": 1,
@@ -4565,7 +4565,7 @@
    "L": 0,
    "len": 12.83,
    "seed": 1,
-   "bytes": 3099637,
+   "bytes": 1831438,
    "note": "The sea rises over the field and its leviathans hunt (the first 13 seconds of the cast)."
   },
   "abyss-3": {
@@ -4573,7 +4573,7 @@
    "L": 3,
    "len": 12.83,
    "seed": 1,
-   "bytes": 3205364,
+   "bytes": 1985773,
    "note": "The leviathans lunge more often, bite harder and reach further.",
    "ev": {
     "opts": 1,
@@ -4587,7 +4587,7 @@
    "L": 2,
    "len": 12.83,
    "seed": 1,
-   "bytes": 2984105,
+   "bytes": 1963521,
    "note": "The pack walks on: the sea slows it 70%.",
    "ev": {
     "opts": 1,
@@ -4601,7 +4601,7 @@
    "L": 5,
    "len": 9.5,
    "seed": 1,
-   "bytes": 3730332,
+   "bytes": 2041650,
    "note": "Halfway through the eldest leviathan bursts up out of the deep and joins the hunt (the clip joins it there).",
    "ev": {
     "opts": 1,
@@ -4618,7 +4618,7 @@
    "L": 4,
    "len": 12.83,
    "seed": 1,
-   "bytes": 3850917,
+   "bytes": 2145950,
    "note": "A foe a leviathan bites drowns 50% faster, a column of bubbles rising from it.",
    "ev": {
     "opts": 1,
