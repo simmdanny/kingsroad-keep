@@ -2522,3 +2522,39 @@ Simon: "Why are the previews still not how they should be?", then "Yes, record t
 - The recording was split across six cloud sessions (four browsers each) and merged here; `previews/manifest.json` lists all 432 clips (294 before).
 - Known limits: Gaia's The Keep Drinks Deep heals the keep, which is off camera. Curse of the Blood Moon's Blood Price needs other great scrolls sealed on the hero, which the stage does not set up.
 - Tests: `tests/mpv-test.js` (in run-all as 'mpv'): the 23 scrolls (8 Mythic, 7 Ancient, 8 Secret); a clip for every level and every file present; lengths 3-17 s; a caption on every mastery clip; every mastery clip logged its mastery at work, and no clip without one did; the changelog.
+
+## Citadel of Orders: a domain worth the name (v478)
+
+Simon: "make the visuals for the citadel of orders 10x better". A looks-only rebuild: every number, hit, slow, reach, timing and mastery mechanic is as it was (`tests/cim-test.js` unchanged, 38/38; `tests/cvx-test.js` checks them again at Mastery 0 and 5).
+
+| Part | Before | Now |
+|---|---|---|
+| The domain | a flat yellow tint over the board (the shared light at 1.3 over 18 tiles, a glow and a haze disc) | a clock face of gold lines on the ground: the reach as a double ring with two lights running round it, minute and hour ticks, the hours I-XII turning slowly, two gear rings turning against each other, a ring of beads, two clock hands (the minute hand speeds up with the cuts) and the Monarch's seal; a faint dome of light over the reach; motes rising and sand drifting down |
+| The pillars | thin additive beams streaking off the screen | golden hexagonal crystals with a pointed tip (the lower third of the old height solid, a fading beam above): facet edges, a white-hot core, two turning rune bands, light pulsing up, a clock ring round each, a lit foot on the sigil; see-through towards the top; they rise into light at the end |
+| The Monarch | nothing | a golden crown and a halo of clock hands over the hero, a soft column of light round him |
+| The cuts | rainbow smears of the warp | a crisp white-hot line that draws itself, opens into a wound of void and stars (three parallax layers and a nebula, gold walls) with a light trail, then seals with a flash and breaks into tumbling shards and sparks; its light on the ground under it |
+| Slowed foes | faceted blobs | a ticking clock ring at each foe's feet, golden sand falling off them, afterimages as soft echoes cut in time slices, a golden rewind streak where a foe is thrown back |
+| The final fracture | a flat dark wedge (the warp) | a jagged three-branched crack of void and stars on the ground with molten, lifted edges and shards rising from its rims; it snaps shut with a flash, a wall of light and a ring on the ground running out, the shards thrown out |
+| The warp (SDP) | strong, with colour split and blocky jitter | for the Citadel's own entries only: no colour split, no jitter, no tear along a cut, a twelfth to a fifth of the bend |
+
+| # | Mastery | Its look |
+|---|---|---|
+| 1 | Wider Dominion | the sigil, dome and motes widen with the reach; the pillars a fifth taller and brighter |
+| 2 | Keener Orders | wounds 1.3 times wider, more shards; the seam shown as a blade of white light leaning back over each wound (it was a vertical plane, edge-on from above when a cut flew sideways) |
+| 3 | Time Crawls | twice the echoes (28, up to 8 a beat), the sand twice as thick |
+| 4 | Edict | a mark closes on the foe each order is aimed at; larger ripples, longer rewind streaks |
+| 5 | The Final Order | a longer fracture (13.2 tiles), wider branches, more shards, a larger shockwave, brighter rising columns |
+
+How it works:
+- `cvxLooks` builds one cast's pieces in the cast's group; `castCitadel` drives it every frame and at each event (a pillar rising, the opening strike, a cut given and sealed, a throw, the final order, the snap). The base cast's numbers and timings are untouched; it only calls into the looks.
+- The looks never draw on the game's random (`rnd`; `emit`, `sprayP` and `flash` use it): their own sparks, shards and motes use `Math.random`. The old pillar motes (`emit`) and pillar flashes (`flash`) are replaced by them.
+- Cost: pillars, their rings, foe rings, shards and streaks are instanced (one draw call each); motes and sparks are one point cloud each. The cvx-test frame draws 23 more calls than the board alone. Everything is made inside the cast (artifact-set colours apply) and disposed with it; two textures are cached for good (the hours strip, 4096x128, and the echoes' slices, 4x128).
+- Light: the frame at zoom 1 is about 6-8% lighter than before the cast (the old look: 24%); close up (zoom 0.5) under 25% (the old look in the preview framing: 55%). No new piece covers the road or the foes for long: the pillar tops are see-through and the snap's flash lasts a fifth of a second.
+- Shaders square with `x*x`, never `pow(x,2.)` (undefined for a negative x).
+
+Fixed along the way:
+- A Citadel cast by a hero wearing three light artifacts (Pale Verdict) made the shared space pass inside the set's colour context: its whole picture turned grey for the rest of the session, and Spatial Deflection's patch of the pass failed ("dfm: warp shader not found"). The Citadel now makes it with `asOffRun`. (Other space-bending light scrolls still call `sdpInit` directly; see the report.)
+
+Previews: the six clips (`previews/citadel-0` to `citadel-5`) are recorded again with a still, wide camera (`fixedCam`, zoom 2.1), scenario, probe, captions and lengths as before.
+
+Tests: `tests/cvx-test.js` (in run-all as 'cvx'): the sigil, pillars, dome, crown and halo, foe rings, a wound in flight, the fracture and the shockwave each change the picture from the game camera; the looks follow the cast's events; the frame is not washed out at zoom 1 and 0.5 and the snap is not a white-out; draw calls; nothing left behind (scene, geometries, textures); the numbers at Mastery 0 and 5; the real `fireScroll` path; the light-set space pass.
