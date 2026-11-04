@@ -14908,6 +14908,7 @@ const CLOG=[
     'The Primordial Tempest looks like a real hurricane now. Spiral arms of storm cloud wheel over the whole board round a clear eye that always frames the hero, the wall of the eye lit bright by the lightning inside it.',
     'Every bolt lights the cloud above it from within, sheet lightning lights the whole storm and lightning crawls along its arms. A sheet of wind and rain swirls into the eye, and every bolt that lands leaves a flare of light and a glowing scorch.',
     'The hero, lifted into the eye, burns as a core of light. The storm gathers from the edge of the board, spins up at the crown bolt, winds tight and bright before the last thunder and blows apart at the fall. With Mastery 2 and the full hurricane its arms reach across the whole board.',
+    'Its lightning comes down from translucent storm clouds, like the Stormcaller\u2019s but a little cloudier, wheeling round the eye with the storm; each cloud glows as its bolt charges and flashes from inside as it strikes.',
     'Looks only: the Tempest strikes exactly as before.']},
   {t:'Previews for the Mythic, Ancient and Secret masteries',d:'4 Nov',v:'v475',li:[
     'The 23 Mythic, Ancient and Secret scrolls have recorded previews now, like every other scroll: no mastery and Masteries 1 to 5, 138 clips (for now in developer mode, like their masteries). Before, hovering one of their masteries started the slow live preview.',
@@ -20007,7 +20008,7 @@ function castTempest(t,PW,o,XO){const D=XO?Object.assign({},TPD,XO):TPD,lg=D.log
         else hurt(q,dm,'magic',o);}}}
   function fire(s){if(s.e.dead){/* its foe fell first: the bolt takes the nearest foe beside it that is not already marked */let best=null,bd=1.5*1.5;for(const q of enemies){if(q.dead||locked.has(q))continue;const d=(q.x-s.x)**2+(q.z-s.z)**2;if(d<bd){bd=d;best=q;}}
     if(best){locked.add(best);s.e=best;s.x=best.x;s.z=best.z;s.y=best.y+(best.hitY||.4)*.5;}}
-  const dead=s.e.dead,top=new THREE.Vector3(s.x+s.jx,7.5,s.z+s.jz),bot=new THREE.Vector3(s.x,dead?gy(s.x,s.z)+.02:s.y,s.z),busy=fx.length>230;
+  const dead=s.e.dead,og=TX.org(s,true),top=new THREE.Vector3(og.x,og.y,og.z),bot=new THREE.Vector3(s.x,dead?gy(s.x,s.z)+.02:s.y,s.z),busy=fx.length>230;
     vBolt(top,bot,{w:s.fin?D.finW:s.big?2.2:1.5,charge:.012,life:s.fin?.36:.3,branches:busy?1:s.fin?2:3,depth:busy?4:5,disp:.2,onStrike:()=>hit(s)});}
   function stepStrikes(dt){for(let i=STR.length-1;i>=0;i--){const s=STR[i],e=s.e;s.t+=dt;
       if(!e.dead&&!s.done){s.x=e.x;s.z=e.z;s.y=e.y+(e.hitY||.4)*.5;}
@@ -20015,8 +20016,8 @@ function castTempest(t,PW,o,XO){const D=XO?Object.assign({},TPD,XO):TPD,lg=D.log
       if(!s.done){const k=Math.min(1,s.t/s.lock);
         if(s.r){const R=s.r;R.me.visible=true;R.me.position.set(s.x,g+.07,s.z);R.me.scale.setScalar((s.big?1.3:s.called?.85:1)*(2-1.2*SMS(k,0,1)));R.me.rotation.y+=dt*(2+5*k);R.m.opacity=Math.min(1,s.t/.12)*(.7+.3*Math.sin(Tm*40+i));
           R.be.visible=true;R.be.position.set(s.x,g,s.z);const bw=(s.big?1.3:s.called?.8:1)*(1.7-1.2*SMS(k,0,1));R.be.scale.set(bw,1,bw);R.bm.uniforms.uA.value=SMS(k,0,.35)*(.2+.22*k)*(.8+.2*Math.sin(Tm*50+i));}
-        if(s.ld){const q=s.ld,lk=SMS(k,.3,1);if(lk>0){q.l.visible=true;q.jt-=dt;if(q.jt<=0){q.jt=.045;const A=q.g.attributes.position,tx=s.x+s.jx,tz=s.z+s.jz;
-            for(let j=0;j<NLP;j++){const u=j/(NLP-1)*lk,jj=j&&j<NLP-1?.2*(1-u*.4):0;A.setXYZ(j,tx+(s.x-tx)*u+(rnd()-.5)*jj,7.5+(s.y-7.5)*u,tz+(s.z-tz)*u+(rnd()-.5)*jj);}A.needsUpdate=true;}}}
+        if(s.ld){const q=s.ld,lk=SMS(k,.3,1);if(lk>0){q.l.visible=true;q.jt-=dt;if(q.jt<=0){q.jt=.045;const A=q.g.attributes.position,og=TX.org(s),tx=og.x,tz=og.z,ty=og.y;
+            for(let j=0;j<NLP;j++){const u=j/(NLP-1)*lk,jj=j&&j<NLP-1?.2*(1-u*.4):0;A.setXYZ(j,tx+(s.x-tx)*u+(rnd()-.5)*jj,ty+(s.y-ty)*u,tz+(s.z-tz)*u+(rnd()-.5)*jj);}A.needsUpdate=true;}}}
         if(s.t>=s.lock){s.done=true;if(s.ld){s.ld.on=false;s.ld.l.visible=false;}fire(s);}}
       else{s.t2+=dt;if(s.r){const R=s.r,f=s.t2/.3;R.me.position.set(s.x,g+.07,s.z);R.me.scale.setScalar(.6+f*1.1);R.m.opacity=Math.max(0,1-f);R.be.scale.set(.5+f,1,.5+f);R.bm.uniforms.uA.value=Math.max(0,.9*(1-f*1.6));}
         if(s.t2>=.3){if(s.r){s.r.on=false;s.r.me.visible=false;s.r.be.visible=false;}if(!STR.some(z=>z!==s&&z.e===e))locked.delete(e);STR.splice(i,1);}}}}
@@ -20064,7 +20065,7 @@ function castTempest(t,PW,o,XO){const D=XO?Object.assign({},TPD,XO):TPD,lg=D.log
     ANC.fs.tempest=1-.25*SMS(T,1.5,3)*(1-SMS(T,END,END+.6));
     /* the crown bolt: it strikes the hero and lifts it, and the discharge rolls out over the whole field */
     if(!crowned&&T>=CROWN){crowned=true;const P=heroAt();if(typeof sfxBoom==='function')sfxBoom(.5,false);
-      vBolt(new THREE.Vector3(P.x+.4,8.5+.8*(D.lift-1.55),P.z-.3),new THREE.Vector3(P.x,P.y+.55,P.z),{w:4,charge:.1,life:.5,branches:7,disp:.22,onStrike:()=>{
+      vBolt(TX.crownOrg(P,new THREE.Vector3(P.x+.4,8.5+.8*(D.lift-1.55),P.z-.3)),new THREE.Vector3(P.x,P.y+.55,P.z),{w:4,charge:.1,life:.5,branches:7,disp:.22,onStrike:()=>{
         flashA=Math.max(flashA,.5*SPACE_K+.08);flashCol='#e8d8ff';camShake=Math.max(camShake,.32*SPACE_K+.08);flashL(1);sigHot=1.2;vImpact(hx,hz,2.4);waveR=0;waveK=D.crownK;waveC=1;waveHit.clear();
         TX.crown();tpRing(hx,G0+.1,hz,40,40/24,0xc8a0ff,true);tpRing(hx,G0+.11,hz,5,.5,0xffffff);for(let i=0;i<14;i++){const a=i/14*TAU+rnd()*.3,L2=SR*(.8+rnd()*.5);vBolt(new THREE.Vector3(hx,G0+.12,hz),new THREE.Vector3(hx+Math.cos(a)*L2,G0+.08,hz+Math.sin(a)*L2),{w:.8+rnd()*.5,charge:.015+rnd()*.03,life:.2+rnd()*.15,branches:2,depth:4,disp:.6});}
         alive().map(e=>({e,d:Math.hypot(e.x-hx,e.z-hz)})).sort((a,b)=>a.d-b.d).slice(0,8).forEach((q,i)=>later(.04*i,()=>{if(q.e.dead)return;const P2=heroAt();vBolt(new THREE.Vector3(P2.x,P2.y+.5,P2.z),new THREE.Vector3(q.e.x,q.e.y+(q.e.hitY||.4)*.5,q.e.z),{w:.9,charge:.03,life:.3,branches:2,depth:4,disp:.45});}));}});}
@@ -33001,7 +33002,7 @@ function tpxBuild(root,reg,regM,hx,G0,hz,ph,D,zT,zB){
         'float st=floor(uT*9.);float fl=step(.55,th(vec2(st,1.)));float an=atan(d.y,d.x);'+
         'float rdg=1.-abs(tn(vec2(r*2.2-uT*.6,an*3.+st*.7))*2.-1.);float cr=pow(rdg,14.)*smoothstep(.35,.75,k)*uCrawl*fl;c+=vec3(.9,.8,1.)*cr*1.6;'+
         'c=mix(c,vec3(1.,.97,1.),uWhite*.75);'+
-        'gl_FragColor=vec4(c,min(.7,k*uDen*.9)*uA*(1.-.35*uWhite));}'}));
+        'gl_FragColor=vec4(c,min(.6,k*uDen*.8)*uA*(1.-.35*uWhite));}'}));
   /* one plane, wider than the board, high over it; its cloud is all in the shader */
   const deck=new THREE.Mesh(reg(new THREE.PlaneGeometry(x1-x0+30,zB-zT+34).rotateX(-Math.PI/2)),deckM);deck.position.set((x0+x1)/2,DY,(zT+zB)/2);deck.renderOrder=46;deck.frustumCulled=false;root.add(deck);
   /* the wind and rain sheet: fast streaks swirling into the eye */
@@ -33021,6 +33022,27 @@ function tpxBuild(root,reg,regM,hx,G0,hz,ph,D,zT,zB){
   const core=new THREE.Sprite(coreM);core.renderOrder=62;root.add(core);
   const haloM=regM(new THREE.SpriteMaterial({map:softDiscTex(),color:0x8a50ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false}));
   const halo=new THREE.Sprite(haloM);halo.renderOrder=61;root.add(halo);
+  /* v477 (Simon: "make the lightnings strike from translucent clouds like in stormcaller but make it a tiny bit more cloudy"): translucent storm clouds
+     like the Stormcaller's (low-poly puffs, flat shaded, see-through, fading near the camera), a third more of them and a third more opaque, wheeling
+     round the eye with the spiral; every bolt that comes down leaves from the cloud above its target, which flashes from inside. Each cloud's puffs are
+     merged into one mesh (one draw a cloud); their layout comes from a seeded random of its own (the game's random is untouched). */
+  const CR=mulberry(4771),CLD=[],NC=(wide?22:16)+(hur?2:0),CY0=G0+6.1;
+  const CG=[0,1,2].map(i=>jitterGeo(new THREE.IcosahedronGeometry(1,i===2?0:1),.24).toNonIndexed());
+  const CCOL=[0x7c7894,0x8c88a6,0x6a6684,0x9c98b8,0x76728e].map(h=>new THREE.Color(h));
+  const M4=new THREE.Matrix4(),Q4=new THREE.Quaternion(),E4=new THREE.Euler(),P4=new THREE.Vector3(),S4=new THREE.Vector3(),V4=new THREE.Vector3();
+  for(let i=0;i<NC;i++){const ring=i%3,rr=(3.3+ring*3.2+CR()*2)*(wide&&ring===2?1.4:1),a0=i/NC*TAU*2.37+CR()*.7,S=1.05+CR()*1.05,n=9+Math.floor(CR()*7);
+    const pos=[],col=[];const c1=CCOL[Math.floor(CR()*5)],c2=CCOL[Math.floor(CR()*5)];
+    for(let k=0;k<n;k++){const a=CR()*TAU,d=(k===0?0:.3+CR()*.85)*S,sc=S*(k===0?.7:.3+CR()*.38),G=CG[k%3].attributes.position;
+      E4.set(CR()*.5,CR()*6,CR()*.5);Q4.setFromEuler(E4);P4.set(Math.cos(a)*d,(CR()-.4)*.35*S,Math.sin(a)*d*.8);S4.set(sc*(1+CR()*.5),sc*(.42+CR()*.3),sc*(1+CR()*.5));M4.compose(P4,Q4,S4);
+      const cc=k%2?c2:c1;for(let j=0;j<G.count;j++){V4.fromBufferAttribute(G,j).applyMatrix4(M4);pos.push(V4.x,V4.y,V4.z);col.push(cc.r,cc.g,cc.b);}}
+    const g=reg(new THREE.BufferGeometry());g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.computeVertexNormals();
+    const m=regM(new THREE.MeshPhongMaterial({vertexColors:true,emissive:0x8a64ff,emissiveIntensity:0,flatShading:true,shininess:0,transparent:true,opacity:0,depthWrite:false}));
+    const me=new THREE.Mesh(g,m);me.renderOrder=47;me.frustumCulled=false;root.add(me);
+    CLD.push({me,m,r:rr,a:a0,y:CY0+CR()*.9,S,op:.17+CR()*.17,fl:0,dl:CR()*1.4,sp:.85+CR()*.3,wob:CR()*6});}
+  const CF=new THREE.Vector3();
+  /* the cloud nearest a point over the ground (within reach), and where a bolt leaves it: its underside */
+  const nearC=(x,z,R)=>{let b=null,bd=(R||3.4)**2;for(const c of CLD){if(c.k<.3)continue;const p=c.me.position,d=(p.x-x)**2+(p.z-z)**2;if(d<bd){bd=d;b=c;}}return b;};
+  const under=(c,x,z,out,f)=>{const p=c.me.position,k=.35;out.x=p.x+(x-p.x)*k*.5;out.z=p.z+(z-p.z)*k*.5;out.y=p.y-.32*c.S;c.fl=Math.max(c.fl,f==null?1.4:f);return out;};
   /* strike flares and scorches: pools, reused */
   const flG=reg(new THREE.PlaneGeometry(1,1).translate(0,.5,0)),scG=reg(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2)),FL=[],SC=[];
   const mkF=()=>{const m=regM(new THREE.MeshBasicMaterial({map:tpxFlareTex(),color:0xd8c4ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
@@ -33038,6 +33060,17 @@ function tpxBuild(root,reg,regM,hx,G0,hz,ph,D,zT,zB){
       const f=FL[fi++%FL.length];f.t=0;f.d=big?.42:.28;f.s=big?1.6:1;f.me.position.set(x,g,z);f.me.visible=true;
       const s=SC[si++%SC.length];s.t=0;s.d=big?2.2:1.5;s.s=big?1.9:1.2;s.me.position.set(x,g+.03,z);s.me.visible=true;
       thru(x,g+.6,z,DY,P2);const q=FX[xi++%NF];q.set(P2.x,P2.y,big?1.5:1,big?3.2:2.2);S.flashes++;lit=Math.min(1.6,lit+(big?.6:.35));},
+    clouds:CLD,
+    /* no cloud over the target: the nearest cloud not already gathering over another drifts over it while the bolt charges (the clouds gather where the storm strikes) */
+    pull(x,z){const C=deckU.uC.value,dx=x-C.x,dz=(z-C.y)/.92,d=Math.hypot(dx,dz),ta=Math.atan2(dz,dx);let b=null,bd=1e9;
+      for(const c of CLD){if(c.k<.3||c.pullT>0)continue;const px=c.me.position.x,pz=c.me.position.z,q=(px-x)**2+(pz-z)**2;if(q<bd){bd=q;b=c;}}
+      if(!b)return null;b.tr=d;b.ta=b.a+Math.atan2(Math.sin(ta-b.a),Math.cos(ta-b.a));b.pullT=1.3;return b;},
+    /* where a precise strike's bolt and its leader come down from: the cloud over it (kept for the strike), else straight above as before */
+    org(s,fire){const x=s.x+s.jx,z=s.z+s.jz;if(s.oc===undefined)s.oc=nearC(x,z)||S.pull(x,z);
+      /* the bolt leaves the cloud where it is now (the clouds wheel on while the leader feels its way down); the cloud glows as it charges, flashes as it fires */
+      if(s.oc&&s.oc.k>.2)return under(s.oc,x,z,s.og||(s.og={}),fire?1.6:.5);return s.og0||(s.og0={x,y:7.5,z});},
+    /* the crown bolt: from the cloud of the eye wall nearest the hero */
+    crownOrg(P,def){const c=nearC(P.x,P.z,6);if(!c)return def;const o=under(c,P.x,P.z,{});c.fl=2;return new THREE.Vector3(o.x,o.y,o.z);},
     crown(){white=1;lit=1.6;rot+=.4;},
     fall(){white=Math.max(white,.9);lit=1.6;blowT=0;},
     step(T,dt,Tm,hp,fk,build){Tl=Tm;
@@ -33056,6 +33089,13 @@ function tpxBuild(root,reg,regM,hx,G0,hz,ph,D,zT,zB){
       const ck=A*SMS(T,CROWN,CROWN+.6)*(1-SMS(T,FALL,FALL+.4));core.visible=halo.visible=ck>.01;
       if(core.visible){const pu=1+.12*Math.sin(Tm*9)+.5*build+.4*lit;core.position.set(hp.x,hp.y+.55,hp.z);core.scale.setScalar(.9*pu);coreM.opacity=Math.min(1,.9*ck*(.85+.5*lit));
         halo.position.copy(core.position);halo.scale.setScalar(2.6*pu*(1+.6*build));haloM.opacity=.38*ck;}
+      /* the clouds wheel round the eye with the spiral, drawn in as the storm gathers and blown out at the fall; they fade near the camera */
+      const cy=camera.position.y;for(const c of CLD){c.k=SMS(T-c.dl,.3,2.8)*(1-SMS(T,END-.2+c.dl*.3,END+1.4));const rk=(1+blow*.9)*(1-.12*tight);
+        if(c.pullT>0){c.pullT-=dt;const w=Math.min(1,dt*7);c.r+=(c.tr/rk-(1-c.k)*5-c.r)*w;c.a+=(c.ta-c.a)*w;}else c.a+=dt*spin*c.sp*.55;
+        const r=(c.r+(1-c.k)*5)*rk,px=deckU.uC.value.x+Math.cos(c.a)*r,pz=deckU.uC.value.y+Math.sin(c.a)*r*.92;
+        c.me.position.set(px,c.y+Math.sin(Tm*.3+c.wob)*.12,pz);c.me.rotation.y+=dt*.12*c.sp;const br=1+.05*Math.sin(Tm*.7+c.wob);c.me.scale.set(br,1+.04*Math.sin(Tm*.9+c.wob),br);
+        const camF=clamp((cy-c.y-1.4)/3.2,0,1),op=c.op*c.k*(1-blow*.7)*camF*(1-.4*white);c.m.opacity=op;c.me.visible=op>.004;
+        c.fl=Math.max(0,c.fl-dt*4.5);c.m.emissiveIntensity=(.06+c.fl*.8+lit*.1)*c.k;}
       for(const f of FL){if(!f.me.visible)continue;f.t+=dt;const k=f.t/f.d;if(k>=1){f.me.visible=false;continue;}
         f.me.quaternion.copy(camera.quaternion);f.me.scale.set(.55*f.s*(1+k*.6),3.2*f.s*(1-k*.3),1);f.m.opacity=(1-k)*(1-k)*.95;}
       for(const s of SC){if(!s.me.visible)continue;s.t+=dt;const k=s.t/s.d;if(k>=1){s.me.visible=false;continue;}s.me.scale.setScalar(s.s*(1+k*.5));s.m.opacity=.7*(1-k)*(1-k*.5);}

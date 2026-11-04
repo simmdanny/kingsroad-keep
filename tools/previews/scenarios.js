@@ -351,7 +351,7 @@ const S = {
     5: { from: null, len: null, cap: 24, probe: "NVM.dbg.some(d=>d.ev==='great')", focus: { ev: 'fin', before: 2, after: 4 }, note: 'The last fall: the great stars land for real (the clip joins it there).' } },
   tempest: {
     /* the hero is lifted into the eye and the wall towers round the pack: a still, wide camera */
-    base: { fixedCam: true, track: false, zoom: 1.4, fw: .5, cz: .1, dbg: 'TPM', hp: 150, from: 1.2, len: 14, cap: 13.5, probe: "TPM.dbg.some(d=>d.ev==='volley')" },
+    base: { fixedCam: true, track: false, zoom: 1.7, fw: .5, cz: .1, dbg: 'TPM', hp: 150, from: 1.2, len: 14, cap: 13.5, probe: "TPM.dbg.some(d=>d.ev==='volley')" },
     0: { probe: null, note: 'The hurricane forms round the hero, its eye wall rising (the first 13 seconds of the cast).' },
     1: { probe: "TPM.dbg.some(d=>d.ev==='crown')", note: 'The crown bolt strikes every foe on the field and leaves them Charged.' },
     2: { pack: BIG, note: 'Every volley locks onto one more foe.' },

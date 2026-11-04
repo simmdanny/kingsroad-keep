@@ -23,11 +23,18 @@ try{
   {const H=heroU,cp=camera.position,Y=S.deck.position.y,hy=H.g.position.y+.4,k=(Y-cp.y)/(hy-cp.y),x=cp.x+(H.x-cp.x)*k,z=cp.z+(H.z-cp.z)*k,C=S.deckU.uC.value;
    ok('the eye frames the hero: its centre is where the camera sees the hero through the deck',Math.hypot(C.x-x,C.y-z)<.05,Math.hypot(C.x-x,C.y-z).toFixed(3));}
   ok('the crown bolt lifts the hero into a core of light',S.core.visible&&S.core.material.opacity>.3,S.core.material.opacity.toFixed(2));
-  {const r0=S.deckU.uRot.value;runTo(4);const sp0=S.deckU.uRot.value-r0;runTo(8);const n0=S.strikes,f0=S.flashes;runTo(12);
+  {const lg=[];const v0=vBolt;let from=0,all=0;vBolt=function(a,b,o){if(b&&a&&a.y>5&&b.y<a.y-2){all++;if(S.clouds.some(c=>Math.hypot(c.me.position.x-a.x,c.me.position.z-a.z)<c.S*1.4&&Math.abs(c.me.position.y-.32*c.S-a.y)<.3))from++;}return v0.apply(this,arguments);};
+   try{runTo(7.5);}finally{vBolt=v0;}
+   ok('the bolts come down from the clouds over their targets (and the cloud flashes from inside)',all>=6&&from>=all*.6,from+' of '+all+' bolts from a cloud');}
+  {runTo(8);const n0=S.strikes,f0=S.flashes;runTo(11);
    ok('every bolt that lands lights the deck and leaves a flare and a scorch',S.strikes>n0&&S.flashes>f0,(S.strikes-n0)+' strikes from 8s to 12s');
    const tw0=S.deckU.uTw.value,r1=S.deckU.uRot.value;run(1);const sp1=S.deckU.uRot.value-r1;
    runTo(TPST.FIN+.7);const tw1=S.deckU.uTw.value,r2=S.deckU.uRot.value;run(1);const sp2=S.deckU.uRot.value-r2;
    ok('before the last thunder the spiral winds tight and spins faster',tw1>tw0+.4&&sp2>sp1*1.8,'twist '+tw0.toFixed(2)+' -> '+tw1.toFixed(2)+', spin '+sp1.toFixed(2)+' -> '+sp2.toFixed(2)+' a second');}
+  /* Simon: "make the lightnings strike from translucent clouds like in stormcaller but make it a tiny bit more cloudy" */
+  {const C=S.clouds,ops=C.map(c=>c.op);
+   ok('translucent storm clouds hang over the storm, a third more opaque than the Stormcaller\'s (0.17 to 0.34), one draw a cloud',C.length>=16&&Math.min(...ops)>=.17&&Math.max(...ops)<=.34&&C.every(c=>c.me.isMesh&&c.me.material.transparent&&c.me.material.flatShading&&!c.me.material.depthWrite),C.length+' clouds');
+   ok('they fade near the camera (none in its face)',C.every(c=>!c.me.visible||camera.position.y-c.me.position.y>1.4));}
   runTo(18.6);ok('at the fall the storm blows out and clears',S.deckU.uBlow.value>.6&&S.deckU.uA.value<.3,'blow '+S.deckU.uBlow.value.toFixed(2)+', alpha '+S.deckU.uA.value.toFixed(2));
   run(4);ok('and when the storm is over its deck is gone',!TPX.on&&!inScene(S.deck)&&!inScene(S.sheet));
   /* the masteries grow it: the arms reach across the whole board at Mastery 2 */
