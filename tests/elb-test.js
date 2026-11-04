@@ -16,11 +16,11 @@ try{
       if(e.eliteFx){animElite(e,.05);animElite(e,.05);}if(a==='shielded'&&!(e.bubble&&e.bubble.parent))bad.push(t+': no bubble');}catch(err){bad.push(t+':'+a+' '+err.message);}clean();}
   ok('every unit in the Bestiary takes every modifier without an error ('+types.length+' units)',!bad.length&&n>50,bad.slice(0,6).join('; ')+' n='+n);
   /* a unit with its own armour design uses it, and gets the unit's variant */
-  {let got=null;ARMOR_D.soldier=C=>{got={type:C.type,v:C.variant,g:!!C.g,B:!!C.B};C.plate(.1,.1,.1,0,.3,0);};
+  {const keep=ARMOR_D.soldier;let got=null;ARMOR_D.soldier=C=>{got={type:C.type,v:C.variant,g:!!C.g,B:!!C.B};C.plate(.1,.1,.1,0,.3,0);};
    spawnEnemy({type:'soldier',v:1,elite:['armored']},10);const e=enemies[enemies.length-1];delete ARMOR_D.soldier;
    ok('a unit with its own armour design uses it (ARMOR_D[type]) and is told its variant',got&&got.type==='soldier'&&got.v===e.variant&&got.g&&got.B,JSON.stringify(got)+' variant '+e.variant);clean();
    spawnEnemy({type:'soldier',v:1,elite:['armored']},10);const e2=enemies[enemies.length-1];let plates=0;e2.b.traverse(o=>{if(o.isMesh&&o.material===EM_METAL)plates++;});
-   ok('without one, the class template (armorClass) still dresses it',plates>=4,plates+' steel pieces');clean();}
+   ok('without one, the class template (armorClass) still dresses it',plates>=4,plates+' steel pieces');clean();if(keep)ARMOR_D.soldier=keep;}
   /* the marker ring under an elite */
   {spawnEnemy({type:'peasant',v:0,elite:['swift','regen']},40);const e=enemies[enemies.length-1];
    ok('each modifier puts its marker under the foe (eliteRing)',e.aura&&e.aura2&&e.aura.parent===e.g&&e.aura2.parent===e.g,'');clean();}
