@@ -424,7 +424,8 @@ const S = {
   wormhole: {
     base: { dbg: 'WHM', cap: 14, zmax: 1.05, follow: 'foes', probe: "WHM.dbg.some(d=>d.ev==='cross')" },
     0: { probe: null },
-    1: { pack: PACK.map((p, j) => j % 2 ? Object.assign({}, p, { off: p.off + (p.off > 0 ? .5 : -.5) }) : p), note: 'Foes at the road’s edges: the first wormhole yawns wider and draws in every foe within 1.6 tiles.' },
+    /* a board where a second road joins the first (777, board version 5): knights on the other road walk among the pack (Hungry Mouth takes foes of any road) */
+    1: { st: { seed: 777, gv: 5, ri: 1, d: 35, c: 8, r: 16 }, pack: PACK.concat([0, 1, 2].map(i => ({ t: 'knight', ri: 0, dshift: -13, at: .5 - i * .6, off: -.3, tag: i ? null : 'Other road', tc: TAG.mark }))), probe: "WHM.dbg.some(d=>d.ev==='cross'&&d.r0===ROUTES[0])", note: 'Here a second road joins the first: the first wormhole yawns wider and draws in foes from both roads (knights from the other road, labelled).' },
     2: { trail: TRAIL, note: 'The wormholes stay open longer, so the foes further back walk in too.' },
     3: { note: 'Every foe that goes through is struck and thrown 16 tiles back.' },
     4: { pack: swap(2, { t: 'ogre', hp: 120, tag: 'Boss', tc: TAG.tough }), probe: "WHM.dbg.some(d=>d.ev==='cross'&&d.boss)", note: 'The boss (an Ogre) goes through too, and comes out 5 tiles back, slowed.' },

@@ -50,13 +50,13 @@ P.ev={};P.spy=(fn,key)=>{key=key||fn;let f;try{f=eval(fn);}catch(e){return;}if(t
 P.setup=(k,L,s)=>{P.clearTags();P.T=0;P.ev={};P.hit=[];P.hx=[];P.packAt=null;P.trk=null;P.path=null;P.si=0;P.fx0=null;meta.owned=meta.owned||{};meta.owned[s.hero]=true;meta.equipped=s.hero;const st=s.st;
   meta.dev=true;meta.sfx=false;meta.scrAuto=false;meta.shake=false;meta.arena='plains';meta.smast={};if(L>0)meta.smast[k]=SM_XP[L-1];meta.spells={};meta.spells[k]={lvl:1,hero:null};
   for(const e of enemies.slice())removeEnemy(e);enemies=[];spawners.length=0;SMPV.on=false;
-  state='menu';clearWorld();buildMap(st.seed);MAP.fresh=true;newGame(1);paused=true;auto=0;speed=1;lives=1e9;spawners.length=0;nextQ=null;
+  state='menu';clearWorld();{const g0=MAP_GV;if(st.gv)MAP_GV=st.gv;try{buildMap(st.seed);}finally{MAP_GV=g0;}}MAP.fresh=true;newGame(1);paused=true;auto=0;speed=1;lives=1e9;spawners.length=0;nextQ=null;
   try{if(typeof showOverlay==='function')showOverlay(null);}catch(e){}
   if(heroU)despawnHero();spawnHero(st.c,st.r);if(!heroU)throw new Error('no hero');
   heroU.cd=1e9;heroU.scd={};heroU.gcd=0;SM.cnt[k]=s.cnt||0;
   const Pw=tStats(heroU).spellP||tStats(heroU).dmg||100;P.Pw=Pw;P.k=k;P.L=L;P.s=s;P.foes=[];P.casts=0;
   const rt=ROUTES[st.ri],d0=st.d-(s.ahead==null?1.9:s.ahead);
-  const add=(f,dd)=>{spawnEnemy({type:f.t||'soldier',v:f.v==null?0:f.v,elite:f.elite},20);const e=enemies[enemies.length-1];e.route=rt;e.dist=Math.max(.05,dd);e.off=f.off||0;
+  const add=(f,dd)=>{spawnEnemy({type:f.t||'soldier',v:f.v==null?0:f.v,elite:f.elite},20);const e=enemies[enemies.length-1];e.route=f.ri!=null?ROUTES[f.ri]:rt;e.dist=Math.max(.05,dd+(f.dshift||0));e.off=f.off||0;
     e.spd=f.spd==null?s.spd:f.spd;e.maxHp=e.hp=f.hp==null?Pw*s.hp:f.hp==='1'?1:Pw*f.hp;if(f.frac)e.hp=e.maxHp*f.frac;e.armor=f.armor||0;e.res={};e.shield=0;e.smpv=1;e.gold=0;e.xp=0;e.regen=0;
     if(f.elite==='armored')e.armor=.35;if(f.fly!=null)e.fly=f.fly;moveEnemy(e,0);if(f.tag)P.tag(e,f.tag,f.tc||'#ffd070');e.pvT=!!f.target;P.foes.push(e);return e;};
   /* the pack is placed where it will be at the moment of the cast */
