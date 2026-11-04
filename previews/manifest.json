@@ -3195,7 +3195,7 @@
    "L": 4,
    "len": 9.3,
    "seed": 1,
-   "bytes": 1418467,
+   "bytes": 1640400,
    "note": "The boss (an Ogre) stays frozen until the wave reaches it.",
    "ev": {
     "cast": 1,
@@ -3210,7 +3210,7 @@
    "L": 5,
    "len": 9.83,
    "seed": 1,
-   "bytes": 1506552,
+   "bytes": 1757807,
    "note": "The shatter wave strikes 1500%: the ice sheet bursts up as it breaks.",
    "ev": {
     "cast": 1,
