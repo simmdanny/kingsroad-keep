@@ -292,5 +292,52 @@
    "erupt": 139,
    "final": 1
   }
+ },
+ "bloodcurse-3": {
+  "k": "bloodcurse",
+  "L": 3,
+  "len": 15.53,
+  "seed": 1,
+  "bytes": 6252857,
+  "note": "Each stage of the escalation grows the eruptions 18%.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "blast": 1,
+   "erupt": 130,
+   "final": 1
+  }
+ },
+ "bloodcurse-4": {
+  "k": "bloodcurse",
+  "L": 4,
+  "len": 15.53,
+  "seed": 1,
+  "bytes": 6216269,
+  "note": "Each greater scroll the curse seals on the hero makes every eruption stronger.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "blast": 1,
+   "erupt": 130,
+   "final": 1
+  }
+ },
+ "bloodcurse-5": {
+  "k": "bloodcurse",
+  "L": 5,
+  "len": 15.53,
+  "seed": 1,
+  "bytes": 6206048,
+  "note": "The final eruption is half again as large, and the blast after it strikes 1500%.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "blast": 1,
+   "erupt": 136,
+   "plunge": 1,
+   "final": 1,
+   "land": 1
+  }
  }
 }
