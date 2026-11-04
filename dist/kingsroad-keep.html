@@ -14902,7 +14902,7 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
-  {t:'The Tempest\u2019s winds, smoothed',d:'4 Nov',v:'v486',li:[
+  {t:'The Tempest\u2019s winds, smoothed',d:'4 Nov',v:'v487',li:[
     'The inner wall of the Primordial Tempest\u2019s eye no longer breaks into torn, hard-edged chunks of cloud: it is one smooth sheet of wind now, long streaks wrapping round the eye and climbing as they turn, with fine wind lines running through them.',
     'Where the wall opens towards you, so you can always see the hero and the road, it now fades away softly instead of ending in a cut.']},
   {t:'The Primordial Tempest, a hurricane seen from above',d:'4 Nov',v:'v477',li:[
@@ -20531,12 +20531,12 @@ function tpEye(root,reg,regM,pool,hx,G0,hz,ph,flashL,D){D=D||TPD;const TAU=Math.
       'vW=vec3(uC.x+sin(a)*r,uC.y+h,uC.z+cos(a)*r);vH=h;gl_Position=projectionMatrix*viewMatrix*vec4(vW,1.);}',
     fragmentShader:'uniform float uRot,uT,uKA,uCut,uF,uWH,uHk,uHY,uTop;uniform vec3 uC,uDk,uCol,uLit,uGlow;uniform vec4 uArc[8];uniform float uArcS[8];varying vec3 vW;varying float vH;'+
       'float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}'+
-      /* v486: value noise that wraps round the circle (N cells), so the cloud has no seam anywhere */
+      /* v487: value noise that wraps round the circle (N cells), so the cloud has no seam anywhere */
       'float n1(vec2 p,float N){vec2 i=floor(p),f=fract(p);f=f*f*f*(f*(f*6.-15.)+10.);float x0=mod(i.x,N),x1=mod(i.x+1.,N);'+
       'return mix(mix(h1(vec2(x0,i.y)),h1(vec2(x1,i.y)),f.x),mix(h1(vec2(x0,i.y+1.)),h1(vec2(x1,i.y+1.)),f.x),f.y);}'+
       'float fb(vec2 p,float N){return n1(p,N)*.5+n1(p*2.+vec2(0.,3.1),N*2.)*.3+n1(p*4.+vec2(0.,-1.7),N*4.)*.2;}'+
       'void main(){vec2 d=vW.xz-uC.xz,cd=cameraPosition.xz-uC.xz;float cl=max(.001,length(cd));cd/=cl;float dl=max(.001,length(d)),fr=dot(d,cd)/dl;'+
-      /* v486 (Simon: "the inside winds of the tempest are cut, look unfinished, can you smooth it out more"): the face is drawn as winds, not torn
+      /* v487 (Simon: "the inside winds of the tempest are cut, look unfinished, can you smooth it out more"): the face is drawn as winds, not torn
          blotches: long streaks stretched round the circle and climbing as they go (world angle, noise wrapped round it), a thin veil between them
          so the wall is one sheet of wind, finer wind lines on top, and a wider, softer fade into the cut on the camera's side */
       'float cut=1.-uCut*smoothstep(-.12,.62,fr)*smoothstep(.15,1.3,vH);if(cut<.005)discard;float th=atan(d.x,d.y);'+

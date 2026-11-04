@@ -2578,7 +2578,7 @@ Simon: "we have to rework how money earning buildings gain masteries, they shoul
   `tests/mastery-test.js` now uses the Bell Tower as its support building.
 
 
-## The Tempest's winds, smoothed (v486)
+## The Tempest's winds, smoothed (v487)
 Simon: "The inside winds of the tempest are cut, look unfinished, can you smooth it out more please?"
 - **The cause:** the inner face of the eye wall (the open cone `wface`/`wfM` in `tpEye`).
   - Its cloud was a thresholded fbm (smoothstep .34 to .64) read in an angle measured from the camera. It came out as torn, hard-edged blotches.
