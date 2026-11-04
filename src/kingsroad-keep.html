@@ -14910,6 +14910,9 @@ const CLOG=[
     'The hero, lifted into the eye, burns as a core of light. The storm gathers from the edge of the board, spins up at the crown bolt, winds tight and bright before the last thunder and blows apart at the fall. With Mastery 2 and the full hurricane its arms reach across the whole board.',
     'Its lightning comes down from dark, see-through storm clouds over the eye wall, like the Stormcaller\u2019s but a little cloudier; each cloud glows as its bolt charges and flashes from inside as it strikes, and thins away while it is over a foe or the road, so the view stays clear.',
     'Looks only: the Tempest strikes exactly as before.']},
+  {t:'Gold buildings learn by their gold',d:'4 Nov',v:'v476',li:[
+    'The Gold Mine, the Windmill and the Merchant\u2019s Post now earn their mastery XP from the gold they make: 1 XP for every 10 gold they pay you. That is their income every wave with their share of interest, the extra gold foes slain near the Merchant\u2019s Post drop, and their mastery payouts (Gold Rush, Mother Lode and the rest).',
+    'Before, each earned a flat 4 XP for every wave it stood through, however much it made. A new Windmill or Merchant\u2019s Post (about 40 gold a wave) learns as fast as before; upgrade it and it learns faster. The Bell Tower, which makes no gold, keeps its 4 XP a wave, and the XP you have already earned stays.']},
   {t:'Previews for the Mythic, Ancient and Secret masteries',d:'4 Nov',v:'v475',li:[
     'The 23 Mythic, Ancient and Secret scrolls have recorded previews now, like every other scroll: no mastery and Masteries 1 to 5, 138 clips (for now in developer mode, like their masteries). Before, hovering one of their masteries started the slow live preview.',
     'Each clip is set up for what its mastery says, with the camera following the action: worn-down foes for the masteries that finish foes off, an Ogre for the ones about bosses, archer towers for the ones that speed towers up, foes further back for the ones that reach down the road, and a board where two roads meet for Wormhole\u2019s Hungry Mouth.',
@@ -17360,6 +17363,9 @@ function iceTombPick(t,list){let s=null;try{s=tStats(t);}catch(e){}const all=s?i
    five upgrades is the Archer Tower; the others already earn their XP, and get their upgrades in later updates.
    A tower shows its mastery with a pennant on its roof (bronze, silver, gold, sapphire, crimson). */
 const MAST_XP=[1000,4000,12000,30000,70000],MAST_SUP=4,MAST_COL=[0xb0703a,0xc2ccd6,0xf0c040,0x3aa8ff,0xe0283a];
+/* v476 (Simon): "money earning buildings ... should get masteries by how much money they produce". The gold buildings (GOLD_T) earn 1 XP
+   for every MAST_GOLD gold they make (the v476 module near the end), and no longer MAST_SUP a wave; the Bell Tower, which makes no gold, still does. */
+const GOLD_T=['mine','windmill','merchant'],MAST_GOLD=10;
 const MAST_D={archer:[
   {n:'Keen Eyes',d:'Arrows have a 10% chance to strike a weak spot for 2.5\u00d7 damage.'},
   {n:'Volley',d:'Every 8th shot is a volley: 3 extra arrows at other foes in range.'},
@@ -17378,7 +17384,7 @@ function mastLevelUp(k,l){MAST.dirty=false;saveMeta();const P=MAST_D[k]&&MAST_D[
 /* XP: kills by a building, and waves stood through by the buildings that do not fight */
 {const k0=kill;kill=function(e,src){const was=!!e&&!e.dead;const r=k0.apply(this,arguments);
   if(was&&e.dead&&src&&!src.isHero&&src.type&&TD[src.type]&&towers.includes(src))try{mastGain(src.type,(e.boss?30:e.elite?3:1)*MAST_KILL);}catch(err){console.error(err);}return r;};}
-{const lw=lmWaveClear;lmWaveClear=function(w){lw.apply(this,arguments);try{if(state==='playing'&&!OW.on){const n={};for(const t of towers)if(SUPPORT_T.includes(t.type))n[t.type]=(n[t.type]||0)+1;
+{const lw=lmWaveClear;lmWaveClear=function(w){lw.apply(this,arguments);try{if(state==='playing'&&!OW.on){const n={};for(const t of towers)if(SUPPORT_T.includes(t.type)&&!GOLD_T.includes(t.type))n[t.type]=(n[t.type]||0)+1;
     for(const k in n)mastGain(k,MAST_SUP*n[k]);if(MAST.dirty){MAST.dirty=false;saveMeta();}}}catch(err){console.error(err);}};}
 {const mm=migrateMeta;migrateMeta=function(m){const r=mm.apply(this,arguments);if(r){if(!r.mast||typeof r.mast!=='object'||Array.isArray(r.mast))r.mast={};else for(const k in r.mast)if(!(+r.mast[k]>=0))delete r.mast[k];else r.mast[k]=+r.mast[k];}return r;};}
 DEV_KEYS.mast={};
@@ -17422,7 +17428,7 @@ function mastOpen(k){const D=MAST_D[k],L=mastLv(k),x=mastXp(k);let o=$('#mastMod
   const rows=D?D.map((p,i)=>{const on=i<L;return`<div class="mst-lvl${on?' on':''}" style="--mc:#${MAST_COL[i].toString(16).padStart(6,'0')}"><i class="mst-n">${i+1}</i><div><b>${p.n}</b><span>${p.d}</span>${on?'':`<small>${fmt(Math.max(0,MAST_XP[i]-x))} more XP</small>`}</div></div>`;}).join('')
     :'<p class="mst-soon">This building\u2019s masteries come in a later update. The XP it earns now already counts.</p>';
   o.innerHTML=`<div class="panel mst-panel"><div class="box"><div class="mst-head"><img src="${thumbs[k]||''}" alt=""><div><small>Building mastery</small><h2>${TD[k].name}</h2></div><button class="hm-x" data-mx="1" aria-label="Close">\u00d7</button></div>${mastBar(k)}`+
-    `<p class="mst-how">Masteries grow as you use the building, across all your runs: half an XP for each foe it slays, 1.5 for an elite, 15 for a boss${SUPPORT_T.includes(k)?`, and ${MAST_SUP} XP for every wave it stands through`:''}. Each level unlocks an upgrade for good. Mastery 5 is the max.</p>`+
+    `<p class="mst-how">${GOLD_T.includes(k)?`Masteries grow with the gold the building makes, across all your runs: 1 XP for every ${MAST_GOLD} gold it pays you (its income each wave with its share of interest${k==='merchant'?', the extra gold foes slain in its range drop':''}, and its mastery payouts)`:`Masteries grow as you use the building, across all your runs: half an XP for each foe it slays, 1.5 for an elite, 15 for a boss${SUPPORT_T.includes(k)?`, and ${MAST_SUP} XP for every wave it stands through`:''}`}. Each level unlocks an upgrade for good. Mastery 5 is the max.</p>`+
     `<div class="mst-list">${rows}</div><button class="btn" data-mx="1" style="width:100%;margin-top:10px;padding:9px">Close</button></div></div>`;
   o.addEventListener('click',ev=>{if(ev.target===o||ev.target.closest('[data-mx]'))o.remove();});document.body.appendChild(o);}
 $('#shopList').addEventListener('click',e=>{const b=e.target.closest('[data-mast]');if(b)mastOpen(b.dataset.mast);});
@@ -35206,6 +35212,25 @@ const WHM_OLD=castWormhole;
 castWormhole=function(t,list,P,o,XO){const c=!XO?whmC(o):null;return WHM_OLD(t,list,P,o,c?whmOpts(c):XO);};
 /* (every Wormhole cast stays open past its cineLock (3s): 9.6s, 10.9s from Held Open; the mastery preview waits for it) */
 SMPV_BUSY.push(()=>fx.some(f=>f.whCast));
+/* ================= v476 (Simon): the gold buildings learn by the gold they make =================
+   "we have to rework how money earning buildings gain masteries, they should get masteries by how much money they produce".
+   The Gold Mine, the Windmill and the Merchant's Post (GOLD_T) no longer earn MAST_SUP XP for every wave they stand through; the Bell
+   Tower, which makes no gold, still does. A gold building earns 1 XP for every MAST_GOLD gold it pays you. That is the gold that adds to
+   its own tally (t.earned, the gold its sheet shows it has made), whatever pays it:
+   - its income at each wave call, with its share of the interest (callWave);
+   - the Merchant's Post's bounty, the extra gold foes slain in its range drop (kill: MERCH_HIT);
+   - its mastery payouts after a cleared wave (Gold Rush, Mother Lode, Harvest Festival, Strongbox, Royal Treasury, Golden Caravan: mxPay).
+   Each wrapper reads the gold buildings' tallies before and after the call it wraps and turns the difference into XP, so nothing is
+   counted twice, and a resumed run's tallies (restored from the save) are never counted again. mastGain gives XP only in play (not on
+   the world map, not outside a run), as for every building. GMX.dbg (an array) logs each award for the tests. */
+const GMX={dbg:null};
+function gmxBefore(only){const b=[];for(const t of towers)if(GOLD_T.includes(t.type)&&(!only||t.type===only))b.push([t,t.earned||0]);return b;}
+function gmxAfter(b,how){const n={};for(const [t,e0] of b){const d=(t.earned||0)-e0;if(d>0)n[t.type]=(n[t.type]||0)+d;}
+  for(const k in n){const x=n[k]/MAST_GOLD;if(GMX.dbg)GMX.dbg.push({k,how,gold:n[k],xp:x});mastGain(k,x);}}
+{const cw=callWave;callWave=function(){const b=gmxBefore();const r=cw.apply(this,arguments);try{gmxAfter(b,'wave');}catch(err){console.error(err);}return r;};}
+{const k0=kill;kill=function(){const b=gmxBefore('merchant');const r=k0.apply(this,arguments);if(b.length)try{gmxAfter(b,'bounty');}catch(err){console.error(err);}return r;};}
+{const mp=mxPay;mxPay=function(t){const b=t&&GOLD_T.includes(t.type)?[[t,t.earned||0]]:[];const r=mp.apply(this,arguments);try{gmxAfter(b,'payout');}catch(err){console.error(err);}return r;};}
+/* ---- end of v476 ---- */
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
@@ -35472,7 +35497,9 @@ if(GAME.setAside)setTimeout(()=>toast('Your open-world run now belongs to Kingsg
 requestAnimationFrame(frame);
 /* ---- What's new: shown once per notes version (per account), on the first open after an update ---- */
 const NOTES_V='masteries-4';
-const NOTES_HTML=`<h3>\u2726 Six elemental heroes</h3><ul>
+const NOTES_HTML=`<h3>\u2726 Gold buildings learn by their gold</h3><ul>
+<li>The Gold Mine, the Windmill and the Merchant&rsquo;s Post now gain mastery by the gold they make: 1 XP for every 10 gold, from their income, their share of interest, the Merchant&rsquo;s bounty and their mastery payouts. The more a building earns, the faster it learns.</li></ul>
+<h3>\u2726 Six elemental heroes</h3><ul>
 <li>Six new spellcasters, each a master of one element: Sylvara (nature), Isolde (ice), Ignatia (fire), Corvin (dark), Vesper (lightning) and Seraphine (light). Their own element&rsquo;s scrolls deal 30% more and come back 10% sooner, and their bolts carry the element: burning, chilling, chaining, rooting, withering or flaring with light.</li></ul>
 <h3>\u2726 Hall of Champions, and profiles</h3><ul>
 <li>A leaderboard for you and your friends: tap the gold trophy on the land card to see everyone&rsquo;s best wave on every land, carve your name in and climb the podium. New records go up by themselves.</li>

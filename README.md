@@ -2541,3 +2541,38 @@ Simon: "make the primordial tempest 10x better" (its visuals). From the game's c
 - Hooks in `castTempest`: `tpxBuild` beside `tpEye`, `TX.step` each frame, `TX.strike` in `hit`, `TX.crown` and `TX.fall` in those bolts, `TX.end` when the storm ends.
 - The 6 preview clips of the Tempest are re-recorded with it.
 - Tests: `tests/tpx-test.js` (17, in run-all as 'tpx'): the storm clouds (7-10, opacity 0.08-0.16, see-through, fading near the camera, thinning away over a foe) and the bolts coming down from them; looks only (no random, no damage); nothing before the cast; the deck, the sheet and the core in the storm's group; it gathers and its eye closes; the eye frames the hero through the deck; the core; strikes light it; it winds tight and spins faster before the last thunder; it blows out at the fall and is gone after; the full hurricane is wider; it renders through a whole cast; the changelog. tempest, tpeye, tpm, ancient and perf pass.
+
+
+## v476: gold buildings learn by their gold
+
+Simon: "we have to rework how money earning buildings gain masteries, they should get masteries by how much money they produce".
+
+- **The rule:** the Gold Mine, the Windmill and the Merchant's Post (`GOLD_T`) earn 1 XP for every `MAST_GOLD` = 10 gold they pay out. That is the gold that adds to a building's own tally (`t.earned`), whatever pays it:
+
+  | Source | Where it is paid | Buildings |
+  |---|---|---|
+  | Income at each wave call, with its share of the interest | `callWave` | all three |
+  | The bounty: the extra gold foes slain in its range drop | `kill` (`MERCH_HIT`) | Merchant's Post |
+  | Mastery payouts after a cleared wave (Gold Rush, Mother Lode, Harvest Festival, Strongbox, Royal Treasury, Golden Caravan) | `mxPay` | all three |
+
+- **Before:** like every support building they earned a flat `MAST_SUP` = 4 XP for each wave they stood through, however much they made. The Bell Tower, which makes no gold, still does.
+- **How it is counted:** the v476 module wraps `callWave`, `kill` and `mxPay`. Each wrapper reads the gold buildings' tallies before and after the call and turns the difference into XP through `mastGain`, so nothing is counted twice and a resumed run's restored tallies are never counted again. `mastGain` gives XP only in play, as for every building. The support-XP hook skips `GOLD_T`.
+- **The rate:** a new Windmill or Merchant's Post makes about 40 gold a wave, so it earns 4 XP a wave, the same as before; upgraded, it learns faster. Gold per wave, read from `tStats` (no Armory enhancement):
+
+  | Special part | 0 | 5 | 10 | 15 | 20 |
+  |---|---|---|---|---|---|
+  | Gold Mine | 18 | 35 | 71 | 142 | 286 |
+  | Windmill | 39 | 72 | 133 | 245 | 452 |
+  | Merchant's Post (before its bounty) | 40 | 80 | 162 | 325 | 655 |
+
+  An un-upgraded Gold Mine learns at about half its old pace (1.8 XP a wave), but a player can build five.
+- **Card:** the mastery card of a gold building says it grows with the gold it makes, 1 XP for every 10 gold; the Merchant's Post's card also names its bounty. Changelog entry and a patch-notes section added (`NOTES_V` unchanged).
+- **Saved XP:** XP already earned stays; nothing is migrated.
+- **Tests:** `tests/gmx-test.js` (15 rows, in run-all as 'gmx'):
+  - each payout source turns into XP exactly (wave income, interest share, bounty in range and none out of range, a Mastery 4 Mother Lode);
+  - the Bell Tower keeps 4 XP a wave and the gold buildings get no flat XP;
+  - a restored tally is not counted again, and there is no XP outside a run;
+  - over five waves each type's XP equals its buildings' gold / 10;
+  - kill XP is unchanged, and the cards say the right thing.
+
+  `tests/mastery-test.js` now uses the Bell Tower as its support building.
