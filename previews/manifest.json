@@ -2398,7 +2398,7 @@
    "len": 7.4,
    "seed": 1,
    "bytes": 2045491,
-   "note": "The folding beams set the foes ringing like bells: the lance’s power runs through them into the foes beside them.",
+   "note": "The folding beams set the foes ringing like bells: the lance\u2019s power runs through them into the foes beside them.",
    "ev": {
     "cast": 1,
     "lock": 1,
@@ -2625,7 +2625,7 @@
    "len": 7.17,
    "seed": 1,
    "bytes": 2948603,
-   "note": "Seven standing stones rise in a ring at the rune’s edge: the foes walking through are fenced in until the sky falls.",
+   "note": "Seven standing stones rise in a ring at the rune\u2019s edge: the foes walking through are fenced in until the sky falls.",
    "ev": {
     "cast": 1,
     "stone": 7,
@@ -2856,7 +2856,7 @@
    "len": 6.8,
    "seed": 1,
    "bytes": 1683339,
-   "note": "A Frost Spire’s ice shatters the fractured foes.",
+   "note": "A Frost Spire\u2019s ice shatters the fractured foes.",
    "ev": {
     "comet": 1,
     "eye": 12,
@@ -3063,7 +3063,7 @@
    "len": 12.37,
    "seed": 1,
    "bytes": 1749050,
-   "note": "The blast at the blade’s tip strikes harder and wider.",
+   "note": "The blast at the blade\u2019s tip strikes harder and wider.",
    "ev": {
     "cast": 1,
     "blow": 1,
@@ -3235,7 +3235,7 @@
    "len": 12.03,
    "seed": 1,
    "bytes": 3240679,
-   "note": "Each pass of the great hand takes 2% of a foe’s max health.",
+   "note": "Each pass of the great hand takes 2% of a foe\u2019s max health.",
    "ev": {
     "opts": 1,
     "cast": 1,
@@ -3300,6 +3300,569 @@
     "pass": 20,
     "glint": 6,
     "turn": 3
+   }
+  },
+  "pulsar-0": {
+   "k": "pulsar",
+   "L": 0,
+   "len": 11.33,
+   "seed": 1,
+   "bytes": 2298504,
+   "note": "The neutron star rises and its beam sweeps its ring (the first 11 seconds of the cast)."
+  },
+  "pulsar-1": {
+   "k": "pulsar",
+   "L": 1,
+   "len": 11.33,
+   "seed": 1,
+   "bytes": 2277136,
+   "note": "Every beam hit strikes harder; the beams burn thicker.",
+   "ev": {
+    "cast": 1,
+    "open": 1,
+    "hit": 80
+   }
+  },
+  "pulsar-2": {
+   "k": "pulsar",
+   "L": 2,
+   "len": 11.33,
+   "seed": 1,
+   "bytes": 2397657,
+   "note": "Every phase comes sooner and the star spins faster.",
+   "ev": {
+    "cast": 1,
+    "open": 1,
+    "hit": 86
+   }
+  },
+  "pulsar-3": {
+   "k": "pulsar",
+   "L": 3,
+   "len": 11.33,
+   "seed": 1,
+   "bytes": 3169311,
+   "note": "The second beam tips down and sweeps a second, smaller ring.",
+   "ev": {
+    "cast": 1,
+    "open": 1,
+    "hit": 218
+   }
+  },
+  "pulsar-5": {
+   "k": "pulsar",
+   "L": 5,
+   "len": 6.5,
+   "seed": 1,
+   "bytes": 1373442,
+   "note": "Supernova: the implosion draws the rings in, and the blast reaches 8.5 tiles (the clip joins it there).",
+   "ev": {
+    "cast": 1,
+    "open": 1,
+    "hit": 258,
+    "sear": 50,
+    "imp": 1,
+    "blast": 1
+   }
+  },
+  "pulsar-4": {
+   "k": "pulsar",
+   "L": 4,
+   "len": 11.33,
+   "seed": 1,
+   "bytes": 2984187,
+   "note": "The pack walks on over the burnt ground: it sears them.",
+   "ev": {
+    "cast": 1,
+    "open": 1,
+    "hit": 162,
+    "sear": 21
+   }
+  },
+  "singularity-1": {
+   "k": "singularity",
+   "L": 1,
+   "len": 15.8,
+   "seed": 1,
+   "bytes": 3147364,
+   "note": "The hole takes hold sooner and holds longer, drawn larger.",
+   "ev": {
+    "cast": 1,
+    "grip": 1,
+    "end": 1
+   }
+  },
+  "singularity-0": {
+   "k": "singularity",
+   "L": 0,
+   "len": 16.13,
+   "seed": 1,
+   "bytes": 3134025,
+   "note": ""
+  },
+  "singularity-3": {
+   "k": "singularity",
+   "L": 3,
+   "len": 8.37,
+   "seed": 1,
+   "bytes": 1551779,
+   "note": "Three foes are low on health: each that dies while pinned feeds the hole.",
+   "ev": {
+    "cast": 1,
+    "grip": 1,
+    "feed": 3
+   }
+  },
+  "singularity-2": {
+   "k": "singularity",
+   "L": 2,
+   "len": 16.3,
+   "seed": 1,
+   "bytes": 3367204,
+   "note": "The drain tears harder at the pinned foes.",
+   "ev": {
+    "cast": 1,
+    "grip": 1,
+    "end": 1
+   }
+  },
+  "singularity-4": {
+   "k": "singularity",
+   "L": 4,
+   "len": 16.27,
+   "seed": 1,
+   "bytes": 3431688,
+   "note": "Rocks tear up from beneath every pinned foe, one a second.",
+   "ev": {
+    "cast": 1,
+    "grip": 1,
+    "rock": 48,
+    "end": 1
+   }
+  },
+  "singularity-5": {
+   "k": "singularity",
+   "L": 5,
+   "len": 16.53,
+   "seed": 1,
+   "bytes": 3785380,
+   "note": "The collapse strikes every foe on the map for 500%.",
+   "ev": {
+    "cast": 1,
+    "grip": 1,
+    "rock": 72,
+    "collapse": 1,
+    "end": 1
+   }
+  },
+  "wormhole-0": {
+   "k": "wormhole",
+   "L": 0,
+   "len": 12.7,
+   "seed": 1,
+   "bytes": 1512310,
+   "note": ""
+  },
+  "wormhole-1": {
+   "k": "wormhole",
+   "L": 1,
+   "len": 13.13,
+   "seed": 1,
+   "bytes": 1734864,
+   "note": "Foes at the road\u2019s edges: the first wormhole yawns wider and draws in every foe within 1.6 tiles.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "cross": 6,
+    "collapse": 2,
+    "end": 1
+   }
+  },
+  "wormhole-2": {
+   "k": "wormhole",
+   "L": 2,
+   "len": 13.33,
+   "seed": 1,
+   "bytes": 1657312,
+   "note": "The wormholes stay open longer, so the foes further back walk in too.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "cross": 8,
+    "collapse": 3,
+    "end": 1
+   }
+  },
+  "wormhole-3": {
+   "k": "wormhole",
+   "L": 3,
+   "len": 13.27,
+   "seed": 1,
+   "bytes": 1891534,
+   "note": "Every foe that goes through is struck and thrown 16 tiles back.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "cross": 6,
+    "end": 1
+   }
+  },
+  "wormhole-4": {
+   "k": "wormhole",
+   "L": 4,
+   "len": 13.2,
+   "seed": 1,
+   "bytes": 1791825,
+   "note": "The boss (an Ogre) goes through too, and comes out 5 tiles back, slowed.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "cross": 6,
+    "end": 1
+   }
+  },
+  "wormhole-5": {
+   "k": "wormhole",
+   "L": 5,
+   "len": 13.87,
+   "seed": 1,
+   "bytes": 1714802,
+   "note": "Slow foes still short of the mouth as it closes: it swallows them, then both wormholes collapse.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "cross": 3,
+    "last": 1,
+    "end": 1
+   }
+  },
+  "never-1": {
+   "k": "never",
+   "L": 1,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 2094568,
+   "note": "A shooting star every 0.36s, splashing wider.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "star": 25,
+    "lash": 3
+   }
+  },
+  "never-2": {
+   "k": "never",
+   "L": 2,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 2028394,
+   "note": "Time stands still longer, and the foes held in it take 50% more.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "star": 25,
+    "lash": 3
+   }
+  },
+  "never-0": {
+   "k": "never",
+   "L": 0,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 2087545,
+   "note": ""
+  },
+  "never-3": {
+   "k": "never",
+   "L": 3,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 2105627,
+   "note": "Four stars lash more often, over a wider square.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "star": 25,
+    "lash": 3
+   }
+  },
+  "never-5": {
+   "k": "never",
+   "L": 5,
+   "len": 6,
+   "seed": 1,
+   "bytes": 1162664,
+   "note": "The last fall: the great stars land for real (the clip joins it there).",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "star": 38,
+    "lash": 5,
+    "fin": 1,
+    "great": 12,
+    "finHit": 1
+   }
+  },
+  "never-4": {
+   "k": "never",
+   "L": 4,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 1995433,
+   "note": "Foes move 50% slower, and the archer towers attack 35% faster.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "star": 25,
+    "lash": 3
+   }
+  },
+  "tempest-1": {
+   "k": "tempest",
+   "L": 1,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 5076098,
+   "note": "The crown bolt strikes every foe on the field and leaves them Charged.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "crown": 6,
+    "volley": 9,
+    "leap": 27
+   }
+  },
+  "tempest-0": {
+   "k": "tempest",
+   "L": 0,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 4894397,
+   "note": "The hurricane forms round the hero, its eye wall rising (the first 13 seconds of the cast)."
+  },
+  "tempest-2": {
+   "k": "tempest",
+   "L": 2,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 5480728,
+   "note": "Every volley locks onto one more foe.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "crown": 11,
+    "volley": 9,
+    "leap": 38
+   }
+  },
+  "tempest-5": {
+   "k": "tempest",
+   "L": 5,
+   "len": 5.5,
+   "seed": 1,
+   "bytes": 2768825,
+   "note": "The last thunder, and the hero\u2019s fall rolls out over the whole field (the clip joins it there).",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "wall": 68,
+    "crown": 9,
+    "volley": 13,
+    "leap": 58,
+    "fin": 1,
+    "fallwave": 9
+   }
+  },
+  "tempest-3": {
+   "k": "tempest",
+   "L": 3,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 5361073,
+   "note": "Each precise strike leaps on further and harder.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "crown": 6,
+    "volley": 9,
+    "leap": 31
+   }
+  },
+  "tempest-4": {
+   "k": "tempest",
+   "L": 4,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 5382458,
+   "note": "The lightning racing round the eye wall strikes the foes it passes.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "wall": 12,
+    "crown": 6,
+    "volley": 9,
+    "leap": 31
+   }
+  },
+  "purgatory-0": {
+   "k": "purgatory",
+   "L": 0,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 2783630,
+   "note": "The judgment gathers round the hero and its cuts begin (the first 13 seconds of the cast)."
+  },
+  "purgatory-1": {
+   "k": "purgatory",
+   "L": 1,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 3021930,
+   "note": "The foes are spread along the road: the judgment reaches further.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "cut": 73,
+    "stare": 2
+   }
+  },
+  "purgatory-2": {
+   "k": "purgatory",
+   "L": 2,
+   "len": 10.5,
+   "seed": 1,
+   "bytes": 2758305,
+   "note": "The last stage begins at 13s and cuts faster (the clip joins it there).",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "cut": 169,
+    "stare": 4
+   }
+  },
+  "purgatory-3": {
+   "k": "purgatory",
+   "L": 3,
+   "len": 12,
+   "seed": 1,
+   "bytes": 2955113,
+   "note": "The six eyes stare: foes where they look are cut as if they stood close to the hero.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "cut": 164,
+    "stare": 3
+   }
+  },
+  "purgatory-4": {
+   "k": "purgatory",
+   "L": 4,
+   "len": 7,
+   "seed": 1,
+   "bytes": 1796982,
+   "note": "Three foes are worn down: a cut that leaves them under 8% cuts them down.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "cut": 98,
+    "stare": 3,
+    "exec": 3
+   }
+  },
+  "purgatory-5": {
+   "k": "purgatory",
+   "L": 5,
+   "len": 6.5,
+   "seed": 1,
+   "bytes": 1251349,
+   "note": "The silence holds, then every foe takes one last cut (the clip joins it there).",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "cut": 167,
+    "stare": 4,
+    "last": 1
+   }
+  },
+  "bloodneedles-0": {
+   "k": "bloodneedles",
+   "L": 0,
+   "len": 10.53,
+   "seed": 1,
+   "bytes": 1699841,
+   "note": ""
+  },
+  "bloodneedles-1": {
+   "k": "bloodneedles",
+   "L": 1,
+   "len": 10.53,
+   "seed": 1,
+   "bytes": 1764790,
+   "note": "Each needle strikes harder: longer, with brighter tips and trails.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "fire": 32,
+    "hit": 32
+   }
+  },
+  "bloodneedles-2": {
+   "k": "bloodneedles",
+   "L": 2,
+   "len": 10.53,
+   "seed": 1,
+   "bytes": 1633710,
+   "note": "The pack walks on: the needles fly faster and turn tighter, so few arrive late.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "fire": 32,
+    "hit": 32
+   }
+  },
+  "bloodneedles-3": {
+   "k": "bloodneedles",
+   "L": 3,
+   "len": 10.53,
+   "seed": 1,
+   "bytes": 1371019,
+   "note": "A needle striking a foe already pierced strikes harder for every needle in it.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "fire": 32,
+    "hit": 32
+   }
+  },
+  "bloodneedles-4": {
+   "k": "bloodneedles",
+   "L": 4,
+   "len": 12.03,
+   "seed": 1,
+   "bytes": 1401803,
+   "note": "One foe with 1 HP: the first needle kills it, the rest wait glowing in the orbit, and fly at the foes that come next.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "fire": 32,
+    "hit": 28,
+    "wait": 1,
+    "lost": 4
+   }
+  },
+  "bloodneedles-5": {
+   "k": "bloodneedles",
+   "L": 5,
+   "len": 11.53,
+   "seed": 1,
+   "bytes": 1434194,
+   "note": "The orbit fills to 12 and, after 24 have flown, looses all at once at the strongest foe (the ram).",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "fire": 36,
+    "hit": 36,
+    "halo": 1
    }
   }
  },

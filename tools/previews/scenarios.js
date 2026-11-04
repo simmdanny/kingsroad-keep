@@ -259,7 +259,7 @@ const S = {
     4: { pack: swap(2, { t: 'ogre', hp: 120, tag: 'Boss', tc: TAG.tough }), note: 'Foes under the blade are stunned 1.2s; the boss (an Ogre) 0.4s.' },
     5: { trail: TRAIL, note: 'The whole fissure tears open as the sword lands: every geyser bursts at once.' } },
   eternalwinter: {
-    base: { dbg: 'EWM', cap: 10.5, probe: "EWM.dbg.some(d=>d.ev==='shatter')" },
+    base: { dbg: 'EWM', cap: 10.5, zmin: 1.05, zmax: 1.2, sky: 1.2, probe: "EWM.dbg.some(d=>d.ev==='shatter')" },
     0: { probe: null },
     1: { note: 'The frost strikes harder as it reaches each foe, and leaves larger ice.' },
     2: { note: 'The Heart gathers itself longer: the foes stay frozen, then slowed, longer.' },
