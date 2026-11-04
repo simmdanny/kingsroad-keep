@@ -102,5 +102,59 @@
    "act": 1,
    "cut": 15
   }
+ },
+ "citadel-2": {
+  "k": "citadel",
+  "L": 2,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 3882809,
+  "note": "Each cut strikes harder, and harder in its wake.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "aim": 16,
+   "act": 1,
+   "cut": 14
+  }
+ },
+ "citadel-5": {
+  "k": "citadel",
+  "L": 5,
+  "len": 6,
+  "seed": 1,
+  "bytes": 1694479,
+  "note": "The final fracture tears across the domain (the clip joins it near its end).",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "aim": 19,
+   "act": 1,
+   "cut": 19,
+   "snap": 1
+  }
+ },
+ "citadel-3": {
+  "k": "citadel",
+  "L": 3,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 4319749,
+  "note": "The pack walks on: inside the domain it crawls.",
+  "ev": {
+   "opts": 1,
+   "cast": 1,
+   "aim": 16,
+   "act": 1,
+   "cut": 15
+  }
+ },
+ "expanse-0": {
+  "k": "expanse",
+  "L": 0,
+  "len": 12.83,
+  "seed": 1,
+  "bytes": 3190927,
+  "note": "The void swallows the land and its cuts begin (the first 13 seconds of the cast)."
  }
 }
