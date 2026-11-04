@@ -3256,7 +3256,52 @@
     "pass": 18,
     "turn": 2
    }
+  },
+  "aeon-3": {
+   "k": "aeon",
+   "L": 3,
+   "len": 12.03,
+   "seed": 1,
+   "bytes": 3312812,
+   "note": "The hand turns every 2.56s: more sweeps before midnight.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "pass": 19,
+    "turn": 3
+   }
+  },
+  "aeon-5": {
+   "k": "aeon",
+   "L": 5,
+   "len": 7,
+   "seed": 1,
+   "bytes": 1846512,
+   "note": "Midnight tolls twelve times (the clip joins the dial at midnight); foes left under 25% crumble.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "pass": 31,
+    "turn": 4,
+    "crumble": 3,
+    "stroke": 12
+   }
+  },
+  "aeon-4": {
+   "k": "aeon",
+   "L": 4,
+   "len": 12.03,
+   "seed": 1,
+   "bytes": 3430758,
+   "note": "Archer towers fight 30% faster while the dial turns, glinting gold as the hand passes.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "pass": 20,
+    "glint": 6,
+    "turn": 3
+   }
   }
  },
- "made": "2026-10-29"
+ "made": "2026-11-04"
 }
