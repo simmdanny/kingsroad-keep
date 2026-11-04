@@ -11576,7 +11576,7 @@ function update(dt){
   for(let i=spawners.length-1;i>=0;i--){const s=spawners[i];s.t-=dt;while(s.t<=0&&s.q.length){const e=s.q.shift();if(e.type==='__form')spawnFormation(e,s.w);else if(e.type!=='__pause')spawnEnemy(e,s.w);s.t+=e.gap;}if(!s.q.length)spawners.splice(i,1);}
   for(const e of enemies){if(e.dead)continue;
     if(e.slowT>0){e.slowT-=dt;if(e.slowT<=0){e.slow=0;e.vuln=0;}}
-    if(e.regen)e.hp=Math.min(e.maxHp,e.hp+e.maxHp*e.regen*dt);
+    if(e.regen&&!(e.rgSup>1e-6))e.hp=Math.min(e.maxHp,e.hp+e.maxHp*e.regen*dt);
     if(e.curseT>0)e.curseT-=dt;
     if(e.gem||e.scroll){e.spT-=dt;if(e.spT<=0){e.spT=.18;sparkle(e.x,e.y+e.hitY*.6,e.z,e.gem||e.scrollCol||0xffd060);}if(e.gemRing)e.gemRing.rotation.z+=dt*2;}
     if(e.bind){const b=e.bind;b.t-=dt;hurt(e,b.dps*dt,'magic',b.o);if(e.dead)continue;b.pt-=dt;if(b.pt<=0){b.pt=.07;darkMote(e.x+(rnd()-.5)*.15,e.y+e.hitY*(.3+rnd()*.6),e.z+(rnd()-.5)*.15,rnd()<.5?0x120818:0x2a0a4a);}if(b.t<=0)e.bind=null;}
@@ -14909,6 +14909,12 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Elites you can read',d:'4 Nov',v:'v484',li:[
+    '<b>Regenerating</b> comes in five looks, each fitted to the unit: <b>Verdant</b> (moss and sprouts that grow back as it heals), <b>Troll-blood</b> (glowing wounds that knit shut, with faint steam), <b>Blessed</b> (a slowly turning ring of golden runes), <b>Blood-leech</b> (dark veins and a heart-stone beating faster while it heals) and <b>Fungal</b> (glowing caps and spore puffs). The Bestiary names the look.',
+    'You can see it heal: a soft glow pulses over the foe, stronger the more it healed.',
+    '<b>Fire stops regeneration.</b> Fire damage and burns stop every foe from regenerating (Starfall too) for 2 seconds, and the look wilts or sears meanwhile. The heal itself is unchanged: 2.5% of its health a second.',
+    '<b>Shielded</b> has a new bubble: fitted to each unit, with a faint hex shimmer. Hits ripple where they land, it cracks under half and a quarter, and when it breaks it cracks up and shatters into glass shards.',
+    'The rings under elites are now small raised 3D bands with a soft glow and a mark for each modifier: studs, chevrons, leaves, hex studs, spikes. A second modifier nests outside the first.']},
   {t:'Armoured bosses, each in its own armour',d:'4 Nov',v:'v483',li:['An Armoured boss now wears armour made for it instead of a shared template: barding, neck collars, helms, wing guards and a tail sheath on the dragons, a different set for each of the three ogres, bark and bone on the Kikimora, iron bands and rune plates on the golems, chitin plates on Arachne, gilded rings and feather-plates on the angels, and heavier plate on the Colossus, the knights and the wyrms.','The Ironclad Twin Drake, the Armoured Brood Mother and the Armoured Mire Wyrm get gilded plating over their own steel.','Every piece sits on the part it belongs to and moves with it: wings, necks, jaws, tails, legs, arms, wheels.','See them in the Bestiary with the elite button.']},
   {t:'Armoured troops, each in armour of their own',d:'4 Nov',v:'v482',li:[
     'Armoured is no longer one set of plates bolted onto everyone. Every troop that can be Armoured now has its own armour, made for each of its variants and fitted to its body.',
@@ -35861,6 +35867,306 @@ ARMOR_D.ophanim=ARMOR_D.seraph=C=>{const m=arbModel(C),strong=C.type==='seraph';
   const wheels=m.spin.map(q=>q.o).filter(o=>o.children.some(c=>c.isMesh&&c.geometry&&c.geometry.type==='TorusGeometry'&&c.geometry.parameters.tube>.012));const core=m.b.children.find(o=>o.isGroup&&o.position.y===.3&&!m.spin.some(q=>q.o===o));
   if(wheels.length!==(strong?3:2)||m.wings.length!==(strong?6:4)||!core){armorClass(C);return;}const T={core:[[core]]};wheels.forEach((w,i)=>T['r'+i]=[[w]]);m.wings.forEach((w,i)=>T['w'+i]=[[w]]);arbDress(C,arbAngelKit(strong),T);};
 /* ---- end of v483 ---- */
+/* ================= v484: Regenerating variants, the Shielded bubble reworked, 3D elite markers =================
+   Simon: "fix all elite modifiers ... regenerating should have more variants and add some more features".
+   Design:
+   - Regenerating comes in five looks, picked per foe from its spawn (a run serial hashed with the unit and its variant; the Bestiary steps
+     through them on the Elite button). Every look is fitted to the real model: rgxSurf() reads the triangles of the unit's biggest solid meshes
+     (cached per model), samples points on them by area, and the gear is built on those points along the surface normal. Static gear is merged
+     into one geometry per parent mesh and material, cached per model and variant, so foes of one kind share it; only a few small animated
+     pieces are separate meshes. Every material comes from module caches (glow levels are buckets of shared materials).
+       Verdant      moss and leaves, sprouts with glowing buds that shrink when it is hurt and visibly grow back as it heals.
+       Troll-blood  warty hide with glowing wounds that gape when it is hurt and knit shut as it heals, with faint steam.
+       Blessed      a slowly turning ring of small golden runes with golden motes, round its chest.
+       Blood-leech  dark veins over the body and a heart-stone pulsing with a heartbeat that quickens while it heals.
+       Fungal       glowing caps on the shoulders and back, and spore puffs.
+   - The healing shows: every 3% of max health healed (or every 1.25 s of a smaller heal) a soft glow pulses over the body, its strength
+     scaled to the heal (a faint additive shell of the model's own meshes, at most 0.18 opacity, for 0.75 s), with a few particles.
+   - Counterplay: fire damage (o.el 'fire') and any burn stop all regeneration (elite and Starfall) for 2 s after the last fire hit or the end
+     of the burn. The look wilts or sears meanwhile (sprouts droop and brown, wounds char, runes dim and stall, veins blacken, caps shrivel).
+     The heal itself is unchanged: 2.5% of max health a second.
+   - Shielded: an ellipsoid bubble fitted to the model's real bounds (centre and size), a shared hex-cell shader with a faint twinkle and a
+     rim, a ripple on the bubble where each hit lands (from the attacker's side; at most one new ripple per 0.1 s, two at once), cracks
+     when the shield is under 50% and 25%, and on breaking a 0.09 s crack-up then 20 (80 on a big bubble) curved glass shards that fly off,
+     spin and shrink in 0.55 to 0.85 s. Every break path is caught (hurt, and the bubble vanishing any other way).
+   - Markers: eliteRing(a,i) is a low bevelled band (0.02 high) with a small motif per modifier (studs, chevrons, leaves, hex studs, spikes,
+     dashes) and a soft additive glow ring under it. Shared geometry per modifier and slot; each foe keeps its own two small materials so
+     en.aura.material.opacity, .visible and .scale work as before; the second modifier nests outside the first. */
+const RGX={n:0,SUP:2,cache:new Map(),surf:new Map(),pick:null,mats:{},protos:{},
+  V:[{id:'verdant',n:'Verdant',glow:0x7aff3a,pulse:0x5aff5a},{id:'troll',n:'Troll-blood',glow:0xff5a1a,pulse:0xff8a3a},{id:'blessed',n:'Blessed',glow:0xffc23a,pulse:0xffd770},
+     {id:'leech',n:'Blood-leech',glow:0xff1030,pulse:0xff3050},{id:'fungal',n:'Fungal',glow:0x3affc0,pulse:0x5affd0}]};
+const rgxHash=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;};
+const rgxRng=s=>{let a=s>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};};
+const RGX_T={v:new THREE.Vector3(),v2:new THREE.Vector3(),v3:new THREE.Vector3(),q:new THREE.Quaternion(),m:new THREE.Matrix4(),m2:new THREE.Matrix4(),n3:new THREE.Matrix3(),Z:new THREE.Vector3(0,0,1),Y:new THREE.Vector3(0,1,0)};
+/* merge non-indexed parts {g,m} (position, normal, color) into one geometry */
+function rgxMerge(parts){let n=0;for(const p of parts)n+=p.g.attributes.position.count;const P=new Float32Array(n*3),N=new Float32Array(n*3),Cc=new Float32Array(n*3),v=new THREE.Vector3(),nm=new THREE.Matrix3();let o=0;
+  for(const p of parts){const a=p.g.attributes,pa=a.position,na=a.normal,ca=a.color;nm.getNormalMatrix(p.m);
+    for(let i=0;i<pa.count;i++,o++){v.set(pa.getX(i),pa.getY(i),pa.getZ(i)).applyMatrix4(p.m);P[o*3]=v.x;P[o*3+1]=v.y;P[o*3+2]=v.z;
+      if(na){v.set(na.getX(i),na.getY(i),na.getZ(i)).applyMatrix3(nm).normalize();N[o*3]=v.x;N[o*3+1]=v.y;N[o*3+2]=v.z;}
+      const c=p.c||null;if(ca&&!c){Cc[o*3]=ca.getX(i);Cc[o*3+1]=ca.getY(i);Cc[o*3+2]=ca.getZ(i);}else{const cc=c||[1,1,1];Cc[o*3]=cc[0];Cc[o*3+1]=cc[1];Cc[o*3+2]=cc[2];}}}
+  const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.BufferAttribute(P,3));G.setAttribute('normal',new THREE.BufferAttribute(N,3));G.setAttribute('color',new THREE.BufferAttribute(Cc,3));G.computeBoundingSphere();return G;}
+/* a proto: a non-indexed geometry with a colour per vertex, from parts [geometry, colour, matrix?] */
+const rgxCol=h=>{const c=new THREE.Color(h);return[c.r,c.g,c.b];};
+function rgxProto(key,mk){if(RGX.protos[key])return RGX.protos[key];const L=mk(),parts=L.map(([g,c,m])=>{const g2=g.index?g.toNonIndexed():g;if(!g2.attributes.normal)g2.computeVertexNormals();return{g:g2,m:m||new THREE.Matrix4(),c:rgxCol(c)};});
+  return RGX.protos[key]=rgxMerge(parts);}
+const rgxM=(x,y,z,sx,sy,sz,rx,ry,rz)=>new THREE.Matrix4().compose(new THREE.Vector3(x||0,y||0,z||0),new THREE.Quaternion().setFromEuler(new THREE.Euler(rx||0,ry||0,rz||0)),new THREE.Vector3(sx==null?1:sx,sy==null?(sx==null?1:sx):sy,sz==null?(sx==null?1:sx):sz));
+/* shared materials */
+function rgxMat(key,mk){return RGX.mats[key]||(RGX.mats[key]=mk());}
+const rgxStat=()=>rgxMat('stat',()=>new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:12,side:THREE.DoubleSide}));
+const rgxGlow=(v,L)=>rgxMat('g'+v+'_'+L,()=>new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:40,emissive:RGX.V[v].glow,emissiveIntensity:.08+L*.085}));
+const rgxSear=v=>rgxMat('s'+v,()=>new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:6,color:[0x6a4a2a,0x2a1a14,0x6a5a3a,0x1a1214,0x5a4a3a][v],emissive:[0x000000,0x3a0e00,0x000000,0x000000,0x000000][v]}));
+const rgxShell=(v,L)=>rgxMat('p'+v+'_'+L,()=>new THREE.MeshBasicMaterial({color:RGX.V[v].pulse,transparent:true,opacity:.022*L,blending:THREE.AdditiveBlending,depthWrite:false}));
+const RGX_GL=11;
+/* the model's surface in b space: triangles of its biggest solid meshes (cached per model) */
+function rgxSurf(b,key){if(RGX.surf.has(key))return RGX.surf.get(key);
+  b.updateWorldMatrix(true,true);const inv=new THREE.Matrix4().copy(b.matrixWorld).invert(),bb=new THREE.Box3(),v=new THREE.Vector3(),L=[];
+  const hidden=o=>{for(let p=o;p&&p!==b;p=p.parent)if(!p.visible)return true;return false;};
+  b.traverse(o=>{if(!o.isMesh||o.isInstancedMesh||o.userData.rgx||o.userData.hlo)return;const m=Array.isArray(o.material)?o.material[0]:o.material;
+    if(!m||m.transparent||m.isMeshBasicMaterial||m.blending===THREE.AdditiveBlending||m.isShaderMaterial)return;const g=o.geometry;if(!g||!g.attributes.position||g.attributes.position.count<4||hidden(o))return;L.push(o);});
+  const ms=[];for(const o of L){const mm=new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld),g=o.geometry,pa=g.attributes.position,na=g.attributes.normal,ix=g.index,nt=ix?ix.count/3:pa.count/3;
+    const nm=new THREE.Matrix3().getNormalMatrix(mm),T=new Float32Array(nt*9),Nn=new Float32Array(nt*3),A=new Float32Array(nt);let tot=0;const a=new THREE.Vector3(),c=new THREE.Vector3(),d=new THREE.Vector3(),n=new THREE.Vector3();
+    for(let t=0;t<nt;t++){n.set(0,0,0);for(let k=0;k<3;k++){const i=ix?ix.getX(t*3+k):t*3+k;v.set(pa.getX(i),pa.getY(i),pa.getZ(i)).applyMatrix4(mm);T[t*9+k*3]=v.x;T[t*9+k*3+1]=v.y;T[t*9+k*3+2]=v.z;bb.expandByPoint(v);
+        if(na){a.set(na.getX(i),na.getY(i),na.getZ(i));n.add(a);}}
+      a.set(T[t*9],T[t*9+1],T[t*9+2]);c.set(T[t*9+3],T[t*9+4],T[t*9+5]).sub(a);d.set(T[t*9+6],T[t*9+7],T[t*9+8]).sub(a);c.cross(d);const ar=c.length()/2;
+      if(na&&n.lengthSq()>1e-8)n.applyMatrix3(nm).normalize();else n.copy(c).normalize();if(n.dot(c)<0&&!na)n.negate();Nn[t*3]=n.x;Nn[t*3+1]=n.y;Nn[t*3+2]=n.z;tot+=ar;A[t]=tot;}
+    const path=[];for(let p=o.parent;p&&p!==b;p=p.parent){if(!p.parent)break;path.unshift(p.parent.children.indexOf(p));}
+    const mpath=path.concat([o.parent.children.indexOf(o)]);const P=new THREE.Matrix4().multiplyMatrices(inv,o.parent.matrixWorld);
+    ms.push({path,mpath,T,N:Nn,A,area:tot,pinv:P.clone().invert()});}
+  ms.sort((x,y)=>y.area-x.area);const top=ms.filter((m,i)=>i<3&&m.area>=ms[0].area*.2);for(const m of top)m.w=m.area*(m.mpath.length===1&&m.mpath[0]===0?3:1);
+  if(bb.isEmpty())bb.set(new THREE.Vector3(-.1,0,-.1),new THREE.Vector3(.1,.5,.1));
+  const S={bb,H:Math.max(.05,bb.max.y-bb.min.y),cx:(bb.min.x+bb.max.x)/2,cy:(bb.min.y+bb.max.y)/2,cz:(bb.min.z+bb.max.z)/2,ms:top,all:ms,total:top.reduce((s,m)=>s+m.w,0)};
+  const Lx=Math.max(S.H,bb.max.x-bb.min.x,bb.max.z-bb.min.z);S.u=Math.max(.5,Math.min(3.4,Lx/.75));RGX.surf.set(key,S);return S;}
+/* sample a point on the surface: opts {y0,y1 (fractions of the height), ny (min normal y)}; returns {mi,p,n} */
+function rgxSample(S,rng,o){o=o||{};const out={mi:0,p:new THREE.Vector3(),n:new THREE.Vector3()};if(!S.ms.length){out.p.set(S.cx,S.cy,S.cz);out.n.set(0,1,0);return out;}
+  for(let tries=0;tries<60;tries++){let r=rng()*S.total,mi=0;while(mi<S.ms.length-1&&r>S.ms[mi].w){r-=S.ms[mi].w;mi++;}const m=S.ms[mi],A=m.A;let lo=0,hi=A.length-1;const x=rng()*m.area;while(lo<hi){const md=(lo+hi)>>1;if(A[md]<x)lo=md+1;else hi=md;}
+    const t=lo,T=m.T;let u=rng(),w=rng();if(u+w>1){u=1-u;w=1-w;}const px=T[t*9]+(T[t*9+3]-T[t*9])*u+(T[t*9+6]-T[t*9])*w,py=T[t*9+1]+(T[t*9+4]-T[t*9+1])*u+(T[t*9+7]-T[t*9+1])*w,pz=T[t*9+2]+(T[t*9+5]-T[t*9+2])*u+(T[t*9+8]-T[t*9+2])*w;
+    const fy=(py-S.bb.min.y)/S.H,ny=m.N[t*3+1];out.mi=mi;out.p.set(px,py,pz);out.n.set(m.N[t*3],ny,m.N[t*3+2]);
+    if(tries<55&&((o.y0!=null&&fy<o.y0)||(o.y1!=null&&fy>o.y1)||(o.ny!=null&&ny<o.ny)||(o.fn&&!o.fn(out))))continue;return out;}
+  return out;}
+/* a piece at a surface point: Y along the normal, a random spin round it, scale s, sunk k*s into the surface */
+function rgxAt(sp,s,rng,sink,sy){const n=sp.n.clone().normalize(),r=Math.abs(n.y)<.9?new THREE.Vector3(0,1,0):new THREE.Vector3(1,0,0),t=new THREE.Vector3().crossVectors(n,r).normalize(),bt=new THREE.Vector3().crossVectors(t,n);
+  const a=rng()*6.283,c=Math.cos(a),sn=Math.sin(a),t2=t.clone().multiplyScalar(c).addScaledVector(bt,sn),b2=new THREE.Vector3().crossVectors(t2,n);
+  const M=new THREE.Matrix4().makeBasis(t2,n,b2);M.scale(new THREE.Vector3(s,s*(sy||1),s));M.setPosition(sp.p.clone().addScaledVector(n,-(sink||0)*s));return M;}
+/* ---- the protos (unit size, +Y out of the surface) ---- */
+const RGP={
+  moss:()=>rgxProto('moss',()=>[[new THREE.IcosahedronGeometry(1,0),0x2f5a1e,rgxM(0,0,0,1,.42,1)],[new THREE.IcosahedronGeometry(.7,0),0x3f7a26,rgxM(.7,.12,.2,1,.5,1)],[new THREE.IcosahedronGeometry(.6,0),0x4d8a2c,rgxM(-.6,.1,-.3,1,.55,1)],[new THREE.IcosahedronGeometry(.45,0),0x5a9a34,rgxM(.1,.2,-.75,1,.6,1)]]),
+  leaf:()=>rgxProto('leaf',()=>[[new THREE.OctahedronGeometry(1,0),0x5aa83a,rgxM(0,.55,0,.28,.62,.1,.5)],[new THREE.OctahedronGeometry(1,0),0x4a9a30,rgxM(.25,.5,0,.24,.55,.1,-.6)]]),
+  bud:()=>rgxProto('bud',()=>[[new THREE.IcosahedronGeometry(1,0),0xc8ff7a,rgxM(0,.6,0,.55,.85,.55)]]),
+  sprout:()=>rgxProto('sprout',()=>[[new THREE.CylinderGeometry(.05,.09,1,5),0x4a8a2a,rgxM(0,.5,0)],[new THREE.OctahedronGeometry(1,0),0x6ac040,rgxM(.26,.62,0,.3,.07,.13,0,0,.5)],[new THREE.OctahedronGeometry(1,0),0x5ab038,rgxM(-.24,.42,0,.28,.07,.12,0,0,-.55)],
+    [new THREE.IcosahedronGeometry(1,0),0xd8ff8a,rgxM(0,1.08,0,.15,.2,.15)]]),
+  wart:()=>rgxProto('wart',()=>[[new THREE.IcosahedronGeometry(1,0),0x55663a,rgxM(0,0,0,1,.5,1)],[new THREE.IcosahedronGeometry(.55,0),0x6a7a44,rgxM(.8,.05,.3,1,.6,1)]]),
+  scar:()=>rgxProto('scar',()=>[[new THREE.BoxGeometry(1,.18,.16),0x5a2a1e,rgxM(0,0,0)],[new THREE.BoxGeometry(.12,.2,.5),0x3a1a12,rgxM(-.25,0,0)],[new THREE.BoxGeometry(.12,.2,.5),0x3a1a12,rgxM(.2,0,0)]]),
+  wound:()=>rgxProto('wound',()=>[[new THREE.OctahedronGeometry(1,0),0xffa050,rgxM(0,.08,0,1,.2,.2)],[new THREE.OctahedronGeometry(1,0),0x5a140c,rgxM(0,.1,.2,1.05,.16,.1)],[new THREE.OctahedronGeometry(1,0),0x5a140c,rgxM(0,.1,-.2,1.05,.16,.1)]]),
+  rune:k=>rgxProto('rune'+k,()=>{const G=0xffd77a,s=[[new THREE.BoxGeometry(.16,1,.12),G,rgxM(0,0,0)]];
+    if(k===0)s.push([new THREE.BoxGeometry(.14,.5,.12),G,rgxM(.16,.22,0,1,1,1,0,0,-.8)],[new THREE.BoxGeometry(.14,.5,.12),G,rgxM(.16,-.05,0,1,1,1,0,0,-.8)]);
+    else if(k===1)s.push([new THREE.BoxGeometry(.14,.55,.12),G,rgxM(-.17,.15,0,1,1,1,0,0,.8)],[new THREE.BoxGeometry(.14,.55,.12),G,rgxM(.17,.15,0,1,1,1,0,0,-.8)]);
+    else s.push([new THREE.BoxGeometry(.6,.13,.12),G,rgxM(0,.1,0,1,1,1,0,0,.5)],[new THREE.BoxGeometry(.14,.4,.12),G,rgxM(.2,-.3,0)]);
+    s.push([new THREE.BoxGeometry(.5,1.25,.06),0x7a5420,rgxM(0,0,-.08)]);return s;}),
+  mote:()=>rgxProto('mote',()=>[[new THREE.OctahedronGeometry(1,0),0xfff0c0,rgxM(0,0,0)]]),
+  vein:()=>rgxProto('vein',()=>[[new THREE.BoxGeometry(1,1,1),0xb01828,rgxM(0,0,0)]]),
+  heart:()=>rgxProto('heart',()=>[[new THREE.OctahedronGeometry(1,0),0x9a1020,rgxM(0,.3,0,.8,1,.6)],[new THREE.OctahedronGeometry(.5,0),0xff4a5a,rgxM(0,.45,.25,1,1,1)],[new THREE.TorusGeometry(.75,.12,4,8),0x2a0a0e,rgxM(0,.25,0,1,1,1,Math.PI/2)]]),
+  cap:()=>rgxProto('cap',()=>[[new THREE.SphereGeometry(1,8,4,0,6.283,0,1.5),0x2a9a7a,rgxM(0,.55,0,1,.55,1)],[new THREE.CylinderGeometry(.9,.9,.08,8),0x2a6a5a,rgxM(0,.55,0)]]),
+  stem:()=>rgxProto('stem',()=>[[new THREE.CylinderGeometry(.18,.26,.6,6),0xd8c8a8,rgxM(0,.28,0)],[new THREE.CylinderGeometry(.95,.95,.06,8),0x5a3a2a,rgxM(0,.56,0)]]),
+  shroom:()=>rgxProto('shroom',()=>[[new THREE.CylinderGeometry(.16,.24,.62,6),0xe0d0b0,rgxM(0,.3,0)],[new THREE.SphereGeometry(1,8,4,0,6.283,0,1.5),0x2a9a7a,rgxM(0,.58,0,1,.6,1)],[new THREE.CylinderGeometry(.92,.92,.07,8),0x2a6a5a,rgxM(0,.58,0)]])};
+/* each variant: build(S,rng,K) fills K.stat / K.glow / K.dyn with {mi,M} pieces (b space); anim(R,t,dt,env,e) moves them */
+const RGX_B=[
+  /* Verdant */ (S,rng,K)=>{const u=S.u,s=.04*Math.pow(u,.8),cn=Math.round(10*Math.min(3,Math.pow(u,.9)));
+    for(let i=0;i<cn;i++){const sp=rgxSample(S,rng,{y0:.42,ny:-.35});K.stat.push({mi:sp.mi,g:RGP.moss(),M:rgxAt(sp,s*(.75+rng()*.5),rng,.25)});
+      if(rng()<.6){const sp2=rgxSample(S,rng,{y0:.42,ny:-.2});K.stat.push({mi:sp2.mi,g:RGP.leaf(),M:rgxAt(sp2,s*1.5,rng,.1)});}
+      if(rng()<.7)K.glow.push({mi:sp.mi,g:RGP.bud(),M:rgxAt(sp,s*.45,rng,-.5)});}
+    for(let i=0;i<4;i++){const sp=rgxSample(S,rng,{y0:.5,ny:.15});K.dyn.push({mi:sp.mi,g:RGP.sprout(),kind:'sprout',M:rgxAt(sp,s*2.4,rng,.05)});}},
+  /* Troll-blood */ (S,rng,K)=>{const u=S.u,s=.032*Math.pow(u,.8),cn=Math.round(10*Math.min(3,Math.pow(u,.9)));
+    for(let i=0;i<cn;i++){const sp=rgxSample(S,rng,{y0:.15,y1:.82});K.stat.push({mi:sp.mi,g:RGP.wart(),M:rgxAt(sp,s*(.7+rng()*.5),rng,.2)});}
+    for(let i=0;i<3;i++){const sp=rgxSample(S,rng,{y0:.25,y1:.85});K.stat.push({mi:sp.mi,g:RGP.scar(),M:rgxAt(sp,s*2.2,rng,.05)});}
+    const nw=Math.round(5*Math.min(2.4,Math.pow(u,.8)));for(let i=0;i<nw;i++){const sp=rgxSample(S,rng,{y0:.28,y1:.8,ny:-.3});K.dyn.push({mi:sp.mi,g:RGP.wound(),kind:'wound',M:rgxAt(sp,s*1.35,rng,.1).multiply(new THREE.Matrix4().makeScale(1.4,1,1))});}},
+  /* Blessed */ (S,rng,K)=>{const u=S.u,yr=S.bb.min.y+S.H*.55,D=[];
+    for(const m of S.ms){const T=m.T;for(let i=0;i<T.length;i+=3){if(Math.abs(T[i+1]-yr)<S.H*.12)D.push(Math.hypot(T[i]-S.cx,T[i+2]-S.cz));}}
+    D.sort((a,b)=>a-b);const R=(D.length?D[Math.floor(D.length*.75)]:.15)*1.18+.035*u,n=Math.max(9,Math.min(16,Math.round(R*6.283/(.075*Math.pow(u,.6))))),rs=.05*Math.pow(u,.75),parts=[];
+    for(let i=0;i<n;i++){const a=i/n*6.283;parts.push({g:RGP.rune(i%3),m:new THREE.Matrix4().compose(new THREE.Vector3(Math.sin(a)*R,(i%2?.15:-.15)*rs,Math.cos(a)*R),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,a,0)),new THREE.Vector3(rs,rs,rs))});}
+    for(let i=0;i<5;i++){const a=(i+.5)/5*6.283,r=R*(.9+.08*(i%2));parts.push({g:RGP.mote(),m:rgxM(Math.sin(a)*r,(i%2?1.6:-1.4)*rs,Math.cos(a)*r,rs*.32)});}
+    K.ring={g:rgxMerge(parts),pos:[S.cx,yr,S.cz],R};},
+  /* Blood-leech */ (S,rng,K)=>{const u=S.u,s=.014*Math.pow(u,.8),nv=Math.round(7*Math.min(2.6,Math.pow(u,.8))),st=.04*Math.pow(u,.85),cloud=[];
+    for(let i=0;i<500;i++){const sp=rgxSample(S,rng,{y0:.18,y1:.92});cloud.push(sp);}
+    const near=(p,mi)=>{let best=null,bd=1e9;for(const c of cloud){if(c.mi!==mi)continue;const d=c.p.distanceToSquared(p);if(d<bd){bd=d;best=c;}}return best;};
+    for(let v=0;v<nv;v++){let cur=cloud[Math.floor(rng()*cloud.length)],dir=new THREE.Vector3(rng()-.5,rng()-.5,rng()-.5).normalize();
+      for(let k=0;k<7;k++){dir.addScaledVector(cur.n,-dir.dot(cur.n)).normalize();const tgt=cur.p.clone().addScaledVector(dir,st),nx=near(tgt,cur.mi);if(!nx||nx.p.distanceTo(cur.p)<st*.3)break;
+        const a=cur.p.clone().addScaledVector(cur.n,s*.4),b2=nx.p.clone().addScaledVector(nx.n,s*.4),mid=a.clone().add(b2).multiplyScalar(.5),len=a.distanceTo(b2),X=b2.clone().sub(a).normalize(),Yn=cur.n.clone().add(nx.n).normalize(),Zb=new THREE.Vector3().crossVectors(X,Yn).normalize(),Y2=new THREE.Vector3().crossVectors(Zb,X);
+        const w=s*(1.3-k*.12),M=new THREE.Matrix4().makeBasis(X,Y2,Zb);M.scale(new THREE.Vector3(len*1.08,w*.8,w));M.setPosition(mid);K.glow.push({mi:cur.mi,g:RGP.vein(),M});
+        dir.copy(X).add(new THREE.Vector3(rng()-.5,rng()-.5,rng()-.5).multiplyScalar(.7)).normalize();cur=nx;}}
+    const hs=rgxSample(S,rng,{y0:.5,y1:.75,fn:o=>o.n.z>.55});K.dyn.push({mi:hs.mi,g:RGP.heart(),kind:'heart',M:rgxAt(hs,.028*Math.pow(u,.9),rng,.25)});},
+  /* Fungal */ (S,rng,K)=>{const u=S.u,s=.042*Math.pow(u,.8),cn=Math.round(8*Math.min(3,Math.pow(u,.9)));
+    for(let i=0;i<cn;i++){const sp=rgxSample(S,rng,{y0:.4,ny:.05}),k=.6+rng()*.6;K.stat.push({mi:sp.mi,g:RGP.stem(),M:rgxAt(sp,s*k,rng,.15)});K.glow.push({mi:sp.mi,g:RGP.cap(),M:rgxAt(sp,s*k,rng,.15)});
+      if(rng()<.55){const M=rgxAt(sp,s*k*.55,rng,.1);M.multiply(new THREE.Matrix4().makeTranslation(1.4,0,.3));K.stat.push({mi:sp.mi,g:RGP.stem(),M});K.glow.push({mi:sp.mi,g:RGP.cap(),M});}}
+    for(let i=0;i<2;i++){const sp=rgxSample(S,rng,{y0:.55,ny:.35});K.dyn.push({mi:sp.mi,g:RGP.shroom(),kind:'shroom',M:rgxAt(sp,s*1.6,rng,.12)});}}];
+/* resolve a path of child indices under b */
+const rgxPath=(b,p)=>{let o=b;for(const i of p){o=o&&o.children[i];if(!o)return null;}return o;};
+/* build (or fetch) a variant's recipe for this model: merged static geometry per parent, dynamic piece transforms (parent space), shell meshes */
+function rgxRecipe(S,v,key){if(RGX.cache.has(key))return RGX.cache.get(key);const rng=rgxRng(rgxHash(key)),K={stat:[],glow:[],dyn:[],ring:null};RGX_B[v](S,rng,K);
+  const by=(L)=>{const G=new Map();for(const p of L){const m=S.ms[p.mi];if(!m)continue;const k=m.path.join('.');if(!G.has(k))G.set(k,{path:m.path,pinv:m.pinv,parts:[]});G.get(k).parts.push({g:p.g,m:new THREE.Matrix4().multiplyMatrices(m.pinv,p.M)});}
+    return[...G.values()].map(x=>({path:x.path,geo:rgxMerge(x.parts)}));};
+  const R={stat:by(K.stat),glow:by(K.glow),dyn:K.dyn.map(p=>{const m=S.ms[p.mi];if(!m)return null;const L=new THREE.Matrix4().multiplyMatrices(m.pinv,p.M),pos=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();L.decompose(pos,q,sc);return{path:m.path,g:p.g,kind:p.kind,pos,q,sc};}).filter(Boolean),
+    ring:K.ring,shells:S.ms.map(m=>m.mpath)};RGX.cache.set(key,R);return R;}
+function rgxMarkMesh(m){m.userData.rgx=1;m.castShadow=false;return m;}
+ELD.regen=C=>{const{fx,body,type,variant}=C;fx.regen=true;const b=body&&body.parent;if(!b)return;
+  const v=RGX.pick!=null?RGX.pick%RGX.V.length:rgxHash(type+':'+(RGX.n++))%RGX.V.length,base=type+'|'+variant+'|'+b.children.length+'|'+((body.geometry&&body.geometry.uuid)||body.children.length);
+  const S=rgxSurf(b,base),R=rgxRecipe(S,v,base+'|'+v),objs=[],st={v,objs,glow:[],dyn:[],shells:[],ring:null,acc:0,accT:0,pT:null,pk:0,env:0,sear:0,grow:1,ph:rgxHash(base)%628/100,hp0:null,emitN:0,S};
+  const put=(path,o)=>{const p=rgxPath(b,path);if(!p)return false;p.add(o);objs.push(o);return true;};
+  for(const x of R.stat)put(x.path,rgxMarkMesh(new THREE.Mesh(x.geo,rgxStat())));
+  for(const x of R.glow){const m=rgxMarkMesh(new THREE.Mesh(x.geo,rgxGlow(v,4)));if(put(x.path,m))st.glow.push(m);}
+  for(const d of R.dyn){const m=rgxMarkMesh(new THREE.Mesh(d.g,d.kind==='sprout'||d.kind==='heart'||d.kind==='wound'||d.kind==='shroom'?rgxGlow(v,4):rgxStat()));m.position.copy(d.pos);m.quaternion.copy(d.q);m.scale.copy(d.sc);
+    if(put(d.path,m))st.dyn.push({m,kind:d.kind,q0:d.q.clone(),s0:d.sc.clone(),ph:st.dyn.length*1.9});}
+  if(R.ring){const m=rgxMarkMesh(new THREE.Mesh(R.ring.g,rgxGlow(v,5)));m.position.set(R.ring.pos[0],R.ring.pos[1],R.ring.pos[2]);b.add(m);objs.push(m);st.ring=m;st.ringY=R.ring.pos[1];st.ringR=R.ring.R;}
+  for(const mp of R.shells){const o=rgxPath(b,mp);if(!o||!o.isMesh||!o.geometry)continue;const g=o.geometry;if(!g.boundingBox)g.computeBoundingBox();const c=g.boundingBox.getCenter(new THREE.Vector3()),k=1.045;
+    const sh=rgxMarkMesh(new THREE.Mesh(g,rgxShell(v,1)));sh.position.copy(c).multiplyScalar(1-k);sh.scale.setScalar(k);sh.visible=false;sh.renderOrder=2;o.add(sh);objs.push(sh);st.shells.push(sh);}
+  fx.rg=st;};
+const rgxLv=x=>Math.max(0,Math.min(RGX_GL,Math.round(x*RGX_GL)));
+ELA.regen=(fx,t,dt,moving,e)=>{const R=fx&&fx.rg;if(!R)return;const v=R.v;let hf=1,heal=0,sup=0;
+  if(e){hf=e.maxHp>0?Math.max(0,e.hp/e.maxHp):1;const on=e.regen>0&&!!e.elites&&e.elites.includes('regen');sup=!on||e.rgSup>1e-6?1:0;const ex=on&&!sup&&dt>0?e.maxHp*e.regen*dt:0;
+    heal=hf<.99999?ex:Math.max(0,Math.min(ex,e.hp-(R.hp0==null?e.hp:R.hp0)));R.hp0=e.hp;if(e.maxHp>0)heal/=e.maxHp;}
+  else{const c=(t*.17+R.ph)%1;hf=c<.12?1-c/.12*.65:.35+.65*Math.min(1,(c-.12)/.8);heal=c>=.12&&c<.92?dt*.025:0;sup=R.demoSear?1:0;}
+  R.sear+=((sup?1:0)-R.sear)*Math.min(1,dt*(sup?7:2.2));R.grow+=(hf-R.grow)*Math.min(1,dt*(hf>R.grow?1.6:6));
+  if(heal>0&&!sup)R.acc+=heal;R.accT+=dt;if(R.acc>=.03||(R.accT>=1.25&&R.acc>.004)){R.pk=Math.min(1,R.acc/.03);R.pT=0;R.acc=0;R.accT=0;R.emitN=Math.round(2+5*R.pk);R.pulses=(R.pulses||0)+1;}
+  else if(R.accT>=1.25&&R.acc<=.004){R.accT=0;}
+  if(R.pT!=null){R.pT+=dt;if(R.pT>.75)R.pT=null;}const env=R.pT==null?0:(R.pT<.12?R.pT/.12:Math.max(0,1-(R.pT-.12)/.63))*R.pk;R.env=env;
+  const sl=Math.round(env*8);for(const s of R.shells){s.visible=sl>0&&R.sear<.5;if(s.visible)s.material=rgxShell(v,sl);}
+  const sr=R.sear,live=1-sr,gm=g=>sr>.5?rgxSear(v):rgxGlow(v,rgxLv(g));
+  if(v===0){const gl=(.35+.25*Math.sin(t*3+R.ph))*live+env*.6;for(const m of R.glow)m.material=gm(gl);
+    for(const d of R.dyn){const g=Math.max(.22,R.grow),w=1+.05*Math.sin(t*2.5+d.ph);d.m.scale.copy(d.s0).multiplyScalar(g*w);d.m.quaternion.copy(d.q0);      if(sr>.01){RGX_T.v.set(1,0,0);RGX_T.q.setFromAxisAngle(RGX_T.v,sr*1.15);d.m.quaternion.multiply(RGX_T.q);}else{RGX_T.v.set(0,0,1);RGX_T.q.setFromAxisAngle(RGX_T.v,Math.sin(t*1.7+d.ph)*.12);d.m.quaternion.multiply(RGX_T.q);}
+      d.m.material=sr>.5?rgxSear(v):rgxGlow(v,rgxLv(.3+.3*(1-R.grow)+env*.7));}}
+  else if(v===1){const open=Math.max(.3,Math.min(1,(1-R.grow)*2.4+.3));for(const d of R.dyn){const fl=.5+.5*Math.sin(t*5+d.ph);d.m.scale.set(d.s0.x,d.s0.y*(.6+.4*open),d.s0.z*open);d.m.material=gm((.25+.5*open+.15*fl)*live+env*.5);}}
+  else if(v===2){const m=R.ring;if(m){R.rot=(R.rot||0)+dt*(.55*live+.02);m.rotation.y=R.rot;m.rotation.x=Math.sin(t*.8+R.ph)*.06+sr*.18;m.rotation.z=Math.cos(t*.6+R.ph)*.05;m.position.y=R.ringY+Math.sin(t*1.3+R.ph)*.012*R.S.u-sr*.05*R.S.H;m.material=gm(.45+.15*Math.sin(t*2+R.ph)+env*.5);}}
+  else if(v===3){const hr=R.grow<.995?1.5:.85;R.hb=(R.hb||0)+dt*hr*live;const x=R.hb%1,beat=Math.exp(-Math.pow(x*12,2))+.65*Math.exp(-Math.pow((x-.2)*12,2))+Math.exp(-Math.pow((x-1)*12,2));
+    for(const m of R.glow)m.material=gm((.32+.55*beat)*live+env*.4);for(const d of R.dyn){d.m.scale.copy(d.s0).multiplyScalar(1+.22*beat*live);d.m.material=gm(.2+.7*beat*live+env*.3);}}
+  else if(v===4){const gl=(.36+.16*Math.sin(t*1.6+R.ph))*live+env*.5;for(const m of R.glow)m.material=gm(gl);for(const d of R.dyn){const k=(1+.28*env+.04*Math.sin(t*2+d.ph))*(1-.4*sr);d.m.scale.copy(d.s0).multiplyScalar(k);d.m.material=gm(gl+.1);}}};
+/* in-game particles per variant: ambient, plus a puff on each heal pulse */
+ELP.regen=(e,f,dt)=>{const R=f&&f.rg;if(!R){if(f&&f.regen&&rnd()<dt*2.5)emit(1,{x:e.x+(rnd()-.5)*.25,y:e.y+e.hitY*(.3+rnd()*.5),z:e.z+(rnd()-.5)*.25,vy:.3,s:.04,s2:0,c:0x6aff5a,c2:0x1a5a1a,life:.7});return;}
+  const v=R.v,h=e.hitY,sz=Math.min(2.2,Math.max(1,h/.9)),pr=(n,o)=>{for(let i=0;i<n;i++)emit(o.add||0,Object.assign({x:e.x+(rnd()-.5)*.3*sz,y:e.y+h*(o.y0+rnd()*(o.y1-o.y0)),z:e.z+(rnd()-.5)*.3*sz},o.p()));};
+  if(R.sear>.5){if(R.searFx!==1){R.searFx=1;pr(Math.round(5*sz),{y0:.3,y1:.8,p:()=>({vx:(rnd()-.5)*.2,vy:.45,vz:(rnd()-.5)*.2,s:.05*sz,s2:.15*sz,c:0x4a4038,c2:0x2a2420,a:.35,life:.8})});pr(4,{add:1,y0:.3,y1:.8,p:()=>({vy:.6,s:.03,s2:0,c:0xffa040,c2:0xff3a10,life:.4})});}
+    if(rnd()<dt*3)pr(1,{y0:.4,y1:.8,p:()=>({vy:.35,s:.04*sz,s2:.1*sz,c:0x3a3430,c2:0x2a2420,a:.25,life:.7})});return;}
+  R.searFx=0;const hurtNow=R.grow<.995;
+  if(v===0){if(rnd()<dt*(hurtNow?3:1.4))pr(1,{add:1,y0:.4,y1:.95,p:()=>({vy:.3,s:.035,s2:0,c:0x8aff5a,c2:0x1a5a1a,life:.7})});if(R.emitN){pr(R.emitN,{add:1,y0:.35,y1:.9,p:()=>({vx:(rnd()-.5)*.3,vy:.45,vz:(rnd()-.5)*.3,s:.045,s2:0,c:0xb8ff7a,c2:0x2a8a2a,life:.8})});R.emitN=0;}}
+  else if(v===1){if(hurtNow&&rnd()<dt*4)pr(1,{y0:.35,y1:.85,p:()=>({vx:(rnd()-.5)*.08,vy:.32,vz:(rnd()-.5)*.08,s:.04*sz,s2:.13*sz,c:0xe8e0d8,c2:0xa8a098,a:.2,life:.95,drag:.4})});if(R.emitN){pr(R.emitN,{add:1,y0:.35,y1:.8,p:()=>({vy:.4,s:.035,s2:0,c:0xffb060,c2:0xff4a10,life:.5})});R.emitN=0;}}
+  else if(v===2){if(rnd()<dt*2)pr(1,{add:1,y0:.35,y1:.9,p:()=>({vx:(rnd()-.5)*.1,vy:.28,vz:(rnd()-.5)*.1,s:.035,s2:0,c:0xffe8a0,c2:0xc08a20,life:.9})});if(R.emitN){pr(R.emitN,{add:1,y0:.4,y1:.75,p:()=>({vx:(rnd()-.5)*.5,vy:.35,vz:(rnd()-.5)*.5,s:.04,s2:0,c:0xfff0c0,c2:0xffb030,life:.8})});R.emitN=0;}}
+  else if(v===3){if(hurtNow&&rnd()<dt*1.6)pr(1,{add:1,y0:.4,y1:.85,p:()=>({vx:(rnd()-.5)*.1,vy:-.12,vz:(rnd()-.5)*.1,s:.03,s2:0,c:0xff3a4a,c2:0x5a0010,life:.6})});if(R.emitN){pr(R.emitN,{add:1,y0:.4,y1:.8,p:()=>({vx:(rnd()-.5)*.3,vy:.2,vz:(rnd()-.5)*.3,s:.035,s2:0,c:0xff5060,c2:0x6a0010,life:.6})});R.emitN=0;}}
+  else if(v===4){if(rnd()<dt*(hurtNow?2.4:1.2))pr(1,{y0:.55,y1:1,p:()=>({vx:(rnd()-.5)*.15,vy:.18,vz:(rnd()-.5)*.15,s:.035*sz,s2:.09*sz,c:0xc8ffe0,c2:0x8ad0b0,a:.35,life:1.1,drag:.5})});if(R.emitN){pr(R.emitN+2,{y0:.55,y1:.95,p:()=>({vx:(rnd()-.5)*.45,vy:.25,vz:(rnd()-.5)*.45,s:.04*sz,s2:.12*sz,c:0xd8fff0,c2:0x8ad0b0,a:.4,life:1.1,drag:.6})});R.emitN=0;}}};
+/* counterplay: fire and burns stop every regeneration (elite or Starfall) for RGX.SUP s; the line in update reads e.rgSup */
+{const u=update;update=function(dt){if(dt>0)for(const e of enemies){if(!e.dead&&e.burn&&e.burn.t>0)e.rgSup=Math.max(e.rgSup||0,RGX.SUP);}
+  const r=u.apply(this,arguments);if(dt>0)for(const e of enemies){if(e.rgSup>0)e.rgSup=Math.max(0,e.rgSup-dt);}return r;};}
+/* ================= Shielded: the fitted hex bubble, ripples, cracks and the shatter ================= */
+let SHX=null;
+function shxInit(){if(SHX)return SHX;SHX={};
+  SHX.geo=new THREE.SphereGeometry(1,40,24);
+  SHX.mat=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uC:{value:new THREE.Color(0x4a8cff)},uE:{value:new THREE.Color(0xbfe0ff)},uK:{value:1}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+    vertexShader:'varying vec3 vP;varying vec3 vN;varying vec3 vV;void main(){vP=position;vec4 mv=modelViewMatrix*vec4(position,1.0);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
+    fragmentShader:'uniform float uT;uniform vec3 uC;uniform vec3 uE;uniform float uK;varying vec3 vP;varying vec3 vN;varying vec3 vV;'+
+      'float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}'+
+      'vec3 hx(vec2 p){vec2 s=vec2(1.0,1.7320508);vec4 hc=floor(vec4(p,p-vec2(0.5,1.0))/s.xyxy)+0.5;vec4 h=vec4(p-hc.xy*s,p-(hc.zw+0.5)*s);'+
+      'vec4 r=dot(h.xy,h.xy)<dot(h.zw,h.zw)?vec4(h.xy,hc.xy):vec4(h.zw,hc.zw+0.5);vec2 q=abs(r.xy);float d=0.5-max(dot(q,s*0.5),q.x);return vec3(d,h21(r.zw),0.0);}'+
+      'void main(){vec3 n=normalize(vP);vec3 w=pow(abs(n),vec3(4.0));w/=(w.x+w.y+w.z);float S=4.2;'+
+      'vec3 a=hx(vP.yz*S);vec3 b=hx(vP.zx*S+0.37);vec3 c=hx(vP.xy*S+0.71);'+
+      'float e=(1.0-smoothstep(0.0,0.055,a.x))*w.x+(1.0-smoothstep(0.0,0.055,b.x))*w.y+(1.0-smoothstep(0.0,0.055,c.x))*w.z;'+
+      'float id=a.y*w.x+b.y*w.y+c.y*w.z;float tw=pow(0.5+0.5*sin(uT*1.7+id*40.0),10.0);float fill=(smoothstep(0.0,0.3,a.x)*w.x+smoothstep(0.0,0.3,b.x)*w.y+smoothstep(0.0,0.3,c.x)*w.z)*tw;'+
+      'float fr=pow(1.0-abs(dot(normalize(vN),normalize(vV))),2.2);float sw=smoothstep(0.85,1.0,sin(vP.y*3.0-uT*1.3));'+
+      'vec3 col=uC*(0.035+0.42*fr)+uE*(e*(0.07+0.3*fr+0.12*sw)+fill*0.1);gl_FragColor=vec4(col*uK,1.0);}'});
+  /* ripple frames: a soft band on the unit sphere round +Z at a growing angle (vertex colours fade it at its edges) */
+  SHX.rip=[];for(let f=0;f<10;f++){const th=.07+f*.1,wd=.07+f*.018,rows=[[0,f===0?1:.18],[th-wd*2.2,f===0?1:.12],[th-wd,.55],[th,1],[th+wd*.6,0]],P=[],Cc=[],seg=28;
+    for(let j=0;j<5;j++)for(let i=0;i<=seg;i++){const a=i/seg*6.283,t=Math.max(0,rows[j][0]),r=1.012;P.push(Math.sin(t)*Math.cos(a)*r,Math.sin(t)*Math.sin(a)*r,Math.cos(t)*r);const k=rows[j][1];Cc.push(k,k,k);}
+    const I=[];for(let j=0;j<4;j++)for(let i=0;i<seg;i++){const a=j*(seg+1)+i,b=a+seg+1;I.push(a,b,a+1,a+1,b,b+1);}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3));g.setIndex(I);g.computeBoundingSphere();SHX.rip.push(g);}
+  SHX.ripM=[];for(let i=0;i<8;i++)SHX.ripM.push(new THREE.MeshBasicMaterial({color:0xc8e6ff,vertexColors:true,transparent:true,opacity:(i+1)/8,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+  /* cracks: jagged ribbons on the unit sphere, two sets (under 50% and under 25%) */
+  const rng=rgxRng(484),crack=(nSys)=>{const P=[],Cc=[];const v=new THREE.Vector3(),d=new THREE.Vector3(),sd=new THREE.Vector3();
+    const walk=(p,dir,n,w)=>{for(let k=0;k<n;k++){const q=p.clone().addScaledVector(dir,.13+rng()*.08).normalize();sd.crossVectors(q,p).normalize().multiplyScalar(w);
+        const a1=p.clone().add(sd).multiplyScalar(1.014),a2=p.clone().sub(sd).multiplyScalar(1.014),b1=q.clone().add(sd).multiplyScalar(1.014),b2=q.clone().sub(sd).multiplyScalar(1.014);
+        P.push(a1.x,a1.y,a1.z,a2.x,a2.y,a2.z,b1.x,b1.y,b1.z,b1.x,b1.y,b1.z,a2.x,a2.y,a2.z,b2.x,b2.y,b2.z);for(let i=0;i<6;i++)Cc.push(1,1,1);
+        dir.sub(q.clone().multiplyScalar(dir.dot(q))).add(new THREE.Vector3(rng()-.5,rng()-.5,rng()-.5).multiplyScalar(.9)).normalize();dir.sub(q.clone().multiplyScalar(dir.dot(q))).normalize();
+        if(rng()<.3&&n>3)walk(q.clone(),new THREE.Vector3(rng()-.5,rng()-.5,rng()-.5).normalize(),Math.floor(n/2),w*.7);p=q;w*=.9;}};
+    for(let s=0;s<nSys;s++){const p=new THREE.Vector3(rng()-.5,rng()*.9-.2,rng()-.5).normalize();for(let k=0;k<3;k++)walk(p.clone(),new THREE.Vector3(rng()-.5,rng()-.5,rng()-.5).normalize(),5+Math.floor(rng()*3),.011);}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3));g.computeBoundingSphere();return g;};
+  SHX.c1=crack(3);SHX.c2=crack(4);SHX.cM=new THREE.MeshBasicMaterial({color:0xcfe8ff,vertexColors:true,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  SHX.cM2=new THREE.MeshBasicMaterial({color:0xeaf6ff,vertexColors:true,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  SHX.flashM=SHX.mat.clone();SHX.flashM.uniforms={uT:SHX.mat.uniforms.uT,uC:{value:new THREE.Color(0x6aa8ff)},uE:{value:new THREE.Color(0xe8f4ff)},uK:{value:2.2}};
+  /* shards: curved glass triangles cut from an icosahedron (20 faces, or 80 for a big bubble), centred on their own centroid, with a thickness */
+  const shards=det=>{const ico=new THREE.IcosahedronGeometry(1,det),pa=ico.attributes.position,L=[];for(let f=0;f<pa.count/3;f++){const V=[0,1,2].map(k=>new THREE.Vector3(pa.getX(f*3+k),pa.getY(f*3+k),pa.getZ(f*3+k)));
+      const sub=[];const mid=(a,b)=>a.clone().add(b).normalize();const m01=mid(V[0],V[1]),m12=mid(V[1],V[2]),m20=mid(V[2],V[0]);sub.push([V[0],m01,m20],[m01,V[1],m12],[m20,m12,V[2]],[m01,m12,m20]);
+      const c=V[0].clone().add(V[1]).add(V[2]).divideScalar(3),P=[];const j=()=>.94+rng()*.08;
+      for(const t of sub){const o=t.map(p=>p.clone().multiplyScalar(j())),i=t.map(p=>p.clone().multiplyScalar(.965));P.push(...o[0].toArray(),...o[1].toArray(),...o[2].toArray(),...i[0].toArray(),...i[2].toArray(),...i[1].toArray());
+        for(let k=0;k<3;k++){const a=o[k],b=o[(k+1)%3],a2=i[k],b2=i[(k+1)%3];P.push(...a.toArray(),...a2.toArray(),...b.toArray(),...b.toArray(),...a2.toArray(),...b2.toArray());}}
+      for(let k=0;k<P.length;k+=3){P[k]-=c.x;P[k+1]-=c.y;P[k+2]-=c.z;}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.computeVertexNormals();g.computeBoundingSphere();L.push({g,c});}return L;};
+  SHX.sh20=shards(0);SHX.sh80=shards(1);
+  SHX.shM=new THREE.MeshPhongMaterial({color:0x9ccaff,emissive:0x2a5aff,emissiveIntensity:.55,specular:0xffffff,shininess:120,transparent:true,opacity:.5,depthWrite:false,flatShading:true,side:THREE.DoubleSide});
+  SHX.v=new THREE.Vector3();SHX.v2=new THREE.Vector3();SHX.q=new THREE.Quaternion();SHX.m=new THREE.Matrix4();return SHX;}
+ELD.shielded=C=>{const{B,g,fx,body,type,variant}=C;const X=shxInit(),b=body&&body.parent;let c,r;
+  if(b){const S=rgxSurf(b,type+'|'+variant+'|'+b.children.length+'|'+((body.geometry&&body.geometry.uuid)||body.children.length)),bb=S.bb,hx=(bb.max.x-bb.min.x)/2,hy=(bb.max.y-bb.min.y)/2,hz=(bb.max.z-bb.min.z)/2,M=Math.max(hx,hy,hz),pad=.035*S.u;
+    c=[S.cx,S.cy,S.cz];r=[Math.max(hx*1.16,M*.62)+pad,Math.max(hy*1.12,M*.6)+pad,Math.max(hz*1.16,M*.62)+pad];if(c[1]-r[1]<bb.min.y-.08*M)c[1]=bb.min.y-.08*M+r[1];}
+  else{const R=B.hy*.52;c=[0,B.hy*.5,C.fz||0];r=[R,R,R];}
+  const sh=new THREE.Group();sh.position.set(c[0],c[1],c[2]);sh.scale.set(r[0],r[1],r[2]);
+  const shell=new THREE.Mesh(X.geo,X.mat);shell.renderOrder=3;sh.add(shell);const c1=new THREE.Mesh(X.c1,X.cM),c2=new THREE.Mesh(X.c2,X.cM);c1.visible=c2.visible=false;sh.add(c1,c2);
+  const rip=[0,1].map(()=>{const m=new THREE.Mesh(X.rip[0],X.ripM[0]);m.visible=false;m.renderOrder=4;sh.add(m);return{m,age:9,k:0};});
+  sh.traverse(o=>{o.userData.rgx=1;o.userData.hlo=1;});g.add(sh);fx.shield=sh;fx.shx={g:sh,par:g,shell,c1,c2,rip,broken:false,lastHit:-9,demo:0,R:Math.max(r[0],r[1],r[2])};};
+function shxRipple(X,dir,k){let s=X.rip[0].age<=X.rip[1].age?X.rip[1]:X.rip[0];if(X.rip[0].age>=.45)s=X.rip[0];else if(X.rip[1].age>=.45)s=X.rip[1];
+  s.m.quaternion.setFromUnitVectors(RGX_T.Z,dir);s.age=0;s.k=k;}
+function shxHitDir(X,e,o,out){const src=o&&o.src;X.g.updateWorldMatrix(true,false);
+  if(src&&src.x!=null&&src.z!=null&&(src.x!==e.x||src.z!==e.z))out.set(src.x,(src.y||0)+.7,src.z);else out.copy(camera.position);
+  X.g.worldToLocal(out);if(out.lengthSq()<1e-6)out.set(0,.3,1);return out.normalize();}
+function shxShatter(e,X,o){if(X.broken)return;X.broken=true;const S=shxInit();if(!X.par)return;
+  X.par.updateWorldMatrix(true,false);X.g.updateMatrix();const W=new THREE.Matrix4().multiplyMatrices(X.par.matrixWorld,X.g.matrix),P=new THREE.Vector3(),Q=new THREE.Quaternion(),Sc=new THREE.Vector3();W.decompose(P,Q,Sc);
+  if(!isFinite(P.x)||typeof scene==='undefined')return;const big=Math.max(Sc.x,Sc.y,Sc.z)>1.3,L=big?S.sh80:S.sh20,room=Math.max(0,300-fx.length);
+  /* the crack-up: a bright copy of the bubble, cracked all over, swelling for 0.09 s */
+  const gh=new THREE.Group();gh.position.copy(P);gh.quaternion.copy(Q);gh.scale.copy(Sc);const s1=new THREE.Mesh(S.geo,S.flashM),k1=new THREE.Mesh(S.c1,S.cM2),k2=new THREE.Mesh(S.c2,S.cM2);gh.add(s1,k1,k2);scene.add(gh);
+  addFx(gh,.09,(f)=>{const k=1-f.life/f.max;gh.scale.copy(Sc).multiplyScalar(1+.06*k);});
+  /* then the shards fly off, spin and shrink */
+  const n=Math.min(L.length,room);for(let i=0;i<n;i++){const sd=L[i],m=new THREE.Mesh(sd.g,S.shM),wc=sd.c.clone().applyMatrix4(W);m.position.copy(wc);m.quaternion.copy(Q);m.scale.copy(Sc);m.visible=false;scene.add(m);
+    const vel=wc.clone().sub(P).normalize().multiplyScalar((1.1+rnd()*1.1)*Math.min(2,Math.max(1,Sc.x)));vel.y+=.5+rnd()*.6;const ax=new THREE.Vector3(rnd()-.5,rnd()-.5,rnd()-.5).normalize(),sp=(rnd()-.5)*14,life=.55+rnd()*.3,dl=.08;
+    addFx(m,life+dl,(f,dt)=>{const age=f.max-f.life;if(age<dl)return;m.visible=true;vel.y-=4.5*dt;m.position.addScaledVector(vel,dt);RGX_T.q.setFromAxisAngle(ax,sp*dt);m.quaternion.premultiply(RGX_T.q);const k=Math.max(0,1-Math.pow((age-dl)/life,1.6));m.scale.copy(Sc).multiplyScalar(k);});}
+  sprayP(1,P.x,P.y,P.z,big?26:14,{c:0xdff0ff,c2:0x3a6aff,sp:1.6*Math.max(1,Sc.x),up:.3,s:.04,s2:0,life:.5,g:1.5,r:Sc.x*.8});}
+ELA.shielded=(fx,t,dt,moving,e)=>{const X=fx&&fx.shx;if(!X){if(fx&&fx.shield){fx.shield.rotation.y+=dt*.5;}return;}
+  if(X.broken)return;if(e&&!e.dead&&e.bubble!==X.g){shxShatter(e,X,null);return;}
+  const S=shxInit();S.mat.uniforms.uT.value=t;X.shell.rotation.y+=dt*.12;
+  if(e){const f=e.maxShield>0?e.shield/e.maxShield:1;X.c1.visible=f<.5;X.c2.visible=f<.25;}
+  else{X.demo-=dt;if(X.demo<=0){X.demo=.9+Math.random()*.5;SHX.v.set(Math.random()*1.6-.8,Math.random()*.9-.3,.6+Math.random()*.4).normalize();shxRipple(X,SHX.v,.8);}X.c1.visible=!!X.demoCrack;X.c2.visible=X.demoCrack>1;}
+  for(const s of X.rip){if(s.age<.45){s.age+=dt;const k=Math.min(1,s.age/.45);s.m.visible=s.age<.45;s.m.geometry=S.rip[Math.min(9,Math.floor(k*10))];s.m.material=S.ripM[Math.max(0,Math.min(7,Math.round((1-k*k)*s.k*7)))];}else s.m.visible=false;}};
+/* hits ripple the bubble where they land; a break shatters it; fire stops regeneration */
+{const h0=hurt;hurt=function(e,amt,kind,o){if(!e||e.dead)return h0.apply(this,arguments);const X=e.eliteFx&&e.eliteFx.shx,s0=e.shield||0,b0=e.bubble;const r=h0.apply(this,arguments);
+  try{if((o&&o.el==='fire')||kind==='fire')e.rgSup=Math.max(e.rgSup||0,RGX.SUP);
+    if(X&&!X.broken){if(b0===X.g&&e.bubble!==X.g)shxShatter(e,X,o);else if(e.bubble===X.g&&s0-(e.shield||0)>0&&time-X.lastHit>=.1){X.lastHit=time;shxRipple(X,shxHitDir(X,e,o,SHX.v2),Math.min(1,.5+3*(s0-(e.shield||0))/Math.max(1,e.maxShield||1)));}}}catch(err){console.error(err);}
+  return r;};}
+/* ================= 3D elite markers ================= */
+const MKX={geo:{},halo:{},ph:0};
+function mkxGeo(a,i){const k=a+'|'+i;if(MKX.geo[k])return MKX.geo[k];const r0=.2+i*.085,r1=r0+.055,h=.022,rm=(r0+r1)/2,parts=[];
+  const prof=[[r0,0],[r1,0],[r1,.009],[r1-.013,h],[r0+.013,h],[r0,.009],[r0,0]].map(p=>new THREE.Vector2(p[0],p[1]));
+  const band=(ps,pl)=>{const g=new THREE.LatheGeometry(prof,Math.max(6,Math.round(48*pl/6.283)),ps,pl);parts.push({g:g.index?g.toNonIndexed():g,m:new THREE.Matrix4()});};
+  const at=(g,ang,r,y,rx,ry,rz,sx,sy,sz)=>{const g2=g.index?g.toNonIndexed():g;parts.push({g:g2,m:new THREE.Matrix4().compose(new THREE.Vector3(Math.sin(ang)*r,y,Math.cos(ang)*r),new THREE.Quaternion().setFromEuler(new THREE.Euler(rx||0,ang+(ry||0),rz||0,'YXZ')),new THREE.Vector3(sx||1,sy||1,sz||1))});};
+  if(a==='invisible'){for(let s=0;s<8;s++)band(s/8*6.283,6.283/8*.62);}else band(0,6.283);
+  const N={armored:8,swift:6,regen:6,shielded:4,giant:8}[a]||4;
+  for(let s=0;s<N;s++){const ang=s/N*6.283+(i?.3:0);
+    if(a==='armored')at(new THREE.IcosahedronGeometry(.011,0),ang,rm,h,0,0,0,1,.7,1);
+    else if(a==='swift'){at(new THREE.BoxGeometry(.006,.006,.026),ang,rm-.008,h+.002,0,.6);at(new THREE.BoxGeometry(.006,.006,.026),ang,rm+.008,h+.002,0,-.6);}
+    else if(a==='regen'){const lf=new THREE.OctahedronGeometry(1,0);at(lf,ang,s%2?r1-.002:r0+.002,h*.75,.25*(s%2?-1:1),Math.PI/2,0,.024,.006,.011);}
+    else if(a==='shielded')at(new THREE.CylinderGeometry(.015,.015,.009,6),ang,rm,h+.003);
+    else if(a==='giant')at(new THREE.ConeGeometry(.01,.032,5),ang,r1+.01,h*.5,Math.PI/2,0,0);
+    else if(a!=='invisible')at(new THREE.OctahedronGeometry(.011,0),ang,rm,h+.002);}
+  for(const p of parts)if(!p.g.attributes.normal)p.g.computeVertexNormals();return MKX.geo[k]=rgxMerge(parts);}
+function mkxHalo(i){if(MKX.halo[i])return MKX.halo[i];const r0=.2+i*.085,r1=r0+.055,rm=(r0+r1)/2,rows=[[r0-.05,0],[rm,1],[r1+.075,0]],seg=48,P=[],Cc=[],I=[];
+  for(let j=0;j<3;j++)for(let s=0;s<=seg;s++){const a=s/seg*6.283;P.push(Math.sin(a)*rows[j][0],0,Math.cos(a)*rows[j][0]);const k=rows[j][1];Cc.push(k,k,k);}
+  for(let j=0;j<2;j++)for(let s=0;s<seg;s++){const a=j*(seg+1)+s,b=a+seg+1;I.push(a,a+1,b,a+1,b+1,b);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3));g.setIndex(I);g.computeBoundingSphere();return MKX.halo[i]=g;}
+eliteRing=function(a,i){const c=(AFFIX[a]||{c:0xffffff}).c;
+  const ring=new THREE.Mesh(mkxGeo(a,i),new THREE.MeshPhongMaterial({color:c,emissive:c,emissiveIntensity:.2,specular:0x5a5a5a,shininess:50,flatShading:true,transparent:true,opacity:.85}));ring.position.y=.004+i*.003;
+  const h=new THREE.Mesh(mkxHalo(i),new THREE.MeshBasicMaterial({color:c,vertexColors:true,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false}));h.position.y=.003;h.renderOrder=1;ring.add(h);
+  ring.userData.mkx={h,a,ph:(MKX.ph++)*1.7};ring.userData.rgx=1;h.userData.rgx=1;return ring;};
+ELA.mkx=(fx,t,dt,moving,e)=>{if(!e)return;for(const r of [e.aura,e.aura2]){const u=r&&r.userData.mkx;if(!u||!r.material)continue;u.h.material.opacity=.5*Math.min(1,r.material.opacity/.85)*(.8+.2*Math.sin(t*2.2+u.ph));r.material.emissiveIntensity=.17+.07*Math.sin(t*2.2+u.ph);}};
+/* clean-up: the second marker's material and both glows are per foe (the base already disposes the first marker's material) */
+{const re=removeEnemy;removeEnemy=function(e){const r=re.apply(this,arguments);try{for(const a of [e.aura,e.aura2]){const u=a&&a.userData&&a.userData.mkx;if(u&&u.h.material){u.h.material.dispose();}}if(e.aura2&&e.aura2.material&&e.aura2!==e.aura)e.aura2.material.dispose();}catch(err){}return r;};}
+/* the Bestiary: the Elite button steps through the five regeneration looks, the label names the look, and a toast tells the counterplay */
+{const ge=galElite;galElite=function(step){const cyc=()=>{const CY=(GV.type==='knight'||GV.type==='monk')?ELITE_CYCLE.filter(c=>!c.includes('armored')):ELITE_CYCLE;return CY;};
+  if(GV){GV.items.forEach(it=>{const R=it.fx&&it.fx.rg;if(R)for(const o of R.objs)if(o.parent)o.parent.remove(o);});
+    if(step){const CY=cyc(),cur=CY[GV.eIdx||0]||[];if(cur.includes('regen')&&(GV.rgI||0)<RGX.V.length-1){GV.rgI=(GV.rgI||0)+1;GV.eIdx=((GV.eIdx||0)-1+CY.length)%CY.length;}else GV.rgI=0;}else GV.rgI=0;}
+  RGX.pick=GV?(GV.rgI||0):null;let r;try{r=ge.apply(this,arguments);}finally{RGX.pick=null;}
+  try{if(GV){const affs=cyc()[GV.eIdx||0]||[],el=$('#gvElite');if(affs.includes('regen')){const V=RGX.V[GV.rgI||0];el.textContent=el.textContent.replace('Regenerating','Regenerating ('+V.n+')');
+      el.title='Regenerating: heals 2.5% of its health a second. Fire and burns stop it for 2 s.';if(step)toast('Regenerating ('+V.n+'): heals 2.5% of its health a second. Fire and burns stop it for 2 s.');}else el.title='';}}catch(e){console.error(e);}
+  return r;};}
+{const ng=newGame;newGame=function(){RGX.n=0;return ng.apply(this,arguments);};}
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
