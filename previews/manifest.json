@@ -3466,15 +3466,15 @@
   "wormhole-1": {
    "k": "wormhole",
    "L": 1,
-   "len": 13.13,
+   "len": 11.97,
    "seed": 1,
-   "bytes": 1734864,
-   "note": "Foes at the road’s edges: the first wormhole yawns wider and draws in every foe within 1.6 tiles.",
+   "bytes": 1422951,
+   "note": "Here a second road joins the first: the first wormhole yawns wider and draws in foes from both roads (knights from the other road, labelled).",
    "ev": {
     "opts": 1,
     "cast": 1,
-    "cross": 6,
-    "collapse": 2,
+    "cross": 9,
+    "collapse": 6,
     "end": 1
    }
   },
