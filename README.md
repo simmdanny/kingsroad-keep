@@ -2576,3 +2576,18 @@ Simon: "we have to rework how money earning buildings gain masteries, they shoul
   - kill XP is unchanged, and the cards say the right thing.
 
   `tests/mastery-test.js` now uses the Bell Tower as its support building.
+
+
+## The Tempest's winds, smoothed (v486)
+Simon: "The inside winds of the tempest are cut, look unfinished, can you smooth it out more please?"
+- **The cause:** the inner face of the eye wall (the open cone `wface`/`wfM` in `tpEye`).
+  - Its cloud was a thresholded fbm (smoothstep .34 to .64) read in an angle measured from the camera. It came out as torn, hard-edged blotches.
+  - The camera-side cut then left only two chunks of it.
+- **The change, in that shader only:**
+  - The noise wraps round the circle (N=7 cells, world angle), so the wall has no seam anywhere.
+  - It is stretched into long wind streaks that climb as they turn (slant .32 a tile), with a domain warp to keep them uneven.
+  - A thin veil (24%) lies between the streaks, so the wall reads as one sheet of wind, with finer wind lines on top for the light.
+  - It fades into the camera-side cut more softly: smoothstep -.12 to .62 (it was -.05 to .5).
+  - Its overall opacity is 0.8 of before, so the veil does not thicken the wall.
+- The puffs, the cloud bands, the rain bands, the storm deck and the storm clouds are untouched. So are all the numbers and the timing.
+- **Tests:** tpeye 38/38, tempest 43/43, tpm 36/36, tpx 17/17, ancient 46/46, perf 34/34. The 6 tempest preview clips are re-recorded.
