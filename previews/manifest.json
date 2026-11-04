@@ -3622,7 +3622,7 @@
    "L": 1,
    "len": 12.83,
    "seed": 1,
-   "bytes": 3204902,
+   "bytes": 3470016,
    "note": "The crown bolt strikes every foe on the field and leaves them Charged.",
    "ev": {
     "opts": 1,
@@ -3637,7 +3637,7 @@
    "L": 0,
    "len": 12.83,
    "seed": 1,
-   "bytes": 3203503,
+   "bytes": 3455529,
    "note": "The hurricane forms round the hero, its eye wall rising (the first 13 seconds of the cast)."
   },
   "tempest-2": {
@@ -3645,7 +3645,7 @@
    "L": 2,
    "len": 12.83,
    "seed": 1,
-   "bytes": 3379686,
+   "bytes": 3764398,
    "note": "Every volley locks onto one more foe.",
    "ev": {
     "opts": 1,
@@ -3660,7 +3660,7 @@
    "L": 5,
    "len": 5.5,
    "seed": 2,
-   "bytes": 1778182,
+   "bytes": 2008438,
    "note": "The last thunder, and the hero’s fall rolls out over the whole field (the clip joins it there).",
    "ev": {
     "opts": 1,
@@ -3678,7 +3678,7 @@
    "L": 3,
    "len": 12.83,
    "seed": 1,
-   "bytes": 3538287,
+   "bytes": 3906964,
    "note": "Each precise strike leaps on further and harder.",
    "ev": {
     "opts": 1,
@@ -3693,7 +3693,7 @@
    "L": 4,
    "len": 12.83,
    "seed": 1,
-   "bytes": 3608587,
+   "bytes": 3992688,
    "note": "The lightning racing round the eye wall strikes the foes it passes.",
    "ev": {
     "opts": 1,

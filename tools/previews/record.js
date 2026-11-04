@@ -131,7 +131,7 @@ async function openPage(browser) {
     Math.random = gameR; window.__split = () => { Math.random = function () { return B(); }; }; window.__seed = n => { A = mk(n); B = mk((n * 7919) ^ 0x5bd1e995); }; });
   const page = await ctx.newPage(); const errors = [];
   page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !/ERR_FAILED|Failed to load resource/.test(m.text())) errors.push(m.text()); });
-  await page.goto('http://localhost:8771/src/kingsroad-keep.html', { waitUntil: 'load', timeout: 120000 });
+  await page.goto(process.env.PV_URL || 'http://localhost:8771/src/kingsroad-keep.html', { waitUntil: 'load', timeout: 120000 });
   await page.waitForFunction(() => window.__kk && typeof THREE !== 'undefined', null, { timeout: 90000 });
   const ev = c => page.evaluate(c => __kk.ev(c), c);
   await page.evaluate(() => window.__split());
