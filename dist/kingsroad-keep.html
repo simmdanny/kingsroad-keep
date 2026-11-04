@@ -35485,11 +35485,13 @@ ARMOR_D.ram=C=>{const v=C.variant|0;arxDress(C,'ram:'+v+':'+C.body.geometry.uuid
   const st=[{m:AX.IR,m2:AX.IR2,m3:0x767c84,r:AX.RV},{m:0xb08040,m2:0x8a6030,m3:0xa07438,r:0xe0c080},{m:AX.BK,m2:AX.BK2,m3:0x2e3034,r:AX.IR},{m:AX.IR,m2:AX.IR2,m3:0x767c84,r:AX.GO},{m:AX.IR,m2:AX.IR2,m3:0x767c84,r:AX.RV}][v];
   /* iron sheets over each roof plane (planes at x +-.1, y .4, tilted .5), overlapping down the slope, with rivet rows and a ridge cap; gaps left for the gem cradle and the banner pole */
   const gap=z=>v===3?Math.abs(z)<.07:v===4?Math.abs(z+.2)<.035:false;
+  /* a thick roof (the Highlands' sheepskins or heather) lifts the sheets: measured at the middle of each plane */
+  const rm=arxMeas(C.body.geometry,.36,.62,.13,0,.3,.07),lift=rm.n?Math.max(0,Math.min(.05,rm.y1-.418)):0;
   [-1,1].forEach(s=>{const c=Math.cos(.5),sn=Math.sin(.5),R=(u,n,z)=>[s*(.1+u*c)-s*n*sn*0,.4-u*sn+n*c,z];/* u along the slope (outwards), n along the plane normal */
-    for(let j=0;j<3;j++)for(let i=0;i<4;i++){const u=-.08+j*.075,z=-.25+i*.165;if(gap(z))continue;const n=.018+j*.004,X=s*(.1+u*c)+s*n*sn,Y=.4-u*sn+n*c;P('body',box(.085,.006,.17),(i+j)%2?st.m:st.m3,X,Y,z,0,0,s*-.5+s*-.06);
+    for(let j=0;j<3;j++)for(let i=0;i<4;i++){const u=-.08+j*.075,z=-.25+i*.165;if(gap(z))continue;const n=.018+j*.004+lift*.88,X=s*(.1+u*c)+s*n*sn,Y=.4-u*sn+n*c;P('body',box(.085,.006,.17),(i+j)%2?st.m:st.m3,X,Y,z,0,0,s*-.5+s*-.06);
       for(let q=0;q<4;q++)if(!gap(z-.06+q*.04))P('body',ico(.0055,0),st.r,X+s*.03*c+s*.004*sn,Y-.03*sn+.004*c,z-.06+q*.04);}});
-  for(let i=0;i<6;i++){const z=-.3+i*.12;if(gap(z))continue;P('body',axShell(.024,.024,.11,6,-1.1,2.2),st.m2,0,.468,z,Math.PI/2,0,0,1,1,1);}
-  if(v===2)for(let i=0;i<7;i++){const z=-.3+i*.1;P('body',cone(.009,.05,4),0x8a8e96,0,.5,z);}
+  for(let i=0;i<6;i++){const z=-.3+i*.12;if(gap(z))continue;P('body',axShell(.024,.024,.11,6,-1.1,2.2),st.m2,0,.468+lift,z,Math.PI/2,0,0,1,1,1);}
+  if(v===2)for(let i=0;i<7;i++){const z=-.3+i*.1;P('body',cone(.009,.05,4),0x8a8e96,0,.5+lift,z);}
   /* riveted bands round the posts and the rails */
   [-1,1].forEach(s=>{for(const z of[-.25,0,.25])for(const y of[.17,.3]){P('body',box(.042,.012,.042),st.m2,s*.16,y,z);P('body',ico(.005,0),st.r,s*.182,y,z);}
     for(const z of[-.29,.29])P('body',box(.046,.046,.012),st.m2,s*.16,.13,z);
