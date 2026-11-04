@@ -2522,3 +2522,21 @@ Simon: "Why are the previews still not how they should be?", then "Yes, record t
 - The recording was split across six cloud sessions (four browsers each) and merged here; `previews/manifest.json` lists all 432 clips (294 before).
 - Known limits: Gaia's The Keep Drinks Deep heals the keep, which is off camera. Curse of the Blood Moon's Blood Price needs other great scrolls sealed on the hero, which the stage does not set up.
 - Tests: `tests/mpv-test.js` (in run-all as 'mpv'): the 23 scrolls (8 Mythic, 7 Ancient, 8 Secret); a clip for every level and every file present; lengths 3-17 s; a caption on every mastery clip; every mastery clip logged its mastery at work, and no clip without one did; the changelog.
+
+## The Primordial Tempest, a hurricane seen from above (v477)
+Simon: "make the primordial tempest 10x better" (its visuals). From the game's camera the v465 storm read as a dim board, the sigil and a smudge of cloud on the far side of the hero (its eye wall is cut away on the camera's side). Now a hurricane fills the sky over the board. Looks only: `tpxBuild` uses no game random and hurts no foe, and the Tempest strikes exactly as before.
+
+| Piece | What it does |
+|---|---|
+| The storm deck | One plane 5.6 over the board, its cloud drawn by the shader. Three spiral arms of storm cloud (fbm noise in a frame turned with the spin, a fixed log-spiral twist, a finer inner layer turning a little faster) round a clear eye, a dense overcast and a bright eye wall round it. Lit from above (the density a little toward the light), dark undersides. At most 70% opaque, so the board reads through it. |
+| The eye frames the hero | The eye's centre is where the line from the camera to the hero crosses the deck, worked out every frame, so the lifted hero is always seen through it. |
+| Lightning in the cloud | Each strike lights the cloud above it from within (8 flashes at once, each where the camera sees the strike through the deck), sheet lightning lights the whole deck, and thin filaments crawl along the arms. |
+| The wind and rain sheet | Fast streaks swirling into the eye, 2.4 over the ground. |
+| Strikes | Every bolt that lands leaves a flare of light rising off the ground and a glowing violet scorch (pools of 16 each). |
+| The hero | A bright core of light and a halo while the hero is lifted. |
+| The storm's life | It gathers (the eye closes from 7 to 2.3 tiles as the arms are drawn in), flashes white and spins up at the crown bolt, winds tight and bright and spins three times as fast before the last thunder, and blows outward and clears at the fall. |
+| The masteries | Mastery 2's bands across the whole field: the arms reach across the whole board. The full hurricane (Mastery 5): denser, faster, more lightning in the cloud. |
+
+- Hooks in `castTempest`: `tpxBuild` beside `tpEye`, `TX.step` each frame, `TX.strike` in `hit`, `TX.crown` and `TX.fall` in those bolts, `TX.end` when the storm ends.
+- The 6 preview clips of the Tempest are re-recorded with it.
+- Tests: `tests/tpx-test.js` (13, in run-all as 'tpx'): looks only (no random, no damage); nothing before the cast; the deck, the sheet and the core in the storm's group; it gathers and its eye closes; the eye frames the hero through the deck; the core; strikes light it; it winds tight and spins faster before the last thunder; it blows out at the fall and is gone after; the full hurricane is wider; it renders through a whole cast; the changelog. tempest, tpeye, tpm, ancient and perf pass.
