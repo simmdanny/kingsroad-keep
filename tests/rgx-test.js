@@ -9,13 +9,22 @@ const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 try{
   start();
   ok('the module is there: five regeneration looks, the shield and the marker',typeof rgxSurf==='function'&&typeof shxShatter==='function'&&typeof mkxGeo==='function'&&RGX.V.length===5,RGX.V.map(v=>v.n).join(', '));
-  /* every look on every unit, troops and bosses */
+  /* every look on every model variant of every unit, troops and bosses (no random variant: each one is looped) */
   {const types=GAL_UNITS.filter(t=>EN[t]),bad=[];let n=0;
-   for(const t of types)for(let v=0;v<5;v++){try{RGX.pick=v;const e=spawn(t,['regen'],120);RGX.pick=null;const R=e.eliteFx&&e.eliteFx.rg;n++;
-       if(!R||R.v!==v)bad.push(t+':'+v+' no look');else{const parts=R.objs.filter(o=>o.parent).length;if(parts<1||(!R.glow.length&&!R.dyn.length&&!R.ring))bad.push(t+':'+v+' '+parts+' parts');
-         for(const o of R.objs){let p=o;while(p&&p!==e.g)p=p.parent;if(p!==e.g){bad.push(t+':'+v+' piece off the foe');break;}}}
-       for(let k=0;k<4;k++)update(.05);}catch(err){bad.push(t+':'+v+' '+err.message);}finally{RGX.pick=null;}clean();}
-   ok('each of the five looks dresses every unit, troops and bosses, and is fixed to the foe ('+types.length+' units)',!bad.length&&n>=types.length*5,bad.slice(0,6).join('; ')+' n='+n);}
+   for(const t of types){const nv=Math.max(1,unitVariants(t).length);for(let mv=0;mv<nv;mv++)for(let v=0;v<5;v++){try{RGX.pick=v;spawnEnemy({type:t,v:mv,elite:['regen'],invOK:true},120);RGX.pick=null;const e=enemies[enemies.length-1];e.spd=0;const R=e.eliteFx&&e.eliteFx.rg;n++;
+       if(!R||R.v!==v)bad.push(t+'#'+mv+':'+v+' no look');else{const parts=R.objs.filter(o=>o.parent&&!R.shells.includes(o)).length;if(parts<1||R.n<1||(!R.glow.length&&!R.dyn.length&&!R.ring))bad.push(t+'#'+mv+':'+v+' '+parts+' parts');
+         for(const o of R.objs){let p=o;while(p&&p!==e.g)p=p.parent;if(p!==e.g){bad.push(t+'#'+mv+':'+v+' piece off the foe');break;}}}
+       if(mv===0)for(let k=0;k<4;k++)update(.05);}catch(err){bad.push(t+'#'+mv+':'+v+' '+err.message);}finally{RGX.pick=null;}clean();}}
+   ok('each of the five looks places pieces on every model variant of every unit, troops and bosses, fixed to the foe ('+types.length+' units)',!bad.length&&n>=types.length*5,bad.slice(0,6).join('; ')+' n='+n);}
+  /* fallbacks: a cached recipe that does not fit this foe's tree is rebuilt from the foe itself; a model with no solid mesh still gets its look */
+  {RGX.pick=1;spawnEnemy({type:'ram',v:0,elite:['regen']},40);RGX.pick=null;const e0=enemies[enemies.length-1],k=[...RGX.cache.keys()].find(x=>x.startsWith('ram|'+e0.variant+'|')&&x.endsWith('|1'));clean();
+   const R0=RGX.cache.get(k),bk=R0&&{stat:R0.stat,glow:R0.glow,dyn:R0.dyn,ring:R0.ring};if(R0){R0.stat=R0.stat.map(x=>({path:[99],geo:x.geo}));R0.glow=R0.glow.map(x=>({path:[99],geo:x.geo}));R0.dyn=R0.dyn.map(x=>Object.assign({},x,{path:[99]}));}
+   RGX.pick=1;spawnEnemy({type:'ram',v:0,elite:['regen']},40);RGX.pick=null;const e=enemies[enemies.length-1],R=e.eliteFx.rg,own=R.own?R.own.length:0;let disp=0;if(R.own)R.own.forEach(g=>g.addEventListener('dispose',()=>disp++));
+   if(R0)Object.assign(R0,bk);removeEnemy(e);
+   ok('a cached look that does not fit the foe is rebuilt from the foe itself (Troll-blood ram), and its own geometry is freed with it',!!R0&&R.n>0&&own>0&&disp===own,'key '+!!R0+', '+R.n+' pieces, '+own+' own, '+disp+' freed');clean();}
+  {const bad=[];for(let v=0;v<5;v++){const b=new THREE.Group(),body=new THREE.Mesh(new THREE.BoxGeometry(.3,.6,.3),new THREE.MeshBasicMaterial({color:0x888888}));body.position.y=.3;b.add(body);const fx={};
+     RGX.pick=v;try{ELD.regen({type:'__nobody'+v,variant:0,affs:['regen'],fx,body,B:EBODY.soldier,g:new THREE.Group(),fz:0,tw:.1});}catch(err){bad.push(v+' '+err.message);}finally{RGX.pick=null;}if(!fx.rg||!(fx.rg.n>0))bad.push(v+' no pieces');}
+   ok('a model with no solid mesh to sample still gets every look (a box round its bounds)',!bad.length,bad.join('; '));}
   /* the look is picked per foe from its spawn: varied, and the same again in a new run */
   {const seq=()=>{start();const L=[];for(let i=0;i<20;i++){const e=spawn(i%2?'soldier':'peasant',['regen']);L.push(e.eliteFx.rg.v);}clean();return L;};const A=seq(),B=seq();
    ok('the look is chosen per foe from its spawn (all five appear in 20 foes, and a new run repeats it)',new Set(A).size===5&&A.join()===B.join(),A.join(''));}
