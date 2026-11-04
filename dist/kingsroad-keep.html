@@ -35924,7 +35924,7 @@ const rgxSear=v=>rgxMat('s'+v,()=>new THREE.MeshPhongMaterial({vertexColors:true
 const rgxShell=(v,L)=>rgxMat('p'+v+'_'+L,()=>new THREE.MeshBasicMaterial({color:RGX.V[v].pulse,transparent:true,opacity:.022*L,blending:THREE.AdditiveBlending,depthWrite:false}));
 const RGX_GL=11;
 /* the model's surface in b space: triangles of its biggest solid meshes (cached per model) */
-function rgxSurf(b,key){if(RGX.surf.has(key))return RGX.surf.get(key);
+function rgxSurf(b,key,nc){if(!nc&&RGX.surf.has(key))return RGX.surf.get(key);
   b.updateWorldMatrix(true,true);const inv=new THREE.Matrix4().copy(b.matrixWorld).invert(),bb=new THREE.Box3(),v=new THREE.Vector3(),L=[];
   const hidden=o=>{for(let p=o;p&&p!==b;p=p.parent)if(!p.visible)return true;return false;};
   b.traverse(o=>{if(!o.isMesh||o.isInstancedMesh||o.userData.rgx||o.userData.hlo)return;const m=Array.isArray(o.material)?o.material[0]:o.material;
@@ -35938,10 +35938,16 @@ function rgxSurf(b,key){if(RGX.surf.has(key))return RGX.surf.get(key);
     const path=[];for(let p=o.parent;p&&p!==b;p=p.parent){if(!p.parent)break;path.unshift(p.parent.children.indexOf(p));}
     const mpath=path.concat([o.parent.children.indexOf(o)]);const P=new THREE.Matrix4().multiplyMatrices(inv,o.parent.matrixWorld);
     ms.push({path,mpath,T,N:Nn,A,area:tot,pinv:P.clone().invert()});}
-  ms.sort((x,y)=>y.area-x.area);const top=ms.filter((m,i)=>i<3&&m.area>=ms[0].area*.2);for(const m of top)m.w=m.area*(m.mpath.length===1&&m.mpath[0]===0?3:1);
+  ms.sort((x,y)=>y.area-x.area);if(bb.isEmpty()){b.updateWorldMatrix(true,true);const bx=new THREE.Box3().setFromObject(b);if(!bx.isEmpty())bb.copy(bx.applyMatrix4(inv));}
+  if(!ms.length||!(ms[0].area>0))ms.unshift(rgxBoxSurf(bb.isEmpty()?new THREE.Box3(new THREE.Vector3(-.1,0,-.1),new THREE.Vector3(.1,.5,.1)):bb));
+  const top=ms.filter((m,i)=>i<3&&m.area>=ms[0].area*.2);for(const m of top)m.w=m.area*(m.mpath&&m.mpath.length===1&&m.mpath[0]===0?3:1);
   if(bb.isEmpty())bb.set(new THREE.Vector3(-.1,0,-.1),new THREE.Vector3(.1,.5,.1));
   const S={bb,H:Math.max(.05,bb.max.y-bb.min.y),cx:(bb.min.x+bb.max.x)/2,cy:(bb.min.y+bb.max.y)/2,cz:(bb.min.z+bb.max.z)/2,ms:top,all:ms,total:top.reduce((s,m)=>s+m.w,0)};
-  const Lx=Math.max(S.H,bb.max.x-bb.min.x,bb.max.z-bb.min.z);S.u=Math.max(.5,Math.min(3.4,Lx/.75));RGX.surf.set(key,S);return S;}
+  const Lx=Math.max(S.H,bb.max.x-bb.min.x,bb.max.z-bb.min.z);S.u=Math.max(.5,Math.min(3.4,Lx/.75));if(!nc)RGX.surf.set(key,S);return S;}
+/* a stand-in surface when a model has no solid mesh to sample: the 12 triangles of a box round its bounds, on b itself */
+function rgxBoxSurf(bb){const g=new THREE.BoxGeometry(1,1,1),c=bb.getCenter(new THREE.Vector3()),z=bb.getSize(new THREE.Vector3()).max(new THREE.Vector3(.05,.05,.05)).multiplyScalar(.9),pa=g.attributes.position,ix=g.index,nt=ix.count/3,T=new Float32Array(nt*9),N=new Float32Array(nt*3),A=new Float32Array(nt);let tot=0;const a=new THREE.Vector3(),b2=new THREE.Vector3(),d=new THREE.Vector3();
+  for(let t=0;t<nt;t++){for(let k=0;k<3;k++){const i=ix.getX(t*3+k);T[t*9+k*3]=c.x+pa.getX(i)*z.x;T[t*9+k*3+1]=c.y+pa.getY(i)*z.y;T[t*9+k*3+2]=c.z+pa.getZ(i)*z.z;}a.set(T[t*9],T[t*9+1],T[t*9+2]);b2.set(T[t*9+3],T[t*9+4],T[t*9+5]).sub(a);d.set(T[t*9+6],T[t*9+7],T[t*9+8]).sub(a);b2.cross(d);tot+=b2.length()/2;A[t]=tot;b2.normalize();N[t*3]=b2.x;N[t*3+1]=b2.y;N[t*3+2]=b2.z;}
+  g.dispose();return{path:[],mpath:null,T,N,A,area:tot,pinv:new THREE.Matrix4()};}
 /* sample a point on the surface: opts {y0,y1 (fractions of the height), ny (min normal y)}; returns {mi,p,n} */
 function rgxSample(S,rng,o){o=o||{};const out={mi:0,p:new THREE.Vector3(),n:new THREE.Vector3()};if(!S.ms.length){out.p.set(S.cx,S.cy,S.cz);out.n.set(0,1,0);return out;}
   for(let tries=0;tries<60;tries++){let r=rng()*S.total,mi=0;while(mi<S.ms.length-1&&r>S.ms[mi].w){r-=S.ms[mi].w;mi++;}const m=S.ms[mi],A=m.A;let lo=0,hi=A.length-1;const x=rng()*m.area;while(lo<hi){const md=(lo+hi)>>1;if(A[md]<x)lo=md+1;else hi=md;}
@@ -36007,15 +36013,18 @@ const RGX_B=[
 /* resolve a path of child indices under b */
 const rgxPath=(b,p)=>{let o=b;for(const i of p){o=o&&o.children[i];if(!o)return null;}return o;};
 /* build (or fetch) a variant's recipe for this model: merged static geometry per parent, dynamic piece transforms (parent space), shell meshes */
-function rgxRecipe(S,v,key){if(RGX.cache.has(key))return RGX.cache.get(key);const rng=rgxRng(rgxHash(key)),K={stat:[],glow:[],dyn:[],ring:null};RGX_B[v](S,rng,K);
+function rgxRecipe(S,v,key,nc){if(!nc&&RGX.cache.has(key))return RGX.cache.get(key);const rng=rgxRng(rgxHash(key)),K={stat:[],glow:[],dyn:[],ring:null};RGX_B[v](S,rng,K);
   const by=(L)=>{const G=new Map();for(const p of L){const m=S.ms[p.mi];if(!m)continue;const k=m.path.join('.');if(!G.has(k))G.set(k,{path:m.path,pinv:m.pinv,parts:[]});G.get(k).parts.push({g:p.g,m:new THREE.Matrix4().multiplyMatrices(m.pinv,p.M)});}
     return[...G.values()].map(x=>({path:x.path,geo:rgxMerge(x.parts)}));};
   const R={stat:by(K.stat),glow:by(K.glow),dyn:K.dyn.map(p=>{const m=S.ms[p.mi];if(!m)return null;const L=new THREE.Matrix4().multiplyMatrices(m.pinv,p.M),pos=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();L.decompose(pos,q,sc);return{path:m.path,g:p.g,kind:p.kind,pos,q,sc};}).filter(Boolean),
-    ring:K.ring,shells:S.ms.map(m=>m.mpath)};RGX.cache.set(key,R);return R;}
+    ring:K.ring,shells:S.ms.map(m=>m.mpath).filter(Boolean)};if(!nc)RGX.cache.set(key,R);return R;}
 function rgxMarkMesh(m){m.userData.rgx=1;m.castShadow=false;return m;}
 ELD.regen=C=>{const{fx,body,type,variant}=C;fx.regen=true;const b=body&&body.parent;if(!b)return;
   const v=RGX.pick!=null?RGX.pick%RGX.V.length:rgxHash(type+':'+(RGX.n++))%RGX.V.length,base=type+'|'+variant+'|'+b.children.length+'|'+((body.geometry&&body.geometry.uuid)||body.children.length);
-  const S=rgxSurf(b,base),R=rgxRecipe(S,v,base+'|'+v),objs=[],st={v,objs,glow:[],dyn:[],shells:[],ring:null,acc:0,accT:0,pT:null,pk:0,env:0,sear:0,grow:1,ph:rgxHash(base)%628/100,hp0:null,emitN:0,S};
+  /* the cached recipe first; if no piece lands on this foe (its tree differs from the cached model), rebuild from this very model, uncached */
+  let st=rgxBuild(b,v,base,false);if(!st.n){for(const o of st.objs)if(o.parent)o.parent.remove(o);st=rgxBuild(b,v,base,true);}fx.rg=st;};
+function rgxBuild(b,v,base,nc){
+  const S=rgxSurf(b,base,nc),R=rgxRecipe(S,v,base+'|'+v,nc),objs=[],st={v,objs,glow:[],dyn:[],shells:[],ring:null,acc:0,accT:0,pT:null,pk:0,env:0,sear:0,grow:1,ph:rgxHash(base)%628/100,hp0:null,emitN:0,S};
   const put=(path,o)=>{const p=rgxPath(b,path);if(!p)return false;p.add(o);objs.push(o);return true;};
   for(const x of R.stat)put(x.path,rgxMarkMesh(new THREE.Mesh(x.geo,rgxStat())));
   for(const x of R.glow){const m=rgxMarkMesh(new THREE.Mesh(x.geo,rgxGlow(v,4)));if(put(x.path,m))st.glow.push(m);}
@@ -36024,7 +36033,7 @@ ELD.regen=C=>{const{fx,body,type,variant}=C;fx.regen=true;const b=body&&body.par
   if(R.ring){const m=rgxMarkMesh(new THREE.Mesh(R.ring.g,rgxGlow(v,5)));m.position.set(R.ring.pos[0],R.ring.pos[1],R.ring.pos[2]);b.add(m);objs.push(m);st.ring=m;st.ringY=R.ring.pos[1];st.ringR=R.ring.R;}
   for(const mp of R.shells){const o=rgxPath(b,mp);if(!o||!o.isMesh||!o.geometry)continue;const g=o.geometry;if(!g.boundingBox)g.computeBoundingBox();const c=g.boundingBox.getCenter(new THREE.Vector3()),k=1.045;
     const sh=rgxMarkMesh(new THREE.Mesh(g,rgxShell(v,1)));sh.position.copy(c).multiplyScalar(1-k);sh.scale.setScalar(k);sh.visible=false;sh.renderOrder=2;o.add(sh);objs.push(sh);st.shells.push(sh);}
-  fx.rg=st;};
+  st.n=objs.length-st.shells.length;if(nc){st.own=[...R.stat,...R.glow].map(x=>x.geo);if(R.ring)st.own.push(R.ring.g);}return st;}
 const rgxLv=x=>Math.max(0,Math.min(RGX_GL,Math.round(x*RGX_GL)));
 ELA.regen=(fx,t,dt,moving,e)=>{const R=fx&&fx.rg;if(!R)return;const v=R.v;let hf=1,heal=0,sup=0;
   if(e){hf=e.maxHp>0?Math.max(0,e.hp/e.maxHp):1;const on=e.regen>0&&!!e.elites&&e.elites.includes('regen');sup=!on||e.rgSup>1e-6?1:0;const ex=on&&!sup&&dt>0?e.maxHp*e.regen*dt:0;
@@ -36163,10 +36172,10 @@ eliteRing=function(a,i){const c=(AFFIX[a]||{c:0xffffff}).c;
   ring.userData.mkx={h,a,ph:(MKX.ph++)*1.7};ring.userData.rgx=1;h.userData.rgx=1;return ring;};
 ELA.mkx=(fx,t,dt,moving,e)=>{if(!e)return;for(const r of [e.aura,e.aura2]){const u=r&&r.userData.mkx;if(!u||!r.material)continue;u.h.material.opacity=.5*Math.min(1,r.material.opacity/.85)*(.8+.2*Math.sin(t*2.2+u.ph));r.material.emissiveIntensity=.17+.07*Math.sin(t*2.2+u.ph);}};
 /* clean-up: the second marker's material and both glows are per foe (the base already disposes the first marker's material) */
-{const re=removeEnemy;removeEnemy=function(e){const r=re.apply(this,arguments);try{for(const a of [e.aura,e.aura2]){const u=a&&a.userData&&a.userData.mkx;if(u&&u.h.material){u.h.material.dispose();}}if(e.aura2&&e.aura2.material&&e.aura2!==e.aura)e.aura2.material.dispose();}catch(err){}return r;};}
+{const re=removeEnemy;removeEnemy=function(e){const r=re.apply(this,arguments);try{const RG=e.eliteFx&&e.eliteFx.rg;if(RG&&RG.own){RG.own.forEach(g=>g.dispose());RG.own=null;}for(const a of [e.aura,e.aura2]){const u=a&&a.userData&&a.userData.mkx;if(u&&u.h.material){u.h.material.dispose();}}if(e.aura2&&e.aura2.material&&e.aura2!==e.aura)e.aura2.material.dispose();}catch(err){}return r;};}
 /* the Bestiary: the Elite button steps through the five regeneration looks, the label names the look, and a toast tells the counterplay */
 {const ge=galElite;galElite=function(step){const cyc=()=>{const CY=(GV.type==='knight'||GV.type==='monk')?ELITE_CYCLE.filter(c=>!c.includes('armored')):ELITE_CYCLE;return CY;};
-  if(GV){GV.items.forEach(it=>{const R=it.fx&&it.fx.rg;if(R)for(const o of R.objs)if(o.parent)o.parent.remove(o);});
+  if(GV){GV.items.forEach(it=>{const R=it.fx&&it.fx.rg;if(R){for(const o of R.objs)if(o.parent)o.parent.remove(o);if(R.own){R.own.forEach(g=>g.dispose());R.own=null;}}});
     if(step){const CY=cyc(),cur=CY[GV.eIdx||0]||[];if(cur.includes('regen')&&(GV.rgI||0)<RGX.V.length-1){GV.rgI=(GV.rgI||0)+1;GV.eIdx=((GV.eIdx||0)-1+CY.length)%CY.length;}else GV.rgI=0;}else GV.rgI=0;}
   RGX.pick=GV?(GV.rgI||0):null;let r;try{r=ge.apply(this,arguments);}finally{RGX.pick=null;}
   try{if(GV){const affs=cyc()[GV.eIdx||0]||[],el=$('#gvElite');if(affs.includes('regen')){const V=RGX.V[GV.rgI||0];el.textContent=el.textContent.replace('Regenerating','Regenerating ('+V.n+')');
