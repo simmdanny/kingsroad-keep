@@ -3146,7 +3146,7 @@
    "L": 0,
    "len": 8.7,
    "seed": 1,
-   "bytes": 1538508,
+   "bytes": 1165006,
    "note": ""
   },
   "eternalwinter-1": {
@@ -3154,7 +3154,7 @@
    "L": 1,
    "len": 8.7,
    "seed": 1,
-   "bytes": 1538412,
+   "bytes": 1175493,
    "note": "The frost strikes harder as it reaches each foe, and leaves larger ice.",
    "ev": {
     "cast": 1,
@@ -3167,7 +3167,7 @@
    "L": 2,
    "len": 9.3,
    "seed": 1,
-   "bytes": 1689549,
+   "bytes": 1290294,
    "note": "The Heart gathers itself longer: the foes stay frozen, then slowed, longer.",
    "ev": {
     "cast": 1,
@@ -3180,7 +3180,7 @@
    "L": 3,
    "len": 9.3,
    "seed": 1,
-   "bytes": 1704135,
+   "bytes": 1361098,
    "note": "When the Heart bursts, six shards fly at the nearest foes.",
    "ev": {
     "cast": 1,
@@ -3195,7 +3195,7 @@
    "L": 4,
    "len": 9.3,
    "seed": 1,
-   "bytes": 1640400,
+   "bytes": 1333735,
    "note": "The boss (an Ogre) stays frozen until the wave reaches it.",
    "ev": {
     "cast": 1,
@@ -3210,7 +3210,7 @@
    "L": 5,
    "len": 9.83,
    "seed": 1,
-   "bytes": 1757807,
+   "bytes": 1421196,
    "note": "The shatter wave strikes 1500%: the ice sheet bursts up as it breaks.",
    "ev": {
     "cast": 1,
