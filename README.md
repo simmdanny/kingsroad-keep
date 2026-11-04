@@ -2480,3 +2480,44 @@ Simon: "add more heros that have some sort of a specialization to a certain elem
 - **Their looks:** `heroModel` hands its helpers to `ehModel` for them: Ignatia in red and char with a crown of flame, a burning hem and a flame-tipped staff; Isolde in white and ice blue with a crown and shoulders of ice crystals and a crystal staff; Vesper a white-bearded storm mage in a tall navy hat with lightning stitched on his robe and a forked staff; Sylvara in moss green with antlers, leaves and a staff wound in vines; Corvin in a deep horned hood with violet eyes and a skull staff; Seraphine in ivory and gold with a halo, small wings of light and a sun-disc staff. Each has motes of their element floating round them. Their cards carry a coloured element chip (`ehChip`) and border, and `heroCol` gives their element's colour.
 - **Patch notes:** a "Six elemental heroes" section at the top of `NOTES_HTML`; `NOTES_V` is left as it is for whoever publishes the update.
 - Tests: `tests/ehr-test.js` (25, in run-all as 'ehr'): six heroes, one per element; 4-star spellcasters with 6 slots; priced by power, all different, between Elowen and Thaddeus; aura, talent, thumbnail and a model of their own; the chip and colour; other heroes unchanged; Element Mastery +30% and 10% faster on their element only (and Ignatia's Catch Flame's cooldown); each shoots an orb of its element that hits as it; burning, chill, two extra chain jumps, wither, roots about one bolt in five, a flare every 6th light bolt; Elowen still shoots her violet bolt; each fights in the real loop without errors.
+
+## Previews for the Mythic, Ancient and Secret masteries (v475)
+Simon: "Why are the previews still not how they should be?", then "Yes, record them all". The 23 Mythic, Ancient and Secret scrolls (v451-v473) had no recorded clips, so their mastery cards fell back on the slow live preview. Now each has six clips (no mastery and Masteries 1 to 5): 138 more in `previews/`, made by `node tools/previews/record.js mythic ancient secret` on the stages in `tools/previews/scenarios.js`. They are developer mode only, like their masteries.
+
+**Recorder changes** (`tools/previews/record.js`):
+- `live`: the battle runs unpaused while it is stepped. The Ancient domains (`ancRun`) only advance while `state==='playing'&&!paused`, so the old paused stage froze them at their first frame.
+- `st.gv`: a stage can build its board at another board version (`MAP_GV`). A foe can walk another road (`ri`, with `dshift` tiles along it).
+- `crf` per clip: these clips are encoded at CRF 29 (the others 26). Their effects are heavier, and this keeps them about the size of the Epic clips.
+
+**The stages.** The foes are tougher (60x spell power, up to 400x where a mastery needs them alive at the end). The tracking camera follows the action (v439), with a wider view for the domains that fill the board.
+
+| Scroll | What the stages set up |
+|---|---|
+| Eclipse | 11 foes for None Escape; foes further back for The Sun Breaks |
+| Ember Titan | foes far up the road for Deeper Fissure; an Ogre for Titan's Weight |
+| Eternal Winter | an Ogre for Winter's Hold; seen from further back (the ice heart fills the board) |
+| Aeon Dial | windows of the 20s dial; archer towers for Borrowed Years; worn-down foes and the window at midnight for Twelve Strokes |
+| Gaia | foes behind walking into the standing trees for The Forest Stands |
+| Seraph Lance | a ram for the great lance; 11 foes for the Host of Lances |
+| Spatial Shatter | worn-down foes for Clean Break; a walking pack for Torsion |
+| Vael'Thoruun | 11 foes for the current and the circuit; a walking pack for The Storm Follows |
+| Abyss | windows of the 20s sea; the window when the eldest leviathan rises for The Third Leviathan |
+| Citadel | spread foes for Wider Dominion; the window at the final fracture for The Final Order |
+| Infinite Void | worn-down foes for Erasure; the last 3 seconds for Reality Returns |
+| Eldritch Tree | worn-down foes for Swallowed; the window at the bloom for The World in Bloom |
+| Never-Never Land | archer towers for Sylph's Hour; the window at the last fall for Rain of Stars |
+| Primordial Tempest | 11 foes for The Storm Chooses; the window at the last thunder for Hurricane |
+| Purgatory | the window at the last stage, the eyes, the executions and the last cut |
+| Blood Needles | a ram for Bloodletting and Crimson Halo; one 1 HP foe, then foes walking in, for Patient Swarm |
+| Eye of the Blood Moon | 11 foes for Wider Gaze; low-health foes for The Gaze Moves On |
+| Moonfall | spread foes for Fuller Moon; foes far back for Moonbreaker's wave |
+| Constellation | 11 foes for A Larger Figure; foes behind walking onto the lines for Burning Lines |
+| Curse of the Blood Moon | spread foes for the Wider Seal |
+| Pulsar | windows of the 15s star; a walking pack over the burnt ground for Scorched Ring; the window at the implosion for Supernova |
+| Singularity | low-health foes for Accretion; foes further back for Last Light |
+| Wormhole | board 777 at version 5 (a second road joins the first) for Hungry Mouth; an Ogre for No Weight Too Great; slow foes short of the mouth for The Last Crossing |
+
+- Each clip's moment was checked twice: in a run without pictures (every one of the 138 stages logs its mastery's event: a probe) and on its contact sheet.
+- The recording was split across six cloud sessions (four browsers each) and merged here; `previews/manifest.json` lists all 384 clips.
+- Known limits: Gaia's The Keep Drinks Deep heals the keep, which is off camera. Curse of the Blood Moon's Blood Price needs other great scrolls sealed on the hero, which the stage does not set up.
+- Tests: `tests/mpv-test.js` (in run-all as 'mpv'): the 23 scrolls (8 Mythic, 7 Ancient, 8 Secret); a clip for every level and every file present; lengths 3-16 s; a caption on every mastery clip; every mastery clip logged its mastery at work, and no clip without one did; the changelog.
