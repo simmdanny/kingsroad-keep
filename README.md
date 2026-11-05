@@ -2701,3 +2701,18 @@ Simon asked to "add 5 more formations" and "add some more features". The module 
 - Power at wave 30 (members, total HP, total gold): Shield Wall 5, 2888, 158; Rider Charge 6, 1850, 171; Peasant Mob 10, 1694, 209; Raven Murder 8, 1909, 197; Royal Escort 5, 3225, 173; Holy Procession 6, 3469, 218; Pike Phalanx 9, 3811, 238; Knight's Wedge 5, 6573, 282; Siege Column 5, 5442, 235. HP and gold per member are those of normal foes (the bearer 1.6x, the lead raven is a tier-3 raven).
 - Bestiary: the Formations button on the Bestiary bar (an icon on narrow screens) opens nine dioramas on plinths (`fm5GalOpen`), using the variant viewer's panel and arrows: name, "From wave N", the member count and what it does. They idle and turn slowly; drag to turn them. Back returns to the Bestiary.
 - Tests: `tests/fm5-test.js` (layouts, gear, every mechanic with its numbers, rates, elites, every arena, the world map, cleanup, the page).
+
+
+## The Tempest's winds, smoothed (v487)
+Simon: "The inside winds of the tempest are cut, look unfinished, can you smooth it out more please?"
+- **The cause:** the inner face of the eye wall (the open cone `wface`/`wfM` in `tpEye`).
+  - Its cloud was a thresholded fbm (smoothstep .34 to .64) read in an angle measured from the camera. It came out as torn, hard-edged blotches.
+  - The camera-side cut then left only two chunks of it.
+- **The change, in that shader only:**
+  - The noise wraps round the circle (N=7 cells, world angle), so the wall has no seam anywhere.
+  - It is stretched into long wind streaks that climb as they turn (slant .32 a tile), with a domain warp to keep them uneven.
+  - A thin veil (24%) lies between the streaks, so the wall reads as one sheet of wind, with finer wind lines on top for the light.
+  - It fades into the camera-side cut more softly: smoothstep -.12 to .62 (it was -.05 to .5).
+  - Its overall opacity is 0.8 of before, so the veil does not thicken the wall.
+- The puffs, the cloud bands, the rain bands, the storm deck and the storm clouds are untouched. So are all the numbers and the timing.
+- **Tests:** tpeye 38/38, tempest 43/43, tpm 36/36, tpx 17/17, ancient 46/46, perf 34/34. The 6 tempest preview clips are re-recorded.
