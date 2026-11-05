@@ -4655,14 +4655,14 @@
    "L": 2,
    "len": 12.83,
    "seed": 1,
-   "bytes": 3882809,
+   "bytes": 1240752,
    "note": "Each cut strikes harder, and harder in its wake.",
    "ev": {
     "opts": 1,
     "cast": 1,
     "aim": 16,
     "act": 1,
-    "cut": 14
+    "cut": 15
    }
   },
   "citadel-5": {
