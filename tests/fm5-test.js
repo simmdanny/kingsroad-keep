@@ -37,6 +37,9 @@ try{
   {const G=spawn('mob',30),M=G.members,v=M[0].fmSpd;FM5.log=[];kill(M[0]);
    ok('a slain mob member makes the rest 5% faster',G.stacks===1&&M.slice(1).every(m=>near(m.spd,v*1.05,1e-9)),M[1].spd/v);
    for(let i=1;i<8;i++)kill(M[i]);ok('the frenzy stops at +30% (6 deaths)',G.stacks===6&&near(M[8].spd,v*1.3,1e-9)&&FM5.log.filter(l=>l.ev==='frenzy').length===6,(M[8].spd/v).toFixed(3));
+   ok('one frenzy label per mob, updated in place: after 3 deaths exactly 1 label in the scene, reading +15%',(()=>{clean();for(const f of fx)f.life=0;updFx(0);const g=spawn('mob',30);kill(g.members[0]);update(1/30);updFx(1/30);kill(g.members[1]);update(1/30);updFx(1/30);kill(g.members[2]);
+     const L=scene.children.filter(o=>o.userData&&o.userData.fmOwner===g),all=scene.children.filter(o=>o.isSprite&&/^Frenzy/.test(o.userData.txt||''));return L.length===1&&all.length===1&&L[0].userData.txt==='Frenzy +15%';})(),
+     scene.children.filter(o=>o.isSprite&&/^Frenzy/.test(o.userData.txt||'')).map(o=>o.userData.txt).join(', '));
    ok('a mob member that leaks (removed, not slain) does not feed the frenzy',(()=>{clean();const g=spawn('mob',30);removeEnemy(g.members[0]);return g.stacks===0;})(),'');clean();}
   /* Raven Murder: shared hits, then the scatter */
   {const G=spawn('murder',30),W=G.members.filter(m=>m.role==='wing'),A=G.lead;G.members.forEach(m=>{m.armor=0;m.res={};m.maxHp=m.hp=1e4;});
@@ -74,7 +77,8 @@ try{
   {const rate=(w)=>__kk.formStats(w,600),A=rate(10),B=rate(20),C=rate(35);
    ok('formations per wave are as before: 0.35 under wave 25, 0.85 from wave 30',near(A.perWave,.35,.07)&&near(B.perWave,.35,.07)&&near(C.perWave,.85,.1),A.perWave+' '+B.perWave+' '+C.perWave);
    ok('the pick is even among the open formations (all nine from wave 25)',Object.keys(C.c).length===9&&Object.values(C.c).every(n=>n>C.perWave*600/9*.6),JSON.stringify(C.c));
-   ok('nothing opens before its wave (wave 10: shield, charge, mob, murder)',Object.keys(A.c).sort().join()==='charge,mob,murder,shield',Object.keys(A.c).join());}
+   ok('nothing opens before its wave (wave 10: shield, charge, mob, murder)',Object.keys(A.c).sort().join()==='charge,mob,murder,shield',Object.keys(A.c).join());
+   {const W=__kk.formStats(24,600),X=__kk.formStats(25,600);ok('the Knight\'s Wedge comes from wave 25 (none at 24)',FORMS.wedge.min===25&&!W.c.wedge&&X.c.wedge>0,JSON.stringify(W.c));}}
   /* elites inside formations, every arena, the overworld */
   {const bad=[];let el=0;for(let r=0;r<6;r++)for(const k of NEW){try{clean();const G=spawn(k,40,true);el+=G.members.filter(m=>m.elites).length;for(let i=0;i<4;i++){update(1/30);anim(1/30,time);}
       if(k==='mob'&&!G.members.every(m=>m.fmFlame))bad.push('mob flames');if(k==='phalanx'&&!G.members.every(m=>m.fmPike))bad.push('pikes');}catch(err){bad.push(k+' '+err.message);}}
