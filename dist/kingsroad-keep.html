@@ -14909,6 +14909,13 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Swift ribbons that fly like cloth, and heavier Giants',d:'4 Nov',v:'v481',li:[
+    'The red ribbons on a Swift foe now stream out <b>behind</b> it. Before, they flapped forward through its body.',
+    'They are real cloth: they stream back and a little up at full speed, ripple from knot to tip, swing out when a foe turns a corner, and hang still when it is stopped or stunned. In the Bestiary they lift in a light breeze and swing when you turn the model.',
+    'Every unit that can be Swift wears ribbons made for it: a headband with knot tails and back streamers, a sash and mane ribbons on riders, tail streamers on ravens, pennants on battering rams, a neckerchief on wolves, and long streamers on the bosses (one on a dragon\u2019s tail tip, one on a wyrm\u2019s head).',
+    'Swift foes kick dust up behind their feet.',
+    'Giants walk heavily: each footfall puffs dust and sends a faint ring over the ground.',
+    'Fix: when the Artificer strips Giant from a foe, it now loses the extra width, height, life and its big shadow too. Stripping Swift takes its ribbons off.']},
   {t:'The Primordial Tempest, a hurricane seen from above',d:'4 Nov',v:'v477',li:[
     'The Primordial Tempest looks like a real hurricane now. Spiral arms of storm cloud wheel over the whole board round a clear eye that always frames the hero, the wall of the eye lit bright by the lightning inside it.',
     'Every bolt lights the cloud above it from within, sheet lightning lights the whole storm and lightning crawls along its arms. A sheet of wind and rain swirls into the eye, and every bolt that lands leaves a flare of light and a glowing scorch.',
@@ -35236,6 +35243,169 @@ function gmxAfter(b,how){const n={};for(const [t,e0] of b){const d=(t.earned||0)
 {const k0=kill;kill=function(){const b=gmxBefore('merchant');const r=k0.apply(this,arguments);if(b.length)try{gmxAfter(b,'bounty');}catch(err){console.error(err);}return r;};}
 {const mp=mxPay;mxPay=function(t){const b=t&&GOLD_T.includes(t.type)?[[t,t.earned||0]]:[];const r=mp.apply(this,arguments);try{gmxAfter(b,'payout');}catch(err){console.error(err);}return r;};}
 /* ---- end of v476 ---- */
+/* ================= Swift ribbons as cloth, Giant weight (v481) =================
+   Simon: "fix all elite modifiers, the waves behind swift should actually sway in the correct direction and sway more realistically".
+   The old ribbons were rigid planes on pivots, turned by rotation.x=-1.15: a plane hanging down (-y) turned that way points to the model's
+   FRONT (+z, the way posAt's angle faces it), while the pivots sat on its back, so they flapped forward through the body.
+   Now every ribbon is a short verlet chain simulated in WORLD space (SWX.N=5 segments, 6 nodes):
+   - the root node is pinned to a point on the unit (on its body, or on an animated part: a dragon's tail tip, a wyrm's head);
+   - the other nodes feel gravity (SWX.G), quadratic air drag against the air (normalised by the foe's own full speed, so every unit
+     streams alike: drag/gravity = SWX.K at full speed, a quarter of that at half), a little lift (so a fast foe's ribbons stream back
+     and slightly up), and a flutter wave that runs from root to tip, faster and stronger with speed;
+   - measured (tests/swx-test.js): a running rider's tips sit 71-84 deg from the vertical, 58-64 deg slowed to half speed, 7-9 deg
+     stunned; after a road corner they point back along the new heading within 0.4 s; about 11 microseconds per foe per frame;
+   - follow-the-leader length constraints, a light bend smoothing and a ground floor; the root moves in sub-steps (at most 1/60 s);
+   - so the ribbons trail opposite the real frame-to-frame motion, swing outward in a turn at a road corner, and settle when the foe stops.
+   In the Bestiary (no foe) a breeze blows across the stand and the ribbons swing when the model is turned.
+   Each foe's ribbons are ONE mesh (13 vertices and 11 triangles per ribbon, a swallowtail or pennant tip), all foes with the same
+   ribbon count share one index buffer, the vertex buffers are updated in place (no allocation per frame), and the meshes go back to a
+   pool when a foe dies, is removed, loses Swift (artStrip) or the Bestiary changes its dress: geometry is never disposed while shared.
+   Per unit attachment points (SWX_AT): humanoids a headband with two knot tails and two back streamers; the rider a sash, mane streamers
+   and a tail ribbon; ravens tail streamers; rams two pennants on poles; wolves a neckerchief; the bosses big streamers that fit each.
+   Dust is kicked backward from the feet, opposite the motion (sized per unit, none for flyers).
+   Giant: the strip by the Artificer now undoes all of it (width, hit height, the extra life, the shadow blob and marker rings), and a giant walks with heavy footfalls: a dust puff
+   ring and a faint dark ground ring each step (GNT). */
+const SWX={N:5,G:6.5,K:2.6,lift:.34,flut:1.1,lin:1.6,bend:.3,sub:1/60,maxSub:5,breeze:.12,galBreeze:.6,pool:{},idx:{},live:new Set(),mat:null,stat:{steps:0}};
+const SWX_M=new WeakMap();/* model b -> model record (for the animated parts a ribbon can be tied to) */
+{const em=enemyModel;enemyModel=function(){const m=em.apply(this,arguments);if(m&&m.b)SWX_M.set(m.b,m);return m;};}
+{const um=unitModel;unitModel=function(){const m=um.apply(this,arguments);if(m&&m.b)SWX_M.set(m.b,m);return m;};}
+{const pm=peasantModel;peasantModel=function(){const m=pm.apply(this,arguments);if(m&&m.b)SWX_M.set(m.b,m);return m;};}
+const SWX_V=2*(SWX.N+1)+1,SWX_T=2*SWX.N+1;
+function swxIndex(R){let a=SWX.idx[R];if(a)return a;const N=SWX.N,I=new Uint16Array(R*SWX_T*3);let k=0;
+  for(let r=0;r<R;r++){const o=r*SWX_V,C=o+2*(N+1);for(let i=0;i<N-1;i++){const l=o+2*i,rr=l+1,l2=l+2,r2=l+3;I[k++]=l;I[k++]=rr;I[k++]=l2;I[k++]=rr;I[k++]=r2;I[k++]=l2;}
+    const l=o+2*(N-1),rr=l+1,l2=l+2,r2=l+3;I[k++]=l;I[k++]=rr;I[k++]=C;I[k++]=l;I[k++]=C;I[k++]=l2;I[k++]=rr;I[k++]=r2;I[k++]=C;}
+  a=SWX.idx[R]=new THREE.BufferAttribute(I,1);return a;}
+function swxMat(){if(!SWX.mat)SWX.mat=new THREE.MeshPhongMaterial({vertexColors:true,side:THREE.DoubleSide,shininess:14,specular:0x281010});return SWX.mat;}
+/* a pooled cloth record for R ribbons: mesh, geometry and the simulation arrays */
+function swxGet(R){const L=SWX.pool[R]||(SWX.pool[R]=[]);let c=L.pop();if(c){/* an arena may have recoloured it (snow, tundra...): back to the plain cloth */c.mesh.material=swxMat();c.mesh.userData={swx:1};c.mesh.visible=true;return c;}const n=R*SWX_V,N1=SWX.N+1;
+  const geo=new THREE.BufferGeometry();const pos=new Float32Array(n*3),nor=new Float32Array(n*3),col=new Float32Array(n*3);
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3).setUsage(THREE.DynamicDrawUsage));geo.setAttribute('normal',new THREE.BufferAttribute(nor,3).setUsage(THREE.DynamicDrawUsage));
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3));geo.setIndex(swxIndex(R));geo.boundingSphere=new THREE.Sphere(new THREE.Vector3(),1);
+  const mesh=new THREE.Mesh(geo,swxMat());mesh.castShadow=false;mesh.receiveShadow=false;mesh.userData.swx=1;
+  c={R,mesh,geo,pos,nor,col,P:new Float32Array(R*N1*3),Q:new Float32Array(R*N1*3),R0:new Float32Array(R*3),S:null,init:false,n:0,o:new THREE.Vector3(),v:new THREE.Vector3(),vs:0,ph:0};return c;}
+function swxFree(c){if(!c||!SWX.live.has(c))return;SWX.live.delete(c);if(c.mesh.parent)c.mesh.parent.remove(c.mesh);c.S=null;c.rg=null;c.e=null;c.init=false;(SWX.pool[c.R]||(SWX.pool[c.R]=[])).push(c);}
+function swxRelease(fx){if(!fx)return;if(fx.cloth){swxFree(fx.cloth);fx.cloth=null;}}
+/* ---- attachment points per unit, in the model's own space (+z front, y up). [x,y,z, length, width, tip(0 swallowtail,1 pennant), side axis 'x'|'y', colour 0..2, tie] ---- */
+const SWX_COL=[[.86,.1,.1],[.6,.05,.06],[.98,.3,.16]],SWX_TIP=[[.42,.03,.04],[.3,.02,.03],[.6,.1,.05]];
+const swxHum=(B,fz)=>{const H=B.H||.45,k=H/.45,tw=B.tw,yb=B.hy-H*.14,zb=fz-tw*.66,DZ=B.dz||tw*.9;
+  return[[-.014*k,yb-.006,zb,.2*k,.034*k,0,'x',0],[.014*k,yb-.012,zb,.17*k,.032*k,0,'x',1],[-tw*.42,B.sy-.015*k,fz-DZ-.005,.3*k,.048*k,0,'x',0],[tw*.42,B.sy-.015*k,fz-DZ-.005,.28*k,.046*k,0,'x',1]];};
+const SWX_DR=[[-.07,.15,.04,.62,.07,0,'x',0],[.07,.15,.04,.6,.07,0,'x',1],[0,-.02,-.72,.38,.06,0,'x',2,'tail']];
+const SWX_AT={
+  rider:()=>[[-.035,.49,-.055,.27,.036,0,'x',0],[.035,.49,-.055,.25,.034,0,'x',1],[0,.405,.285,.15,.022,0,'x',2],[0,.36,.225,.15,.022,0,'x',0],[0,.31,-.225,.19,.03,0,'x',1]],
+  raven:()=>[[-.018,.005,-.19,.2,.022,0,'x',0],[.018,.005,-.19,.18,.022,0,'x',1]],
+  ram:()=>[[-.17,.715,-.3,.27,.09,1,'y',0],[.17,.715,-.3,.27,.09,1,'y',1]],
+  wolf:()=>[[-.03,.4,.19,.22,.032,0,'x',0],[.03,.395,.19,.2,.03,0,'x',1]],
+  kikimora:()=>[[-.08,.44,-.16,.5,.06,0,'x',0],[.08,.44,-.16,.48,.06,0,'x',1]],
+  golem:()=>[[-.15,.56,-.15,.46,.065,0,'x',0],[.15,.56,-.15,.44,.065,0,'x',1]],
+  beast:()=>[[-.09,.55,.3,.46,.06,0,'x',0],[.09,.55,.3,.44,.06,0,'x',1],[0,.31,-.62,.3,.05,0,'x',2]],
+  arachne:()=>[[-.04,.7,-.03,.42,.05,0,'x',0],[.04,.7,-.03,.4,.05,0,'x',1],[0,.42,-.33,.34,.05,0,'x',2]],
+  colossus:()=>[[-.13,.82,-.13,.56,.07,0,'x',0],[.13,.82,-.13,.54,.07,0,'x',1]],
+  dreadk:()=>[[-.07,.66,-.085,.5,.06,0,'x',0],[.07,.66,-.085,.48,.06,0,'x',1]],
+  voidk:()=>[[-.07,.64,-.08,.5,.06,0,'x',0],[.07,.64,-.08,.48,.06,0,'x',1]],
+  ophanim:()=>[[-.05,.3,-.12,.55,.06,0,'x',0],[.05,.3,-.12,.52,.06,0,'x',1]],
+  seraph:()=>[[-.06,.35,-.15,.62,.07,0,'x',0],[.06,.35,-.15,.6,.07,0,'x',1]],
+  wyrm2:()=>[[-.03,.17,.12,.4,.05,0,'x',0,'hd'],[.03,.17,.12,.38,.05,0,'x',1,'hd'],[0,.08,-.78,.3,.045,0,'x',2,'snake']],
+  wyrmf:()=>[[-.05,.22,.05,.55,.065,0,'x',0,'hd'],[.05,.22,.05,.52,.065,0,'x',1,'hd'],[0,.04,-1.2,.42,.06,0,'x',2,'snake']]};
+['dragon','dragon2','dragon2a','dragon3','dragon3a','wyrm'].forEach(k=>SWX_AT[k]=()=>SWX_DR);SWX_AT.golem2=SWX_AT.golem;SWX_AT.wyrm2a=SWX_AT.wyrm2;
+const SWX_DUST={peasant:1,soldier:1,knight:1,monk:1,rider:1.3,ram:1.6,wolf:1,ogre:1.5,kikimora:1.6,golem:1.8,golem2:1.8,beast:1.8,arachne:1.6,colossus:2,dreadk:1.6,voidk:1.6,wyrm2:1.3,wyrm2a:1.3,wyrmf:1.6};
+const SWX_POLE_M=M(0x4a331f);
+/* the animated part a ribbon is tied to, and the tie point in that part's own space */
+function swxTie(m,key,p){if(!m||!key)return null;let L=null;if(key==='tail')L=m.tail;else if(key==='hd')L=m.limbs&&m.limbs.hd?[m.limbs.hd]:null;else if(key==='snake')L=m.limbs&&m.limbs.snake;
+  if(!L||!L.length)return null;m.b.updateMatrixWorld(true);const ib=new THREE.Matrix4().copy(m.b.matrixWorld).invert(),w=new THREE.Vector3(),q=new THREE.Vector3(p[0],p[1],p[2]);let best=null,bd=1e9;
+  for(const n of L){const r=new THREE.Matrix4().multiplyMatrices(ib,n.matrixWorld);w.setFromMatrixPosition(r);const d=w.distanceToSquared(q);if(d<bd){bd=d;best={n,r};}}
+  const inv=best.r.clone().invert();const lp=q.clone().applyMatrix4(inv);const sx=new THREE.Vector3(1,0,0).transformDirection(inv);return{n:best.n,p:lp,s:sx};}
+ELD.swift=C=>{const{type,B,g,fx,fz,tw,body}=C;fx.swift=true;const m=body&&body.parent?SWX_M.get(body.parent):null;
+  const hum=!B.horse&&!B.siege&&!B.bird&&!B.beast&&!SWX_AT[type]&&!!B.H;const list=SWX_AT[type]?SWX_AT[type](B,fz):hum?swxHum(B,fz):swxHum(Object.assign({H:.45},B),fz);
+  if(hum){/* the headband, tied at the back of the head */const y=B.hy-B.H*.14,hb=add(g,cyl(1,1,1,9),EM_RED,0,y,fz,false);hb.scale.set(tw*.62,.026*(B.H/.45),tw*.62);
+    const kn=add(g,ico(.016*(B.H/.45),0),EM_RED2,0,y-.004,fz-tw*.64,false);kn.scale.set(1.2,.9,.8);}
+  if(type==='ram')for(const s of [-1,1]){const p=add(g,cyl(.008,.01,.3,5),SWX_POLE_M,s*.17,.6,-.3,false);add(g,ico(.014,0),EM_RIVET,s*.17,.755,-.3,false);}
+  const R=list.length,c=swxGet(R);c.S=list.map((a,i)=>{const t=swxTie(m,a[8],a);return{p:t?t.p:new THREE.Vector3(a[0],a[1],a[2]),s:t?t.s:new THREE.Vector3(a[6]==='y'?0:1,a[6]==='y'?1:0,0),n:t?t.n:null,
+    L:a[3],w:a[4],tip:a[5],ph:i*1.9+rnd()*.6,c:a[7],tw:a[5]?0:(i%2?-1:1)*1.1};});
+  let rad=0;for(const s of c.S)rad=Math.max(rad,s.p.length()+s.L*1.2);c.geo.boundingSphere.radius=rad+.2;
+  /* colours: root to tip, a deeper tone at the tip */
+  for(let r=0;r<R;r++){const s=c.S[r],A=SWX_COL[s.c],T=SWX_TIP[s.c];for(let v=0;v<SWX_V;v++){const i=v<2*(SWX.N+1)?v>>1:SWX.N,k=Math.pow(i/SWX.N,1.3),o=(r*SWX_V+v)*3;
+    c.col[o]=A[0]+(T[0]-A[0])*k;c.col[o+1]=A[1]+(T[1]-A[1])*k;c.col[o+2]=A[2]+(T[2]-A[2])*k;}}
+  c.geo.attributes.color.needsUpdate=true;c.rg=g;c.fly=!!(EN[type]&&EN[type].fly);c.init=false;c.n=0;c.vs=0;c.v.set(0,0,0);c.ph=rnd()*6.28;g.add(c.mesh);SWX.live.add(c);fx.cloth=c;fx.dust=c.fly?0:(SWX_DUST[type]||1);};
+/* ---- the simulation ---- */
+const SWX_W={M:new THREE.Matrix4(),I:new THREE.Matrix4(),a:new THREE.Vector3(),b:new THREE.Vector3(),d:new THREE.Vector3(),s:new THREE.Vector3(),u:new THREE.Vector3(),r:new THREE.Vector3(),wind:new THREE.Vector3(),fw:new THREE.Vector3()};
+function swxStep(c,dt,t,e){const W=SWX_W,N=SWX.N,N1=N+1,rg=c.rg;if(!rg)return;c.n++;rg.updateWorldMatrix(true,false);const M=rg.matrixWorld,me=M.elements;
+  const ws=Math.hypot(me[4],me[5],me[6])||1;W.I.copy(M).invert();W.fw.set(me[8],me[9],me[10]).normalize();
+  /* the foe's real velocity (smoothed), from its frame-to-frame motion */
+  W.a.set(me[12],me[13],me[14]);let jump=!c.init;
+  if(c.init&&dt>0){W.b.subVectors(W.a,c.o);const sp=W.b.length()/dt;if(sp>40||dt>.5)jump=true;else{W.b.multiplyScalar(1/dt);c.v.lerp(W.b,Math.min(1,dt*12));}}
+  c.o.copy(W.a);const Vr=e?Math.max(.3,e.spd||1):1;c.vs=Math.min(1.6,Math.hypot(c.v.x,c.v.z)/Vr);
+  const cD=SWX.K*SWX.G/(Vr*Vr);
+  /* the air: a light breeze in game (it settles when the foe stops), a steadier one in the Bestiary */
+  const bz=(e?SWX.breeze:SWX.galBreeze)*Vr*(1+.35*Math.sin(t*1.3+c.ph)+.2*Math.sin(t*3.1+c.ph*2));
+  if(e)W.wind.set(Math.cos(t*.21+c.ph),0,Math.sin(t*.21+c.ph)).multiplyScalar(bz);else W.wind.set(.94,0,.34).multiplyScalar(bz);
+  const n=dt>0?Math.min(SWX.maxSub,Math.max(1,Math.ceil(dt/SWX.sub))):0,h=n?dt/n:0;const gy0=me[13]+.012*ws;
+  for(let r=0;r<c.R;r++){const S=c.S[r],seg=S.L*ws/N,o=r*N1*3;
+    const node=S.n||rg;if(S.n)S.n.updateWorldMatrix(true,false);W.r.copy(S.p).applyMatrix4(node.matrixWorld);
+    const P=c.P,Q=c.Q,R0=c.R0;
+    if(jump){/* lay the ribbon down hanging back from its tie */W.d.set(-W.fw.x*.6,-1,-W.fw.z*.6).normalize();
+      for(let i=0;i<N1;i++){P[o+i*3]=Q[o+i*3]=W.r.x+W.d.x*seg*i;P[o+i*3+1]=Q[o+i*3+1]=W.r.y+W.d.y*seg*i;P[o+i*3+2]=Q[o+i*3+2]=W.r.z+W.d.z*seg*i;}R0[r*3]=W.r.x;R0[r*3+1]=W.r.y;R0[r*3+2]=W.r.z;continue;}
+    const rx0=R0[r*3],ry0=R0[r*3+1],rz0=R0[r*3+2];
+    for(let k=1;k<=n;k++){const f=k/n,px=rx0+(W.r.x-rx0)*f,py=ry0+(W.r.y-ry0)*f,pz=rz0+(W.r.z-rz0)*f,ts=t-dt*(1-f);
+      const om=6+7*Math.min(1,c.vs);
+      for(let i=1;i<N1;i++){const j=o+i*3;let vx=(P[j]-Q[j])/h,vy=(P[j+1]-Q[j+1])/h,vz=(P[j+2]-Q[j+2])/h;
+        let rx=vx-W.wind.x,ry=vy,rz=vz-W.wind.z;const rl=Math.hypot(rx,ry,rz),dmp=1/(1+(cD*rl+SWX.lin)*h);rx*=dmp;ry*=dmp;rz*=dmp;
+        vx=W.wind.x+rx;vy=ry;vz=W.wind.z+rz;const rh2=rx*rx+rz*rz,rh=Math.sqrt(rh2),q=cD*rh2;
+        let ay=-SWX.G+Math.min(SWX.lift*q,SWX.G*1.6),ax=0,az=0;
+        if(rh>1e-4){/* flutter: a wave running root to tip, across the flow */const wv=Math.sin(om*ts-i*1.25+S.ph),A=SWX.flut*Math.min(q,SWX.G*3)*(.35+.65*i/N);ax=-rz/rh*A*wv;az=rx/rh*A*wv;ay+=A*.45*Math.cos(om*ts*1.3-i*1.1+S.ph);}
+        Q[j]=P[j];Q[j+1]=P[j+1];Q[j+2]=P[j+2];P[j]+=vx*h+ax*h*h;P[j+1]+=vy*h+ay*h*h;P[j+2]+=vz*h+az*h*h;}
+      P[o]=px;P[o+1]=py;P[o+2]=pz;Q[o]=px;Q[o+1]=py;Q[o+2]=pz;
+      for(let pass=0;pass<2;pass++){if(pass)for(let i=1;i<N;i++){const j=o+i*3;for(let a=0;a<3;a++)P[j+a]+=SWX.bend*((P[j+a-3]+P[j+a+3])*.5-P[j+a]);}
+        for(let i=1;i<N1;i++){const j=o+i*3;let dx=P[j]-P[j-3],dy=P[j+1]-P[j-2],dz=P[j+2]-P[j-1];const l=Math.hypot(dx,dy,dz)||1e-6,s=seg/l;P[j]=P[j-3]+dx*s;P[j+1]=P[j-2]+dy*s;P[j+2]=P[j-1]+dz*s;
+          if(!c.fly&&P[j+1]<gy0){P[j+1]=gy0;}}}}
+    R0[r*3]=W.r.x;R0[r*3+1]=W.r.y;R0[r*3+2]=W.r.z;}
+  c.init=true;SWX.stat.steps++;swxWrite(c,t,ws);}
+/* write the strips: width across the tie's side axis, a twist that grows to the tip, then into the dress group's space */
+function swxWrite(c,t,ws){const W=SWX_W,N=SWX.N,N1=N+1,I=W.I.elements,pos=c.pos,nor=c.nor,P=c.P;
+  const tw=.25+.9*Math.min(1,c.vs);
+  for(let r=0;r<c.R;r++){const S=c.S[r],o=r*N1*3,vo=r*SWX_V*3,node=S.n||c.rg;W.s.copy(S.s).transformDirection(node.matrixWorld);const seg=S.L*ws/N;
+    for(let i=0;i<N1;i++){const j=o+i*3,a=i<N?j:j-3,b=i<N?j+3:j;W.d.set(P[b]-P[a],P[b+1]-P[a+1],P[b+2]-P[a+2]).normalize();
+      W.u.copy(W.s).addScaledVector(W.d,-W.s.dot(W.d));if(W.u.lengthSq()<1e-6)W.u.set(-W.d.z,0,W.d.x);W.u.normalize();
+      const ta=(S.tw+tw*Math.sin(t*(5+5*c.vs)-i*.9+S.ph))*(i/N);W.b.crossVectors(W.d,W.u);W.u.multiplyScalar(Math.cos(ta)).addScaledVector(W.b,Math.sin(ta));W.b.crossVectors(W.d,W.u);
+      const k=i/N,hw=S.w*ws*.5*(S.tip?Math.max(0,1-k)*1.05:(1-.3*k));
+      for(let sd=0;sd<2;sd++){const sg=sd?-1:1,x=P[j]+W.u.x*hw*sg,y=P[j+1]+W.u.y*hw*sg,z=P[j+2]+W.u.z*hw*sg,q=vo+(i*2+sd)*3;
+        pos[q]=I[0]*x+I[4]*y+I[8]*z+I[12];pos[q+1]=I[1]*x+I[5]*y+I[9]*z+I[13];pos[q+2]=I[2]*x+I[6]*y+I[10]*z+I[14];
+        const nx=W.b.x,ny=W.b.y,nz=W.b.z;let X=I[0]*nx+I[4]*ny+I[8]*nz,Y=I[1]*nx+I[5]*ny+I[9]*nz,Z=I[2]*nx+I[6]*ny+I[10]*nz;const l=Math.hypot(X,Y,Z)||1;nor[q]=X/l;nor[q+1]=Y/l;nor[q+2]=Z/l;}
+      if(i===N){/* the tip: a swallowtail notch, or the point of a pennant */const q=vo+2*N1*3,back=S.tip?0:seg*.6,x=P[j]-W.d.x*back,y=P[j+1]-W.d.y*back,z=P[j+2]-W.d.z*back;
+        pos[q]=I[0]*x+I[4]*y+I[8]*z+I[12];pos[q+1]=I[1]*x+I[5]*y+I[9]*z+I[13];pos[q+2]=I[2]*x+I[6]*y+I[10]*z+I[14];nor[q]=nor[q-3];nor[q+1]=nor[q-2];nor[q+2]=nor[q-1];}}}
+  c.geo.attributes.position.needsUpdate=true;c.geo.attributes.normal.needsUpdate=true;}
+ELA.swift=(fx,t,dt,moving,e)=>{const c=fx.cloth;if(!c)return;swxStep(c,dt||0,t,e||null);};
+/* a foe that is held (blocked by the hero, pulled by gravity) skips animElite: its ribbons still move */
+{const me0=moveEnemy;moveEnemy=function(e,dt){const c=e&&e.eliteFx&&e.eliteFx.cloth,k=c?c.n:0;const r=me0.apply(this,arguments);if(c&&c.n===k&&e.eliteFx.cloth===c)swxStep(c,dt||0,time,e);return r;};}
+/* dust kicked back from the feet, opposite the motion */
+ELP.swift=(e,f,dt)=>{const c=f&&f.cloth;if(!f||!f.swift||!c||dt<=0)return;const v=c.v,sp=Math.hypot(v.x,v.z);if(sp<.05)return;const ux=v.x/sp,uz=v.z/sp,s=e.b.scale.y,k=Math.min(1.3,c.vs);
+  if(f.dust&&!e.fly&&rnd()<dt*9*k){const sz=f.dust*s*.75,lx=-uz,lz=ux,o=(rnd()-.5)*.12*sz;
+    emit(0,{x:e.x-ux*.07*sz+lx*o,y:e.y+.03,z:e.z-uz*.07*sz+lz*o,vx:-ux*sp*(.35+rnd()*.25)+lx*(rnd()-.5)*.25,vy:.12+rnd()*.14,vz:-uz*sp*(.35+rnd()*.25)+lz*(rnd()-.5)*.25,s:.05*sz,s2:.13*sz,c:0x9a8a6e,c2:0x6a5a44,a:.34,a2:0,life:.42+rnd()*.2,drag:2.2});}
+};
+/* cleanup: every way a dress can leave the scene */
+{const re=removeEnemy;removeEnemy=function(e){if(e&&e.eliteFx)swxRelease(e.eliteFx);return re.apply(this,arguments);};}
+{const ge=galElite;galElite=function(){if(GV)GV.items.forEach(it=>{if(it.fx)swxRelease(it.fx);});return ge.apply(this,arguments);};}
+{const cv=closeVar;closeVar=function(){if(GV)GV.items.forEach(it=>{if(it.fx)swxRelease(it.fx);});return cv.apply(this,arguments);};}
+/* ---- Giant ---- */
+const GNT={puffs:5,ring:.1};
+const GNT_RING_G=new THREE.RingGeometry(.7,1,20),GNT_RING_M=new THREE.MeshBasicMaterial({color:0x2a2016,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide});
+/* the Artificer's strip: Swift takes its ribbons, headband and dust; Giant gives back everything it added */
+{const as=artStrip;artStrip=function(q){const before=q&&q.elites?q.elites.slice():null;const r=as.apply(this,arguments);if(!r||!before)return r;const gone=before.filter(a=>!q.elites.includes(a));
+  for(const a of gone){if(a==='swift'&&q.eliteFx){const f=q.eliteFx;swxRelease(f);f.swift=false;if(f.band)f.band.forEach(o=>o.parent&&o.parent.remove(o));}
+    if(a==='giant'){q.b.scale.x/=1.12;q.b.scale.z/=1.12;q.hitY/=1.5;q.lives=Math.max(1,q.lives-1);q.giant=false;
+      for(const o of q.g.children){if(o.geometry===blobGeo||o===q.aura||o===q.aura2||o===q.gemRing)o.scale.multiplyScalar(1/1.5);}}}return r;};}
+/* the headband meshes are remembered so a strip can take them off */
+{const sw=ELD.swift;ELD.swift=C=>{const n0=C.g.children.length;sw(C);C.fx.band=C.g.children.slice(n0).filter(o=>o.isMesh&&!o.userData.swx);};}
+/* heavy footfalls: each step of a walking giant (the bob's low point) puffs dust round the foot and a faint dark ring spreads */
+function gntStep(e){const s=e.b.scale.y,y=e.y+.02,a=e.g.rotation.y,side=(e.gStep&1?1:-1)*.06*s,x=e.x+Math.cos(a)*side,z=e.z-Math.sin(a)*side;
+  for(let i=0;i<GNT.puffs;i++){const an=rnd()*6.28,v=.25+rnd()*.25;emit(0,{x:x+Math.cos(an)*.05*s,y,z:z+Math.sin(an)*.05*s,vx:Math.cos(an)*v*s*.7,vy:.1+rnd()*.12,vz:Math.sin(an)*v*s*.7,s:.07*s,s2:.2*s,c:0xd0c2a4,c2:0x8a7a60,a:.5,a2:0,life:.55+rnd()*.2,drag:2.5});}
+  if(!e.gRing){const m=new THREE.Mesh(GNT_RING_G,GNT_RING_M.clone());m.rotation.x=-Math.PI/2;m.renderOrder=2;e.gRing=m;}
+  const m=e.gRing;m.userData.t=0;m.position.set(x,gy(x,z)+.02,z);m.scale.setScalar(.05);m.userData.s=s;if(!m.parent)scene.add(m);}
+{const me1=moveEnemy;moveEnemy=function(e,dt){const r=me1.apply(this,arguments);if(e&&e.giant&&!e.fly&&!e.dead&&dt>0){const L=e.limbs,ph=time*9*e.spd+e.phase,st=Math.floor(ph/Math.PI);
+    if(e.gStep==null)e.gStep=st;else if(st!==e.gStep&&!(e.stunT>0)&&!e.blockBy&&!(L&&L.wheels)){e.gStep=st;gntStep(e);}else e.gStep=st;
+    const m=e.gRing;if(m&&m.parent){m.userData.t+=dt;const k=m.userData.t/.45;if(k>=1){scene.remove(m);}else{m.scale.setScalar(GNT.ring*m.userData.s*(1+2.4*k));m.material.opacity=.3*(1-k)*(1-k);}}}return r;};}
+{const re=removeEnemy;removeEnemy=function(e){const r=re.apply(this,arguments);if(e&&e.gRing){if(e.gRing.parent)e.gRing.parent.remove(e.gRing);e.gRing.material.dispose();e.gRing=null;}return r;};}
+{const se=spawnEnemy;spawnEnemy=function(){const n0=enemies.length,out=se.apply(this,arguments);if(enemies.length>n0){const en=enemies[enemies.length-1];if(en.elites&&en.elites.includes('giant'))en.giant=true;}return out;};}
+/* ---- end of v481 ---- */
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.

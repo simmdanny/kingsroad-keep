@@ -14911,6 +14911,13 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Swift ribbons that fly like cloth, and heavier Giants',d:'4 Nov',v:'v481',li:[
+    'The red ribbons on a Swift foe now stream out <b>behind</b> it. Before, they flapped forward through its body.',
+    'They are real cloth: they stream back and a little up at full speed, ripple from knot to tip, swing out when a foe turns a corner, and hang still when it is stopped or stunned. In the Bestiary they lift in a light breeze and swing when you turn the model.',
+    'Every unit that can be Swift wears ribbons made for it: a headband with knot tails and back streamers, a sash and mane ribbons on riders, tail streamers on ravens, pennants on battering rams, a neckerchief on wolves, and long streamers on the bosses (one on a dragon\u2019s tail tip, one on a wyrm\u2019s head).',
+    'Swift foes kick dust up behind their feet.',
+    'Giants walk heavily: each footfall puffs dust and sends a faint ring over the ground.',
+    'Fix: when the Artificer strips Giant from a foe, it now loses the extra width, height, life and its big shadow too. Stripping Swift takes its ribbons off.']},
   {t:'The Primordial Tempest, a hurricane seen from above',d:'4 Nov',v:'v477',li:[
     'The Primordial Tempest looks like a real hurricane now. Spiral arms of storm cloud wheel over the whole board round a clear eye that always frames the hero, the wall of the eye lit bright by the lightning inside it.',
     'Every bolt lights the cloud above it from within, sheet lightning lights the whole storm and lightning crawls along its arms. A sheet of wind and rain swirls into the eye, and every bolt that lands leaves a flare of light and a glowing scorch.',
@@ -35244,9 +35251,11 @@ function gmxAfter(b,how){const n={};for(const [t,e0] of b){const d=(t.earned||0)
    FRONT (+z, the way posAt's angle faces it), while the pivots sat on its back, so they flapped forward through the body.
    Now every ribbon is a short verlet chain simulated in WORLD space (SWX.N=5 segments, 6 nodes):
    - the root node is pinned to a point on the unit (on its body, or on an animated part: a dragon's tail tip, a wyrm's head);
-   - the other nodes feel gravity (SWX.G), quadratic air drag against the air (normalised per foe so a ribbon streams out to
-     about tan^-1(SWX.K)=77 deg at the foe's own full speed, 45 deg at half speed, and hangs when it stops or is stunned), a little lift
-     (so a fast foe's ribbons stream back and slightly up), and a flutter wave that runs from root to tip, faster and stronger with speed;
+   - the other nodes feel gravity (SWX.G), quadratic air drag against the air (normalised by the foe's own full speed, so every unit
+     streams alike: drag/gravity = SWX.K at full speed, a quarter of that at half), a little lift (so a fast foe's ribbons stream back
+     and slightly up), and a flutter wave that runs from root to tip, faster and stronger with speed;
+   - measured (tests/swx-test.js): a running rider's tips sit 71-84 deg from the vertical, 58-64 deg slowed to half speed, 7-9 deg
+     stunned; after a road corner they point back along the new heading within 0.4 s; about 11 microseconds per foe per frame;
    - follow-the-leader length constraints, a light bend smoothing and a ground floor; the root moves in sub-steps (at most 1/60 s);
    - so the ribbons trail opposite the real frame-to-frame motion, swing outward in a turn at a road corner, and settle when the foe stops.
    In the Bestiary (no foe) a breeze blows across the stand and the ribbons swing when the model is turned.
@@ -35255,10 +35264,10 @@ function gmxAfter(b,how){const n={};for(const [t,e0] of b){const d=(t.earned||0)
    pool when a foe dies, is removed, loses Swift (artStrip) or the Bestiary changes its dress: geometry is never disposed while shared.
    Per unit attachment points (SWX_AT): humanoids a headband with two knot tails and two back streamers; the rider a sash, mane streamers
    and a tail ribbon; ravens tail streamers; rams two pennants on poles; wolves a neckerchief; the bosses big streamers that fit each.
-   Dust is kicked backward from the feet (sized per unit, none for flyers), and faint wind streaks run past a fast foe.
+   Dust is kicked backward from the feet, opposite the motion (sized per unit, none for flyers).
    Giant: the strip by the Artificer now undoes all of it (width, hit height, the extra life, the shadow blob and marker rings), and a giant walks with heavy footfalls: a dust puff
    ring and a faint dark ground ring each step (GNT). */
-const SWX={N:5,G:6.5,K:2.6,lift:.34,flut:1.1,lin:1.6,bend:.3,sub:1/60,maxSub:5,breeze:.12,galBreeze:.85,pool:{},idx:{},live:new Set(),mat:null,stat:{steps:0}};
+const SWX={N:5,G:6.5,K:2.6,lift:.34,flut:1.1,lin:1.6,bend:.3,sub:1/60,maxSub:5,breeze:.12,galBreeze:.6,pool:{},idx:{},live:new Set(),mat:null,stat:{steps:0}};
 const SWX_M=new WeakMap();/* model b -> model record (for the animated parts a ribbon can be tied to) */
 {const em=enemyModel;enemyModel=function(){const m=em.apply(this,arguments);if(m&&m.b)SWX_M.set(m.b,m);return m;};}
 {const um=unitModel;unitModel=function(){const m=um.apply(this,arguments);if(m&&m.b)SWX_M.set(m.b,m);return m;};}
@@ -35369,12 +35378,11 @@ function swxWrite(c,t,ws){const W=SWX_W,N=SWX.N,N1=N+1,I=W.I.elements,pos=c.pos,
 ELA.swift=(fx,t,dt,moving,e)=>{const c=fx.cloth;if(!c)return;swxStep(c,dt||0,t,e||null);};
 /* a foe that is held (blocked by the hero, pulled by gravity) skips animElite: its ribbons still move */
 {const me0=moveEnemy;moveEnemy=function(e,dt){const c=e&&e.eliteFx&&e.eliteFx.cloth,k=c?c.n:0;const r=me0.apply(this,arguments);if(c&&c.n===k&&e.eliteFx.cloth===c)swxStep(c,dt||0,time,e);return r;};}
-/* dust kicked back from the feet, opposite the motion, and faint wind streaks along a fast foe */
+/* dust kicked back from the feet, opposite the motion */
 ELP.swift=(e,f,dt)=>{const c=f&&f.cloth;if(!f||!f.swift||!c||dt<=0)return;const v=c.v,sp=Math.hypot(v.x,v.z);if(sp<.05)return;const ux=v.x/sp,uz=v.z/sp,s=e.b.scale.y,k=Math.min(1.3,c.vs);
   if(f.dust&&!e.fly&&rnd()<dt*9*k){const sz=f.dust*s*.75,lx=-uz,lz=ux,o=(rnd()-.5)*.12*sz;
     emit(0,{x:e.x-ux*.07*sz+lx*o,y:e.y+.03,z:e.z-uz*.07*sz+lz*o,vx:-ux*sp*(.35+rnd()*.25)+lx*(rnd()-.5)*.25,vy:.12+rnd()*.14,vz:-uz*sp*(.35+rnd()*.25)+lz*(rnd()-.5)*.25,s:.05*sz,s2:.13*sz,c:0x9a8a6e,c2:0x6a5a44,a:.34,a2:0,life:.42+rnd()*.2,drag:2.2});}
-  if(k>.6&&rnd()<dt*5*k){const h=e.hitY*(.25+rnd()*.6),sd=(rnd()<.5?-1:1)*(.12+rnd()*.1)*s;
-    emit(1,{x:e.x-uz*sd+ux*.15*s,y:e.y+h,z:e.z+ux*sd+uz*.15*s,vx:-ux*sp*1.6,vy:0,vz:-uz*sp*1.6,s:.03*s,s2:.012*s,c:0xd8f4ff,c2:0x7fe0ff,a:.22,a2:0,life:.22});}};
+};
 /* cleanup: every way a dress can leave the scene */
 {const re=removeEnemy;removeEnemy=function(e){if(e&&e.eliteFx)swxRelease(e.eliteFx);return re.apply(this,arguments);};}
 {const ge=galElite;galElite=function(){if(GV)GV.items.forEach(it=>{if(it.fx)swxRelease(it.fx);});return ge.apply(this,arguments);};}
