@@ -2651,3 +2651,34 @@ Simon asked to "fix all elite modifiers" and to "add some more features". One mo
 - **Invisible, reviewed:** `artGhostMat` is now a rim-lit shimmering cloak (a shared shader per material) instead of the grey see-through clone. `invisLook` cloaks every part on each call, so gear added after the spawn (the formation's tower shield and banner) is cloaked too, and hides lines, sprites, instanced and additive parts while unseen. The marker dims when Invisible is the second modifier. Old Tobin, the melee hero, no longer blocks or hits an unseen foe. Revealing it and losing it again both show.
 - **Saves:** foes are not saved; the run is saved when a wave is called, so a resumed run rolls that wave again.
 - **Tests:** `tests/nmx-test.js` (run-all 'nmx', 53 rows): each mechanic with its numbers, roll rules and rates, artStrip, the Bestiary cycle, all six lands and the world map, the Invisible fixes, cleanup and no errors.
+
+## Swift ribbons as cloth, Giant review (v481)
+Simon: "fix all elite modifiers, the waves behind swift should actually sway in the correct direction and sway more realistically".
+- **The bug:** the old ribbons were rigid planes on pivots turned by `rotation.x=-1.15`. A plane hanging down (-y), turned that way, points to the model's front (+z, the way `posAt`'s angle faces it), while the pivots sat on its back. So the ribbons flapped forward through the body.
+- **Now:** each ribbon is a verlet chain of `SWX.N`=5 segments, simulated in world space (`swxStep`):
+  - the root node is pinned to a tie point on the unit, or on an animated part (a dragon's tail tip, a wyrm's head and tail; `swxTie`);
+  - the other nodes feel gravity, quadratic air drag normalised by the foe's own full speed (`SWX.K`), a little lift, and a flutter wave that runs from root to tip, faster with speed. Follow-the-leader length constraints, a bend smoothing and a ground floor hold them in shape;
+  - so the ribbons trail opposite the real frame-to-frame motion, swing outward at a road corner, and hang and settle when the foe is stopped or stunned. In the Bestiary a breeze lifts them, and turning the model swings them;
+  - the strips are written with a helical twist that grows to the tip, so they read as cloth from the side as well as from above; the tips are swallowtails, or pennant points on the ram.
+- **Cost:**
+  - one mesh per foe (13 vertices and 11 triangles per ribbon); every foe with the same ribbon count shares one index buffer;
+  - the buffers are updated in place, with no allocation per frame; about 11 microseconds per foe per frame;
+  - the records are pooled. `removeEnemy`, `clearWorld`, the Bestiary dress (`galElite`, `closeVar`) and the Artificer's strip return them to the pool, and a reused mesh gets the plain cloth back after an arena recoloured it.
+- **Per unit (`SWX_AT`, else `swxHum` from the measured body):**
+  - humanoids: a headband, its two knot tails and two back streamers;
+  - rider: a sash, two mane streamers and a tail ribbon. Raven: two tail streamers. Ram: two pennants on poles. Wolf: a neckerchief;
+  - bosses: two big streamers that fit each one, plus one on the tail of the dragons, the beast and the wyrms (tied to the tail node), and on arachne's abdomen.
+- **Dust:** `ELP.swift` kicks dust backward, opposite the motion, sized per unit (`SWX_DUST`), with none for flyers.
+- **Giant:**
+  - health bar, hit height, shadow blob and marker rings all scale with the model, on every unit (checked);
+  - the Artificer's strip used to leave the 1.12 width, the 1.5x hit height, the extra life, the big blob and the rings: `artStrip` is wrapped to give them back;
+  - the Bestiary keeps 1.3, because 1.5 crops the head off the stand;
+  - a walking giant now has footfalls (`gntStep`, on the low point of the walk bob): a ring of dust puffs and a faint dark ground ring, one ring mesh per giant, reused. There are none when stunned, flying or on wheels.
+- **Tests:** `tests/swx-test.js` (in run-all as 'swx') covers:
+  - the tips against the velocity on every road heading and through a corner;
+  - streaming at full and half speed, and hanging when stunned;
+  - every unit in game and in the Bestiary;
+  - no allocation per frame, cleanup, pooling and shared index;
+  - the Swift and Giant strips, the dust direction and the footfalls;
+  - the five arenas.
+- **Sheets:** `tests/swx-shots.js` is the screenshot helper.
