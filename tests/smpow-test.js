@@ -36,7 +36,7 @@ try{
   /* without a mastery nothing changes */
   {const r=fire('judgment',0);ok('at Mastery 0 an Epic cast\'s power is as before (factor 1)',r.f===1&&r.got.length===1&&near(r.got[0],r.base),r.got.map(x=>x.toFixed(2))+' want '+r.base.toFixed(2));}
   /* outside developer mode Epic+ masteries stay shut: no factor */
-  {meta.dev=false;const r=fire('judgment',3);meta.dev=true;ok('outside developer mode an Epic mastery still counts for nothing (factor 1)',r.f===1&&r.got.length===1&&near(r.got[0],r.base),r.got.map(x=>x.toFixed(2))+' want '+r.base.toFixed(2));}
+  {meta.dev=false;const r=fire('judgment',3);meta.dev=true;ok('v488: outside developer mode an Epic mastery counts too (its own factor, as in developer mode)',r.f!==1&&r.got.length===1&&near(r.got[0],r.want),r.got.map(x=>x.toFixed(2))+' want '+r.want.toFixed(2));}
   ok('no console errors',errs===0,errs);
 }catch(e){ok('ran without throwing',false,e.message+' '+(e.stack||'').split('\n')[1]);}
 finally{console.error=ce;castScrollNow=C0;window.__fz=false;try{for(const k of ['judgment','dslash'])setL(k,0);for(const e of enemies.slice())removeEnemy(e);enemies=[];state='menu';paused=false;speed=1;clearWorld();meta=migrateMeta(JSON.parse(m0));saveMeta();ART_V++;AS.k=null;lsSet(KR,r0);buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;showOverlay('menu');try{goTab('battle');}catch(e){}}catch(e){}}

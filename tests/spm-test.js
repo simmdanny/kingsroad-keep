@@ -35,8 +35,9 @@ try{
   Q(`[data-spm="${B}"]`).click();p=Q('.spm');
   ok('tapping another chip switches the panel to that scroll',QA('.spm').length===1&&p.dataset.spmk===B&&!p.querySelector('.spm-d')&&Q(`[data-spm="${B}"]`).classList.contains('on')&&!Q(`[data-spm="${A}"]`).classList.contains('on'));
   Q(`[data-spm="${B}"]`).click();ok('tapping the open chip closes it',!Q('.spm')&&SPM.k===null&&!Q('.chip.spl.on'));
-  Q(`[data-spm="${RA}"]`).click();p=Q('.spm');
-  ok('a scroll without masteries yet says so in one line, no bar or rows',p&&p.querySelector('.spm-none')&&!p.querySelector('.mst')&&!p.querySelector('[data-spml]'),p&&p.textContent);
+  /* v488 opened every rarity: the row for a scroll without masteries is checked with the gate as it stood (Common to Rare) */
+  {const S0=SM_OPEN.slice();SM_OPEN.splice(0,SM_OPEN.length,'common','uncommon','rare');try{Q(`[data-spm="${RA}"]`).click();p=Q('.spm');
+  ok('a scroll without masteries yet says so in one line, no bar or rows',p&&p.querySelector('.spm-none')&&!p.querySelector('.mst')&&!p.querySelector('[data-spml]'),p&&p.textContent);}finally{SM_OPEN.splice(0,SM_OPEN.length,...S0);}}
   p.querySelector('[data-spmx]').click();ok('the x closes it',!Q('.spm')&&SPM.k===null);
   Q(`[data-spm="${A}"]`).click();closeSheet();ok('closing the sheet forgets the open panel',SPM.k===null);
   selectTower(heroU);refreshSheet(true);ok('reopening the sheet starts closed',!Q('.spm'));
