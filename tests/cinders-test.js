@@ -14,7 +14,7 @@ const run=sec=>{for(let i=0;i<Math.round(sec/.05);i++){if(heroU)heroU.cd=1e9;upd
 const SMX=typeof SM_XP!=='undefined'?SM_XP:MAST_XP,setL=L=>{meta.smast=meta.smast||{};if(L)meta.smast.cinders=SMX[L-1];else delete meta.smast.cinders;};
 const oL=L=>{const o={src:heroU,bane:0,el:'fire',anc:false,spell:'cinders'};if(L){const id=++SM.id;SM.ctx.set(id,{k:'cinders',L,id,t0:time,n:1,P:100,o});o.smId=id;}return o;};
 let X0=0,Z0=0;
-const put=(dx,dz,type,hp)=>{spawnEnemy({type:type||'soldier',v:0},20);const e=enemies[enemies.length-1];e.spd=0;e.maxHp=hp||1e9;e.hp=e.maxHp;e.armor=0;e.res={};e.shield=0;e.x=e.px=X0+dx;e.z=e.pz=Z0+dz;e.dist=5;if(!e.fly)e.y=gy(e.x,e.z);return e;};
+const put=(dx,dz,type,hp)=>{spawnEnemy({type:type||'soldier',v:0},20);const e=enemies[enemies.length-1];/* a gem or scroll carrier (2% of spawns) twinkles, which the clean-up check would count as left behind */e.gem=0;e.scroll=0;e.spd=0;e.maxHp=hp||1e9;e.hp=e.maxHp;e.armor=0;e.res={};e.shield=0;e.x=e.px=X0+dx;e.z=e.pz=Z0+dz;e.dist=5;if(!e.fly)e.y=gy(e.x,e.z);return e;};
 let rec=null;const h0=hurt;hurt=function(e,amt,kind,o){if(rec&&o&&o.spell==='cinders'){const l=rec.get(e)||[];l.push({a:amt,sm:!!o.smx,dot:!!o.dot,T:time});rec.set(e,l);}return h0.apply(this,arguments);};
 const sum=(e,f)=>(rec.get(e)||[]).filter(f||(()=>true)).reduce((s,h)=>s+h.a,0),near=(a,b,t)=>Math.abs(a-b)<(t||1e-6);
 let errs=0;const ce=console.error;console.error=function(){errs++;return ce.apply(console,arguments);};const S0=scene.add;
