@@ -4686,14 +4686,14 @@
    "L": 3,
    "len": 12.83,
    "seed": 1,
-   "bytes": 4319749,
+   "bytes": 1264353,
    "note": "The pack walks on: inside the domain it crawls.",
    "ev": {
     "opts": 1,
     "cast": 1,
     "aim": 16,
     "act": 1,
-    "cut": 15
+    "cut": 14
    }
   },
   "expanse-0": {
