@@ -15277,6 +15277,8 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'No more grey screen after space spells',d:'5 Nov',v:'v489',li:[
+    'A fix: with three light artifacts equipped, the whole screen could turn grey after Spatial Deflection, Spatial Shatter, Spatial Compression, Time Loop or Dimensional Slash. The warp that bends the world for those spells no longer takes the artifact set\u2019s colours; the spells themselves still do.']},
   {t:'Every mastery is open',d:'5 Nov',v:'v488',li:[
     'The masteries of the Epic, Legendary, Mythic, Ancient and Secret scrolls can now be earned when playing normally, not only in developer mode. Casting any scroll earns it mastery XP, and its mastery levels, effects and power bonus count in play.',
     'Every mastery card has its recorded preview, so you can watch what each mastery does before you reach it (masteries you have not reached stay locked to watch, as before). XP a scroll already earned in developer mode is kept.']},
@@ -33384,6 +33386,12 @@ function dsmOpts(c){const L=c.L,a=c.a,X={};let splitK=1;
   dsmLog({ev:'cast',L,X:Object.assign({},X)});return X;}
 const DSM_OLD=castDSlash;
 castDSlash=function(t,PW,o,list,X){const c=!X?dsmC(o):null;return DSM_OLD(t,PW,o,list,c?dsmOpts(c):X);};
+/* ================= v489 (Simon: "yes add the grey screen fix too"): the shared warp pass is made outside an artifact set's colours =================
+   sdpInit builds the world-space warp pass (SDP.mat) the first time a space spell needs it. Built inside an artifact set's colour context (a
+   cast with 3 artifacts of one element equipped), its shader took the set's colour remap, so with a light set the whole screen turned grey after
+   Spatial Deflection, Spatial Shatter, Spatial Compression, Time Loop or Dimensional Slash (the Citadel of Orders had its own fix, v478). Now the
+   pass is always made outside the set's colours (asOffRun), whoever builds it first; the spells' own pieces still take the set's colours. */
+{const si0=sdpInit;sdpInit=function(){const a=arguments,t=this;return typeof asOffRun==='function'?asOffRun(()=>si0.apply(t,a)):si0.apply(t,a);};}
 /* ================= Primordial Tempest, the hurricane seen from above (v477) =================
    Simon: "make the primordial tempest 10x better" (its visuals; the spell does exactly what it did). Seen from the game's camera the v465
    storm read as a dim board, a sigil and a smudge of cloud on the far side of the hero. Now a hurricane fills the sky over the board:
