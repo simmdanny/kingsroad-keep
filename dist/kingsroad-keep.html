@@ -4375,10 +4375,10 @@ function castStormCloud(t,c,P,o){
   let cx=c.x,cz=c.z;if(c.dist!=null){const rt=c.route||ROUTES[0],q=posAt(Math.min(rt.len-.5,c.dist+.7),rt);cx=q[0];cz=q[1];}
   const R=1.15,H=CLOUD.h,DUR=5.4,root=new THREE.Group();root.position.set(cx,0,cz);scene.add(root);const geos=[],mats=[];
   /* v412 (Simon): a little see-through, like Stormcaller's clouds, so the road shows through it (CLOUD.op) */
-  const cM=[0x252a33,0x1b1f27,0x2f3541].map(col=>{const m=new THREE.MeshPhongMaterial({color:col,emissive:0x3a5a9a,emissiveIntensity:0,flatShading:true,shininess:0,transparent:true,opacity:0,depthWrite:false});mats.push(m);return m;});
+  const cM=[0x252a33,0x1b1f27,0x2f3541].map(col=>{const m=new THREE.MeshPhongMaterial({color:col,emissive:0x3a5a9a,emissiveIntensity:0,flatShading:true,shininess:0,transparent:true,opacity:0,depthWrite:false});mats.push(m);if(typeof asSoft==='function')asSoft(m);return m;});
   const cp=camera.position,kT=H/cp.y*.5,CX=(cp.x-cx)*kT,CZ=(cp.z-cz)*kT;
   const cloud=stormCloud(R*.85,cM,geos,9);cloud.position.set(CX,H,CZ);root.add(cloud);cloud.scale.setScalar(.2);
-  const inner=new THREE.MeshBasicMaterial({color:0x9fd0ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(inner);
+  const inner=new THREE.MeshBasicMaterial({color:0x9fd0ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});mats.push(inner);if(typeof asSoft==='function')asSoft(inner);
   const glow=new THREE.Mesh(ico(.6,1),inner);glow.position.set(CX,H-.05,CZ);glow.scale.set(1.5,.7,1.3);root.add(glow);
   const shM=new THREE.MeshBasicMaterial({map:softDiscTex(),color:0x05070c,transparent:true,opacity:0,depthWrite:false});mats.push(shM);
   const sg=new THREE.PlaneGeometry(1,1);sg.rotateX(-Math.PI/2);geos.push(sg);const shadow=new THREE.Mesh(sg,shM);shadow.position.y=.04;shadow.scale.setScalar(R*2.5);root.add(shadow);
@@ -14902,6 +14902,9 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Crimson Storm: black lightning in a red glow',d:'4 Nov',v:'v486',li:[
+    'With the Crimson Storm set (three lightning artifacts), lightning no longer turns flat red: the heart of every bolt is black and the light around it glows red.',
+    'Clouds and smoke keep their own colours with only a hint of red and black, and Lightning Cloud\u2019s storm cloud stays a dark storm cloud.']},
   {t:'The Primordial Tempest, a hurricane seen from above',d:'4 Nov',v:'v477',li:[
     'The Primordial Tempest looks like a real hurricane now. Spiral arms of storm cloud wheel over the whole board round a clear eye that always frames the hero, the wall of the eye lit bright by the lightning inside it.',
     'Every bolt lights the cloud above it from within, sheet lightning lights the whole storm and lightning crawls along its arms. A sheet of wind and rain swirls into the eye, and every bolt that lands leaves a flare of light and a glowing scorch.',
@@ -18083,34 +18086,45 @@ const asLive=()=>AS.ctx&&!AS.off&&AS.el&&AS.el!=='nature';
 
 /* ---- the colour remap ---- */
 function asHSL(h,s,l){if(s<=0)return[l,l,l];const q=l<.5?l*(1+s):l+s-l*s,p=2*l-q,f=t=>{if(t<0)t+=1;if(t>1)t-=1;return t<1/6?p+(q-p)*6*t:t<.5?q:t<2/3?p+(q-p)*(2/3-t)*6:p;};return[f(h+1/3),f(h),f(h-1/3)];}
-function asMapRGB(el,r,g,b){const mx=Math.max(r,g,b),mn=Math.min(r,g,b),L=(mx+mn)/2,d=mx-mn;let h=0,s=0;
+/* v486 Crimson Storm: light (additive glows: bolts, sparks, halos) gets a black core in a red glow (both then drawn normally, so the red stays red
+   over green ground); anything drawn normally (clouds, smoke,
+   solid shapes) keeps its own colour with only a hint of red and black (soft). The soft hint is a projection, so re-applying it changes nothing. */
+function asMapRGB(el,r,g,b,soft){const mx=Math.max(r,g,b),mn=Math.min(r,g,b),L=(mx+mn)/2,d=mx-mn;let h=0,s=0;
   if(d>1e-6){s=L>.5?d/(2-mx-mn):d/(mx+mn);h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;h/=6;}
   let o=null;
-  if(el==='lightning'){const blu=s>.12&&h>=.45&&h<=.93&&L>=.25,wht=s<=.12&&L>.6;if(blu&&h>=.7)o=[.78,.55,.06+.16*L];else if(blu||wht)o=[.995,.9,.08+.32*L];}
+  if(el==='lightning'){const blu=s>.12&&h>=.45&&h<=.93&&L>=.25,wht=s<=.12&&L>.6;
+    if(soft){if(blu&&s>=.4)o=h>=.7?[.97,.5,.12+.18*L]:[.995,.55,.14+.2*L];else if(s<=.12&&L>.2&&!(Math.min(Math.abs(h-.99),1-Math.abs(h-.99))<.03&&Math.abs(s-.08)<.03&&L<=.805))o=[.99,.08,Math.min(L,.8)];}
+    else if(blu&&h>=.7)o=[.97,.85,.15+.3*L];else if(blu)o=[.995,.95,.28+.4*L];else if(wht)o=[.99,.7,.03+.05*L];}
   else if(el==='fire'){const warm=s>.25&&(h<.17||h>.94)&&L>.08,wht=s<=.25&&L>.8,done=(h<.03||h>.97)&&L<.36&&s>.5;if((warm||wht)&&!done)o=[0,.85,.03+.3*L];}
   else if(el==='ice'){const done=h>=.6&&h<=.64&&s>.8&&L<.42,blu=s>.12&&h>=.45&&h<=.7,wht=s<=.12&&L>.6;if(!done&&(blu||wht))o=L>.82?[.6,.25,.95]:[.62,.85,.12+.28*L];}
   else if(el==='light'){if(s>.12&&L>.1)o=[h,Math.min(.06,s*.1),.45+.4*L];else if(s<=.12&&L>.6)o=[h,Math.min(s,.06),Math.min(L,.88)];}else if(el==='dark'){const pur=s>.12&&h>=.69&&h<=.88;if(!pur){if(s>.12&&L>.04)o=[.72+.1*((h+.15)%1),Math.min(.95,.5+.45*s),Math.min(.82,L>.6?L*.92:L)];else if(s<=.12&&L>.62)o=[.77,.72,Math.min(.8,L*.88)];}}
   return o?asHSL(o[0],o[1],o[2]):null;}
-function asHex(el,x){if(x==null||!el)return x;const C=AS.hex[el]||(AS.hex[el]=new Map());let v=C.get(x);if(v!==undefined)return v;
-  const o=asMapRGB(el,(x>>16&255)/255,(x>>8&255)/255,(x&255)/255);v=o?(Math.round(o[0]*255)<<16|Math.round(o[1]*255)<<8|Math.round(o[2]*255)):x;C.set(x,v);return v;}
+function asHex(el,x,soft){if(x==null||!el)return x;const key=soft?el+'~':el,C=AS.hex[key]||(AS.hex[key]=new Map());let v=C.get(x);if(v!==undefined)return v;
+  const o=asMapRGB(el,(x>>16&255)/255,(x>>8&255)/255,(x&255)/255,soft);v=o?(Math.round(o[0]*255)<<16|Math.round(o[1]*255)<<8|Math.round(o[2]*255)):x;C.set(x,v);return v;}
 const asFamHex=(el,x)=>x!=null&&asHex(el,x)!==x;
-function asColor(c,el){if(!c||!el)return false;const o=asMapRGB(el,c.r,c.g,c.b);if(!o)return false;c.r=o[0];c.g=o[1];c.b=o[2];return true;}
+function asColor(c,el){if(!c||!el)return false;const soft=typeof el==='string'&&el.endsWith('~'),o=asMapRGB(soft?el.slice(0,-1):el,c.r,c.g,c.b,soft);if(!o)return false;c.r=o[0];c.g=o[1];c.b=o[2];return true;}
 const asFamCol=(el,c)=>!!c&&!!asMapRGB(el,c.r,c.g,c.b);
 const AS_GL_H='vec3 asHsl(vec3 c){float mx=max(c.r,max(c.g,c.b)),mn=min(c.r,min(c.g,c.b)),L=(mx+mn)*.5,d=mx-mn,h=0.,s=0.;if(d>1e-5){s=L>.5?d/(2.-mx-mn):d/(mx+mn);if(mx==c.r)h=(c.g-c.b)/d+(c.g<c.b?6.:0.);else if(mx==c.g)h=(c.b-c.r)/d+2.;else h=(c.r-c.g)/d+4.;h/=6.;}return vec3(h,s,L);}'+
   'float asHu(float p,float q,float t){if(t<0.)t+=1.;if(t>1.)t-=1.;if(t<1./6.)return p+(q-p)*6.*t;if(t<.5)return q;if(t<2./3.)return p+(q-p)*(2./3.-t)*6.;return p;}'+
   'vec3 asRgb(float h,float s,float l){if(s<=0.)return vec3(l);float q=l<.5?l*(1.+s):l+s-l*s,p=2.*l-q;return vec3(asHu(p,q,h+1./3.),asHu(p,q,h),asHu(p,q,h-1./3.));}';
 const AS_GL={
-  lightning:'vec3 asMap(vec3 c0){vec3 x=asHsl(clamp(c0,0.,1.));float h=x.x,s=x.y,L=x.z;bool blu=s>.12&&h>=.45&&h<=.93&&L>=.25,wht=s<=.12&&L>.6;if(blu&&h>=.7)return asRgb(.78,.55,.06+.16*L);if(blu||wht)return asRgb(.995,.9,.08+.32*L);return c0;}',
+  lightning:'vec3 asMap(vec3 c0){vec3 x=asHsl(clamp(c0,0.,1.));float h=x.x,s=x.y,L=x.z;bool blu=s>.12&&h>=.45&&h<=.93&&L>=.25,wht=s<=.12&&L>.6;if(blu&&h>=.7)return asRgb(.97,.85,.15+.3*L);if(blu)return asRgb(.995,.95,.28+.4*L);if(wht)return asRgb(.99,.7,.03+.05*L);return c0;}',
+  /* drawn normally (clouds, smoke): its own colour, a little darker and redder; strongly coloured lightning parts still turn red */
+  lightningSoft:'vec3 asMap(vec3 c0){vec3 x=asHsl(clamp(c0,0.,1.));float h=x.x,s=x.y,L=x.z;if(s>=.4&&h>=.45&&h<=.93&&L>=.25)return h>=.7?asRgb(.97,.5,.12+.18*L):asRgb(.995,.55,.14+.2*L);return mix(c0,vec3(.3,.02,.03)*(.4+.6*L),.18)*.94;}',
   fire:'vec3 asMap(vec3 c0){vec3 x=asHsl(clamp(c0,0.,1.));float h=x.x,s=x.y,L=x.z;bool warm=s>.25&&(h<.17||h>.94)&&L>.08,wht=s<=.25&&L>.8,dn=(h<.03||h>.97)&&L<.36&&s>.5;if((warm||wht)&&!dn)return asRgb(0.,.85,.03+.3*L);return c0;}',
   ice:'vec3 asMap(vec3 c0){vec3 x=asHsl(clamp(c0,0.,1.));float h=x.x,s=x.y,L=x.z;bool dn=h>=.6&&h<=.64&&s>.8&&L<.42,blu=s>.12&&h>=.45&&h<=.7,wht=s<=.12&&L>.6;if(!dn&&(blu||wht)){if(L>.82)return asRgb(.6,.25,.95);return asRgb(.62,.85,.12+.28*L);}return c0;}',
   light:'vec3 asMap(vec3 c0){vec3 x=asHsl(clamp(c0,0.,1.));float h=x.x,s=x.y,L=x.z;if(s>.12&&L>.1)return asRgb(h,min(.06,s*.1),.45+.4*L);if(s<=.12&&L>.6)return asRgb(h,min(s,.06),min(L,.88));return c0;}'};
 function asShader(m,el){const fs=m.fragmentShader;if(typeof fs!=='string'||fs.indexOf('gl_FragColor')<0||fs.indexOf('asMap(')>=0||!AS_GL[el])return false;const i=fs.indexOf('void main'),j=fs.lastIndexOf('}');if(i<0||j<i)return false;
-  const add=el!=='light'&&el!=='dark'&&m.blending===THREE.AdditiveBlending;
+  const add=el!=='light'&&el!=='dark'&&m.blending===THREE.AdditiveBlending,gl=el==='lightning'&&!add?AS_GL.lightningSoft:AS_GL[el];
   const tail=add?'{vec4 aO=gl_FragColor;float aK=clamp(max(aO.r,max(aO.g,aO.b)),0.,1.)*aO.a;gl_FragColor=vec4(asMap(aO.rgb),aK);}':'gl_FragColor.rgb=asMap(gl_FragColor.rgb);';
-  m.fragmentShader=fs.slice(0,i)+AS_GL_H+AS_GL[el]+fs.slice(i,j)+tail+fs.slice(j);if(add){m.blending=THREE.NormalBlending;m.transparent=true;}m.needsUpdate=true;return true;}
+  m.fragmentShader=fs.slice(0,i)+AS_GL_H+gl+fs.slice(i,j)+tail+fs.slice(j);if(add){m.blending=THREE.NormalBlending;m.transparent=true;}m.needsUpdate=true;return true;}
 /* recolour a material in place; dark sets turn additive glows into normal blending */
-function asPaint(m,el){let hit=false;for(const k of ['color','emissive']){const c=m[k];if(!c||!c.isColor)continue;c.asOwn=el;if(asColor(c,el))hit=true;}
-  if(m.isShaderMaterial){if(asShader(m,el))hit=true;}else if(hit&&el!=='dark'&&m.blending===THREE.AdditiveBlending&&(el!=='light'||m.opacity>=.5)){m.blending=THREE.NormalBlending;m.opacity*=el==='light'?.8:.85;}return hit;}
+function asPaint(m,el){let hit=false;const ce=el==='lightning'&&!m.isShaderMaterial&&m.blending!==THREE.AdditiveBlending?el+'~':el;   /* v486: drawn normally, only a hint */
+  for(const k of ['color','emissive']){const c=m[k];if(!c||!c.isColor)continue;c.asOwn=ce;if(asColor(c,ce))hit=true;}
+    if(m.isShaderMaterial){if(asShader(m,el))hit=true;}else if(hit&&el!=='dark'&&m.blending===THREE.AdditiveBlending&&(el!=='light'||m.opacity>=.5)){m.blending=THREE.NormalBlending;m.opacity*=el==='light'?.8:.85;}return hit;}
+/* v486: a cloud made in the lightning context keeps its own colours, only nudged toward red and black (once: the cloud never resets them) */
+function asSoft(m,k){if(!m||!m.userData||m.userData.asOwn!=='lightning')return m;k=k==null?.25:k;for(const [n,v] of [['color',m.__asC],['emissive',m.__asE]]){const c=m[n];if(c&&c.isColor&&v!=null){c.asOwn=0;c.setHex(v);c.lerp(AS.hintC||(AS.hintC=new THREE.Color(0x3a0608)),n==='emissive'?k*1.6:k);}}
+  m.blending=m.__asB;m.opacity=m.__asO;m.userData.asHint=1;return m;}
 function asReg(m){if(typeof WeakRef!=='function')return;AS.reg.push({r:new WeakRef(m),c:m.__asC,e:m.__asE,b:m.__asB,op:m.__asO,tr:m.__asT,fs:m.__asF});if(++AS.regN%400===0)AS.reg=AS.reg.filter(x=>x.r.deref());}
 function asMat(m){const el=AS.el;m.__asC=m.color&&m.color.isColor?m.color.getHex():null;m.__asE=m.emissive&&m.emissive.isColor?m.emissive.getHex():null;m.__asB=m.blending;m.__asO=m.opacity;m.__asT=m.transparent;m.__asF=m.isShaderMaterial?m.fragmentShader:null;
   asPaint(m,el);m.userData.asOwn=el;asReg(m);}
@@ -18139,11 +18153,11 @@ function asDbg(k,c){const D=AS.dbg;if(!D)return;const st=String(new Error().stac
 {const m0=M;M=function(c,o){const m=asOffRun(()=>m0(c,o));return asLive()?asSwap(m):m;};}
 {const mk=HALO_MK;HALO_MK=c=>asOffRun(()=>mk(c));HALO_FX=m=>asLive()?asSwap(m):m;}
 /* particles: remapped, and dark ones go to the normal (not additive) systems */
-{const e0=emit;emit=function(addv,o){if(o&&AS.el&&!AS.off){if(AS.ctx){const c=o.c==null?0xffffff:o.c,m1=asHex(AS.el,c),m2=o.c2==null?null:asHex(AS.el,o.c2);
+{const e0=emit;emit=function(addv,o){if(o&&AS.el&&!AS.off){if(AS.ctx){const sf=!addv,c=o.c==null?0xffffff:o.c,m1=asHex(AS.el,c,sf),m2=o.c2==null?null:asHex(AS.el,o.c2,sf);
       if(m1!==c||(o.c2!=null&&m2!==o.c2)){o=Object.assign({},o,{c:m1});if(o.c2!=null)o.c2=m2;if(addv)addv=0;if(AS.dbg)AS.dbg.inN++;}}
     else if(AS.dbg&&(asFamHex(AS.el,o.c==null?0xffffff:o.c)||asFamHex(AS.el,o.c2)))asDbg('emit',o.c==null?0xffffff:o.c);}
   return e0.call(this,addv,o);};}
-{const e0=emitS;emitS=function(addv,o){if(o&&AS.el&&!AS.off){if(AS.ctx){const c=o.c==null?0x222222:o.c,m1=asHex(AS.el,c),m2=o.c2==null?null:asHex(AS.el,o.c2);
+{const e0=emitS;emitS=function(addv,o){if(o&&AS.el&&!AS.off){if(AS.ctx){const sf=!addv,c=o.c==null?0x222222:o.c,m1=asHex(AS.el,c,sf),m2=o.c2==null?null:asHex(AS.el,o.c2,sf);
       if(m1!==c||(o.c2!=null&&m2!==o.c2)){o=Object.assign({},o,{c:m1});if(o.c2!=null)o.c2=m2;if(addv)addv=0;if(AS.dbg)AS.dbg.inN++;}}
     else if(AS.dbg&&(asFamHex(AS.el,o.c)||asFamHex(AS.el,o.c2)))asDbg('smoke',o.c||0);}
   return e0.call(this,addv,o);};}
