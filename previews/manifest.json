@@ -4632,7 +4632,7 @@
    "L": 0,
    "len": 12.83,
    "seed": 1,
-   "bytes": 3445352,
+   "bytes": 1093767,
    "note": "The domain rises and its cuts begin (the first 13 seconds of the cast)."
   },
   "citadel-1": {
@@ -4640,23 +4640,8 @@
    "L": 1,
    "len": 12.83,
    "seed": 1,
-   "bytes": 3425989,
+   "bytes": 1266029,
    "note": "The foes are spread out: the domain reaches 6 tiles.",
-   "ev": {
-    "opts": 1,
-    "cast": 1,
-    "aim": 16,
-    "act": 1,
-    "cut": 15
-   }
-  },
-  "citadel-2": {
-   "k": "citadel",
-   "L": 2,
-   "len": 12.83,
-   "seed": 1,
-   "bytes": 3882809,
-   "note": "Each cut strikes harder, and harder in its wake.",
    "ev": {
     "opts": 1,
     "cast": 1,
@@ -4665,12 +4650,27 @@
     "cut": 14
    }
   },
+  "citadel-2": {
+   "k": "citadel",
+   "L": 2,
+   "len": 12.83,
+   "seed": 1,
+   "bytes": 1240752,
+   "note": "Each cut strikes harder, and harder in its wake.",
+   "ev": {
+    "opts": 1,
+    "cast": 1,
+    "aim": 16,
+    "act": 1,
+    "cut": 15
+   }
+  },
   "citadel-5": {
    "k": "citadel",
    "L": 5,
    "len": 6,
    "seed": 1,
-   "bytes": 1694479,
+   "bytes": 667134,
    "note": "The final fracture tears across the domain (the clip joins it near its end).",
    "ev": {
     "opts": 1,
@@ -4686,14 +4686,14 @@
    "L": 3,
    "len": 12.83,
    "seed": 1,
-   "bytes": 4319749,
+   "bytes": 1264353,
    "note": "The pack walks on: inside the domain it crawls.",
    "ev": {
     "opts": 1,
     "cast": 1,
     "aim": 16,
     "act": 1,
-    "cut": 15
+    "cut": 14
    }
   },
   "expanse-0": {
@@ -4722,7 +4722,7 @@
    "L": 4,
    "len": 12.83,
    "seed": 1,
-   "bytes": 4029829,
+   "bytes": 1278560,
    "note": "Each cut aims at the foe nearest the keep no cut has struck yet, and throws it back.",
    "ev": {
     "opts": 1,
