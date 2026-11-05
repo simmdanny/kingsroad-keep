@@ -14911,6 +14911,14 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Five new enemy formations, and a Formations page in the Bestiary',d:'5 Nov',v:'v480',li:[
+    '<b>Peasant Mob</b> (from wave 6): nine or ten angry villagers with torches and pitchforks. Every one you cut down makes the rest 5% faster, up to 30%. Kill them together.',
+    '<b>Raven Murder</b> (from wave 8): seven ravens in a V behind a crested lead, joined by a thread of light. While the lead lives a hit on one raven of the V is shared: it takes 40% and the rest of the V splits the other 60%. Down the lead and the flock scatters.',
+    '<b>Holy Procession</b> (from wave 16): monks carry a gilded reliquary in a pool of golden light. Foes in the light heal 3% of their health a second. The bearer is tougher; bring him down and the light goes out.',
+    '<b>Pike Phalanx</b> (from wave 18): nine pikemen in a block. While five or more stand they cannot be pushed back and slows on them are halved. Below five the block breaks.',
+    '<b>Knight\u2019s Wedge</b> (from wave 22): five knights in an arrowhead over a gold chevron. While two flank knights stand the tip takes 60% less damage; when the tip falls the rest charge for 3 seconds.',
+    'Formations come as often as before; the old four are now shared among nine.',
+    'The Bestiary has a <b>Formations</b> button: all nine formations as little turning dioramas, with when they come and what they do.']},
   {t:'The Primordial Tempest, a hurricane seen from above',d:'4 Nov',v:'v477',li:[
     'The Primordial Tempest looks like a real hurricane now. Spiral arms of storm cloud wheel over the whole board round a clear eye that always frames the hero, the wall of the eye lit bright by the lightning inside it.',
     'Every bolt lights the cloud above it from within, sheet lightning lights the whole storm and lightning crawls along its arms. A sheet of wind and rain swirls into the eye, and every bolt that lands leaves a flare of light and a glowing scorch.',
@@ -35238,6 +35246,254 @@ function gmxAfter(b,how){const n={};for(const [t,e0] of b){const d=(t.earned||0)
 {const k0=kill;kill=function(){const b=gmxBefore('merchant');const r=k0.apply(this,arguments);if(b.length)try{gmxAfter(b,'bounty');}catch(err){console.error(err);}return r;};}
 {const mp=mxPay;mxPay=function(t){const b=t&&GOLD_T.includes(t.type)?[[t,t.earned||0]]:[];const r=mp.apply(this,arguments);try{gmxAfter(b,'payout');}catch(err){console.error(err);}return r;};}
 /* ---- end of v476 ---- */
+/* ================= v480: five new formations (Peasant Mob, Raven Murder, Holy Procession, Pike Phalanx, Knight's Wedge) and a Formations page in the Bestiary =================
+   Simon: "add 5 more formations" and "add some more features".
+   Design: every formation has one mechanic you can see on the board and one way to beat it.
+   - Peasant Mob (wave 6, where formations begin): 9 peasants (10 from wave 12) in a loose crowd, every one with a torch raised in the
+     left hand (the torchbearers carry theirs in the right). Each member slain makes the rest 5% faster, up to +30% (6 deaths): their
+     torches flare, embers fly and the crowd jumps. Counterplay: kill them all at once (splash) rather than one by one.
+   - Raven Murder (wave 8): a crested blood raven leads 7 ravens in a V (4 on one arm, 3 on the other, 0.25 apart across and 0.3 along; the V ravens are drawn at 0.8 size so their wings do not overlap), joined by a thin line of light.
+     While the lead lives, a hit on a raven of the V is shared: it takes 40% and the other 60% is spread evenly over the rest of the V
+     (the lead never shares). When the lead falls (or leaves the board) the line snaps and the flock scatters: each raven veers off and
+     flies 45% slower for 1.6s, and hits are no longer shared. Counterplay: kill the lead first, or use splash (which the share does not
+     weaken). The lead is a tier-3 raven (1.5x HP, 1.35x gold) and 18% bigger.
+   - Holy Procession (wave 16): two wardens, a friar holding a gilded reliquary over his head, two hooded monks swinging censers, a rear
+     warden. A pool of gold light (radius 1.35) lies under the reliquary: every 0.5s each foe in it (not bosses, not the bearer) heals 1.5%
+     of its max HP (3% a second). The monks of the procession chant instead of casting their own heals. The bearer has 1.6x HP and gold;
+     when he falls the reliquary drops, its light goes out and the healing ends. Counterplay: focus the bearer.
+   - Pike Phalanx (wave 18): 9 soldiers in a 3x3 block; the front rank levels its pikes, the second holds them at 30 degrees, the rear
+     upright. While at least 5 stand, the block cannot be pushed back and slows on it are halved. Below 5 it breaks: pikes go up in
+     disarray and the block loosens. Counterplay: kill 5, or use damage rather than control.
+   - Knight's Wedge (wave 22): 5 knights in an arrowhead over a gold chevron on the ground. While at least 2 flank knights stand, the
+     tip takes 60% less damage. When the tip falls the rest charge for 3s (1.7x speed, as the Rider Charge). Counterplay: break the flanks
+     first, or kill the tip and be ready for the charge.
+   Rates: buildWave is unchanged, so the number of formations per wave stays as it was; rollFormation picks evenly among the formations
+   open at that wave, so the old four now come less often (measured with __kk.formStats, see the README). HP and gold per member are those
+   of normal foes (except the two key members above).
+   Bestiary: a Formations button on the Bestiary bar opens a strip of nine dioramas (real unit models with their formation gear, idling and
+   slowly turning, one at a time with the variant arrows), with the name, the wave it comes from and what it does.
+   FM5.log (an array) receives the events for the tests. */
+const FM5={start:6,mob:{step:.05,cap:6},murder:{keep:.4,scatT:1.6,scatSlow:.55,scale:1.18,wing:.8},procession:{r:1.35,heal:.015,tick:.5,hp:1.6,gold:1.6},
+  phalanx:{need:5,slowRes:.5},wedge:{dr:.6,need:2,chargeT:3},gsp:2.4,live:[],quiet:false,sharing:false,log:null,
+  sh:{src:null,el:null,mul:undefined,anc:false,dot:true,noReact:true,fm5:true},geo:{},tex:{},lbl:{},lblT:{}};
+const fm5Log=d=>{if(FM5.log)FM5.log.push(d);};
+Object.assign(FORMS,{
+  mob:{n:'Peasant Mob',min:6,toast:'A Peasant Mob storms in, torches raised!',d:'Nine or ten villagers with torches and pitchforks. Every one of them you cut down makes the rest 5% faster, up to 30%. Kill them together.'},
+  murder:{n:'Raven Murder',min:8,toast:'A Raven Murder darkens the sky!',d:'Seven ravens fly in a V behind a crested lead. While the lead lives, a hit on one raven of the V is shared: it takes 40% and the rest of the V splits the other 60%. Down the lead and the flock scatters, slowed for a moment.'},
+  procession:{n:'Holy Procession',min:16,toast:'A Holy Procession approaches, chanting!',d:'Monks carry a gilded reliquary in a pool of golden light. Foes in the light heal 3% of their health a second. The bearer is tougher; when he falls the light goes out.'},
+  phalanx:{n:'Pike Phalanx',min:18,toast:'A Pike Phalanx advances!',d:'Nine pikemen in a tight block. While five or more stand they cannot be pushed back and slows on them are halved. Below five the block breaks.'},
+  wedge:{n:'Knight\u2019s Wedge',min:22,toast:'A Knight\u2019s Wedge advances, point first!',d:'Five knights in an arrowhead. While two flank knights stand, the tip takes 60% less damage. When the tip falls, the rest charge for 3 seconds.'}});
+const FM5_ORDER=['shield','charge','mob','murder','escort','procession','phalanx','wedge','siege'];
+const FM5_LAY={
+  mob(w){const rows=w>=12?[3,4,3]:[3,3,3],out=[];rows.forEach((k,r)=>{for(let i=0;i<k;i++)out.push(['peasant',(i-(k-1)/2)*.19+(rnd()-.5)*.07,.95-r*.33+(rnd()-.5)*.1,'mob']);});return out;},
+  murder(){const out=[['raven',0,1.3,'alpha']];for(let i=1;i<=4;i++)out.push(['raven',-.25*i,1.3-.3*i,'wing']);for(let i=1;i<=3;i++)out.push(['raven',.25*i,1.3-.3*i,'wing']);return out;},
+  procession(){return[['soldier',-.17,1.18,'warden'],['soldier',.17,1.18,'warden'],['monk',0,.8,'relic'],['monk',-.24,.46,'chant'],['monk',.24,.46,'chant'],['soldier',0,.1,'warden']];},
+  phalanx(){const out=[];for(let r=0;r<3;r++)for(let c=-1;c<=1;c++)out.push(['soldier',c*.21,.9-r*.3,'pike'+r]);return out;},
+  wedge(){return[['knight',0,1.05,'tip'],['knight',-.21,.72,'flank'],['knight',.21,.72,'flank'],['knight',-.42,.39,'flank'],['knight',.42,.39,'flank']];}};
+{const fl=formLayout;formLayout=function(id,w){return FM5_LAY[id]?FM5_LAY[id](w):fl.apply(this,arguments);};}
+/* the variant each member wears: mob members are mostly farmers (pitchforks), never above the tier the wave allows */
+function fm5Var(type,role,w){if(type==='peasant'){const mt=w>=TIER_WAVE[2]?2:w>=TIER_WAVE[1]?1:0,pool=[0,0,0];for(let i=0;i<PEAS_NORMAL;i++)if(tierOf('peasant',i)<=mt)pool.push(i);return pick(pool);}
+  if(role==='alpha')return 2;if(role==='relic')return 0;if(role==='chant')return 1;return undefined;}
+
+/* ---------- gear: hand-built pieces merged into one vertex-coloured mesh each, cached ---------- */
+function fm5Geo(key,build){if(FM5.geo[key])return FM5.geo[key];const {B,P}=kitBuilder();build((...a)=>P('g',...a));return FM5.geo[key]=mergeParts(B.g);}
+function fm5Mesh(par,key,build,mat,x,y,z){const m=new THREE.Mesh(fm5Geo(key,build),mat||VCMAT);m.castShadow=false;m.position.set(x||0,y||0,z||0);par.add(m);return m;}
+const fm5Hide=limb=>{if(limb)for(const c of limb.children)if(c.isMesh)c.visible=false;};
+/* a plain arm (sleeve, cuff, forearm, hand) to stand in for one whose weapon is replaced */
+function fm5Arm(limb,sl,fore,glove){if(!limb)return;fm5Hide(limb);fm5Mesh(limb,'arm'+sl+'/'+fore+'/'+glove,P=>{P(cyl(.015,.014,.07,6),sl,0,-.035,0);P(cyl(.017,.017,.012,6),sl,0,-.07,0);P(cyl(.013,.012,.06,6),fore,0,-.1,0);P(ico(.015,0),glove,0,-.135,.004);});}
+function fm5Flame(par,x,y,z){const f=new THREE.Group();f.position.set(x,y,z);f.rotation.x=Math.PI;par.add(f);
+  fm5Mesh(f,'flame',P=>{P(cone(.021,.075,6),0xff7a1a,0,.034,0);P(cone(.012,.05,5),0xffe07a,0,.03,0);},VCMAT_GLOW);
+  const h=new THREE.Mesh(ico(.04,1),haloMat(0xff9a3a));h.position.y=.04;f.add(h);return f;}
+const SOL_SL=[[0x9b2d27,0xe2b48c],[0x7c8088,0x7c8088],[0x6a4a2a,0xe2b48c],[0x7c8088,0x7c8088],[0x9b2d27,0xe2b48c]],MONK_R=[0x6a4a2a,0x7c776a,0xeeeae0,0x6a4a2a,0x7c776a];
+/* m: a foe or a Bestiary model (b, limbs, variant) */
+function fm5Gear(m,id,role,type){const b=m.b,L=m.limbs,v=m.variant|0;
+  if(id==='mob'&&type==='peasant'){if(m.flame){m.fmFlame=m.flame;return;}if(!L||!L.armL)return;
+    L.base=[L.base[0],{rx:-2.75,rz:-.22}];L.armL.rotation.set(-2.75,0,-.22);
+    fm5Mesh(L.armL,'torch',P=>{P(cyl(.007,.009,.17,5),0x7a5a32,0,-.2,.03);P(cyl(.012,.015,.036,6),0x5a3a1e,0,-.285,.03);P(cyl(.0135,.0135,.006,6),0x2a1a10,0,-.27,.03);P(cyl(.0135,.0135,.006,6),0x2a1a10,0,-.296,.03);});
+    m.fmFlame=fm5Flame(L.armL,0,-.305,.03);return;}
+  if(role==='alpha'){/* a crimson crest, a gold collar and two ribbons trailing from the tail */
+    fm5Mesh(b,'crest',P=>{for(let i=-1;i<=1;i++)P(box(.008,.055,.022),i?0x8a1010:0xc42020,i*.012,.075,.115,-.75,0,i*.3);P(box(.006,.03,.014),0xe8b84a,0,.062,.14,-.6);
+      P(cyl(.034,.036,.012,8),0xe8b84a,0,.025,.098,Math.PI/2-.35);P(oct(.008),0xd02a2a,0,.012,.13);});
+    const r=new THREE.Group();r.position.set(0,0,-.2);b.add(r);fm5Mesh(r,'ribbon',P=>{P(box(.007,.002,.14),0xc42020,-.012,0,-.07,0,-.12,0);P(box(.007,.002,.12),0xe8b84a,.012,0,-.06,0,.12,0);});m.fmRib=r;return;}
+  if(role&&role.startsWith('pike')){const rk=+role[4];if(L){L.still=true;if(L.armR){L.armR.rotation.set(-1.2,0,.05);const S=SOL_SL[v]||SOL_SL[0];fm5Arm(L.armR,S[0],S[1],0x5a3a22);}}
+    const p=new THREE.Group();p.position.set(.058,.27,.125);b.add(p);
+    fm5Mesh(p,'pike',P=>{P(cyl(.0065,.0065,1.0,5),0x6a4a28,0,0,.2,Math.PI/2);P(cone(.013,.085,4),0xc8ccd4,0,0,.742,Math.PI/2);P(cyl(.009,.009,.016,5),0x8a8e96,0,0,.7,Math.PI/2);
+      P(box(.003,.003,.07),0x8a8e96,.007,0,.67);P(box(.003,.003,.07),0x8a8e96,-.007,0,.67);P(box(.02,.022,.022),0xa02a20,0,-.012,.675);P(cyl(.008,.008,.022,5),0x3a3a40,0,0,-.3,Math.PI/2);});
+    m.fmPike=p;m.fmPitch=[-.06,.52,1.2][rk]||0;p.rotation.x=-m.fmPitch;return;}
+  if(role==='relic'){if(L){L.still=true;const c=MONK_R[v]||MONK_R[0];if(L.armR){L.armR.rotation.set(-2.85,0,-.14);fm5Arm(L.armR,c,0xe2b48c,0xe2b48c);}if(L.armL){L.armL.rotation.set(-2.85,0,.14);fm5Arm(L.armL,c,0xe2b48c,0xe2b48c);}}
+    const g=new THREE.Group();b.add(g);m.fmRelic=g;
+    fm5Mesh(g,'relic',P=>{[-1,1].forEach(s=>P(cyl(.006,.006,.3,5),0x4a331f,s*.058,.452,.03,Math.PI/2));P(box(.15,.012,.11),0xb8862a,0,.466,.03);
+      P(box(.12,.066,.08),0xe8b84a,0,.505,.03);P(box(.124,.01,.084),0xb8862a,0,.48,.03);P(box(.124,.01,.084),0xb8862a,0,.532,.03);
+      [-1,1].forEach(s=>P(box(.132,.008,.056),0xd8a838,0,.556,.03+s*.021,s*.62));P(box(.134,.012,.012),0xb8862a,0,.57,.03);
+      P(box(.007,.045,.007),0xf0c860,0,.6,.03);P(box(.026,.007,.007),0xf0c860,0,.607,.03);[-1,1].forEach(s=>P(ico(.008,0),0xf0c860,s*.066,.57,.03));
+      [-1,1].forEach(z=>{P(box(.018,.018,.006),0xc02a2a,0,.505,.03+z*.041);P(box(.012,.012,.006),0x2a5ac0,-.04,.505,.03+z*.041);P(box(.012,.012,.006),0x2a5ac0,.04,.505,.03+z*.041);});});
+    const h=new THREE.Mesh(ico(.1,1),haloMat(0xffd27a));h.position.set(0,.52,.03);g.add(h);m.fmHalo=h;return;}
+  if(role==='chant'){/* a censer swinging from the top of the staff */const par=L&&L.armR||b,p=new THREE.Group();p.position.set(0,.25,.03);par.add(p);
+    fm5Mesh(p,'censer',P=>{P(box(.0025,.085,.0025),0x9a9a90,0,-.042,0);P(ico(.019,0),0xc8a040,0,-.1,0);P(cone(.017,.022,6),0xb89030,0,-.081,0);P(cyl(.012,.008,.008,6),0x8a6a20,0,-.118,0);});
+    const e=new THREE.Mesh(ico(.008,0),GLOW(0xff9a3a));e.position.y=-.1;p.add(e);m.fmCenser=p;m.fmPot=e;return;}
+  if(role==='warden'){fm5Mesh(b,'tabard',P=>{P(box(.072,.12,.004),0xeeeae0,0,.262,.037);P(box(.01,.07,.003),0xe8b84a,0,.268,.04);P(box(.044,.01,.003),0xe8b84a,0,.282,.04);P(box(.076,.012,.006),0xb8862a,0,.205,.037);});return;}
+  if(role==='tip'){fm5Mesh(b,'tipGear',P=>{const hy=.393;P(box(.108,.014,.108),0xe8b84a,0,hy+.036,0);for(const[x,z]of[[-1,-1],[1,-1],[-1,1],[1,1],[0,1],[0,-1],[1,0],[-1,0]])P(tet(.012),0xf0c860,x*.05,hy+.052,z*.05);
+      for(let i=0;i<6;i++)P(box(.014,.05,.022),i%2?0xa01818:0xd02a2a,0,hy+.09+i*.006,-.025+i*.017,.55-i*.27);P(box(.13,.21,.008),0xa01818,0,.235,-.047,.08);P(box(.134,.016,.01),0xe8b84a,0,.335,-.044);});return;}
+  if(role==='flank'){fm5Mesh(b,'flankGear',P=>{const hy=.393;for(let i=0;i<4;i++)P(box(.011,.036,.018),0xb82020,0,hy+.08+i*.004,-.01+i*.014,.45-i*.28);});return;}
+  /* the four older formations, as built by spawnFormation (for the Bestiary dioramas) */
+  if(role==='front'){const s=new THREE.Group();s.position.set(0,.2,.16);s.rotation.x=-.5;b.add(s);add(s,box(.27,.34,.03),0x7a5230,0,0,0,false);add(s,box(.29,.022,.036),EM_METAL,0,.17,0,false);add(s,box(.29,.022,.036),EM_METAL,0,-.17,0,false);add(s,box(.022,.34,.036),EM_METAL,0,0,0,false);add(s,box(.07,.07,.04),0xd0a838,0,.03,.012,false);}
+  if(role==='lead'){const s=new THREE.Group();s.position.set(-.1,.1,-.06);b.add(s);add(s,cyl(.008,.008,.7,5),0x5a3a1e,0,.35,0,false);m.flag=add(s,box(.18,.13,.006),0x2a3a9a,.09,.62,0,false);add(s,box(.05,.05,.008),0xe0b040,.09,.62,0,false);}}
+
+/* ---------- formation pieces on the board: the V of light, the pool of light, the chevron (one draw call each) ---------- */
+function fm5Tex(k){if(FM5.tex[k])return FM5.tex[k];const cv=document.createElement('canvas');cv.width=cv.height=256;const x=cv.getContext('2d');
+  if(k==='pool'){const g=x.createRadialGradient(128,128,0,128,128,128);g.addColorStop(0,'rgba(255,240,200,.42)');g.addColorStop(.55,'rgba(255,220,140,.2)');g.addColorStop(.84,'rgba(255,210,120,.14)');g.addColorStop(.93,'rgba(255,230,160,.6)');g.addColorStop(1,'rgba(255,220,140,0)');x.fillStyle=g;x.fillRect(0,0,256,256);}
+  else{x.lineCap='round';x.lineJoin='round';const V=()=>{x.beginPath();x.moveTo(14,22);x.lineTo(128,234);x.lineTo(242,22);};x.shadowColor='rgba(255,220,150,1)';x.shadowBlur=18;x.strokeStyle='rgba(255,230,170,.55)';x.lineWidth=22;V();x.stroke();
+    x.shadowBlur=0;x.strokeStyle='rgba(255,248,225,1)';x.lineWidth=7;V();x.stroke();}
+  return FM5.tex[k]=new THREE.CanvasTexture(cv);}
+const fm5Mat=(k,col,op)=>new THREE.MeshBasicMaterial({map:k?fm5Tex(k):null,color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+function fm5Pool(){if(!FM5.geo.poolP){FM5.geo.poolP=new THREE.PlaneGeometry(2,2);FM5.geo.poolP.rotateX(-Math.PI/2);}const m=new THREE.Mesh(FM5.geo.poolP,fm5Mat('pool',0xffd890,.5));m.scale.setScalar(FM5.procession.r);m.renderOrder=3;return m;}
+function fm5Chev(){if(!FM5.geo.chevP){const g=new THREE.PlaneGeometry(1.15,.95);g.rotateX(-Math.PI/2);g.translate(0,0,-.355);FM5.geo.chevP=g;}const m=new THREE.Mesh(FM5.geo.chevP,fm5Mat('chev',0xffd27a,.55));m.renderOrder=3;return m;}
+function fm5Ribbon(n){const g=new THREE.BufferGeometry(),p=new Float32Array(n*12),idx=[];for(let i=0;i<n;i++){const o=i*4;idx.push(o,o+1,o+2,o+1,o+3,o+2);}
+  g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setIndex(idx);const m=new THREE.Mesh(g,fm5Mat(null,0xffc860,.45));m.frustumCulled=false;m.renderOrder=4;return m;}
+/* segment i from (ax,ay,az) to (bx,by,bz), a flat strip seen from above */
+function fm5Seg(p,i,ax,ay,az,bx,by,bz,hw){const dx=bx-ax,dz=bz-az,l=Math.hypot(dx,dz)||1,nx=-dz/l*hw,nz=dx/l*hw,o=i*12;
+  p[o]=ax+nx;p[o+1]=ay;p[o+2]=az+nz;p[o+3]=ax-nx;p[o+4]=ay;p[o+5]=az-nz;p[o+6]=bx+nx;p[o+7]=by;p[o+8]=bz+nz;p[o+9]=bx-nx;p[o+10]=by;p[o+11]=bz-nz;}
+/* the V: lead to each arm in order, skipping the fallen; members as [x,y,z,alive,arm,k] via the get function */
+function fm5RibbonSet(R,lead,arms,P,hw){const p=R.geometry.attributes.position.array;let s=0;
+  for(const arm of arms){let a=lead;for(const q of arm){if(!q.alive)continue;fm5Seg(p,s++,P(a,0),P(a,1),P(a,2),P(q,0),P(q,1),P(q,2),hw);a=q;}}
+  for(let i=s*12;i<p.length;i++)p[i]=0;R.geometry.attributes.position.needsUpdate=true;}
+function fm5Label(text,col,x,y,z,prev){let tex=FM5.lbl[text];if(!tex){const cv=document.createElement('canvas');cv.width=512;cv.height=128;const c=cv.getContext('2d');
+    c.font='700 58px "Grenze Gotisch", Georgia, serif';c.textAlign='center';c.textBaseline='middle';c.lineWidth=12;c.strokeStyle='rgba(10,6,4,.9)';c.strokeText(text,256,66);c.fillStyle=col;c.fillText(text,256,66);tex=FM5.lbl[text]=new THREE.CanvasTexture(cv);}
+  /* a label still rising (the same mob's frenzy) takes the new text instead of stacking a second one */
+  if(prev&&prev.life>0&&prev.o.parent){prev.o.material.map=tex;prev.o.material.needsUpdate=true;prev.life=prev.max;return prev;}
+  if(time-(FM5.lblT[text]||-9)<.9)return null;FM5.lblT[text]=time;
+  const m=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false}),sp=new THREE.Sprite(m);sp.renderOrder=99;sp.position.set(x,y,z);sp.scale.set(1.3,.33,1);scene.add(sp);
+  return addFx(sp,1.1,f=>{const k=1-f.life/f.max;sp.position.y=y+k*.45;m.opacity=k<.15?k/.15:1-Math.max(0,(k-.6)/.4);},null,{mat:m});}
+
+/* ---------- spawning ---------- */
+function fm5Spawn(F,w){const id=F.form,G={id,members:[],fm5:true,objs:[],mats:[],t:0};let route=null;
+  for(const[type,off,d,role]of formLayout(id,w)){const v=fm5Var(type,role,w);spawnEnemy({type,v,hpMul:F.hpMul,mo:F.mo,elite:F.elite&&rnd()<.35?rollElite(w,type):null},w);const en=enemies[enemies.length-1];
+    if(!route)route=en.route;en.route=route;en.off=off;en.dist=d;en.form=G;en.role=role;G.members.push(en);fm5Gear(en,id,role,type);
+    if(role==='alpha'){en.b.scale.multiplyScalar(FM5.murder.scale);en.hitY*=FM5.murder.scale;G.lead=en;}if(role==='wing'){en.b.scale.multiplyScalar(FM5.murder.wing);en.hitY*=FM5.murder.wing;}
+    if(role==='relic'){en.maxHp*=FM5.procession.hp;en.hp=en.maxHp;en.gold*=FM5.procession.gold;G.relic=en;}
+    if(role==='relic'||role==='chant')en.healT=1e9;
+    if(role.startsWith('pike'))en.fmHold=true;if(role==='tip')G.tip=en;moveEnemy(en,0);}
+  const v=Math.min(...G.members.map(m=>m.spd));G.members.forEach(m=>{m.spd=v;m.fmSpd=v;});
+  const own=o=>{scene.add(o);G.objs.push(o);G.mats.push(o.material);return o;};
+  if(id==='murder'){G.rib=own(fm5Ribbon(7));G.pulse=0;const a=G.members.filter(m=>m.role==='wing');G.arms=[a.slice(0,4),a.slice(4)];}
+  if(id==='procession'){G.pool=own(fm5Pool());G.healT=FM5.procession.tick;}
+  if(id==='wedge'){G.holds=true;G.chev=own(fm5Chev());}
+  if(id==='mob')G.stacks=0;
+  FM5.live.push(G);fm5Tick(G,0);toast(FORMS[id].toast,'lvl');fm5Log({ev:'spawn',id,n:G.members.length});return G;}
+{const sf=spawnFormation;spawnFormation=function(F,w){return FM5_LAY[F.form]?fm5Spawn(F,w):sf.apply(this,arguments);};}
+const fm5Alive=(G,role)=>{let n=0;for(const m of G.members)if(!m.dead&&(!role||m.role===role))n++;return n;};
+function fm5Drop(G){const i=FM5.live.indexOf(G);if(i>=0)FM5.live.splice(i,1);for(const o of G.objs)if(o.parent)o.parent.remove(o);for(const m of G.mats)m.dispose();if(G.rib)G.rib.geometry.dispose();G.objs.length=0;G.mats.length=0;G.dropped=true;}
+const FM5_V=new THREE.Vector3(),FM5_RP=(m,i)=>i===0?m.x:i===1?m.y+.02:m.z;
+/* ---------- every frame of play ---------- */
+function fm5Tick(G,dt){const id=G.id;G.t+=dt;
+  if(id==='mob'){const k=G.stacks/FM5.mob.cap;for(const m of G.members){if(m.dead)continue;const F=m.fmFlame;if(F){const q=(.85+rnd()*.3)*(1+.55*k);F.scale.set(q,q*(.8+rnd()*.5),q);
+      if(dt>0&&G.stacks&&rnd()<dt*(1+G.stacks*1.3)){F.getWorldPosition(FM5_V);emit(1,{x:FM5_V.x,y:FM5_V.y+.03,z:FM5_V.z,vx:(rnd()-.5)*.4,vy:.5+rnd()*.5,vz:(rnd()-.5)*.4,s:.035,s2:0,c:0xffc040,c2:0xff4a10,a:1,life:.6+rnd()*.4});}}
+    if(m.fmHop>0){m.fmHop=Math.max(0,m.fmHop-dt);m.b.position.y+=Math.sin(m.fmHop/.3*Math.PI)*.07;}}}
+  else if(id==='murder'){const R=G.rib;if(R){G.pulse=Math.max(0,G.pulse-dt*3);R.material.opacity=.42+.5*G.pulse+.06*Math.sin(G.t*4);
+      if(R.visible){for(const l of G.arms)for(const m of l)m.alive=!m.dead;fm5RibbonSet(R,G.lead,G.arms,FM5_RP,.016);}}
+    for(const m of G.members){if(m.dead)continue;if(m.fmRib)m.fmRib.rotation.y=Math.sin(G.t*9+m.phase)*.25;
+      if(m.fmScT>0){m.fmScT-=dt;m.off+=(m.fmOffT-m.off)*Math.min(1,dt*3);if(m.fmScT<=0)m.spd=m.fmSpd;}}}
+  else if(id==='phalanx'){if(G.broken)for(const m of G.members){if(m.dead||!m.fmPike)continue;const p=m.fmPike;p.rotation.x+=(-1.4-p.rotation.x)*Math.min(1,dt*4);p.rotation.z+=((m.fmRoll||0)-p.rotation.z)*Math.min(1,dt*4);m.off+=((m.fmOffT||m.off)-m.off)*Math.min(1,dt*2);}}
+  else if(id==='procession'){const B=G.relic&&!G.relic.dead?G.relic:null,P=G.pool;
+    if(B&&P){P.position.set(B.x,gy(B.x,B.z)+.03,B.z);P.material.opacity=.42+.08*Math.sin(G.t*2.4);if(B.fmHalo)B.fmHalo.scale.setScalar(1+.12*Math.sin(G.t*3));
+      if(dt>0&&rnd()<dt*5){const a=rnd()*6.28,r=rnd()*FM5.procession.r;emit(1,{x:B.x+Math.cos(a)*r,y:gy(B.x,B.z)+.05,z:B.z+Math.sin(a)*r,vx:0,vy:.35+rnd()*.25,vz:0,s:.04,s2:0,c:0xfff0b0,c2:0xffc040,a:.9,life:1.1});}
+      G.healT-=dt;if(G.healT<=0){G.healT+=FM5.procession.tick;const R2=FM5.procession.r**2;let n=0;
+        for(const o of enemies){if(o.dead||o===B||o.boss||o.hp>=o.maxHp)continue;if((o.x-B.x)**2+(o.z-B.z)**2>R2)continue;o.hp=Math.min(o.maxHp,o.hp+o.maxHp*FM5.procession.heal);n++;
+          if(rnd()<.5)emit(1,{x:o.x,y:o.y+o.hitY*.7,z:o.z,vx:0,vy:.4,vz:0,s:.05,s2:0,c:0xfff0b0,c2:0xffd060,a:1,life:.6});}fm5Log({ev:'heal',n});}}
+    for(const m of G.members){if(m.dead||!m.fmCenser)continue;const p=m.fmCenser,L=m.limbs;p.rotation.x=-(L&&L.armR?L.armR.rotation.x:0)+Math.sin(G.t*3.2+m.phase)*.6;
+      if(dt>0&&rnd()<dt*4){m.fmPot.getWorldPosition(FM5_V);emit(0,{x:FM5_V.x,y:FM5_V.y,z:FM5_V.z,vx:(rnd()-.5)*.08,vy:.22,vz:(rnd()-.5)*.08,s:.05,s2:.14,c:0xd8d4cc,c2:0xa8a49c,a:.45,a2:0,life:1.4,turb:.3});}}}
+  else if(id==='wedge'){const T=G.tip&&!G.tip.dead?G.tip:null,C=G.chev;if(C){if(T&&G.holds){C.visible=true;C.position.set(T.x,gy(T.x,T.z)+.03,T.z);C.rotation.y=T.g.rotation.y;C.material.opacity=.5+.08*Math.sin(G.t*3);}
+      else{C.material.opacity=Math.max(0,C.material.opacity-dt*1.5);if(C.material.opacity<=0)C.visible=false;}}}}
+{const up=update;update=function(dt){const r=up.apply(this,arguments);for(let i=FM5.live.length-1;i>=0;i--){const G=FM5.live[i];try{fm5Tick(G,dt);}catch(err){console.error(err);}}return r;};}
+
+/* ---------- the moments: a member slain, a key member lost ---------- */
+function fm5Slain(e){const G=e.form;if(G.id!=='mob'||G.stacks>=FM5.mob.cap)return;G.stacks++;let cx=0,cz=0,n=0;
+  for(const m of G.members){if(m.dead)continue;m.spd=m.fmSpd*(1+FM5.mob.step*G.stacks);m.fmHop=.3;cx+=m.x;cz+=m.z;n++;
+    if(m.fmFlame){m.fmFlame.getWorldPosition(FM5_V);sprayP(1,FM5_V.x,FM5_V.y,FM5_V.z,5,{c:0xffd060,c2:0xff4010,sp:1,up:.9,s:.04,s2:0,life:.5,g:1.5,drag:1});}}
+  if(n)G.lf=fm5Label('Frenzy +'+Math.round(FM5.mob.step*G.stacks*100)+'%','#ff9a3a',cx/n,.95,cz/n,G.lf)||G.lf;fm5Log({ev:'frenzy',stacks:G.stacks});}
+function fm5Lost(e){const G=e.form;if(!G||!G.fm5||e.fmGone)return;e.fmGone=true;const live=!FM5.quiet&&!G.dropped;
+  if(live&&G.id==='murder'&&e===G.lead&&!G.scattered){G.scattered=true;if(G.rib)G.rib.visible=false;
+    for(const m of G.members){if(m.dead)continue;m.fmOffT=(m.off<0?-1:m.off>0?1:(rnd()<.5?-1:1))*(.4+rnd()*.5);m.fmScT=FM5.murder.scatT;m.spd=m.fmSpd*FM5.murder.scatSlow;
+      sprayP(0,m.x,m.y,m.z,6,{c:0x1c1c22,c2:0x3a3a44,sp:1.2,up:.4,s:.05,s2:.03,a:.9,life:.6,g:1.5,drag:1});}
+    fm5Label('Scattered!','#ffd060',e.x,e.y+.5,e.z);fm5Log({ev:'scatter'});}
+  if(live&&G.id==='phalanx'&&!G.broken&&fm5Alive(G)<FM5.phalanx.need){G.broken=true;let cx=0,cz=0,n=0;
+    for(const m of G.members){m.fmHold=false;if(m.dead)continue;m.fmRoll=(rnd()-.5)*.6;m.fmOffT=m.off*1.7+(rnd()-.5)*.1;cx+=m.x;cz+=m.z;n++;sprayP(0,m.x,.1,m.z,4,{c:0x9a8a70,c2:0x6a5a48,sp:.8,up:.5,s:.06,s2:.04,a:.7,life:.6,g:2,drag:1});}
+    if(n)fm5Label('The phalanx breaks!','#ffd060',cx/n,1,cz/n);fm5Log({ev:'break'});}
+  if(G.id==='phalanx')e.fmHold=false;
+  if(live&&G.id==='procession'&&e===G.relic){G.relic=null;if(G.pool)G.pool.visible=false;const x=e.x,z=e.z,y0=e.y+.6;
+    const g=new THREE.Group();g.position.set(x,y0,z);g.rotation.y=e.g.rotation.y;scene.add(g);const c=new THREE.Mesh(fm5Geo('relic',()=>{}),VCMAT);c.position.y=-.5*1.25;c.scale.setScalar(1.25);g.add(c);
+    flash(x,y0,z,0xffe08a,.8,.4);sprayP(1,x,y0,z,14,{c:0xfff0b0,c2:0xffc040,sp:1.4,up:.6,s:.05,s2:0,life:.7,g:1.5,drag:1});const yG=gy(x,z);
+    addFx(g,1.8,f=>{const k=1-f.life/f.max;g.position.y=Math.max(yG,y0-k*k*4);g.rotation.z=Math.min(.9,k*2.5);if(k>.75)g.scale.setScalar(Math.max(.01,(1-k)/.25));});
+    fm5Label('The reliquary falls!','#ffe08a',x,y0+.3,z);fm5Log({ev:'relic'});}
+  if(live&&G.id==='wedge'){if(e===G.tip){const was=G.holds;G.holds=false;G.tip=null;if(G.chev)G.chev.material.color.setHex(0xff5a3a);
+      for(const m of G.members){if(m.dead)continue;m.chargeT=FM5.wedge.chargeT;}fm5Label('Charge!','#ff7a50',e.x,e.y+.6,e.z);fm5Log({ev:'charge',held:was});}
+    else if(G.holds&&e.role==='flank'&&fm5Alive(G,'flank')<FM5.wedge.need){G.holds=false;fm5Log({ev:'wedgeBroken'});}}
+  if(!G.members.some(m=>!m.dead))fm5Drop(G);}
+{const re=removeEnemy;removeEnemy=function(e){const r=re.apply(this,arguments);if(e&&e.form&&e.form.fm5)try{fm5Lost(e);}catch(err){console.error(err);}return r;};}
+{const k0=kill;kill=function(e){const was=!!e&&!e.dead&&e.form&&e.form.fm5;const r=k0.apply(this,arguments);if(was&&e.dead)try{fm5Slain(e);}catch(err){console.error(err);}return r;};}
+{const cw=clearWorld;clearWorld=function(){FM5.quiet=true;try{return cw.apply(this,arguments);}finally{FM5.quiet=false;for(const G of FM5.live.slice())fm5Drop(G);FM5.live.length=0;}};}
+/* the V shares hits; the wedge's tip turns blows aside */
+{const h0=hurt;hurt=function(e,amt,kind,o){
+  if(!FM5.sharing&&e&&!e.dead&&amt>0&&e.role==='wing'){const G=e.form;if(G&&G.fm5&&G.lead&&!G.lead.dead&&!G.scattered){let n=0;for(const m of G.members)if(m!==e&&!m.dead&&m.role==='wing')n++;
+      if(n){const part=amt*(1-FM5.murder.keep)/n,S=FM5.sh;S.src=o&&o.src||null;S.el=o&&o.el||null;S.mul=o&&o.mul||undefined;S.anc=!!(o&&o.anc);FM5.sharing=true;
+        try{for(const m of G.members)if(m!==e&&!m.dead&&m.role==='wing')h0.call(this,m,part,kind,S);}finally{FM5.sharing=false;}G.pulse=1;amt*=FM5.murder.keep;fm5Log({ev:'share',n,part});}}}
+  if(e&&!e.dead&&e.role==='tip'&&e.form&&e.form.holds&&amt>0&&time-(e.fmClk||-9)>.22){e.fmClk=time;sprayP(1,e.x,e.y+e.hitY*.6,e.z,5,{c:0xfff4d0,c2:0xffc040,sp:1.4,up:.5,s:.035,s2:0,life:.3,g:2,drag:1});}
+  return h0.call(this,e,amt,kind,o);};}
+{const fd=formDR;formDR=function(e){const G=e.form;if(G&&G.fm5)return G.id==='wedge'&&e.role==='tip'&&G.holds?FM5.wedge.dr:0;return fd.apply(this,arguments);};}
+/* the phalanx holds its ground */
+{const p0=pushE;pushE=function(e,units){if(e&&e.fmHold&&!e.dead){if(time-(e.fmClk||-9)>.3){e.fmClk=time;sprayP(1,e.x,e.y+.25,e.z,4,{c:0xfff4d0,c2:0xc0c4cc,sp:1,up:.4,s:.03,s2:0,life:.3,g:2,drag:1});}fm5Log({ev:'pushBlocked'});return 0;}return p0.apply(this,arguments);};}
+{const me=moveEnemy;moveEnemy=function(e,dt){if(e&&e.fmHold&&e.slowT>0&&e.slow>0){const s=e.slow;e.slow=s*(1-FM5.phalanx.slowRes);try{return me.apply(this,arguments);}finally{e.slow=s;}}return me.apply(this,arguments);};}
+
+/* ---------- the Formations page of the Bestiary ---------- */
+function fm5Diorama(id){const root=new THREE.Group(),turn=new THREE.Group();root.add(turn);const ms=[];
+  add(turn,cyl(.98,1.02,.08,28),galCol(0x8a7e70),0,.04,0,false).receiveShadow=true;add(turn,cyl(1.04,1.06,.04,28),galCol(0x5a5048),0,.01,0,false);
+  add(turn,box(.8,.012,1.72),galCol(0x8a6a48),0,.086,0,false).receiveShadow=true;
+  const L=formLayout(id,25),ds=L.map(r=>r[2]),dm=(Math.min(...ds)+Math.max(...ds))/2,fly=id==='murder';
+  /* every diorama fits its plinth: the widest member (and the levelled pikes) sets the scale */
+  let ext=0;for(const r of L)ext=Math.max(ext,Math.abs(r[1])+.25,Math.abs(r[2]-dm)+(r[3]==='pike0'?.75:.25));const S=Math.min(.85,.8/ext);
+  for(const[type,off,d,role]of L){let v=fm5Var(type,role,25);if(v==null)v=type==='peasant'?0:Math.floor(rnd()*3);
+    const m=galSnowM(type==='peasant'?peasantModel(v):unitModel(type,v),type);m.variant=v;fm5Gear(m,id,role,type);
+    const sc=EN[type].size*1.25*S*(role==='alpha'?FM5.murder.scale:role==='wing'?FM5.murder.wing:1);m.b.scale.setScalar(sc);m.g.position.set(off*S,.092,(d-dm)*S);m.y0=fly?.42:0;m.b.position.y=m.y0;turn.add(m.g);ms.push({m,type,role,ph:rnd()*6});}
+  const it={root,turn,ms,id,h:.6};
+  if(id==='murder'){const R=fm5Ribbon(7);turn.add(R);it.rib=R;const a=ms.filter(q=>q.role==='wing');a.forEach(q=>q.alive=true);
+    const P=(q,i)=>i===0?q.m.g.position.x:i===1?q.m.g.position.y+q.m.y0+.02:q.m.g.position.z;fm5RibbonSet(R,ms[0],[a.slice(0,4),a.slice(4)],P,.016);}
+  if(id==='procession'){const p=fm5Pool();p.scale.setScalar(FM5.procession.r*S);const B=ms.find(q=>q.role==='relic');p.position.set(B.m.g.position.x,.095,B.m.g.position.z);turn.add(p);it.pool=p;}
+  if(id==='wedge'){const c=fm5Chev();c.scale.setScalar(S);const T=ms.find(q=>q.role==='tip');c.position.set(T.m.g.position.x,.095,T.m.g.position.z);turn.add(c);it.chev=c;}
+  return it;}
+function fm5GalOpen(idx){if(!GAL)return;galHLSet(null);if(GV)closeVar(true);const g=new THREE.Group();scene.add(g);
+  const items=FM5_ORDER.map((id,i)=>{const it=fm5Diorama(id);it.root.position.set(GALX+i*FM5.gsp,0,GALVZ);g.add(it.root);return it;});
+  GV={fm5:true,type:'__forms',g,items,L:FM5_ORDER.map(id=>FORMS[id]),idx:idx|0,r0:.55,rot:items.map(()=>.55)};items.forEach(it=>it.turn.rotation.y=.55);
+  CAM.gal='var';CAM.px=GV.idx*FM5.gsp;CAM.zoom=1;CAM.yaw=0;CAM.pz=0;applyCam();
+  $('#galLabels').hidden=true;$('#galVar').hidden=false;$('#galTitle').textContent='Formations';$('#galSub').textContent='Drag to turn';galVarUI();}
+function fm5GalUI(){const id=FM5_ORDER[GV.idx],F=FORMS[id];$('#gvName').innerHTML=F.n;
+  $('#gvDesc').innerHTML=F.d+'<br><small style="display:block;margin-top:4px;line-height:1.35"><span style="font-weight:800;color:var(--gold)">From wave '+Math.max(FM5.start,F.min)+'</span> \u00B7 '+formLayout(id,25).length+' foes</small>';
+  $('#gvDots').innerHTML=GV.L.map((_,i)=>`<i class="${i===GV.idx?'on':''}"></i>`).join('')+`<span>${GV.idx+1} / ${GV.L.length}</span>`;$('#gvPrev').disabled=GV.idx<=0;$('#gvNext').disabled=GV.idx>=GV.L.length-1;}
+let fm5GalT=0;
+function fm5GalFrame(t){const dt=Math.min(.05,t-fm5GalT||0);fm5GalT=t;galLastT=t;const tx=GV.idx*FM5.gsp;if(Math.abs(CAM.px-tx)>.001){CAM.px+=(tx-CAM.px)*Math.min(1,dt*9);applyCam();}
+  GV.items.forEach((it,i)=>{if(!PTR.size)GV.rot[i]+=dt*.22;it.turn.rotation.y+=(GV.rot[i]-it.turn.rotation.y)*Math.min(1,dt*10);if(Math.abs(i-GV.idx)>1)return;
+    for(const q of it.ms){const m=q.m,L=m.limbs,sw=Math.sin(t*5+q.ph);
+      if(L){if(L.quad){L.quad.FL.rotation.x=sw*.45;L.quad.BR.rotation.x=sw*.45;L.quad.FR.rotation.x=-sw*.45;L.quad.BL.rotation.x=-sw*.45;}else if(L.wheels)L.wheels.forEach(w=>w.rotation.x+=dt*.8);
+        else if(L.legL){L.legL.rotation.x=sw*.4;L.legR.rotation.x=-sw*.4;if(!L.still&&L.armL){L.armL.rotation.x=L.base[1].rx-sw*.3;L.armR.rotation.x=L.base[0].rx+sw*.15;}}}
+      if(m.wings){m.wings.forEach((w,k)=>w.rotation.z=(k%2?-1:1)*Math.sin(t*11+q.ph)*.55);m.b.position.y=m.y0+Math.sin(t*3+q.ph)*.03;}else m.b.position.y=m.y0+Math.abs(sw)*.015;
+      const F=m.fmFlame||m.flame;if(F){const k=.85+rnd()*.3;F.scale.set(k,.75+rnd()*.55,k);}if(m.flag)m.flag.rotation.y=Math.sin(t*5+q.ph)*.35;if(m.fmRib)m.fmRib.rotation.y=Math.sin(t*9+q.ph)*.25;
+      if(m.fmCenser)m.fmCenser.rotation.x=-(L&&L.armR?L.armR.rotation.x:0)+Math.sin(t*3.2+q.ph)*.6;if(m.fmHalo)m.fmHalo.scale.setScalar(1+.12*Math.sin(t*3));if(m.gem&&m.gem.userData&&m.gem.userData.spin!==false)m.gem.rotation.y+=dt*2.4;}
+    if(it.rib)it.rib.material.opacity=.42+.06*Math.sin(t*4);if(it.pool)it.pool.material.opacity=.42+.08*Math.sin(t*2.4);if(it.chev)it.chev.material.opacity=.5+.08*Math.sin(t*3);});}
+{const gf=galFrame;galFrame=function(t){if(GV&&GV.fm5&&CAM.gal==='var'){fm5GalFrame(t);return;}return gf.apply(this,arguments);};}
+{const gu=galVarUI;galVarUI=function(){const b=$('#gvElite');if(GV&&GV.fm5){if(b)b.style.display='none';fm5GalUI();return;}if(b)b.style.display='';return gu.apply(this,arguments);};}
+/* the dioramas own only their materials (the geometries are shared): dispose those when the page closes */
+{const cv=closeVar;closeVar=function(silent){if(GV&&GV.fm5){const G=GV;G.items.forEach(it=>{for(const o of[it.rib,it.pool,it.chev])if(o)o.material.dispose();if(it.rib)it.rib.geometry.dispose();});
+    if(silent){scene.remove(G.g);GV=null;$('#galVar').hidden=true;return;}}return cv.apply(this,arguments);};}
+{const ac=applyCam;applyCam=function(){if(!(CAM.gal==='var'&&GV&&GV.fm5))return ac.apply(this,arguments);
+  const t=Math.tan(camera.fov*Math.PI/360),asp=Math.max(.3,camera.aspect),D=Math.max(3.6,1.2/(t*asp),1.45/t)*CAM.zoom,el=.62,tx=GALX+CAM.px,ty=.12,tz=GALVZ+.05;
+  camera.position.set(tx+Math.sin(CAM.yaw)*Math.cos(el)*D,ty+Math.sin(el)*D,tz+Math.cos(CAM.yaw)*Math.cos(el)*D);camera.lookAt(tx,ty,tz);camera.updateMatrixWorld();camera.updateProjectionMatrix();
+  if(scene.fog){scene.fog.near=D*1.05;scene.fog.far=D*2.6+14;}const b=$('#bCam');if(b)b.hidden=true;};}
+/* a biome change rebuilds the Bestiary and reopens the open page by its type */
+{const ov=openVar;openVar=function(type){if(type==='__forms')return fm5GalOpen(0);return ov.apply(this,arguments);};}
+{const bar=$('#galBar'),rs=$('#bGalReset');if(bar&&rs&&!$('#bGalForms')){const b=document.createElement('button');b.className='btn';b.id='bGalForms';b.type='button';b.title='Formations';b.setAttribute('aria-label','Formations');
+  b.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M4 19l8-6 8 6"/><path d="M4 12l8-6 8 6"/></svg><span> Formations</span>';
+  {const st=document.createElement('style');st.textContent='@media (max-width:560px){#bGalForms span{display:none}#bGalForms{padding:7px 8px}}';document.head.appendChild(st);}rs.parentNode.insertBefore(b,rs);
+  b.addEventListener('click',()=>{if(GV&&GV.fm5)closeVar();else fm5GalOpen(0);});}}
+/* ---- end of v480 ---- */
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
