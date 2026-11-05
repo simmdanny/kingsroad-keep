@@ -15277,6 +15277,8 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Invisible foes stay invisible',d:'5 Nov',v:'v490',li:[
+    'An Invisible foe that was also Regenerating or Warded showed its glowing regrowth or its rune while the rest of it was hidden. It is hidden all over now, and revealed all over when your seers or spells reveal it.']},
   {t:'No more grey screen after space spells',d:'5 Nov',v:'v489',li:[
     'A fix: with three light artifacts equipped, the whole screen could turn grey after Spatial Deflection, Spatial Shatter, Spatial Compression, Time Loop or Dimensional Slash. The warp that bends the world for those spells no longer takes the artifact set\u2019s colours; the spells themselves still do.']},
   {t:'Every mastery is open',d:'5 Nov',v:'v488',li:[
@@ -37306,6 +37308,18 @@ function fm5GalFrame(t){const dt=Math.min(.05,t-fm5GalT||0);fm5GalT=t;galLastT=t
   {const st=document.createElement('style');st.textContent='@media (max-width:560px){#bGalForms span{display:none}#bGalForms{padding:7px 8px}}';document.head.appendChild(st);}rs.parentNode.insertBefore(b,rs);
   b.addEventListener('click',()=>{if(GV&&GV.fm5)closeVar();else fm5GalOpen(0);});}}
 /* ---- end of v480 ---- */
+/* ================= v490: Invisible stays invisible while other modifiers animate =================
+   Regenerating swaps its glowing pieces between shared materials as they pulse (ELA.regen), and Warded swaps its rune's materials when the ward shifts
+   (nmxWardSet). Each swap put a solid material back on an Invisible foe, so an invisible Regenerating or Warded foe showed those pieces. nmxRecloak(e)
+   re-cloaks whatever came back solid, after every elite animation step and at the end of a spawn; it only runs while a foe is cloaked (e.ghostOn).
+   The cloak's own list keeps the latest real material of each mesh, so the reveal puts back what the modifier last chose. */
+function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||(e.ghostL=[]),H=e.nmxHid||(e.nmxHid=[]);
+  e.b.traverse(o=>{if(o.isMesh&&!o.isInstancedMesh&&nmxCloakable(o.material)){if(o.material.userData&&o.material.userData.nmxGhost)return;
+      const ent=L.find(x=>x[0]===o);if(ent)ent[1]=o.material;else L.push([o,o.material]);o.material=artGhostMat(o.material);}
+    else if((o.isMesh||o.isLine||o.isPoints||o.isSprite)&&o.visible&&!H.includes(o)&&!(o.material&&o.material.userData&&o.material.userData.nmxGhost)){H.push(o);o.visible=false;}});}
+{const a0=animElite;animElite=function(e,dt){const r=a0.apply(this,arguments);if(e&&e.ghostOn)nmxRecloak(e);return r;};}
+{const se=spawnEnemy;spawnEnemy=function(){const n0=enemies.length,r=se.apply(this,arguments);for(let i=n0;i<enemies.length;i++){const e=enemies[i];if(e&&e.ghostOn)nmxRecloak(e);}return r;};}
+
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.

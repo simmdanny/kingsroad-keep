@@ -2764,3 +2764,17 @@ Simon: "Merge everything and make all masteries now available to get in normal m
 Simon: "yes add the grey screen fix too". `sdpInit` builds the shared world-space warp pass (`SDP.mat`) the first time a space spell needs it. Built inside an artifact set's colour context (a cast with three artifacts of one element), its shader took the set's colour remap (`asMap`) and failed to compile, and with a light set the whole screen turned grey after Spatial Deflection, Spatial Shatter, Spatial Compression, Spatial Loop or Dimensional Slash. The Citadel builder found it (v478) and fixed it for the Citadel only.
 - The fix: one wrapper after Spatial Deflection's own (`dfm`) wrapper runs `sdpInit` through `asOffRun`, so the pass is always made outside the set's colours, whoever builds it first. The spells' own pieces still take the set's colours.
 - Tests: `tests/sdpx-test.js` (7, in run-all as 'sdpx') casts each of the five spells for real inside a light set's colour context with the pass not yet made: the pass is not recoloured and still carries Spatial Deflection's patch, with no console errors. Without the fix, all five fail (recoloured, a shader error each).
+
+
+## Invisible foes stay invisible (v490)
+- **The bug:** an Invisible foe that was also Regenerating or Warded showed solid pieces while the rest of it was cloaked.
+  - Regenerating (`ELA.regen`) reassigns its glow and pulse meshes to shared materials on every animation tick.
+  - Warded (`nmxWardSet`) swaps the rune's materials when the ward shifts.
+  - Each swap put a solid material back on top of the cloak. It also showed now and then in nmx's shield-wall bearer row.
+- **The fix:** `nmxRecloak(e)`, for cloaked foes only (`e.ghostOn`).
+  - It runs after every `animElite` step and at the end of each spawn.
+  - It re-cloaks whatever came back solid, and records each mesh's latest real material in the cloak's list, so a reveal restores what the modifier last chose.
+- **Tests:** `tests/nrc-test.js` (in run-all as 'nrc').
+  - It covers Regenerating+Invisible on six troops and all five looks, and Warded+Invisible through element shifts, each animated for 2 s, with every piece cloaked and everything solid after the reveal.
+  - It also covers the Regenerating shield-wall bearer.
+  - Without the fix, its first row fails: 0 solid pieces at spawn, 1-5 once the looks animate.
