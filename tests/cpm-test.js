@@ -25,7 +25,7 @@ try{
   ok('the numbers on the card are the ones in the code (100%, 200%, 50%, 200%)',/100%/.test(smDesc('compress',1))&&/200%/.test(smDesc('compress',2))&&/50%/.test(smDesc('compress',3))&&/200%/.test(smDesc('compress',4))
     &&CPM.pull===.3&&CPM.bd===1&&CPM.bdCd===1&&CPM.sat===2&&CPM.im===.5&&CPM.imR===.5&&CPM.imN===3&&CPM.st===2&&CPM.stR===1.6);
   ok('the old masteries are gone (no hooks), calibrated on the Legendary ladder with hidden factors (not SM.free)',!SMF.compress.hit&&!SMF.compress.cast&&SMA.compress.every(x=>x===1)&&SMG.compress.length===5&&SMG.compress.every(x=>x>=1&&x<1.3)&&!(SM.free&&SM.free.compress),SMG.compress.join());
-  ok('it stays a developer-mode scroll (Legendary is not opened)',!SM_OPEN.includes('legendary'));
+  ok('v488: Legendary masteries are open to everyone now',SM_OPEN.includes('legendary'));
   /* ---- Mastery 0 ---- */
   {play();CPM.dbg=[];log=[];const F=knot(7);let nb=0;cfmBoom=function(){nb++;return B0.apply(this,arguments);};wrapHurt();let C;try{C=cast(0,F[3]);run(END);}finally{hurt=H0;cfmBoom=B0;setL(0);}
     const sn=ev('snap')[0],In=F.filter(e=>cpmLoc(C,e.x,e.z)<=1.08);

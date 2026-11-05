@@ -9,6 +9,7 @@ const spot=(n)=>{for(let r=0;r<H;r++)for(let c=0;c<W;c++){placing={type:'archer'
 const panel=()=>document.getElementById('liveMast'),btn=()=>document.getElementById('mpgHud'),open=()=>!!panel()&&!panel().hidden;
 const row=k=>panel()&&panel().querySelector(`[data-mpg="${k}"]`);
 let errs=0;const ce=console.error;console.error=function(){errs++;return ce.apply(console,arguments);};
+const SMO0=SM_OPEN.slice();SM_OPEN.splice(0,SM_OPEN.length,'common','uncommon','rare');/* v488 opened every rarity: the page is checked with the gate as it stood */
 try{
   play();state='playing';meta.mast={archer:1000,cannon:1990};meta.smast={hexspark:500};gold=1e9;
   const UN=SCROLL_IDS.find(k=>SPELLS_S[k].r==='epic'&&SM_D[k]);/* v405, v417: Uncommon and Rare scrolls earn now, so an Epic is the one that does not */for(const k of ['hexspark',UN])meta.spells[k]=meta.spells[k]||{lvl:1,hero:null};
@@ -58,6 +59,6 @@ try{
   ok('and the panel does not open there',mpgToggle(true)===false&&!open());
   ok('no errors',errs===0,errs);
 }catch(e){ok('exception',false,e.message+' '+(e.stack||'').split('\n')[1]);}
-finally{console.error=ce;scrollItems=si0;try{for(const id of ['mastModal','smModal'])document.getElementById(id)&&document.getElementById(id).remove();if(liveDmgOpen())liveDmgToggle(false);
+finally{SM_OPEN.splice(0,SM_OPEN.length,...SMO0);console.error=ce;scrollItems=si0;try{for(const id of ['mastModal','smModal'])document.getElementById(id)&&document.getElementById(id).remove();if(liveDmgOpen())liveDmgToggle(false);
   for(const e of enemies.slice())removeEnemy(e);state='menu';paused=false;clearWorld();meta=migrateMeta(JSON.parse(m0));meta.arena=a0;saveMeta();lsSet(KR,r0);buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;showOverlay('menu');mpgSync();}catch(e){}}
 return JSON.stringify(out);})()

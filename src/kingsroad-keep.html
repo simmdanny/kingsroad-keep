@@ -15277,6 +15277,9 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Every mastery is open',d:'5 Nov',v:'v488',li:[
+    'The masteries of the Epic, Legendary, Mythic, Ancient and Secret scrolls can now be earned when playing normally, not only in developer mode. Casting any scroll earns it mastery XP, and its mastery levels, effects and power bonus count in play.',
+    'Every mastery card has its recorded preview, so you can watch what each mastery does before you reach it (masteries you have not reached stay locked to watch, as before). XP a scroll already earned in developer mode is kept.']},
   {t:'The Tempest\u2019s winds, smoothed',d:'4 Nov',v:'v487',li:[
     'The inner wall of the Primordial Tempest\u2019s eye no longer breaks into torn, hard-edged chunks of cloud: it is one smooth sheet of wind now, long streaks wrapping round the eye and climbing as they turn, with fine wind lines running through them.',
     'Where the wall opens towards you, so you can always see the hero and the road, it now fades away softly instead of ending in a cut.']},
@@ -24049,7 +24052,9 @@ updBatBtn();
 /* v405 (Simon): "make it so that uncommon masteries can now be obtained when playing normally (without dev mode) so normal players can
    start exping them". SM_OPEN lists the rarities whose masteries are open to everyone; the rest stay developer-mode only. */
 /* v417 (Simon): "change the rare scrolls to be public now": the Rare masteries are open to everyone too */
-const SM_OPEN=['common','uncommon','rare'];
+/* v488 (Simon): "make all masteries now available to get in normal mode": every rarity's masteries are open to everyone, Epic, Legendary,
+   Mythic, Ancient and Secret (unique) too. The gate stays (smOn), so a rarity can be closed again by taking it out of this list. */
+const SM_OPEN=['common','uncommon','rare','epic','legendary','mythic','ancient','unique'];
 function smOpenTop(){return RB[SM_OPEN[SM_OPEN.length-1]].n;}
 const smOn=k=>!!meta.dev||!SPELLS_S[k]||SM_OPEN.includes(SPELLS_S[k].r);
 {const l0=smLv;smLv=function(k){return smOn(k)?l0.apply(this,arguments):0;};}

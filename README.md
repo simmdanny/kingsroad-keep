@@ -2752,3 +2752,10 @@ Fixed along the way:
 Previews: the six clips (`previews/citadel-0` to `citadel-5`) are recorded again with a still, wide camera centred on the hero (`fixedCam`, zoom 2, `fw: 0, fwz: 0, cz: .5`): the whole reach, its pillars and the pack in view. Scenario, probe, captions and lengths as before. (In the headless renderer, a camera at zoom 1.7 sometimes shows the board's earth base through the tiles during a Citadel cast, with the old look too; zoom 1.2, 1.4, 1.9, 2 and 2.1 do not.)
 
 Tests: `tests/cvx-test.js` (in run-all as 'cvx'): the sigil, pillars, dome, crown and halo, foe rings, a wound in flight, the fracture and the shockwave each change the picture from the game camera; the looks follow the cast's events; the frame is not washed out at zoom 1 and 0.5 and the snap is not a white-out; draw calls; nothing left behind (scene, geometries, textures); the numbers at Mastery 0 and 5; the real `fireScroll` path; the light-set space pass.
+
+## Every mastery is open (v488)
+Simon: "Merge everything and make all masteries now available to get in normal mode".
+- `SM_OPEN` lists every rarity: common, uncommon, rare, epic, legendary, mythic, ancient and unique (the Secret scrolls). Outside developer mode every scroll now earns mastery XP, and its mastery levels, effects, power factor (`smP`), pips, bar and card count, as the Common to Rare ones did since v388, v405 and v417. XP earned in developer mode is kept.
+- The gate itself (`smOn`) stays, so a rarity can be closed again by taking it out of the list.
+- Every mastery card has its recorded clips (v428, v439, v440-v445, v475); `smPvCan` still decides which you may watch (a mastery you have not reached stays locked outside developer mode).
+- Tests: `tests/mpv-test.js` (9) checks every scroll with masteries is open and counts outside developer mode. `smgate-test` and `mpg-test` check the gate and the mastery page with the list as it stood (Common, Uncommon and Rare), restoring it afterwards; `cpm-test` and `ctm-test` now check that Legendary is open.

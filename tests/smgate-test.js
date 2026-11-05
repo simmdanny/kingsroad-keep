@@ -9,6 +9,7 @@ const play=()=>{meta.arena='plains';meta.dev=true;meta.scrAuto=false;lsSet(KR,nu
   if(!heroU){const q=heroTileNear(meta.equipped,innerWidth/2,innerHeight*.45);spawnHero(q.c,q.r);}};
 const foe=(e0)=>{const R=ROUTES[0];spawnEnemy({type:'soldier',v:0},20);const e=enemies[enemies.length-1];e.route=R;e.dist=R.len*.5;e.spd=.0001;e.maxHp=e.hp=1e6;moveEnemy(e,0);Object.assign(e,e0||{});return e;};
 let errs=0;const ce=console.error;console.error=function(){errs++;return ce.apply(console,arguments);};
+const SMO0=SM_OPEN.slice();SM_OPEN.splice(0,SM_OPEN.length,'common','uncommon','rare');/* v488 opened every rarity: the gate is checked as it stood (Common, Uncommon and Rare open) */
 try{
   /* ---- scrolls (v405: the Uncommon ones are open too; v417: and the Rare ones, so an Epic is now the first that waits; RA names it) ---- */
   play();state='playing';const UN=SCROLL_IDS.find(k=>SPELLS_S[k].r==='uncommon'&&SM_D[k]),CO='hexspark',RA=SCROLL_IDS.find(k=>SPELLS_S[k].r==='epic'&&SM_D[k]),MY=SCROLL_IDS.find(k=>SPELLS_S[k].r==='mythic'&&SM_D[k]);
@@ -58,5 +59,5 @@ try{
   ok('the archer still gets its own kill XP',(meta.mast.archer||0)>0,meta.mast.archer);
   ok('no errors',errs===0,errs);
 }catch(e){ok('exception',false,e.message+' '+(e.stack||'').split('\n')[1]);}
-finally{console.error=ce;try{clean();state='menu';paused=false;clearWorld();meta=migrateMeta(JSON.parse(m0));meta.arena=a0;saveMeta();lsSet(KR,r0);buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;showOverlay('menu');}catch(e){}}
+finally{SM_OPEN.splice(0,SM_OPEN.length,...SMO0);console.error=ce;try{clean();state='menu';paused=false;clearWorld();meta=migrateMeta(JSON.parse(m0));meta.arena=a0;saveMeta();lsSet(KR,r0);buildMap(Math.floor(Math.random()*1e9));MAP.fresh=true;showOverlay('menu');}catch(e){}}
 return JSON.stringify(out);})()

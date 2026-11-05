@@ -26,7 +26,7 @@ try{
   ok('the numbers on the card are the ones in the code (180%, 35%, 40%, 30%, 140%)',/180%/.test(smDesc('chronostasis',0))&&/35%/.test(smDesc('chronostasis',1))&&/40%/.test(smDesc('chronostasis',2))&&/30%/.test(smDesc('chronostasis',3))&&/140%/.test(smDesc('chronostasis',4))
     &&CTM.rw===.8&&CTM.rwD===1.8&&CTM.hd===.35&&CTM.hdT===2&&CTM.ec===.4&&CTM.ecN===6&&CTM.hs===.3&&CTM.sc===1.4&&CTM.scT===1.2&&CTM.scStun===.5);
   ok('the old masteries are gone (no hooks), calibrated on the Legendary ladder with hidden factors (not SM.free)',!SMF.chronostasis.hit&&!SMF.chronostasis.cast&&SMA.chronostasis.every(x=>x===1)&&SMG.chronostasis.length===5&&SMG.chronostasis.every(x=>x>=1&&x<1.3)&&!(SM.free&&SM.free.chronostasis),SMG.chronostasis.join());
-  ok('it stays a developer-mode scroll (Legendary is not opened)',!SM_OPEN.includes('legendary'));
+  ok('v488: Legendary masteries are open to everyone now',SM_OPEN.includes('legendary'));
   /* ---- Mastery 0 ---- */
   {play();CTM.dbg=[];log=[];const F=knot(7);let nb=0;cfmBoom=function(){nb++;return B0.apply(this,arguments);};const added=track();wrapHurt();let fA=0;
     try{cast(0,F[3]);run(CTM.COL+.03);fA=flashA;run(END-CTM.COL);}finally{hurt=H0;cfmBoom=B0;scene.add=S0;setL(0);}const cl=ev('collapse')[0],c={x:F[3].x,z:F[3].z};

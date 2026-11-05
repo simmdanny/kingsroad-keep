@@ -23,6 +23,9 @@ try{
   {const bad=[];for(const k of HI){if(M.clips[k+'-0']&&M.clips[k+'-0'].ev&&Object.keys(M.clips[k+'-0'].ev).some(e=>!['cast','opts'].includes(e)))bad.push(k+'-0');
      for(let L=1;L<=5;L++){const c=M.clips[k+'-'+L];if(!c||!c.ev||!Object.keys(c.ev).some(e=>!['cast','opts'].includes(e)))bad.push(k+'-'+L);}}
    ok('every mastery clip logged its mastery at work, and no clip without one did',!bad.length,bad.slice(0,8).join(' '));}
-  ok('the changelog tells of it',CLOG.some(c=>c.v==='v475'));
+  /* v488: every rarity's masteries are open to everyone */
+  {const d0=meta.dev;meta.dev=false;try{const all=SCROLL_IDS.filter(k=>SM_D[k]),shut=all.filter(k=>!smOn(k));const k=HI[0],x=meta.smast&&meta.smast[k];meta.smast=meta.smast||{};meta.smast[k]=SM_XP[1];const L=smLv(k);if(x==null)delete meta.smast[k];else meta.smast[k]=x;
+   ok('v488: playing normally, every scroll\'s masteries are open (Epic to Secret too) and count',!shut.length&&L===2,shut.slice(0,6).join(' ')+' / '+k+' level '+L);}finally{meta.dev=d0;}}
+  ok('the changelog tells of it',CLOG.some(c=>c.v==='v475')&&CLOG.some(c=>c.v==='v488'));
 }catch(e){out.push(['ERROR',false,String(e&&e.stack||e).slice(0,600)]);}
 return out;})()
