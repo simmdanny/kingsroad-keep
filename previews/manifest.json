@@ -4722,7 +4722,7 @@
    "L": 4,
    "len": 12.83,
    "seed": 1,
-   "bytes": 4029829,
+   "bytes": 1278560,
    "note": "Each cut aims at the foe nearest the keep no cut has struck yet, and throws it back.",
    "ev": {
     "opts": 1,
@@ -4861,5 +4861,5 @@
    }
   }
  },
- "made": "2026-11-04"
+ "made": "2026-11-05"
 }
