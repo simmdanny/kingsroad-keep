@@ -4640,14 +4640,14 @@
    "L": 1,
    "len": 12.83,
    "seed": 1,
-   "bytes": 3425989,
+   "bytes": 1268172,
    "note": "The foes are spread out: the domain reaches 6 tiles.",
    "ev": {
     "opts": 1,
     "cast": 1,
     "aim": 16,
     "act": 1,
-    "cut": 15
+    "cut": 14
    }
   },
   "citadel-2": {
