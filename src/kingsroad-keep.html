@@ -37320,6 +37320,44 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
 {const a0=animElite;animElite=function(e,dt){const r=a0.apply(this,arguments);if(e&&e.ghostOn)nmxRecloak(e);return r;};}
 {const se=spawnEnemy;spawnEnemy=function(){const n0=enemies.length,r=se.apply(this,arguments);for(let i=n0;i<enemies.length;i++){const e=enemies[i];if(e&&e.ghostOn)nmxRecloak(e);}return r;};}
 
+/* ================= v493: no shader compiles in battle, no first-cast hitches =================
+   Simon: "a very very big optimalization update". This part is the shader programs, the materials made per cast, and the frame spikes they cause.
+   Measured (tools/bench/bench.js late, 450 steps, swiftshader): 10 shader programs compiled during the measured fight, after warm-up, each a
+   1.5-8 s frame; getProgramInfoLog and getShaderInfoLog (three.js compiling and checking shaders) were about 14% of all time; JS max 24 ms.
+   The cause: an effect makes its own material (flash() alone is called from 386 places, every flash a new ShaderMaterial) and disposes it when
+   the effect ends. When the last material of a program goes, three.js deletes the program, so the next flash compiles it again from scratch.
+   What this does (the picture and the play are unchanged; only when the compiling happens changes):
+   1) Programs are kept. Every program three.js builds gets one extra use (pshPin), so disposing the last material of a kind no longer deletes
+      it and the next one finds it ready. The kept set is bounded (PSH.max, oldest unused ones go first), so it cannot grow without end.
+   2) Pre-warming. In idle time after load, and again whenever the scene's lights, shadows or fog change (a new land), PSH compiles the shader
+      programs of the spells, effects, elites and lands (pshCatalog) on a hidden scene with the same light setup, a few per idle slice, so the
+      first cast of a scroll finds its programs ready.
+   3) three.js's synchronous shader checks are off outside developer mode (renderer.debug.checkShaderErrors). A program's link status is still
+      checked later, without stalling a frame (pshVerify), and a broken shader is still reported in the console the way three.js reports it.
+   PSH.mid counts programs built during a battle; tests/psh-test.js checks it stays 0 through a scripted fight. */
+const PSH={max:480,pins:[],cur:null,mid:0,built:0,log:[],chk:[],chkT:0,sig:'',q:[],qSig:'',warmed:0,busy:false,dummy:null,on:true};
+function pshChecks(){return !!(typeof meta!=='undefined'&&meta&&meta.dev)||!!PSH.force;}
+function pshPin(p){if(!p||p.__pshPin)return;p.__pshPin=1;p.usedTimes++;PSH.pins.push(p);}
+function pshUnpin(p){const a=renderer.info.programs;p.__pshPin=0;const i=PSH.pins.indexOf(p);if(i>=0)PSH.pins.splice(i,1);
+  if(--p.usedTimes===0){const j=a.indexOf(p);if(j>=0){a[j]=a[a.length-1];a.pop();}p.destroy();}}
+/* a new program: keep it, note who built it and when, and check it later (or now, in developer mode, as three.js does) */
+function pshNew(p){pshPin(p);PSH.built++;const m=PSH.cur,mid=typeof state!=='undefined'&&state==='playing'&&!PSH.busy;if(mid)PSH.mid++;
+  if(PSH.log.length<200)PSH.log.push({t:m?m.type:'?',n:m&&m.name||'',mid,warm:PSH.busy,fs:m&&m.isShaderMaterial?String(m.fragmentShader).slice(0,80):''});
+  if(!pshChecks()){PSH.chk.push(p);if(!PSH.chkT)PSH.chkT=setTimeout(pshVerify,400);}
+  if(PSH.pins.length>PSH.max){for(const q of PSH.pins.slice(0,PSH.pins.length-PSH.max+8))if(q.usedTimes===1&&q!==p)pshUnpin(q);}}
+/* the deferred link check: waits for the driver (KHR_parallel_shader_compile) rather than blocking on it */
+function pshVerify(){PSH.chkT=0;const gl=renderer.getContext(),ext=gl.getExtension('KHR_parallel_shader_compile'),keep=[];
+  for(const p of PSH.chk){const g=p.program;if(!g)continue;if(ext&&!gl.getProgramParameter(g,ext.COMPLETION_STATUS_KHR)){keep.push(p);continue;}
+    if(!gl.getProgramParameter(g,gl.LINK_STATUS)){const vs=p.vertexShader,fs=p.fragmentShader;
+      console.error('THREE.WebGLProgram: shader error: ',gl.getError(),'35715',false,'gl.getProgramInfoLog',gl.getProgramInfoLog(g),vs?gl.getShaderInfoLog(vs):'',fs?gl.getShaderInfoLog(fs):'');}}
+  PSH.chk=keep;if(keep.length)PSH.chkT=setTimeout(pshVerify,400);}
+function pshInstall(){const a=renderer.info.programs;if(a.__psh)return;a.__psh=1;for(const p of a)pshPin(p);
+  a.push=function(){const n=Array.prototype.push.apply(this,arguments);for(let i=0;i<arguments.length;i++)pshNew(arguments[i]);return n;};
+  THREE.Material.prototype.onBuild=function(){PSH.cur=this;};
+  Object.defineProperty(renderer.debug,'checkShaderErrors',{configurable:true,enumerable:true,get:pshChecks,set(v){PSH.force=!!v;}});}
+pshInstall();
+/* ---- end of v493 ---- */
+
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
