@@ -2778,3 +2778,21 @@ Simon: "yes add the grey screen fix too". `sdpInit` builds the shared world-spac
   - It covers Regenerating+Invisible on six troops and all five looks, and Warded+Invisible through element shifts, each animated for 2 s, with every piece cloaked and everything solid after the reveal.
   - It also covers the Regenerating shield-wall bearer.
   - Without the fix, its first row fails: 0 solid pieces at spawn, 1-5 once the looks animate.
+
+
+## The frame benchmark (v491)
+`tools/bench/bench.js` plays one fixed, seeded heavy scenario in headless Chromium and reports where each frame's time goes. It is the shared yardstick for the v492-v495 optimisation work.
+- **Usage:** `node tools/bench/bench.js <late|spells|crowd|taiga> [--steps N] [--profile out.json] [--norender]`, with the dev server on `KK_PORT`.
+- **The scenario:**
+  - wave 120 (140 for crowd) on board 77, with 20 mixed towers and the hero;
+  - the wave's own foes, with elites and formations, made tougher (x8, crowd x40) so a crowd builds;
+  - `spells` also casts a big scroll every 2.5 s, rotating Ancients, Mythics and Secrets;
+  - 120 warm-up steps, then N measured steps of 1/60 s.
+- **Output (one JSON line):**
+  - ms per step: update, effects, animation, render, all the game's JS, plus its p95/p99/max;
+  - draw calls (average and maximum) and triangles;
+  - foes alive, JS heap, GPU memory counts;
+  - shader programs compiled during the measured run;
+  - a draw-call breakdown by owner (terrain, towers, foes, hero, keep, other) and the shadow casters.
+- **`--profile`:** also writes a CPU profile (self time per function) and a sampled allocation profile.
+- Under swiftshader (software WebGL), render time is the CPU cost of WebGL calls. Draw calls, uniform uploads and shader compiles show there as they would on a weak GPU, so compare draw calls and compiles first.
