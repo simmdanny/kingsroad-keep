@@ -21,8 +21,8 @@ try{
   setGfx('high');
   ok('High: the pixel ratio is the one of before (the screen\'s, at most 2)',renderer.getPixelRatio()===bsPR0(),renderer.getPixelRatio()+' vs '+bsPR0());
   ok('High: the board\'s shadow map is 1024 as before',sun.shadow.mapSize.x===1024,sun.shadow.mapSize.x);
-  {let all=true,n=0;for(const o of TERRAIN.children)if(o.userData.pfBatch&&o.userData.glOuter){n++;if(o.castShadow!==(o.userData.gqCast===undefined?o.castShadow:o.userData.gqCast))all=false;}
-    ok('High: the far forest casts its shadows as before',all&&n>0,n+' merged forest meshes');}
+  {const F=gqFarList();ok('High: the scenery round the board casts its shadows as before',F.length>0&&F.every(o=>o.castShadow===o.userData.gqCast&&o.castShadow),F.length+' far casters');
+    ok('the far scenery is all off the board (the trees round it and the dressing)',F.every(o=>o.isInstancedMesh||(()=>{let p=o;while(p&&p.parent!==TERRAIN)p=p.parent;return p&&(p.userData.ot||p.userData.glOuter);})()));}
   {const n0=PSN.list.length;for(let i=0;i<30;i++)emit(0,{x:0,y:-50,z:0,life:.01});ok('High: every particle is made',PSN.list.length-n0===30,PSN.list.length-n0);PSN.list.length=n0;}
   const A=shot();
   /* High against the renderer as it was before v495 (the same calls the old code made), drawn again */
@@ -30,15 +30,15 @@ try{
   ok('High: the picture is the one the old settings draw, pixel for pixel',same(A,B)===0,same(A,B)+' bytes differ');
   setGfx('medium');const Md=shot();
   ok('Medium: fewer pixels (75%) and the 512 shadow map',Md.w<A.w&&Math.abs(Md.w/A.w-.75)<.02&&sun.shadow.mapSize.x===512,A.w+'x'+A.h+' -> '+Md.w+'x'+Md.h+', shadow '+sun.shadow.mapSize.x);
-  {let far=0;for(const o of TERRAIN.children)if(o.userData.pfBatch&&o.userData.glOuter&&o.castShadow)far++;ok('Medium: the far forest still casts shadows',far>0,far);}
+  {const far=gqFarList().filter(o=>o.castShadow).length;ok('Medium: the far scenery still casts shadows',far>0,far);}
   setGfx('low');const Lw=shot();
-  {let far=0;for(const o of TERRAIN.children)if(o.userData.pfBatch&&o.userData.glOuter&&o.castShadow)far++;
-    ok('Low: fewer pixels still (55%), no shadows from the far forest',Lw.w<Md.w&&far===0,Lw.w+'x'+Lw.h+', far casters '+far);}
+  {const far=gqFarList().filter(o=>o.castShadow).length;let near=0;TERRAIN.traverse(o=>{if(o.isMesh&&o.castShadow)near++;});
+    ok('Low: fewer pixels still (55%), no shadows from the far scenery, the board\'s own still cast',Lw.w<Md.w&&far===0&&near>0,Lw.w+'x'+Lw.h+', far casters '+far+', others '+near);}
   {const n0=PSN.list.length;for(let i=0;i<30;i++)emit(0,{x:0,y:-50,z:0,life:.01});ok('Low: a third fewer particles',PSN.list.length-n0===20,PSN.list.length-n0);PSN.list.length=n0;}
   setGfx('high');const A2=shot();ok('back to High: the same picture again',same(A,A2)===0,same(A,A2));
-  ok('High after Low: shadow map 1024 and the far forest shadows back',sun.shadow.mapSize.x===1024&&TERRAIN.children.some(o=>o.userData.pfBatch&&o.userData.glOuter&&o.castShadow));
-  /* a new board keeps the tier (the far forest is rebuilt) */
-  setGfx('low');board('snow');{let far=0;for(const o of TERRAIN.children)if(o.userData.pfBatch&&o.userData.glOuter&&o.castShadow)far++;ok('a new board keeps the tier (Low, no far shadows, 512)',far===0&&sun.shadow.mapSize.x===512&&renderer.getPixelRatio()<bsPR0(),far+' '+sun.shadow.mapSize.x);}
+  ok('High after Low: shadow map 1024 and the far scenery shadows back',sun.shadow.mapSize.x===1024&&gqFarList().every(o=>o.castShadow));
+  /* a new board keeps the tier (the far scenery is rebuilt) */
+  setGfx('low');board('snow');{const F=gqFarList(),far=F.filter(o=>o.castShadow).length;ok('a new board keeps the tier (Low, no far shadows, 512)',F.length>0&&far===0&&sun.shadow.mapSize.x===512&&renderer.getPixelRatio()<bsPR0(),F.length+' / '+far+' '+sun.shadow.mapSize.x);}
   setGfx('high');
   /* the cap: a big screen at twice the pixels is drawn under about 4.2 million pixels except on High */
   {const iw=Object.getOwnPropertyDescriptor(window,'innerWidth'),ih=Object.getOwnPropertyDescriptor(window,'innerHeight'),dp=Object.getOwnPropertyDescriptor(window,'devicePixelRatio');

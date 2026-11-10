@@ -15280,7 +15280,7 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
   {t:'Graphics setting, a faster start and no slowdown over long runs',d:'6 Nov',v:'v495',li:[
-    'A new Graphics setting (More, or Settings on a computer): Auto, High, Medium or Low. High looks exactly as before. Medium and Low draw the board with fewer pixels and softer shadows, and Low also drops the far forest\'s shadows and a third of the particles.',
+    'A new Graphics setting (More, or Settings on a computer): Auto, High, Medium or Low. High looks exactly as before. Medium and Low draw the board with fewer pixels and softer shadows, and Low also drops the shadows of the scenery round the board and a third of the particles.',
     'Auto, the default, watches how smoothly your device draws the battle: when frames get slow it first lowers the resolution a little, and when there is room again it goes back up. It waits before moving so the picture never flickers between levels, and remembers where it settled for next time.',
     'Very large screens are drawn with at most about 4 million pixels on Auto, Medium and Low (High keeps every pixel).',
     'The game starts faster: the menu background and the tower and hero pictures no longer hold up the start.',
@@ -37337,7 +37337,7 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
 /* ---- 1) Graphics quality: meta.gfx 'auto' (the default), 'high', 'medium' or 'low' ----
    One ladder of quality levels, best first. Each step changes the cheapest thing to see first: the render resolution (the canvas is drawn
    with fewer pixels and stretched to the same size), then the board's shadow map (1024 to 512: softer shadow edges), then the shadows of the
-   far forest round the board, then a third fewer particles. High is level 0 and is exactly today's picture: the same pixel ratio (the
+   scenery round the board (gqFarList), then a third fewer particles. High is level 0 and is exactly today's picture: the same pixel ratio (the
    screen's, at most 2), the same shadows, every particle. Medium is level 3, Low level 5. Auto starts where it last settled on this device
    (meta.gfxAuto) and moves one level at a time from the real frame times (gqFeed). */
 const GQ={L:[{s:1,sh:1024,far:1,pd:1},{s:.85,sh:1024,far:1,pd:1},{s:.75,sh:1024,far:1,pd:1},{s:.75,sh:512,far:1,pd:1},{s:.65,sh:512,far:0,pd:1},{s:.55,sh:512,far:0,pd:.67}],
@@ -37357,10 +37357,21 @@ function gqApply(){const L=GQ.L[gqLevel()],pr=bsPR();
   if(renderer.getPixelRatio()!==pr){renderer.setPixelRatio(pr);psScale();for(const R of [HPV,AR])if(R&&R.r&&R.r.getPixelRatio()!==pr)R.r.setPixelRatio(pr);}
   /* the board's shadow map (the open world keeps its own sizes) */
   if(!OW.on&&sun.shadow.mapSize.x!==L.sh){sun.shadow.mapSize.set(L.sh,L.sh);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}}
-  /* the far forest's shadows: the merged outer trees (v446) remember whether they cast one */
-  if(TERRAIN)for(const o of TERRAIN.children)if(o.userData.pfBatch&&o.userData.glOuter){if(o.userData.gqCast===undefined)o.userData.gqCast=o.castShadow;const c=L.far?o.userData.gqCast:false;if(o.castShadow!==c)o.castShadow=c;}
+  /* the far scenery's shadows: each caster remembers whether it cast one */
+  for(const o of gqFarList()){const c=L.far?o.userData.gqCast:false;if(o.castShadow!==c)o.castShadow=c;}
   GQ.applied=gqLevel();}
-/* the far forest is rebuilt with every board and the open world resets the shadow map on leaving: put the level back after both */
+/* the far scenery of the board: the trees round it (userData.ot, or merged by v446), and the instanced scatter of the land's dressing
+   whose every piece lies off the board. Found once per board, with each caster's own setting. Board trees, rocks, props, the keep and
+   anything with a piece on the board keep their shadows. */
+function gqFarList(){const T=TERRAIN;if(!T)return [];if(T.userData.gqFar&&T.userData.gqFarN===T.children.length)return T.userData.gqFar;
+  const L=[],a=tw(0,0),b=tw(W-1,H-1),X0=Math.min(a.x,b.x)-.5,X1=Math.max(a.x,b.x)+.5,Z0=Math.min(a.z,b.z)-.5,Z1=Math.max(a.z,b.z)+.5,m=new THREE.Matrix4(),p=new THREE.Vector3();
+  const take=o=>{if(o.userData.gqCast===undefined)o.userData.gqCast=o.castShadow;if(o.userData.gqCast)L.push(o);};
+  T.updateMatrixWorld(true);
+  for(const o of T.children){
+    if(o.isInstancedMesh){if(!o.castShadow&&o.userData.gqCast===undefined)continue;let on=false;for(let i=0;i<o.count&&!on;i++){o.getMatrixAt(i,m);p.setFromMatrixPosition(m).applyMatrix4(o.matrixWorld);if(p.x>X0&&p.x<X1&&p.z>Z0&&p.z<Z1)on=true;}if(!on)take(o);}
+    else if(o.userData.ot||o.userData.pfBatch&&o.userData.glOuter)o.traverse(q=>{if(q.isMesh)take(q);});}
+  T.userData.gqFar=L;T.userData.gqFarN=T.children.length;return L;}
+/* the far scenery is rebuilt with every board and the open world resets the shadow map on leaving: put the level back after both */
 {const bm=buildMap;buildMap=function(){const r=bm.apply(this,arguments);try{gqApply();}catch(e){console.error(e);}return r;};}
 {const ol=owLeave;owLeave=function(){const r=ol.apply(this,arguments);try{gqApply();}catch(e){}return r;};}
 {const f=fit;fit=function(){const r=f.apply(this,arguments);try{if(gqMode()!=='high'&&renderer.getPixelRatio()!==bsPR())gqApply();}catch(e){}return r;};}
@@ -37478,7 +37489,7 @@ function thmAll(){while(TH.q.length)thmBatch(()=>true);}
 {const lr=loadRun;loadRun=function(){if(TH.q.length)try{thmAll();}catch(e){console.error(e);}return lr.apply(this,arguments);};}
 /* ---- 5) The Graphics setting: a row in More (phones) and in the pause menu, a choice in the PC Settings window, and the developer panel.
    It is a property of the device, so it stays when the account is switched (like the battery saver). ---- */
-const GQ_D={auto:'Adjusts to your device: draws fewer pixels when frames are slow, and more again when there is room',high:'Full quality, as drawn before',medium:'Fewer pixels and softer shadows',low:'Fewer pixels, softer shadows, no shadows from the far forest and fewer particles'};
+const GQ_D={auto:'Adjusts to your device: draws fewer pixels when frames are slow, and more again when there is room',high:'Full quality, as drawn before',medium:'Fewer pixels and softer shadows',low:'Fewer pixels, softer shadows, no shadows from the scenery round the board, and fewer particles'};
 function gqNow(){const L=GQ.L[gqLevel()];return Math.round(L.s*100)+'% resolution'+(L.sh<1024?', soft shadows':'')+(L.far?'':', no far shadows')+(L.pd<1?', fewer particles':'');}
 function updGfxBtn(){for(const id of ['#bGfx','#bGfxP']){const b=$(id);if(b&&b.textContent!==GQ.names[gqMode()])b.textContent=GQ.names[gqMode()];}}
 function gqToast(){toast('Graphics: '+GQ.names[gqMode()]+(gqMode()==='auto'?' (now '+gqNow()+')':''));}
