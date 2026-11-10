@@ -2803,6 +2803,7 @@ Simon: "the lightning artifact synergy make the lightning pure red, it needs to 
   - a draw-call breakdown by owner (terrain, towers, foes, hero, keep, other) and the shadow casters.
 - **`--profile`:** also writes a CPU profile (self time per function) and a sampled allocation profile.
 - Under swiftshader (software WebGL), render time is the CPU cost of WebGL calls. Draw calls, uniform uploads and shader compiles show there as they would on a weak GPU, so compare draw calls and compiles first.
+<<<<<<< HEAD
 
 - v491 fixes: draw calls and triangles now add up every render pass of a step (spell passes draw the scene off-screen first), and the breakdown counts only what layer 0 draws (v492's batcher hides originals on layer 30).
 <<<<<<< HEAD
@@ -2950,3 +2951,98 @@ Two rows were adapted because they inspected removed layers: `tpx-test` (the win
 >>>>>>>>> Temporary merge branch 2
 =======
 >>>>>>> origin/perf-shaders
+||||||| c85e931
+=======
+
+## Graphics quality, HUD writes, memory and load (v495)
+Simon asked for "a very very big optimalization update". This part adds a Graphics setting with an automatic mode, makes the HUD write to the page only when something changed, stops a memory leak that grew with every big scroll, and starts the game faster. All of it is one block before the v446 Performance block (`gqFeed`, `vfxSync`, `memSweep`, `thmBatch`), plus two small base edits (the menu background's encode, and the overlay line in `anim`).
+
+### 1) The Graphics setting
+- **Where:** More (phones) and the pause menu: a button that cycles Auto, High, Medium, Low. On a computer: a row of four buttons in the Settings window, above the field of view. The developer panel shows the setting, the current level, the pixel ratio, the shadow map and Auto's last moves, and can step Auto by hand.
+- **Saved:** `meta.gfx` (and `meta.gfxAuto`, the level Auto last settled on). Both are kept when the account is switched, like the battery saver.
+- **The ladder** (level 0 is High, exactly the picture of before):
+
+| level | resolution | board shadow map | far scenery shadows | particles | |
+|---|---|---|---|---|---|
+| 0 | 100% | 1024 | on | all | **High** |
+| 1 | 85% | 1024 | on | all | |
+| 2 | 75% | 1024 | on | all | |
+| 3 | 75% | 512 | on | all | **Medium** |
+| 4 | 65% | 512 | off | all | |
+| 5 | 55% | 512 | off | two in three | **Low** |
+
+- **Far scenery** (`gqFarList`) is what lies wholly off the board: the trees round it and the instanced dressing of the land. Board trees, rocks, props and the keep keep their shadows.
+- **Resolution** is the renderer's pixel ratio (`bsPR`, which every place that resets the pixel ratio already calls), so the canvas keeps its size on screen and the post passes follow. Below level 0 (Medium, Low, and Auto once it steps down) the drawing buffer is also kept under about 4.2 million pixels (a 2560x1440 screen at twice the pixels would be 14.7 million) before the level's scale; High, and Auto at its top level, keep today's ratio (the screen's, at most 2).
+- **Auto** (`gqFeed`): frame intervals in 2 s windows, on drawn battle frames only (not the menus, a pause, a hidden tab, the preview copy of the game). A window is slow under 48 fps (26 with the battery saver), fast at 57 or more (29.5) with the frame's own work under half the budget. Two slow windows step down one level (one window under 30 fps); four fast windows step up one. 2.5 s of grace after every move; a tab switch or a gap over 2 s restarts the window; on a very slow device a window closes after 4 s with as few as 3 frames; and a level that was too slow again within 12 s of stepping up to it is held back for 30 s, then 60, 120... up to 10 minutes: no flicker.
+
+### 2) HUD and DOM writes only on change
+Measured on a wave-120 battle with a write probe (every DOM write, by caller) and the layout reads timed: about 7 writes a frame, nearly all of them writing the value already there. Chromium skips a same-value style write (no restyle), but a same-value `hidden` costs a restyle and a same-value `textContent` a restyle and a layout. And on every HUD tick the artifact and mastery rails read the HUD's position right after the HUD's own text writes: forced layouts in the middle of the frame.
+- `#fabBuild`, `#placeUI` (every frame) and the developer wrench (every 250 ms) only take a changed `hidden`; the spell and scroll countdown digits only take changed text (a guard on those elements that compares with the live value, so no other write path is missed);
+- `#vfxFlash` / `#vfxVig` are written only when their value changes (`vfxSync`, one line in `anim`);
+- during a frame, `artHudSync` and `mpgSync` run at the end of the frame, after all its writes: one layout a frame. Outside a frame they run at once, as before.
+
+Measured in a 640x400 page playing wave 120 for 15 s (CDP metrics and a write/read probe):
+
+| per frame | before | v495 |
+|---|---|---|
+| DOM writes (all, by the probe) | 6.9 | 4.4 |
+| style recalculations | 1.17 | 0.04 |
+| style recalculation ms | 0.068 | 0.005 |
+| layout reads that forced a layout (in 40 frames) | 31 (mpgSync 25, artHudSync 6) | 4 (mpgSync) |
+| time in layout reads, ms | 0.085 | 0.009 |
+
+The writes left are same-value style writes in the Blood Moon and Starfall veils and the pause label, which Chromium already skips (no restyle; measured).
+
+### 3) Memory over a long run
+The same wave 120 replayed again and again on one board, a big scroll cast every 2 s (`memrep`, 640x400):
+
+| round | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| geometries before | 1219 | 1228 | 1332 | 1324 | 1575 | 1793 | 1883 | 1876 | 1901 | 2008 |
+| geometries v495 | 777 | 851 | 880 | 770 | 942 | 939 | 875 | 835 | 938 | 952 |
+| JS heap MB before | 56.4 | 53.0 | 59.7 | 60.7 | 63.7 | 67.3 | 70.3 | 72.5 | 74.0 | 75.8 |
+| JS heap MB v495 | 54.1 | 59.9 | 74.0 | 63.4 | 66.7 | 78.0 | 62.3 | 68.4 | 69.6 | 71.5 |
+
+(v495 starts lower too: the thumbnails' models are not made until needed.) The scene itself stays the same size in both once a round's effects are over.
+
+Over 25 ordinary waves (no scrolls cast) both builds rise alike, from about 820 to 1200 geometries and from 38 to 71 objects at the top of the scene: those are first sightings (each new kind of foe and elite builds its shapes once and keeps them in the shared cache) and the pool of 32 ripples where foes wade, reused, not leaks. Wave 120 replayed seven times without scrolls stays at exactly 873 geometries in v495.
+
+The leak (found by tagging every geometry with where it was made and listing the ones the renderer still held outside the scene): an effect disposes its geometry when its time is up, but the Eclipse of the Damned's falling stars hang under the cast's root for its 11.5 s, so they stay in the scene, the next frame uploads them again, and when the root goes nobody disposes them twice: about a hundred geometries a cast. Now a geometry that was disposed and then uploaded again is remembered, and every 3 s any of those no longer in the scene is disposed again (three.js uploads it again if it is ever drawn again, so nothing can break). Materials are left alone (freeing one that comes back would compile its shader again) and their count does not grow.
+
+### 4) Load
+Profiled from the request to ready (headless). The two biggest blocks of the start were the menu background (a 720x1400 canvas made into a JPEG with `toDataURL`) and `makeThumbs` (every tower and hero drawn and read back as a PNG, about 0.6 s).
+- The background is encoded with `toBlob`: the same JPEG, encoded off the main thread. (Headless, the canvas is rasterised by swiftshader when it is read, about 1.5 s either way; a real GPU does that in milliseconds, so the gain there is the encode.)
+- The thumbnails are drawn when first read, or in 40 ms batches from 1.5 s after the start while the menus cover the board, one canvas resize per batch; whatever is left is drawn before the next board or run, so they always come from the materials the start had. Pixel-identical to before (every one, except those whose models are random and differ from one start to the next in the old build too).
+
+| start (headless, 3 cold loads, median) | before | v495 |
+|---|---|---|
+| request to ready | 4.11 s | 3.49 s |
+| DOMContentLoaded | 3.35 s | 2.90 s |
+| geometries at ready | 621 | 32 |
+
+At ready both builds still have about 4.5 s of shader compiling queued in the GPU process (swiftshader); the first pixel read of either pays for it. The thumbnails' own batches then take about 180 ms for the first (their shaders) and 25 to 40 ms each after.
+
+### Before and after (tools/bench/bench.js, 450 steps)
+| scenario | build | draw calls avg / max | compiles in run | JS ms/step | JS p95 / p99 | render ms | foes |
+|---|---|---|---|---|---|---|---|
+| late | before (v491) | 1054 / 1714 | 11 | 5.194 | 10.2 / 14.5 | 1060 | 152 |
+| late | v495 High | 1162 / 2196 | 12 | 5.182 | 10.2 / 15 | 658 | 153 |
+| spells | before (v491) | 68 / 347 | 40 | 17.622 | 18.8 / 30.2 | 1014 | 161 |
+| spells | v495 High | 68 / 357 | 40 | 10.859 | 15.3 / 20.8 | 1449 | 156 |
+| crowd | before (v491) | 1057 / 2007 | 11 | 5.999 | 12.4 / 18.4 | 1079 | 156 |
+| crowd | v495 High | 1162 / 2003 | 12 | 5.133 | 10.6 / 15.2 | 948 | 158 |
+| late | v495 Medium | 1046 / 2110 | 11 | 5.138 | 9.7 / 14.2 | 558 | 162 |
+| late | v495 Low | 1131 / 2196 | 11 | 4.796 | 9.6 / 14.2 | 474 | 163 |
+| late | v495 Auto (walked to Low) | 1094 / 2240 | 9 | 4.897 | 9.8 / 15.3 | 479 | 156 |
+
+- Draw calls follow the number of foes on screen (the benchmark seeds Math.random, but the game's own `rnd` was taken from it before, so the crowd differs a little from run to run); High draws the same objects as before (a per-draw log of the same scene is identical, 413 = 413 draws).
+- Render ms under swiftshader swings by tens of percent between identical runs. The tiers measured in one page instead, the late scene held still, a 1-pixel read after each frame so the GPU's time is included (median of 24 frames each): **High 428 ms, Medium 339 ms (-21%), Low 268 ms (-37%)**. The far-scenery shadows alone (High with only them off): 452 to 411 ms (-9%); the shadow pass then draws 14 thousand triangles instead of 161 thousand (the instanced dressing round the board was most of them).
+- Auto in the benchmark: its real frames take about a second there, so Auto walks down the ladder one level at a time during the run (levels 1 to 5 at 32, 118, 172, 180 and 239 s) and ends on Low. (Before a fix made during this work, frames that slow were taken for stalls and Auto never moved.)
+
+
+### Visual review
+Every land (plains, Frostvale, the Greywind Tundra, the Whitewaste, the Deep Taiga, the Highlands) rendered from the same seeded scene in a fresh page of the old build and the new one: High is the same picture (0 pixels differ in four lands; 7 and 8 faint pixels, at most 25 of 1020, in two, where the old build against itself rendered a few seconds later differs by 98: wall-clock animation). The world map is unchanged. Sheets and diff images: branch `sheets/perf-quality`.
+
+### Tests
+`tests/pql-test.js`: the tiers (High's pixel ratio, shadow map, far shadows and particles as before and the same picture; Medium and Low smaller), the pixel-ratio cap, Auto stepping down and up on simulated slow and fast frames with its hysteresis, hold and back-off, the battery saver's target, only battle frames measured, the setting saved and kept across an account switch, the More row, the Settings window and the developer panel, DOM writes only on change, no layout read between a frame's writes, the same wave played again and again without growth, and the lazy start.
+>>>>>>> origin/perf-quality
