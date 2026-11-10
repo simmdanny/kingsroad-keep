@@ -2841,3 +2841,46 @@ Simon asked for "a very very big optimalization update". This part draws the boa
 - **About the spells rows:** the bench's spells draw count covers only the last pass of a frame. The spell effects draw the scene off-screen first, so these two rows sum every pass. How many foes are alive and which spells land vary a lot between runs.
 - **About the bench breakdown:** it counts the hidden originals as terrain and towers, and the merged meshes under `other:pfw-batch`. `tests/pfw-test.js` counts only what is drawn.
 - **Tests:** `tests/pfw-test.js` covers draw calls by land and by tower, pixel equality in every land, a turning head, a moved, upgraded and sold tower, a scorched and a cut tree, recolouring, a chest, the Infinite Void, a running wave in every land, rays, and the merged geometry being freed.
+
+## No shader compiles in battle (v493)
+Part of Simon's "very very big optimalization update": the shader programs, and the frame spikes they caused. The picture and the play are unchanged (pixel-identical renders, below); only when the compiling happens changes. The code is the v493 block before the Performance (v446) block.
+- **What was wrong:**
+  - An effect makes its own material and disposes it when it ends (every flash is a new ShaderMaterial; flash() alone is called from 386 places).
+  - When the last material of a program went, three.js deleted the program, so the next flash compiled it again from scratch.
+  - Before: casting each of the 72 scrolls twice compiled programs on the second cast too, and nearly every scroll (68 of 72) compiled something.
+  - In the bench, three.js's synchronous shader checks (getProgramInfoLog, getShaderInfoLog) were 13.6% of all time in `late` and 12.7% in `spells`.
+- **What v493 does:**
+  - *Programs are kept* (pshPin): every program three.js builds gets one extra use, so disposing the last material of a kind no longer deletes it. The kept set is bounded (PSH.max, 640); past it, the oldest programs no material uses go first.
+  - *Recipes, warmed in idle time* (pshSer, pshWarmTick): every program the game builds is noted as a recipe (its shader text, or the settings of a built-in material that choose its program) and kept in the browser's IndexedDB, apart from the save.
+    - After load, one recipe per idle slice is compiled on a hidden scene with the lights, shadows and fog it was first built with.
+    - A warmed recipe is checked against the program it was noted from (the same three.js cache key); one that no longer matches is dropped.
+    - A small built-in set (the flash, sprites, lines, points) is warmed in the very first session too.
+  - *No synchronous shader checks* outside developer mode (`renderer.debug.checkShaderErrors`). The link status is still checked later without stalling (pshVerify, using KHR_parallel_shader_compile when present), and a broken shader is still reported in the console.
+- **Two real browser sessions sharing one profile** (swiftshader; all 72 scrolls cast twice, 9 elite kinds spawned twice on a wave-120 board; steps compile the whole scene):
+
+| | before | v493, first session | v493, next session |
+|---|---|---|---|
+| programs compiled by the 144 casts | 343 | 141 | 9 |
+| scrolls that compiled anything | 68 / 72 | 35 / 72 | 2 / 72 |
+| programs compiled by elite spawns | 41 | 4 | 0 |
+| slowest step after a first cast: median / p90 / max (ms) | 8267 / 18600 / 26177 | 205 / 4184 / 15934 | 58 / 244 / 464 |
+| the same after a second cast: median / p90 (ms) | 9372 / 18208 | 341 / 5520 | 70 / 334 |
+
+- In the next session, 160 programs were warmed in 33 s of idle time after load (153 matched their notes, 0 stale).
+- **The frame benchmark** (`tools/bench/bench.js`, 450 steps; each run is a fresh browser, so no stored recipes):
+
+| scenario | programs compiled during the run | draw calls avg / max | JS ms per step | JS p95 / p99 / max | shader check share of all time |
+|---|---|---|---|---|---|
+| late, before | 10 | 1022 / 1936 | 5.27 | 10.7 / 16.9 / 24.4 | 13.6% (getProgramInfoLog + getShaderInfoLog) |
+| late, v493 | 10 | 1044 / 2003 | 5.47 | 10.8 / 14.2 / 22.2 | 4.5% (getProgramParameter) |
+| spells, before | 41 | 68 / 376 | 19.65 | 16.1 / 25.2 / 5431 | 12.7% |
+| spells, v493 | 39 | 72 / 412 | 13.74 | 16.7 / 31.6 / 2264 | 6.7% |
+| crowd, before | 10 | 1028 / 2012 | 4.34 | 8.2 / 12.5 / 24.8 | |
+| crowd, v493 | 11 | 842 / 1875 | 4.39 | 8.4 / 12.7 / 17.5 | |
+
+- The bench counts every program first seen during its run. In a fresh browser those are first-ever programs (foes, towers and effects meeting the board for the first time), which v493 compiles once and notes. From the second session on they are warmed before the fight (the table above). Draw calls are not touched by v493; their spread is the scenario's own randomness.
+- **Left as they were, measured:**
+  - The 9 programs still compiled in the next session are the Infinite Void's and Never-Never Land's clones of the world's own materials, made at the cast from whatever stands on the board, so they cannot be noted ahead.
+  - Materials made per cast: after v493 a throwaway effect material costs about 0.14 ms in all (made, looked up, uploaded, disposed). A typical fight makes fewer than one a frame; Ball Lightning peaks at about 34 a frame (nsArc and zap). Pooling them would have to stay exact under the artifact sets' colour context and the domains that swap the world's materials, so it is left for a later change.
+  - Allocation: the largest per-frame allocators (three.js Object3D and uniform cloning for new effect meshes, the particle emitter) come to about 12 KB a frame; garbage collection is 0.1% of the profile.
+- **Checks:** `tests/psh-test.js` (no program compiled through a scripted fight with first casts of every rarity after warming, programs reused on second casts, warming uploads nothing, the browser store keeps the recipes, the shader check switch, a broken shader still reported). Renders of the six lands mid-fight with spells, the world map, and a cast-recast scene are pixel-identical before and after (branch `sheets/perf-shaders`).

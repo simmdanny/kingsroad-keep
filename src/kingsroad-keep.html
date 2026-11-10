@@ -15277,6 +15277,10 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Smoother first casts',d:'6 Nov',v:'v493',li:[
+    'The look of a spell is no longer rebuilt every time it is cast. Before, a spell\'s glow could make the game pause for a moment in the middle of a fight, again and again; now each look is prepared once and kept.',
+    'The looks of the scrolls you have used are remembered by your browser and prepared quietly while you are in the menu, so even the first cast of a fight runs without that pause.',
+    'Nothing looks or plays differently.']},
   {t:'A much lighter battlefield',d:'6 Nov',v:'v492',li:[
     'The board, its trees and scenery, the keep and your towers are now drawn in a few big pieces instead of hundreds of small ones, and their shadows the same way. In a busy late wave the graphics card is handed about a quarter as many separate things to draw.',
     'Nothing looks or plays any different: towers still turn, fire, move, upgrade and sell, trees still burn and can be cleared, chests open, and the Infinite Void still dissolves the land.']},
@@ -37492,6 +37496,127 @@ function pfwBakeNow(){PFW.scanDue=true;pfwSync(true);}
 {const b=buildMap;buildMap=function(){const r=b.apply(this,arguments);PFW.scanDue=true;return r;};}
 {const b=buildTowerMesh;buildTowerMesh=function(){const r=b.apply(this,arguments);PFW.scanDue=true;return r;};}
 /* ---- end of the static world and the towers (v492) ---- */
+/* ================= v493: no shader compiles in battle, no first-cast hitches =================
+   Simon: "a very very big optimalization update". This part is the shader programs and the frame spikes they cause.
+   Measured (tools/bench/bench.js late, 450 steps, swiftshader): 10 shader programs compiled during the measured fight, after warm-up, each a
+   1.5-8 s frame there; getProgramInfoLog and getShaderInfoLog (three.js compiling and checking shaders) were about 14% of all time.
+   Casting every scroll twice (72 scrolls) compiled programs again on the second cast too: 1-4 per scroll before, none after.
+   The cause: an effect makes its own material (flash() alone is called from 386 places, every flash a new ShaderMaterial) and disposes it when
+   the effect ends. When the last material of a program goes, three.js deletes the program, so the next flash compiles it again from scratch.
+   What this does (the picture and the play are unchanged; only when the compiling happens changes):
+   1) Programs are kept. Every program three.js builds gets one extra use (pshPin), so disposing the last material of a kind no longer deletes
+      it and the next one finds it ready. The kept set is bounded (PSH.max; past it, the oldest programs no material uses go first).
+   2) Pre-warming. Almost every scroll has shaders of its own, written inside its cast, so they cannot be listed up front. Instead every program
+      the game builds is noted as a recipe (pshSer: the shader text, or the built-in material's settings that choose its program), kept in the
+      browser (IndexedDB, apart from the save), and in idle time after load (pshWarmTick, one program per idle slice) all of them are compiled
+      on a hidden scene with the lights, shadows and fog each was first built with (domains such as the Infinite Void change them). So from the second session on, the first cast of a scroll finds its
+      programs ready. Each warmed recipe is checked against the program it was noted from (the same three.js cache key); a recipe that no
+      longer matches (the game changed) is dropped. A small built-in set (the flash, sprites, lines, points) is warmed in the first session too.
+   3) three.js's synchronous shader checks are off outside developer mode (renderer.debug.checkShaderErrors). A program's link status is still
+      checked later, without stalling a frame (pshVerify), and a broken shader is still reported in the console the way three.js reports it.
+   PSH.mid counts programs built during a battle; tests/psh-test.js checks it stays 0 through a scripted fight with warmed recipes.
+   Results (swiftshader; all 72 scrolls cast twice and 9 elite kinds spawned twice, in two real browser sessions sharing one profile):
+   programs compiled during those casts 343 before, 141 in a first session with this (repeats gone), 9 in the next session (warmed);
+   elite spawns 41 > 4 > 0; the slowest step after a first cast (median of the 72 scrolls) 8.3 s > 0.2 s > 0.06 s, the same as a later cast.
+   Bench (450 steps): getProgramInfoLog+getShaderInfoLog 13.6% (late) and 12.7% (spells) of all time, now getProgramParameter 4.5% and 6.7%;
+   spells JS 19.6 > 13.7 ms a step, its worst step 5.4 > 2.3 s. The 9 left are the Infinite Void's and Never-Never Land's clones of the
+   world's own materials, made at the cast from whatever stands on the board, so they cannot be noted ahead. */
+const PSH={max:640,pins:[],cur:null,par:null,mid:0,built:0,log:[],chk:[],chkT:0,force:false,
+  rec:new Map(),have:new Set(),q:[],busy:false,warmed:0,stale:0,match:0,st:new Map(),later:[],geo:null,tex:new Map(),dbT:0,db:null,loaded:false,on:true};
+function pshChecks(){return !!(typeof meta!=='undefined'&&meta&&meta.dev)||PSH.force;}
+function pshHash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(36)+'.'+s.length;}
+function pshPin(p){if(!p||p.__pshPin)return;p.__pshPin=1;p.usedTimes++;PSH.pins.push(p);if(!p.__pshH)p.__pshH=pshHash(p.cacheKey);PSH.have.add(p.__pshH);}
+function pshUnpin(p){const a=renderer.info.programs;p.__pshPin=0;const i=PSH.pins.indexOf(p);if(i>=0)PSH.pins.splice(i,1);
+  if(--p.usedTimes===0){PSH.have.delete(p.__pshH);const j=a.indexOf(p);if(j>=0){a[j]=a[a.length-1];a.pop();}p.destroy();}}
+/* the light setup the programs are built for (the board's lights, their shadows, the fog, the shadow switch) */
+function pshSig(){const c={d:0,p:0,s:0,h:0,r:0,ds:0,ps:0,ss:0};scene.traverseVisible(o=>{if(!o.isLight||!o.layers.test(camera.layers))return;
+    if(o.isDirectionalLight){c.d++;if(o.castShadow)c.ds++;}else if(o.isPointLight){c.p++;if(o.castShadow)c.ps++;}else if(o.isSpotLight){c.s++;if(o.castShadow)c.ss++;}else if(o.isHemisphereLight)c.h++;else if(o.isRectAreaLight)c.r++;});
+  const sh=renderer.shadowMap.enabled&&(c.ds+c.ps+c.ss)>0;return [c.d,c.p,c.s,c.h,c.r,c.ds,c.ps,c.ss,sh,!!scene.fog,!!(scene.fog&&scene.fog.isFogExp2)].join();}
+/* the same, from the parameters three.js built a program with */
+function pshParSig(q){return [q.numDirLights,q.numPointLights,q.numSpotLights,q.numHemiLights,q.numRectAreaLights,q.numDirLightShadows,q.numPointLightShadows,q.numSpotLightShadows,!!q.shadowMapEnabled,!!q.fog,!!q.fogExp2].join();}
+/* a new program: keep it, note who built it, its recipe, and check it later (or now, in developer mode, as three.js does) */
+function pshNew(p){pshPin(p);PSH.built++;const m=PSH.cur,mid=typeof state!=='undefined'&&state==='playing'&&!PSH.busy;if(mid)PSH.mid++;
+  PSH.log.push({t:m?m.type:'?',mid,warm:PSH.busy,ser:!!(m&&pshSer(m,PSH.par)),fs:m&&m.isShaderMaterial?String(m.fragmentShader).slice(0,80):''});if(PSH.log.length>300)PSH.log.shift();
+  if(!PSH.busy&&m)try{pshRecord(m,PSH.par,p);}catch(e){}
+  if(!pshChecks()){PSH.chk.push(p);if(!PSH.chkT)PSH.chkT=setTimeout(pshVerify,400);}
+  if(PSH.pins.length>PSH.max){for(const q of PSH.pins.slice(0,PSH.pins.length-PSH.max+16))if(q.usedTimes===1&&q!==p)pshUnpin(q);}}
+/* the deferred link check: waits for the driver (KHR_parallel_shader_compile) rather than blocking on it */
+function pshVerify(){PSH.chkT=0;const gl=renderer.getContext(),ext=gl.getExtension('KHR_parallel_shader_compile'),keep=[];
+  for(const p of PSH.chk){const g=p.program;if(!g)continue;if(ext&&!gl.getProgramParameter(g,ext.COMPLETION_STATUS_KHR)){keep.push(p);continue;}
+    if(!gl.getProgramParameter(g,gl.LINK_STATUS)){const vs=p.vertexShader,fs=p.fragmentShader;
+      console.error('THREE.WebGLProgram: shader error: ',gl.getError(),'35715',false,'gl.getProgramInfoLog',gl.getProgramInfoLog(g),vs?gl.getShaderInfoLog(vs):'',fs?gl.getShaderInfoLog(fs):'');}}
+  PSH.chk=keep;if(keep.length)PSH.chkT=setTimeout(pshVerify,400);}
+/* ---- recipes: what chooses a program, as plain data ---- */
+const PSH_TEX=['map','matcap','lightMap','aoMap','emissiveMap','bumpMap','normalMap','clearcoatMap','clearcoatRoughnessMap','clearcoatNormalMap','displacementMap','roughnessMap','metalnessMap','specularMap','alphaMap','gradientMap','transmissionMap'];
+const PSH_VAL=['vertexColors','side','fog','flatShading','sizeAttenuation','alphaTest','premultipliedAlpha','toneMapped','dithering','depthPacking','combine','normalMapType','vertexTangents','sheen','index0AttributeName','glslVersion','lights','clipping','precision','skinning','morphTargets','morphNormals'];
+const PSH_TYPES=['MeshBasicMaterial','MeshLambertMaterial','MeshPhongMaterial','MeshStandardMaterial','MeshToonMaterial','MeshNormalMaterial','LineBasicMaterial','LineDashedMaterial','PointsMaterial','SpriteMaterial','ShaderMaterial','RawShaderMaterial'];
+function pshSer(m,par){if(!m||!m.isMaterial||!PSH_TYPES.includes(m.type)||m.envMap||m.isMeshPhysicalMaterial)return null;
+  if(Object.prototype.hasOwnProperty.call(m,'onBeforeCompile')||m.customProgramCacheKey!==THREE.Material.prototype.customProgramCacheKey)return null;
+  if(par&&(par.skinning||par.morphTargets||par.morphNormals))return null;
+  const r={ty:m.type,v:{}};for(const k of PSH_VAL){const x=m[k];if(x!==undefined&&x!==null&&typeof x!=='object'&&typeof x!=='function')r.v[k]=x;}
+  for(const k of PSH_TEX){const t=m[k];if(t&&t.isTexture)(r.t||(r.t={}))[k]=t.encoding;}
+  if(m.isShaderMaterial){if(typeof m.vertexShader!=='string'||typeof m.fragmentShader!=='string')return null;r.vs=m.vertexShader;r.fs=m.fragmentShader;
+    if(m.defines&&Object.keys(m.defines).length)r.d=JSON.parse(JSON.stringify(m.defines));if(m.extensions)r.x=Object.assign({},m.extensions);
+    if(m.lights)r.u=Object.keys(m.uniforms||{});}
+  r.o={i:!!(par&&par.instancing),ic:!!(par&&par.instancingColor),va:!!(par&&par.vertexAlphas)};return r;}
+function pshRecord(m,par,p){if(!par)return;const r=pshSer(m,par);if(!r)return;const h=p.__pshH,o=PSH.rec.get(h),now=Date.now();
+  if(o){o.t=now;o.n=(o.n||0)+1;}else{PSH.rec.set(h,{h,sig:par?pshParSig(par):'',r,t:now,n:1});pshDbSave();}}
+function pshTex(enc){let t=PSH.tex.get(enc);if(!t){t=new THREE.Texture();t.encoding=enc;PSH.tex.set(enc,t);}return t;}
+function pshMake(r){return typeof asOffRun==='function'?asOffRun(()=>pshMake0(r)):pshMake0(r);}
+function pshMake0(r){const C=THREE[r.ty];if(!C)return null;let m;
+  if(r.vs!=null){const u={};if(r.u){Object.assign(u,THREE.UniformsUtils.clone(THREE.UniformsLib.lights));for(const k of r.u)if(!u[k])u[k]={value:null};}
+    m=new C({vertexShader:r.vs,fragmentShader:r.fs,uniforms:u});if(r.d)m.defines=r.d;if(r.x)Object.assign(m.extensions,r.x);}else m=new C();
+  for(const k in r.v)m[k]=r.v[k];if(r.t)for(const k in r.t)m[k]=pshTex(r.t[k]);return m;}
+/* the hidden scene: stand-in lights of the same kinds and shadows as the board's, and the board's fog */
+function pshStage(sig){let ws=PSH.st.get(sig);if(ws)return ws;const v=sig.split(','),n=k=>+v[k]||0,on=k=>v[k]==='true';ws=new THREE.Scene();
+  const add=(C,cnt,sh)=>{for(let i=0;i<cnt;i++){const l=new C();l.castShadow=i<sh;ws.add(l);}};
+  add(THREE.DirectionalLight,n(0),n(5));add(THREE.PointLight,n(1),n(6));add(THREE.SpotLight,n(2),n(7));add(THREE.HemisphereLight,n(3),0);add(THREE.RectAreaLight,n(4),0);
+  if(on(9))ws.fog=on(10)?new THREE.FogExp2(0,.01):new THREE.Fog(0,1,2);PSH.st.set(sig,ws);return ws;}
+/* a recipe can be warmed now unless it was built with shadows and they are switched off */
+const pshCan=x=>!x.sig||x.sig.split(',')[8]!=='true'||renderer.shadowMap.enabled;
+function pshGeo(va){const k=va?'g4':'g3';if(PSH[k])return PSH[k];const g=new THREE.BufferGeometry(),n=va?4:3;
+  g.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,1,0,0,0,1,0],3));g.setAttribute('normal',new THREE.Float32BufferAttribute([0,0,1,0,0,1,0,0,1],3));
+  g.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,0,1],2));g.setAttribute('color',new THREE.Float32BufferAttribute(new Array(3*n).fill(1),n));return PSH[k]=g;}
+/* compile one recipe now; true when its program is ready (it was, or it is now and matches the note) */
+function pshWarmOne(x){if(PSH.have.has(x.h))return true;const m=pshMake(x.r);if(!m)return false;const ws=pshStage(x.sig),o=x.r.o||{};let ob;
+  if(o.i){ob=new THREE.InstancedMesh(pshGeo(false),m,1);if(o.ic)ob.setColorAt(0,new THREE.Color());}else ob=new THREE.Mesh(pshGeo(o.va),m);
+  const n0=PSH.built,b0=PSH.busy;PSH.busy=true;let made=null;try{ws.add(ob);renderer.compile(ws,camera);const pr=renderer.properties.get(m);made=pr&&pr.currentProgram;}catch(e){}finally{PSH.busy=b0;ws.remove(ob);}
+  m.dispose();if(o.i&&ob.dispose)ob.dispose();if(PSH.built>n0)PSH.warmed++;
+  const ok=!!made&&made.__pshH===x.h;if(ok)PSH.match++;else{PSH.stale++;PSH.rec.delete(x.h);pshDbSave();}return ok;}
+/* the small built-in set, warmed in the very first session too: the shared flash, and the plain sprites, lines and points effects use */
+function pshSeed(){const L=[];try{const f=pshSer(new THREE.ShaderMaterial({vertexShader:FLASH_VS,fragmentShader:FLASH_FS,transparent:true,depthWrite:false}),null);if(f)L.push(f);
+    for(const [ty,v,t] of [['SpriteMaterial',{},{map:3000}],['SpriteMaterial',{},null],['LineBasicMaterial',{},null],['LineBasicMaterial',{vertexColors:true},null],
+      ['PointsMaterial',{vertexColors:true},{map:3000}],['MeshBasicMaterial',{side:THREE.DoubleSide},null],['MeshBasicMaterial',{side:THREE.DoubleSide},{map:3000}],['MeshBasicMaterial',{},{map:3000}]]){
+      const m=pshMake({ty,v,t});const r=pshSer(m,null);m.dispose();if(r)L.push(r);}}catch(e){}return L.map(r=>({h:'seed:'+JSON.stringify(r.v)+r.ty+(r.t?1:0)+(r.vs?r.fs.length:0),seed:1,sig:'',r}));}
+/* idle-time warming: one program per idle slice; in a running battle only in roomy slices; never on the world map */
+function pshQueue(){PSH.q=[...pshSeed(),...[...PSH.rec.values()].sort((a,b)=>(b.n||0)-(a.n||0)||b.t-a.t)];}
+function pshWarmTick(dl){PSH.tick=0;if(!PSH.on||!PSH.q.length)return;const left=dl&&dl.timeRemaining?dl.timeRemaining():50;
+  const board=!(typeof OW!=='undefined'&&OW.on)&&!(typeof CAM!=='undefined'&&CAM.gal);
+  if(board&&!document.hidden&&(left>=(typeof state!=='undefined'&&state==='playing'&&!paused?10:4))){const x=PSH.q.shift();if(x.seed){if(!pshWarmSeed(x))PSH.q.push(x);}else if(PSH.rec.has(x.h)){if(pshCan(x))pshWarmOne(x);else PSH.later.push(x);}}
+  pshSchedule(PSH.q.length?0:-1);}
+function pshWarmSeed(x){const m=pshMake(x.r);if(!m)return true;const ws=pshStage(pshSig()),ob=new THREE.Mesh(pshGeo(false),m),b0=PSH.busy,n0=PSH.built;PSH.busy=true;
+  try{ws.add(ob);renderer.compile(ws,camera);}catch(e){}finally{PSH.busy=b0;ws.remove(ob);m.dispose();}if(PSH.built>n0)PSH.warmed++;return true;}
+function pshSchedule(d){if(d<0||PSH.tick)return;PSH.tick=1;if(typeof requestIdleCallback==='function')requestIdleCallback(pshWarmTick,{timeout:4000});else setTimeout(()=>pshWarmTick(null),200);}
+/* everything at once (the test, and the developer panel's check) */
+function pshWarmNow(){pshQueue();const L=PSH.q;PSH.q=[];let ok=0,n=0;for(const x of L){if(x.seed){pshWarmSeed(x);continue;}if(!pshCan(x))continue;n++;if(pshWarmOne(x))ok++;}return {n,ok};}
+/* recipes built with shadows wait while shadows are off, and are warmed once they are switched back on */
+setInterval(()=>{if(PSH.later.length&&renderer.shadowMap.enabled){PSH.q.push(...PSH.later);PSH.later=[];pshSchedule(0);}},3000);
+/* ---- the browser store (IndexedDB, so the save in localStorage never runs short of room) ---- */
+function pshDbOpen(){if(PSH.db)return PSH.db;PSH.db=new Promise((res,rej)=>{try{const q=indexedDB.open('kk-shaders',1);q.onupgradeneeded=()=>q.result.createObjectStore('r');q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);}catch(e){rej(e);}});
+  PSH.db.catch(()=>{});return PSH.db;}
+function pshDbSave(){if(!PSH.loaded||PSH.dbT)return;PSH.dbT=setTimeout(()=>{PSH.dbT=0;pshDbOpen().then(db=>{
+    let L=[...PSH.rec.values()].sort((a,b)=>b.t-a.t);const cut=Date.now()-90*864e5;L=L.filter(x=>x.t>cut).slice(0,500);
+    const tx=db.transaction('r','readwrite');tx.objectStore('r').put(L,'all');}).catch(()=>{});},3000);}
+function pshDbLoad(){return pshDbOpen().then(db=>new Promise(res=>{const q=db.transaction('r').objectStore('r').get('all');q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([]);}))
+  .catch(()=>[]).then(L=>{for(const x of L)if(x&&x.h&&x.r&&!PSH.rec.has(x.h))PSH.rec.set(x.h,x);PSH.loaded=true;if(PSH.rec.size)pshDbSave();});}
+function pshInstall(){const a=renderer.info.programs;if(a.__psh)return;a.__psh=1;for(const p of a)pshPin(p);
+  a.push=function(){const n=Array.prototype.push.apply(this,arguments);for(let i=0;i<arguments.length;i++)pshNew(arguments[i]);return n;};
+  THREE.Material.prototype.onBuild=function(par){PSH.cur=this;PSH.par=par;};
+  Object.defineProperty(renderer.debug,'checkShaderErrors',{configurable:true,enumerable:true,get:pshChecks,set(v){PSH.force=!!v;}});
+  pshDbLoad().then(()=>{pshQueue();setTimeout(()=>pshSchedule(0),1500);});}
+pshInstall();
+/* ---- end of v493 ---- */
+
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
