@@ -37333,7 +37333,12 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
    Simon asked for "a very very big optimalization update". This part: a Graphics setting with an automatic mode, DOM writes only when
    something changed, nothing that grows over a long run, and a faster start. Measured with tools/bench/bench.js, a DOM-write and
    layout probe, a 30-wave run and a CPU profile of the start (numbers in the README section of v495).
-   @@SUMMARY@@ */
+   1) Graphics setting (meta.gfx: Auto, High, Medium, Low; High exactly as before): a ladder of resolution scale, shadow map size, far
+      scenery shadows and particle density; Auto steps it from real frame times. Same late scene in one page, GPU time included: High
+      428 ms, Medium 339 (-21%), Low 268 (-37%) per frame under swiftshader.
+   2) DOM writes only on change: style recalculations per battle frame 1.17 -> 0.04, forced layouts in 40 frames 31 -> 4.
+   3) Memory: the same wave 120 replayed ten times, renderer geometries 1219 -> 2008 before, flat (about 780-950) now.
+   4) Load: request to ready 4.11 -> 3.49 s headless (DOMContentLoaded 3.35 -> 2.90 s). */
 /* ---- 1) Graphics quality: meta.gfx 'auto' (the default), 'high', 'medium' or 'low' ----
    One ladder of quality levels, best first. Each step changes the cheapest thing to see first: the render resolution (the canvas is drawn
    with fewer pixels and stretched to the same size), then the board's shadow map (1024 to 512: softer shadow edges), then the shadows of the
