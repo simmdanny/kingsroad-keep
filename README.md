@@ -2832,16 +2832,16 @@ At M3 and M5 the same holds (deck +33 / +34, clouds +20 / +29, billows +68 / +55
 | Shader programs after one cast, M0 / M5 | 46 / 49 | 40 / 41 |
 | Full-board planes drawn (deck, sheet, ground shadows, rain-band plane) | 4 (M0), 5 (M3, M5) | 2 |
 
-`tools/bench/bench.js --steps 450` (swiftshader). Late and crowd cast no Tempest, so their differences are noise. Spells casts the Tempest as one of its three casts, so the gain mostly drowns there:
+`tools/bench/bench.js --steps 450` (swiftshader, the bench of perf-base 6882dff: draw calls summed over every render pass of a step). Late and crowd cast no Tempest, and spells casts it as one of its three casts. Between two runs of the same build the counts swing by hundreds of calls (crowd, which never casts it, moved from 1154 to 1486), so this table cannot show a 6-call gain; the Tempest-only count above is the measure:
 
 | Scenario | Draw calls avg / max | Programs compiled in run | JS ms, p95 / p99 | Render ms a step |
 |---|---|---|---|---|
-| spells before | 69 / 382 | 40 | 10.5 / 15.1 | 1313 |
-| spells after | 70 / 408 | 41 | 12.5 / 21.5 | 1241 |
-| late before | 1063 / 1997 | 10 | 7.8 / 17.4 | 993 |
-| late after | 1027 / 1799 | 11 | 8.1 / 16.0 | 952 |
-| crowd before | 1057 / 2123 | 9 | 9.6 / 15.7 | 775 |
-| crowd after | 1009 / 2126 | 11 | 8.5 / 13.0 | 762 |
+| spells before | 1728 / 3494 | 40 | 11.9 / 19.3 | 1485 |
+| spells after | 1806 / 3203 | 40 | 11.8 / 15.9 | 1315 |
+| late before | 1342 / 2174 | 11 | 8.0 / 11.7 | 896 |
+| late after | 1271 / 2257 | 11 | 7.6 / 9.5 | 920 |
+| crowd before | 1154 / 2028 | 9 | 7.0 / 10.7 | 798 |
+| crowd after | 1486 / 2319 | 10 | 7.8 / 15.5 | 950 |
 
 **Tests.** `tests/ttn-test.js` (38 rows) covers, at M0, M3 and M5:
 - the turn of each layer on screen and the faster eye wall;
