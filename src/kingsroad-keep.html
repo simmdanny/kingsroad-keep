@@ -15279,6 +15279,13 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Graphics setting, a faster start and no slowdown over long runs',d:'6 Nov',v:'v495',li:[
+    'A new Graphics setting (More, or Settings on a computer): Auto, High, Medium or Low. High looks exactly as before. Medium and Low draw the board with fewer pixels and softer shadows, and Low also drops the far forest\'s shadows and a third of the particles.',
+    'Auto, the default, watches how smoothly your device draws the battle: when frames get slow it first lowers the resolution a little, and when there is room again it goes back up. It waits before moving so the picture never flickers between levels, and remembers where it settled for next time.',
+    'Very large screens are drawn with at most about 4 million pixels on Auto, Medium and Low (High keeps every pixel).',
+    'The game starts faster: the menu background and the tower and hero pictures no longer hold up the start.',
+    'Long runs no longer slowly fill up memory: the falling stars of Eclipse of the Damned left their shapes behind on the graphics card after every cast (about a hundred each time), and anything else that did the same is now cleared too.',
+    'The top bar, the spell and scroll buttons and the screen flashes only redraw when something on them changes.']},
   {t:'Invisible foes stay invisible',d:'5 Nov',v:'v490',li:[
     'An Invisible foe that was also Regenerating or Warded showed its glowing regrowth or its rune while the rest of it was hidden. It is hidden all over now, and revealed all over when your seers or spells reveal it.']},
   {t:'No more grey screen after space spells',d:'5 Nov',v:'v489',li:[
@@ -37456,6 +37463,11 @@ makeThumbs=function(){TH.cc.copy(renderer.getClearColor(TH.c2));TH.ca=renderer.g
   for(const h of HEROES){TH.q.push(['h',h.id]);thmLazy(hthumbs,'h',h.id);thmLazy(hsil,'h',h.id);}
   profMake();setTimeout(thmIdle,300);};
 function thmAll(){while(TH.q.length){const[k,key]=TH.q.shift();thmMake(k,key);}}
+/* a board can tint shared materials (a land's colours, the Blood Moon): whatever is still waiting is drawn before the next board is
+   built or a battle starts, from the same materials the start had */
+{const ng=newGame;newGame=function(){if(TH.q.length)try{thmAll();}catch(e){console.error(e);}return ng.apply(this,arguments);};}
+{const bm=buildMap;buildMap=function(){if(TH.q.length)try{thmAll();}catch(e){console.error(e);}return bm.apply(this,arguments);};}
+{const lr=loadRun;loadRun=function(){if(TH.q.length)try{thmAll();}catch(e){console.error(e);}return lr.apply(this,arguments);};}
 /* ---- 5) The Graphics setting: a row in More (phones) and in the pause menu, a choice in the PC Settings window, and the developer panel.
    It is a property of the device, so it stays when the account is switched (like the battery saver). ---- */
 const GQ_D={auto:'Adjusts to your device: draws fewer pixels when frames are slow, and more again when there is room',high:'Full quality, as drawn before',medium:'Fewer pixels and softer shadows',low:'Fewer pixels, softer shadows, no shadows from the far forest and fewer particles'};
