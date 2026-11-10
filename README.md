@@ -2785,3 +2785,23 @@ Simon: "the lightning artifact synergy make the lightning pure red, it needs to 
 - **Things drawn normally (clouds, smoke, solid shapes):** a soft variant (`asMapRGB(..., soft)`, `asHex(el, x, soft)`, `AS_GL.lightningSoft` for shaders, and colours marked `'lightning~'`) keeps their own colour: whites and greys go a pale red-grey, no brighter than 0.8, and shaders mix 18% toward dark red. Only strongly coloured blue parts turn red, a dull dark red. The soft hint is a projection: doing it again changes nothing, which matters because a remapped colour is remapped again whenever an effect sets it. Smoke particles (the normal particle systems) take the soft hint; glow particles the full one.
 - **Lightning Cloud's cloud:** its puffs and inner light keep their own storm colours, nudged a quarter of the way toward a red-black (`asSoft`, once; the cloud only changes how bright they are, never their colour).
 - Tests: `tests/sets-test.js`: blue turns a red glow, purple a deep crimson, white light a black-red core, a pale cloud grey stays pale with a hint of red and a blue-grey cloud stays as it is, and the hint done twice changes nothing (the remap's other rows as before). Its Citadel sweep row fails on test-everything already, with or without this change.
+
+
+## The frame benchmark (v491)
+`tools/bench/bench.js` plays one fixed, seeded heavy scenario in headless Chromium and reports where each frame's time goes. It is the shared yardstick for the v492-v495 optimisation work.
+- **Usage:** `node tools/bench/bench.js <late|spells|crowd|taiga> [--steps N] [--profile out.json] [--norender]`, with the dev server on `KK_PORT`.
+- **The scenario:**
+  - wave 120 (140 for crowd) on board 77, with 20 mixed towers and the hero;
+  - the wave's own foes, with elites and formations, made tougher (x8, crowd x40) so a crowd builds;
+  - `spells` also casts a big scroll every 2.5 s, rotating Ancients, Mythics and Secrets;
+  - 120 warm-up steps, then N measured steps of 1/60 s.
+- **Output (one JSON line):**
+  - ms per step: update, effects, animation, render, all the game's JS, plus its p95/p99/max;
+  - draw calls (average and maximum) and triangles;
+  - foes alive, JS heap, GPU memory counts;
+  - shader programs compiled during the measured run;
+  - a draw-call breakdown by owner (terrain, towers, foes, hero, keep, other) and the shadow casters.
+- **`--profile`:** also writes a CPU profile (self time per function) and a sampled allocation profile.
+- Under swiftshader (software WebGL), render time is the CPU cost of WebGL calls. Draw calls, uniform uploads and shader compiles show there as they would on a weak GPU, so compare draw calls and compiles first.
+
+- v491 fixes: draw calls and triangles now add up every render pass of a step (spell passes draw the scene off-screen first), and the breakdown counts only what layer 0 draws (v492's batcher hides originals on layer 30).
