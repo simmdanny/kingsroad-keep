@@ -43,10 +43,10 @@ try{
   /* the cap: a big screen at twice the pixels is drawn under about 4.2 million pixels except on High */
   {const iw=Object.getOwnPropertyDescriptor(window,'innerWidth'),ih=Object.getOwnPropertyDescriptor(window,'innerHeight'),dp=Object.getOwnPropertyDescriptor(window,'devicePixelRatio');
     try{Object.defineProperty(window,'innerWidth',{value:2560,configurable:true});Object.defineProperty(window,'innerHeight',{value:1440,configurable:true});Object.defineProperty(window,'devicePixelRatio',{value:3,configurable:true});
-      meta.gfx='high';const h=bsPR();meta.gfx='auto';GQ.auto=0;const a=bsPR();
-      ok('the pixel ratio cap: High keeps 2 on a 3x screen, Auto keeps a 2560x1440 screen under 4.2 million pixels',h===2&&a<2&&2560*1440*a*a<=4.21e6,'high '+h+', auto '+a.toFixed(3));
+      meta.gfx='high';const h=bsPR();meta.gfx='auto';GQ.auto=0;const a0=bsPR();GQ.auto=1;const a1=bsPR();meta.gfx='medium';const md=bsPR();
+      ok('the pixel ratio cap: High and Auto\'s top level keep 2 on a 3x 2560x1440 screen (as before); a lower level stays under 4.2 million pixels before its scale',h===2&&a0===2&&2560*1440*(a1/.85)**2<=4.21e6&&Math.abs(md/a1-.75/.85)<1e-9,'high '+h+', auto top '+a0+', auto level 1 '+a1.toFixed(3)+', medium '+md.toFixed(3));
       Object.defineProperty(window,'innerWidth',{value:390,configurable:true});Object.defineProperty(window,'innerHeight',{value:844,configurable:true});
-      ok('a phone reporting 3 is drawn at 2 on Auto\'s top level (as before)',bsPR()===2,bsPR());}
+      meta.gfx='auto';GQ.auto=0;ok('a phone reporting 3 is drawn at 2 on Auto\'s top level (as before)',bsPR()===2,bsPR());}
     finally{if(iw)Object.defineProperty(window,'innerWidth',iw);else delete window.innerWidth;if(ih)Object.defineProperty(window,'innerHeight',ih);else delete window.innerHeight;if(dp)Object.defineProperty(window,'devicePixelRatio',dp);else delete window.devicePixelRatio;meta.gfx='high';}}
   /* ---- Auto ---- */
   autoReset(0);const pr0=renderer.getPixelRatio();

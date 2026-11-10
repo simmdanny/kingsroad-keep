@@ -15282,7 +15282,7 @@ const CLOG=[
   {t:'Graphics setting, a faster start and no slowdown over long runs',d:'6 Nov',v:'v495',li:[
     'A new Graphics setting (More, or Settings on a computer): Auto, High, Medium or Low. High looks exactly as before. Medium and Low draw the board with fewer pixels and softer shadows, and Low also drops the shadows of the scenery round the board and a third of the particles.',
     'Auto, the default, watches how smoothly your device draws the battle: when frames get slow it first lowers the resolution a little, and when there is room again it goes back up. It waits before moving so the picture never flickers between levels, and remembers where it settled for next time.',
-    'Very large screens are drawn with at most about 4 million pixels on Auto, Medium and Low (High keeps every pixel).',
+    'On Medium and Low, and on Auto once it steps down, very large screens are drawn with at most about 4 million pixels. High, and Auto while frames are smooth, keep every pixel.',
     'The game starts faster: the menu background and the tower and hero pictures no longer hold up the start.',
     'Long runs no longer slowly fill up memory: the falling stars of Eclipse of the Damned left their shapes behind on the graphics card after every cast (about a hundred each time), and anything else that did the same is now cleared too.',
     'The top bar, the spell and scroll buttons and the screen flashes only redraw when something on them changes.']},
@@ -37354,10 +37354,10 @@ const GQ={L:[{s:1,sh:1024,far:1,pd:1},{s:.85,sh:1024,far:1,pd:1},{s:.75,sh:1024,
   win:2000,slowN:2,fastN:4,grace:2500,auto:0,ws:[],ww:[],wt0:-1,slow:0,fast:0,last:-1,chg:-1e9,upAt:-1e9,upTo:-1,hold:{},back:{},log:[],pc:0,applied:null};
 const gqMode=()=>({auto:1,high:1,medium:1,low:1})[meta.gfx]?meta.gfx:'auto';
 function gqLevel(){const m=gqMode();return m==='auto'?GQ.auto:GQ.tier[m];}
-/* the pixel ratio: High as before; the other tiers (and Auto) also keep the drawing buffer under about 4.2 million pixels (a 4K screen at
-   twice the pixels would be 33 million), then scale it by the level */
+/* the pixel ratio: level 0 (High, and Auto at its top) exactly as before; every lower level also keeps the drawing buffer under about 4.2
+   million pixels (a 4K screen at twice the pixels would be 33 million), then scales it by the level */
 const bsPR0=bsPR;
-bsPR=function(){const b=bsPR0();if(gqMode()==='high')return b;const L=GQ.L[gqLevel()],w=Math.max(1,innerWidth),h=Math.max(1,innerHeight);
+bsPR=function(){const b=bsPR0(),lv=gqLevel();if(lv===0)return b;const L=GQ.L[lv],w=Math.max(1,innerWidth),h=Math.max(1,innerHeight);
   const cap=Math.max(1,Math.sqrt(GQ.px/(w*h)));return Math.max(GQ.minPr,Math.min(b,cap)*L.s);};
 function gqApply(){const L=GQ.L[gqLevel()],pr=bsPR();
   if(renderer.getPixelRatio()!==pr){renderer.setPixelRatio(pr);psScale();for(const R of [HPV,AR])if(R&&R.r&&R.r.getPixelRatio()!==pr)R.r.setPixelRatio(pr);}
