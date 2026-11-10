@@ -2797,6 +2797,7 @@ Simon: "yes add the grey screen fix too". `sdpInit` builds the shared world-spac
 - **`--profile`:** also writes a CPU profile (self time per function) and a sampled allocation profile.
 - Under swiftshader (software WebGL), render time is the CPU cost of WebGL calls. Draw calls, uniform uploads and shader compiles show there as they would on a weak GPU, so compare draw calls and compiles first.
 
+- v491 fixes: draw calls and triangles now add up every render pass of a step (spell passes draw the scene off-screen first), and the breakdown counts only what layer 0 draws (v492's batcher hides originals on layer 30).
 ## No shader compiles in battle (v493)
 Part of Simon's "very very big optimalization update": the shader programs, and the frame spikes they caused. The picture and the play are unchanged (pixel-identical renders, below); only when the compiling happens changes. The code is the v493 block before the Performance (v446) block.
 - **What was wrong:**
