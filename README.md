@@ -2805,6 +2805,7 @@ Simon: "the lightning artifact synergy make the lightning pure red, it needs to 
 - Under swiftshader (software WebGL), render time is the CPU cost of WebGL calls. Draw calls, uniform uploads and shader compiles show there as they would on a weak GPU, so compare draw calls and compiles first.
 
 - v491 fixes: draw calls and triangles now add up every render pass of a step (spell passes draw the scene off-screen first), and the breakdown counts only what layer 0 draws (v492's batcher hides originals on layer 30).
+<<<<<<< HEAD
 
 ## The static world and the towers (v492)
 Simon asked for "a very very big optimalization update". This part draws the board, its scenery, the keep and the towers in a few merged meshes instead of hundreds of small ones, with the same picture and the same play.
@@ -2842,6 +2843,12 @@ Simon asked for "a very very big optimalization update". This part draws the boa
 - **About the bench breakdown:** it counts the hidden originals as terrain and towers, and the merged meshes under `other:pfw-batch`. `tests/pfw-test.js` counts only what is drawn.
 - **Tests:** `tests/pfw-test.js` covers draw calls by land and by tower, pixel equality in every land, a turning head, a moved, upgraded and sold tower, a scorched and a cut tree, recolouring, a chest, the Infinite Void, a running wave in every land, rays, and the merged geometry being freed.
 
+||||||| merged common ancestors
+||||||||| c85e931
+=========
+
+=======
+>>>>>>> origin/perf-shaders
 ## No shader compiles in battle (v493)
 Part of Simon's "very very big optimalization update": the shader programs, and the frame spikes they caused. The picture and the play are unchanged (pixel-identical renders, below); only when the compiling happens changes. The code is the v493 block before the Performance (v446) block.
 - **What was wrong:**
@@ -2871,19 +2878,21 @@ Part of Simon's "very very big optimalization update": the shader programs, and 
 
 | scenario | programs compiled during the run | draw calls avg / max | JS ms per step | JS p95 / p99 / max | shader check share of all time |
 |---|---|---|---|---|---|
-| late, before | 10 | 1022 / 1936 | 5.27 | 10.7 / 16.9 / 24.4 | 13.6% (getProgramInfoLog + getShaderInfoLog) |
-| late, v493 | 10 | 1044 / 2003 | 5.47 | 10.8 / 14.2 / 22.2 | 4.5% (getProgramParameter) |
-| spells, before | 41 | 68 / 376 | 19.65 | 16.1 / 25.2 / 5431 | 12.7% |
-| spells, v493 | 39 | 72 / 412 | 13.74 | 16.7 / 31.6 / 2264 | 6.7% |
-| crowd, before | 10 | 1028 / 2012 | 4.34 | 8.2 / 12.5 / 24.8 | |
-| crowd, v493 | 11 | 842 / 1875 | 4.39 | 8.4 / 12.7 / 17.5 | |
+| late, before | 11 | 1154 / 2227 | 4.83 | 10.8 / 15.6 / 19.1 | 14.3% |
+| late, v493 | 10 | 1234 / 2125 | 5.60 | 12.3 / 16.0 / 19.3 | 4.0% |
+| spells, before | 40 | 1805 / 3228 | 11.19 | 16.0 / 21.1 / 1723 | 10.7% |
+| spells, v493 | 39 | 1555 / 3377 | 10.23 | 16.6 / 22.5 / 1287 | 4.7% |
+| crowd, before | 11 | 1468 / 2644 | 6.45 | 14.3 / 20.8 / 32.4 | 17.4% |
+| crowd, v493 | 10 | 1398 / 2552 | 6.18 | 13.1 / 20.3 / 22.6 | 4.2% |
 
+- The shader check share is getProgramInfoLog + getShaderInfoLog + getProgramParameter (the link wait that remains). Numbers are from the v491 bench as fixed in 6882dff (draw calls add up every render pass); both sides were run one after the other on an idle machine.
 - The bench counts every program first seen during its run. In a fresh browser those are first-ever programs (foes, towers and effects meeting the board for the first time), which v493 compiles once and notes. From the second session on they are warmed before the fight (the table above). Draw calls are not touched by v493; their spread is the scenario's own randomness.
 - **Left as they were, measured:**
   - The 9 programs still compiled in the next session are the Infinite Void's and Never-Never Land's clones of the world's own materials, made at the cast from whatever stands on the board, so they cannot be noted ahead.
   - Materials made per cast: after v493 a throwaway effect material costs about 0.14 ms in all (made, looked up, uploaded, disposed). A typical fight makes fewer than one a frame; Ball Lightning peaks at about 34 a frame (nsArc and zap). Pooling them would have to stay exact under the artifact sets' colour context and the domains that swap the world's materials, so it is left for a later change.
   - Allocation: the largest per-frame allocators (three.js Object3D and uniform cloning for new effect meshes, the particle emitter) come to about 12 KB a frame; garbage collection is 0.1% of the profile.
 - **Checks:** `tests/psh-test.js` (no program compiled through a scripted fight with first casts of every rarity after warming, programs reused on second casts, warming uploads nothing, the browser store keeps the recipes, the shader check switch, a broken shader still reported). Renders of the six lands mid-fight with spells, the world map, and a cast-recast scene are pixel-identical before and after (branch `sheets/perf-shaders`).
+<<<<<<< HEAD
 
 ## The Primordial Tempest spins like a tornado (v496)
 Simon: "the storm on primordial tempest should spin in the direction a tornado spins and be more clean".
@@ -2937,3 +2946,7 @@ At M3 and M5 the same holds (deck +33 / +34, clouds +20 / +29, billows +68 / +55
 - a clean end.
 
 Two rows were adapted because they inspected removed layers: `tpx-test` (the wind sheet) and `tpeye-test` (the cloud bands, rain bands, cloud arms and curtains in the scene). The Tempest previews (`tempest-0..5.mp4`) are re-recorded.
+||||||| merged common ancestors
+>>>>>>>>> Temporary merge branch 2
+=======
+>>>>>>> origin/perf-shaders
