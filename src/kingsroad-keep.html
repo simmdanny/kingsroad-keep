@@ -37577,7 +37577,7 @@ function pcrPass(cam){PCR.frame++;const shards=pcrShardAny();
   /* a bucket is one instanced mesh per shape (geometry): only a shape that at least two pieces show this frame gets one (a foe's own marker
      shape draws itself), at most PCR.maxBK of them; a bucket unused for 300 renders is disposed, and all of them once no foe is left */
   for(const q of CQ){if(GC.get(q.key)<2)continue;const B=pcrBKGet(q);if(B){q.B=B;q.f=PCR.frame;}}CQ.length=0;GC.clear();
-  pcrPlan(cam||camera);pcrBKSweep();
+  pcrPlan(cam||camera);pcrBKSweep(!PCR.recs.size);
   /* shards */
   for(const k in PCR.shard){const S=PCR.shard[k],I=S.I;I.n=0;for(const f of S.list){PCR_SV.set(f.s,f.s,f.s);PCR_V.set(f.px,f.py,f.pz);PCR_M4.compose(PCR_V,f.q,PCR_SV);PCR_FXO.matrixWorld.copy(PCR_M4);pcrIMPut(I,PCR_FXO,f.mat);}
     const me=I.mesh;me.count=I.n;me.visible=I.n>0;if(I.n){if(me.parent!==scene)scene.add(me);me.instanceMatrix.needsUpdate=true;for(const a in I.attrs)I.attrs[a].needsUpdate=true;}}
