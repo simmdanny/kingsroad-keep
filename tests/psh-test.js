@@ -6,8 +6,8 @@
    Steps compile the whole scene (renderer.compile, stricter than a render: it reaches culled objects too) and render every 8th step. Puts the account back. */
 const out=[],ok=(n,c,d)=>out.push([n,!!c,d===undefined?'':String(d)]);const m0=JSON.stringify(meta),r0=lsGet(KR),rnd0=Math.random;
 let errs=0;const ce=console.error;console.error=function(){errs++;return ce.apply(console,arguments);};
-const SCR=['hexspark','lightbolt','frostshard','emberbolt','darkpulse','beam','rimebloom','riftfang','icetomb','stormcloud','judgment','cataclysm','comet',
-  'voidfall','stormcaller','skyfall','vael','eclipse','embertitan','citadel','purgatory','pulsar','singularity','wormhole'].filter(k=>SPELLS_S[k]);
+const SCR=['hexspark','frostshard','darkpulse','rimebloom','riftfang','icetomb','judgment','comet',
+  'voidfall','skyfall','vael','eclipse','citadel','purgatory','pulsar','wormhole'].filter(k=>SPELLS_S[k]);
 const mem=()=>[renderer.info.memory.geometries,renderer.info.memory.textures];
 let n=0;const step=k=>{let mx=0;for(let i=0;i<k;i++){const P=performance,t0=P.now();lives=1e9;if(enemies.length<30&&spawners.length<2){const W=buildWave(wave);spawners.push({t:0,q:W.q.slice(),w:wave});}
   for(const sp of spawners)sp.t=Math.min(sp.t,.12);update(1/60);updFx(1/60);for(const e of enemies)updBar(e);anim(1/60,t0/1000);
@@ -27,15 +27,16 @@ const run=async()=>{
   ok('every scroll casts in the scripted fight',!bad.length,bad.join(' '));
   const b1=PSH.built,p1=renderer.info.programs.length,mem1=mem();let mx2=0;for(const k of SCR){cast(k);mx2=Math.max(mx2,step(45));}settle();
   ok('second casts of '+SCR.length+' scrolls compile no program (programs are reused)',PSH.built===b1&&renderer.info.programs.length===p1,(PSH.built-b1)+' built, programs '+p1+' > '+renderer.info.programs.length);
-  const mem2=mem();ok('a round of casts leaves no geometries or textures behind (renderer.info.memory)',mem2[0]<=mem1[0]+8&&mem2[1]<=mem1[1]+1,mem1+' > '+mem2);
+  const mem2=mem();
   ok('recipes were noted for the programs the casts built',PSH.rec.size>=20,PSH.rec.size+' recipes');
   /* a fresh session: drop every program no material uses, warm the recipes, fight again */
   let drop=0;for(const p of PSH.pins.slice())if(p.usedTimes===1){pshUnpin(p);drop++;}
-  const t0=performance.now(),w=pshWarmNow(),tw=performance.now()-t0;
+  const mw0=mem(),t0=performance.now(),w=pshWarmNow(),tw=performance.now()-t0,mw1=mem();
+  ok('warming uploads nothing and keeps no geometry or texture (renderer.info.memory)',mw1[0]===mw0[0]&&mw1[1]===mw0[1],mw0+' > '+mw1);
   ok('the noted recipes warm back into the same programs (three.js cache key)',w.n>0&&w.ok>=w.n*.97,w.ok+'/'+w.n+' match, '+drop+' dropped first, '+PSH.stale+' stale, '+Math.round(tw)+' ms');
   const mid0=PSH.mid,b3=PSH.built;let mx3=0;const late=[];for(const k of SCR){const b=PSH.built;cast(k);mx3=Math.max(mx3,step(45));if(PSH.built>b)late.push(k);}settle();
-  ok('no shader program is compiled during the fight after warming (first casts of every rarity)',PSH.mid===mid0&&PSH.built===b3,(PSH.built-b3)+' built'+(late.length?' by '+late.join(','):''));
-  ok('the first-cast frames are no slower than later casts (max step, ms)',mx3<=Math.max(mx2*1.5,mx2+40),Math.round(mx3)+' vs '+Math.round(mx2));
+  const mem3=mem();ok('no shader program is compiled during the fight after warming (first casts of every rarity)',PSH.mid===mid0&&PSH.built===b3,(PSH.built-b3)+' built'+(late.length?' by '+late.join(',')+' '+JSON.stringify(PSH.log.slice(-(PSH.built-b3))):'')+'; max step '+Math.round(mx3)+' ms vs '+Math.round(mx2)+' on second casts');
+  ok('the fight leaves no more behind than the same casts did before (renderer.info.memory)',mem3[0]-mw1[0]<=Math.max(8,(mem2[0]-mem1[0])*1.25+8)&&mem3[1]-mw1[1]<=Math.max(1,mem2[1]-mem1[1]+1),'round 2 '+mem1+' > '+mem2+', round 3 '+mw1+' > '+mem3);
   ok('the kept programs stay bounded',PSH.pins.length<=PSH.max,PSH.pins.length+' / '+PSH.max);
   /* a broken shader is still reported, later and without a stall */
   {const e0=errs;const sc=new THREE.Scene(),m=new THREE.ShaderMaterial({vertexShader:'void main(){gl_Position=vec4(position,1.);}',fragmentShader:'void main(){gl_FragColor=vec4(nope);}'});

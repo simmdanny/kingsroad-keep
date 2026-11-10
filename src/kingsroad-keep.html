@@ -37337,14 +37337,14 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
    2) Pre-warming. Almost every scroll has shaders of its own, written inside its cast, so they cannot be listed up front. Instead every program
       the game builds is noted as a recipe (pshSer: the shader text, or the built-in material's settings that choose its program), kept in the
       browser (IndexedDB, apart from the save), and in idle time after load (pshWarmTick, one program per idle slice) all of them are compiled
-      on a hidden scene with the same lights, shadows and fog as the board. So from the second session on, the first cast of a scroll finds its
+      on a hidden scene with the lights, shadows and fog each was first built with (domains such as the Infinite Void change them). So from the second session on, the first cast of a scroll finds its
       programs ready. Each warmed recipe is checked against the program it was noted from (the same three.js cache key); a recipe that no
       longer matches (the game changed) is dropped. A small built-in set (the flash, sprites, lines, points) is warmed in the first session too.
    3) three.js's synchronous shader checks are off outside developer mode (renderer.debug.checkShaderErrors). A program's link status is still
       checked later, without stalling a frame (pshVerify), and a broken shader is still reported in the console the way three.js reports it.
    PSH.mid counts programs built during a battle; tests/psh-test.js checks it stays 0 through a scripted fight with warmed recipes. */
 const PSH={max:640,pins:[],cur:null,par:null,mid:0,built:0,log:[],chk:[],chkT:0,force:false,
-  rec:new Map(),have:new Set(),q:[],busy:false,warmed:0,stale:0,match:0,sig:'',wsig:'',ws:null,wl:[],geo:null,tex:new Map(),dbT:0,db:null,loaded:false,on:true};
+  rec:new Map(),have:new Set(),q:[],busy:false,warmed:0,stale:0,match:0,st:new Map(),later:[],geo:null,tex:new Map(),dbT:0,db:null,loaded:false,on:true};
 function pshChecks(){return !!(typeof meta!=='undefined'&&meta&&meta.dev)||PSH.force;}
 function pshHash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(36)+'.'+s.length;}
 function pshPin(p){if(!p||p.__pshPin)return;p.__pshPin=1;p.usedTimes++;PSH.pins.push(p);if(!p.__pshH)p.__pshH=pshHash(p.cacheKey);PSH.have.add(p.__pshH);}
@@ -37358,7 +37358,7 @@ function pshSig(){const c={d:0,p:0,s:0,h:0,r:0,ds:0,ps:0,ss:0};scene.traverseVis
 function pshParSig(q){return [q.numDirLights,q.numPointLights,q.numSpotLights,q.numHemiLights,q.numRectAreaLights,q.numDirLightShadows,q.numPointLightShadows,q.numSpotLightShadows,!!q.shadowMapEnabled,!!q.fog,!!q.fogExp2].join();}
 /* a new program: keep it, note who built it, its recipe, and check it later (or now, in developer mode, as three.js does) */
 function pshNew(p){pshPin(p);PSH.built++;const m=PSH.cur,mid=typeof state!=='undefined'&&state==='playing'&&!PSH.busy;if(mid)PSH.mid++;
-  if(PSH.log.length<300)PSH.log.push({t:m?m.type:'?',mid,warm:PSH.busy,fs:m&&m.isShaderMaterial?String(m.fragmentShader).slice(0,80):''});
+  PSH.log.push({t:m?m.type:'?',mid,warm:PSH.busy,ser:!!(m&&pshSer(m,PSH.par)),fs:m&&m.isShaderMaterial?String(m.fragmentShader).slice(0,80):''});if(PSH.log.length>300)PSH.log.shift();
   if(!PSH.busy&&m)try{pshRecord(m,PSH.par,p);}catch(e){}
   if(!pshChecks()){PSH.chk.push(p);if(!PSH.chkT)PSH.chkT=setTimeout(pshVerify,400);}
   if(PSH.pins.length>PSH.max){for(const q of PSH.pins.slice(0,PSH.pins.length-PSH.max+16))if(q.usedTimes===1&&q!==p)pshUnpin(q);}}
@@ -37390,22 +37390,21 @@ function pshMake0(r){const C=THREE[r.ty];if(!C)return null;let m;
     m=new C({vertexShader:r.vs,fragmentShader:r.fs,uniforms:u});if(r.d)m.defines=r.d;if(r.x)Object.assign(m.extensions,r.x);}else m=new C();
   for(const k in r.v)m[k]=r.v[k];if(r.t)for(const k in r.t)m[k]=pshTex(r.t[k]);return m;}
 /* the hidden scene: stand-in lights of the same kinds and shadows as the board's, and the board's fog */
-function pshStage(){const sig=pshSig();if(PSH.ws&&PSH.wsig===sig){PSH.ws.fog=scene.fog;return PSH.ws;}
-  const ws=PSH.ws||(PSH.ws=new THREE.Scene());for(const l of PSH.wl)ws.remove(l);PSH.wl=[];
-  scene.traverseVisible(o=>{if(!o.isLight||!o.layers.test(camera.layers))return;let l=null;
-    if(o.isDirectionalLight)l=new THREE.DirectionalLight();else if(o.isPointLight)l=new THREE.PointLight();else if(o.isSpotLight)l=new THREE.SpotLight();
-    else if(o.isHemisphereLight)l=new THREE.HemisphereLight();else if(o.isRectAreaLight)l=new THREE.RectAreaLight();else if(o.isAmbientLight)l=new THREE.AmbientLight();
-    if(l){l.castShadow=!!o.castShadow;ws.add(l);PSH.wl.push(l);}});
-  ws.fog=scene.fog;PSH.wsig=sig;return ws;}
+function pshStage(sig){let ws=PSH.st.get(sig);if(ws)return ws;const v=sig.split(','),n=k=>+v[k]||0,on=k=>v[k]==='true';ws=new THREE.Scene();
+  const add=(C,cnt,sh)=>{for(let i=0;i<cnt;i++){const l=new C();l.castShadow=i<sh;ws.add(l);}};
+  add(THREE.DirectionalLight,n(0),n(5));add(THREE.PointLight,n(1),n(6));add(THREE.SpotLight,n(2),n(7));add(THREE.HemisphereLight,n(3),0);add(THREE.RectAreaLight,n(4),0);
+  if(on(9))ws.fog=on(10)?new THREE.FogExp2(0,.01):new THREE.Fog(0,1,2);PSH.st.set(sig,ws);return ws;}
+/* a recipe can be warmed now unless it was built with shadows and they are switched off */
+const pshCan=x=>!x.sig||x.sig.split(',')[8]!=='true'||renderer.shadowMap.enabled;
 function pshGeo(va){const k=va?'g4':'g3';if(PSH[k])return PSH[k];const g=new THREE.BufferGeometry(),n=va?4:3;
   g.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,1,0,0,0,1,0],3));g.setAttribute('normal',new THREE.Float32BufferAttribute([0,0,1,0,0,1,0,0,1],3));
   g.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,0,1],2));g.setAttribute('color',new THREE.Float32BufferAttribute(new Array(3*n).fill(1),n));return PSH[k]=g;}
 /* compile one recipe now; true when its program is ready (it was, or it is now and matches the note) */
-function pshWarmOne(x){if(PSH.have.has(x.h))return true;const m=pshMake(x.r);if(!m)return false;const ws=pshStage(),o=x.r.o||{};let ob;
+function pshWarmOne(x){if(PSH.have.has(x.h))return true;const m=pshMake(x.r);if(!m)return false;const ws=pshStage(x.sig),o=x.r.o||{};let ob;
   if(o.i){ob=new THREE.InstancedMesh(pshGeo(false),m,1);if(o.ic)ob.setColorAt(0,new THREE.Color());}else ob=new THREE.Mesh(pshGeo(o.va),m);
   const n0=PSH.built,b0=PSH.busy;PSH.busy=true;let made=null;try{ws.add(ob);renderer.compile(ws,camera);const pr=renderer.properties.get(m);made=pr&&pr.currentProgram;}catch(e){}finally{PSH.busy=b0;ws.remove(ob);}
   m.dispose();if(o.i&&ob.dispose)ob.dispose();if(PSH.built>n0)PSH.warmed++;
-  const ok=!!made&&made.__pshH===x.h;if(ok)PSH.match++;else if(x.sig===PSH.wsig){PSH.stale++;PSH.rec.delete(x.h);pshDbSave();}return ok;}
+  const ok=!!made&&made.__pshH===x.h;if(ok)PSH.match++;else{PSH.stale++;PSH.rec.delete(x.h);pshDbSave();}return ok;}
 /* the small built-in set, warmed in the very first session too: the shared flash, and the plain sprites, lines and points effects use */
 function pshSeed(){const L=[];try{const f=pshSer(new THREE.ShaderMaterial({vertexShader:FLASH_VS,fragmentShader:FLASH_FS,transparent:true,depthWrite:false}),null);if(f)L.push(f);
     for(const [ty,v,t] of [['SpriteMaterial',{},{map:3000}],['SpriteMaterial',{},null],['LineBasicMaterial',{},null],['LineBasicMaterial',{vertexColors:true},null],
@@ -37415,16 +37414,15 @@ function pshSeed(){const L=[];try{const f=pshSer(new THREE.ShaderMaterial({verte
 function pshQueue(){PSH.q=[...pshSeed(),...[...PSH.rec.values()].sort((a,b)=>(b.n||0)-(a.n||0)||b.t-a.t)];}
 function pshWarmTick(dl){PSH.tick=0;if(!PSH.on||!PSH.q.length)return;const left=dl&&dl.timeRemaining?dl.timeRemaining():50;
   const board=!(typeof OW!=='undefined'&&OW.on)&&!(typeof CAM!=='undefined'&&CAM.gal);
-  if(board&&!document.hidden&&(left>=(typeof state!=='undefined'&&state==='playing'&&!paused?10:4))){const x=PSH.q.shift();if(x.seed){if(!pshWarmSeed(x))PSH.q.push(x);}else if(PSH.rec.has(x.h)&&x.sig===PSH.sig)pshWarmOne(x);}
+  if(board&&!document.hidden&&(left>=(typeof state!=='undefined'&&state==='playing'&&!paused?10:4))){const x=PSH.q.shift();if(x.seed){if(!pshWarmSeed(x))PSH.q.push(x);}else if(PSH.rec.has(x.h)){if(pshCan(x))pshWarmOne(x);else PSH.later.push(x);}}
   pshSchedule(PSH.q.length?0:-1);}
-function pshWarmSeed(x){const m=pshMake(x.r);if(!m)return true;const ws=pshStage(),ob=new THREE.Mesh(pshGeo(false),m),b0=PSH.busy,n0=PSH.built;PSH.busy=true;
+function pshWarmSeed(x){const m=pshMake(x.r);if(!m)return true;const ws=pshStage(pshSig()),ob=new THREE.Mesh(pshGeo(false),m),b0=PSH.busy,n0=PSH.built;PSH.busy=true;
   try{ws.add(ob);renderer.compile(ws,camera);}catch(e){}finally{PSH.busy=b0;ws.remove(ob);m.dispose();}if(PSH.built>n0)PSH.warmed++;return true;}
 function pshSchedule(d){if(d<0||PSH.tick)return;PSH.tick=1;if(typeof requestIdleCallback==='function')requestIdleCallback(pshWarmTick,{timeout:4000});else setTimeout(()=>pshWarmTick(null),200);}
 /* everything at once (the test, and the developer panel's check) */
-function pshWarmNow(){pshQueue();const L=PSH.q;PSH.q=[];let ok=0,n=0;PSH.sig=pshSig();for(const x of L){if(x.seed){pshWarmSeed(x);continue;}if(x.sig!==PSH.sig)continue;n++;if(pshWarmOne(x))ok++;}return {n,ok};}
-/* a light change (shadows switched, say): warm the recipes again for it, once the new setup has held a few seconds (only for a player, who has used the page) */
-setInterval(()=>{if(typeof OW!=='undefined'&&OW.on)return;const s=pshSig();if(s===PSH.sig)return;const first=!PSH.sig;PSH.sig=s;PSH.sigT=Date.now();
-  if(!first&&navigator.userActivation&&navigator.userActivation.hasBeenActive){clearTimeout(PSH.reT);PSH.reT=setTimeout(()=>{if(pshSig()===PSH.sig){pshQueue();pshSchedule(0);}},4000);}},2000);
+function pshWarmNow(){pshQueue();const L=PSH.q;PSH.q=[];let ok=0,n=0;for(const x of L){if(x.seed){pshWarmSeed(x);continue;}if(!pshCan(x))continue;n++;if(pshWarmOne(x))ok++;}return {n,ok};}
+/* recipes built with shadows wait while shadows are off, and are warmed once they are switched back on */
+setInterval(()=>{if(PSH.later.length&&renderer.shadowMap.enabled){PSH.q.push(...PSH.later);PSH.later=[];pshSchedule(0);}},3000);
 /* ---- the browser store (IndexedDB, so the save in localStorage never runs short of room) ---- */
 function pshDbOpen(){if(PSH.db)return PSH.db;PSH.db=new Promise((res,rej)=>{try{const q=indexedDB.open('kk-shaders',1);q.onupgradeneeded=()=>q.result.createObjectStore('r');q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);}catch(e){rej(e);}});
   PSH.db.catch(()=>{});return PSH.db;}
@@ -37437,7 +37435,7 @@ function pshInstall(){const a=renderer.info.programs;if(a.__psh)return;a.__psh=1
   a.push=function(){const n=Array.prototype.push.apply(this,arguments);for(let i=0;i<arguments.length;i++)pshNew(arguments[i]);return n;};
   THREE.Material.prototype.onBuild=function(par){PSH.cur=this;PSH.par=par;};
   Object.defineProperty(renderer.debug,'checkShaderErrors',{configurable:true,enumerable:true,get:pshChecks,set(v){PSH.force=!!v;}});
-  pshDbLoad().then(()=>{PSH.sig=pshSig();pshQueue();setTimeout(()=>pshSchedule(0),1500);});}
+  pshDbLoad().then(()=>{pshQueue();setTimeout(()=>pshSchedule(0),1500);});}
 pshInstall();
 /* ---- end of v493 ---- */
 
