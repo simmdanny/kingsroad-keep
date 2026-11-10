@@ -25,7 +25,7 @@ const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 const ev=n=>TPM.dbg.filter(d=>d.ev===n);
 const hits=(e,amt,lo,hi)=>log.filter(h=>h.e===e&&h.sp&&near(h.amt,amt)&&(lo==null||h.T>=lo)&&(hi==null||h.T<=hi));
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
-const left=added=>added.filter(o=>{if(o.userData&&o.userData.pfBar)return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const left=added=>added.filter(o=>{if(o.userData&&o.userData.pfBar)return false;if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const lift=()=>heroU.g.position.y-gy(heroU.x,heroU.z);
 /* one whole storm at mastery L: hurt logged, the hero's height and the foes' Charged seen on the way */
 function storm(L,F,o){o=o||{};TPM.dbg=[];log=[];const added=track();const S={};wrapHurt();

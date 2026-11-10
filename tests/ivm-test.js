@@ -28,7 +28,7 @@ const wrap=()=>{HL=[];hurt=function(e,amt,kind,o){if(o&&o.spell==='expanse')HL.p
   else if(o&&o.src===heroU&&!o.spell)HL.push({e,amt,k:'hp',t:TT-t0,max:e.maxHp,boss:!!e.boss});return H0.apply(this,arguments);};};
 const unwrap=()=>{hurt=H0;onStep=null;};
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
-const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 /* the domain's log, noting where each event falls in the hurt log, and for a ground cut the foes within its reach of its line */
 const segD=(e,a,b)=>{const ax=b[0]-a[0],az=b[1]-a[1],L2=ax*ax+az*az||1;let u=((e.x-a[0])*ax+(e.z-a[1])*az)/L2;u=Math.max(0,Math.min(1,u));return Math.hypot(a[0]+ax*u-e.x,a[1]+az*u-e.z);};
 const mkDbg=()=>{const A=[];A.push=function(d){d.h=HL.length;d.T=TT-t0;if(d.ev==='cut'&&d.k==='ground')d.want=enemies.filter(e=>!e.dead&&e.g&&e.g.visible!==false&&segD(e,d.a,d.b)<d.rad);

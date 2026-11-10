@@ -1,11 +1,11 @@
 // Kingsroad Keep frame benchmark (v491). Plays a fixed, seeded heavy scenario in headless Chromium and reports where each frame's time goes.
-//   node tools/bench/bench.js [scenario] [--steps N] [--profile out.json] [--norender]
+//   node tools/bench/bench.js [scenario] [--steps N] [--profile out.json] [--norender] [--gfx auto|high|medium|low]
 // scenarios: late (wave 120, 20 towers, the hero, the wave's own foes kept at about 90 alive, elites and formations), spells (late + a big scroll
 // cast every 2.5s, rotating Ancients, Mythics and Secrets), taiga (late on the Deep Taiga), crowd (late with 160 foes)
 // Needs the dev server: python3 -m http.server PORT -d <repo> ; KK_PORT picks the port (default 8771). Prints one JSON line of results.
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
-const SC = args[0] && !args[0].startsWith('--') ? args[0] : 'late', STEPS = +(opt('--steps') || 900), PROF = opt('--profile'), NOREN = args.includes('--norender');
+const SC = args[0] && !args[0].startsWith('--') ? args[0] : 'late', STEPS = +(opt('--steps') || 900), PROF = opt('--profile'), NOREN = args.includes('--norender'), GFX = opt('--gfx');
 const PORT = process.env.KK_PORT || 8771, local = path.join(__dirname, '..', '..', 'node_modules', 'three', 'build', 'three.min.js');
 (async () => {
   const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--enable-precise-memory-info', '--js-flags=--expose-gc'] });
@@ -27,6 +27,8 @@ const PORT = process.env.KK_PORT || 8771, local = path.join(__dirname, '..', '..
     wave=SC==='crowd'?140:120;window.__bw=()=>{const W=buildWave(wave);spawners.push({t:0,q:W.q.slice(),w:wave});};window.__bw();
     window.__cap=SC==='crowd'?160:90;window.__bwT=0;window.__SPELLS=['tempest','citadel','abyss','eclipse','singularity','purgatory','firestorm','wormhole'].filter(k=>SPELLS_S[k]);
     return {towers:towers.length,spots:sp.length,spells:window.__SPELLS.length};})()`), SC);
+  // --gfx auto|high|medium|low pins the Graphics setting (v495); builds before v495 have none and report it
+  const gfx = await page.evaluate(g => __kk.ev(`(()=>{if(typeof setGfx!=='function')return 'none (before v495)';${g ? `setGfx(${JSON.stringify(g)});` : ''}return gqLabel();})()`), GFX);
   // warm up 120 steps (shader compiles, pools), then measure
   const stepJs = `(()=>{const dt=1/60;const P=performance;const A=window.__A=window.__A||{n:0,upd:0,fx:0,anim:0,ren:0,max:0,calls:0,tris:0,foes:0,cast:0,heap0:0,heapMax:0,spikes:0};
     A.n++;const t0=P.now();if(enemies.length<window.__cap&&spawners.length<2)window.__bw();for(const sp of spawners)sp.t=Math.min(sp.t,.12);
@@ -50,7 +52,7 @@ const PORT = process.env.KK_PORT || 8771, local = path.join(__dirname, '..', '..
   const col = k => rows.map(r => r[k]), avg = a => a.reduce((x, y) => x + y, 0) / a.length, pct = (a, p) => { const s = a.slice().sort((x, y) => x - y); return s[Math.floor(p * (s.length - 1))]; };
   const tot = rows.map(r => r[0] + r[1] + r[2] + r[3]), js = rows.map(r => r[0] + r[1] + r[2]), heap = col(7);
   const casts = await page.evaluate(() => __kk.ev('(window.__A||{}).cast||0'));
-  const out = { scenario: SC, casts, steps: STEPS, loadMs, setup, ms: { update: +avg(col(0)).toFixed(3), fx: +avg(col(1)).toFixed(3), anim: +avg(col(2)).toFixed(3), render: +avg(col(3)).toFixed(3), js: +avg(js).toFixed(3), total: +avg(tot).toFixed(3), jsP95: +pct(js, .95).toFixed(3), jsP99: +pct(js, .99).toFixed(3), jsMax: +Math.max(...js).toFixed(2) },
+  const out = { scenario: SC, gfx, casts, steps: STEPS, loadMs, setup, ms: { update: +avg(col(0)).toFixed(3), fx: +avg(col(1)).toFixed(3), anim: +avg(col(2)).toFixed(3), render: +avg(col(3)).toFixed(3), js: +avg(js).toFixed(3), total: +avg(tot).toFixed(3), jsP95: +pct(js, .95).toFixed(3), jsP99: +pct(js, .99).toFixed(3), jsMax: +Math.max(...js).toFixed(2) },
     draw: { calls: Math.round(avg(col(4))), callsMax: Math.max(...col(4)), tris: Math.round(avg(col(5))) }, foes: Math.round(avg(col(6))), heapMB: { start: +(heap[0] / 1e6).toFixed(1), end: +(heap[heap.length - 1] / 1e6).toFixed(1), max: +(Math.max(...heap) / 1e6).toFixed(1) },
     gpuMem: await page.evaluate(() => __kk.ev('(()=>{const m=renderer.info.memory;return {geos:m.geometries,tex:m.textures,progs:renderer.info.programs.length};})()')), errors: errors.slice(0, 5), progsDuringRun: (await page.evaluate(() => __kk.ev('renderer.info.programs.length'))) - progs0, breakdown: bd0 };
   if (prof) { // self time per function (top 40), and the biggest allocators (top 25)

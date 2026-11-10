@@ -34,7 +34,7 @@ const wrap=()=>{log=[];ers=[];fms=[];bolts=[];rings=[];cracks=[];
   bmRing=function(x,z,R){rings.push(R);return RG0.apply(this,arguments);};
   crackNet=function(x,z,R,n){cracks.push([R,n]);return CN0.apply(this,arguments);};};
 const unwrap=()=>{hurt=H0;bmErupt=ER0;bmFireMat=FM0;bmBolt=BB0;bmRing=RG0;crackNet=CN0;};
-const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 const ev=n=>(BCM.dbg||[]).filter(d=>d.ev===n);
 /* one whole cast at mastery L: the hits, the eruptions, what is left behind */

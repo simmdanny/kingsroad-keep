@@ -15,7 +15,7 @@ let log=[];const wrapHurt=()=>{hurt=function(e,amt,kind,o){log.push({e,amt,smx:!
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 const ev=n=>CTM.dbg.filter(d=>d.ev===n);
 const MEV=['rewind','hand','echo','haste','second'];
-const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 const knot=(n,gap)=>{const d0=spotD(),F=[];for(let i=0;i<n;i++)F.push(foe(d0+(i-(n>>1))*(gap||.3),(i%3-1)*.15));return F;};
 const cast=(L,c)=>{setL(L);castScrollNow('chronostasis',heroU,tStats(heroU),[c],100,{src:heroU,bane:0,el:'light',anc:false,spell:'chronostasis'});};

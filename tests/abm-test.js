@@ -23,7 +23,7 @@ const ev=n=>ABM.dbg.filter(d=>d.ev===n);
 const hits=(e,amt,sp)=>log.filter(h=>h.e===e&&near(h.amt,amt)&&(sp==null||h.sp===sp));
 const drowns=e=>log.filter(h=>h.e===e&&h.dot);
 /* (a foe's own Resolve ring is the foe's, and the ripples of foes wading through the board's water are the terrain's pool, not the sea's) */
-const left=added=>added.filter(o=>{if(enemies.some(e=>e.rsvRing===o)||typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const left=added=>added.filter(o=>{if(enemies.some(e=>e.rsvRing===o)||typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 const rootOf=added=>added.find(o=>o.isGroup&&o.children.length>40);
 const pts=(root,ro)=>{let n=0;root&&root.traverse(o=>{if(o.isPoints&&o.renderOrder===ro)n++;});return n;};

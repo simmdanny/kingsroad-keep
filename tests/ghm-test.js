@@ -14,7 +14,7 @@ let log=[];const wrapHurt=()=>{hurt=function(e,amt,kind,o){log.push({e,amt,smx:!
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 const ev=n=>GHM.dbg.filter(d=>d.ev===n);
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
-const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const D0=()=>Math.min(14,ROUTES[0].len*.45);
 /* the mark (the most health) leads; six more stand round it */
 const pack=o=>{o=o||{};const d=D0(),F=[foe(d,{max:2e9})];for(let i=0;i<6;i++)F.push(foe(d-(i+1)*.3,{off:(i%3-1)*.2}));return F;};

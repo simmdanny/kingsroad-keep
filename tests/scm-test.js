@@ -23,7 +23,7 @@ const cast=(L,lead,tough)=>{setL(L);castScrollNow('stormcloud',heroU,tStats(hero
 const near=(a,b)=>Math.abs(a-b)<=1e-6*Math.max(1,Math.abs(b));
 const ev=(k,f)=>SCM.dbg.filter(x=>x.ev===k&&(!f||f(x)));
 const clouds=()=>SCM.last?SCM.last.G.clouds:[];
-const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 const setup=()=>{play();spot();const lead=foe(D0+1),tough=foe(D0-2.5,9e9,'knight');return{lead,tough};};
 /* a cloud's own events (each logs its index, ci: 0 the leading foe's cloud, 1 the other) */

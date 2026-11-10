@@ -31,7 +31,7 @@ const ev=n=>ETM.dbg.filter(d=>d.ev===n);
 const hits=(e,amt)=>log.filter(h=>h.e===e&&near(h.amt,amt));
 /* (a foe's own Resolve ring is the foe's, the batched health bars are the game's, the ripples of the board's water the terrain's) */
 const left=added=>added.filter(o=>{if(enemies.some(e=>e.rsvRing===o)||typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;if(typeof PFB!=='undefined'&&PFB.m&&Object.values(PFB.m).includes(o))return false;
-  let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+  if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 const rootOf=added=>added.find(o=>o.isGroup&&o.children.length>40);
 const erus=root=>root.children.filter(g=>g.isGroup&&g.children.some(c=>c.geometry&&c.geometry.type==='RingGeometry'));

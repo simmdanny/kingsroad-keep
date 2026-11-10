@@ -14,7 +14,7 @@ let log=[];const wrapHurt=()=>{hurt=function(e,amt,kind,o){log.push({e,amt,smx:!
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 const ev=n=>VFM.dbg.filter(d=>d.ev===n);
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
-const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 /* a pack of 7 round a point on the road; the point is where the cast lands (the densest spot) */
 const D0=()=>Math.min(14,ROUTES[0].len*.45);
 const pack=()=>{const d=D0(),F=[];for(let i=0;i<7;i++)F.push(foe(d+(i-3)*.28,{off:(i%3-1)*.2}));return F;};

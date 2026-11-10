@@ -17,7 +17,7 @@ const oF=()=>({src:heroU,bane:0,el:'ice',anc:false,spell:'eternalwinter'});
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 const ev=n=>EWM.dbg.filter(d=>d.ev===n);
 /* (the shared frost floor, the terrain's pooled water ripples, which a falling splinter can start, and a foe spawned mid-cast stay by design) */
-const leftL=added=>added.filter(o=>{if(o===MY_FROST||(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))||enemies.some(e=>e.g===o))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}),left=added=>leftL(added).length;
+const leftL=added=>added.filter(o=>{if(o===MY_FROST||(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))||enemies.some(e=>e.g===o))return false;if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}),left=added=>leftL(added).length;
 const desc=o=>(o.type||'?')+':'+(o.geometry&&o.geometry.type||'')+':'+(o.material&&o.material.color?o.material.color.getHexString():'')+':'+(o.children?o.children.length+'['+o.children.map(c=>(c.type||'')+'/'+(c.geometry&&c.geometry.type||'')).join(',')+']':0)+(o.userData?':'+Object.keys(o.userData).join('.'):'');
 /* nine foes along the road and a boss among them */
 const stage=()=>{const G=go(),L=[];for(let i=0;i<9;i++)L.push(foe(G.R,G.d0-2+i*.45,(i%3-1)*.2));const B=foe(G.R,G.d0+.1,.3);B.boss=true;return{G,L,B,F:L.concat([B])};};

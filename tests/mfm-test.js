@@ -18,7 +18,7 @@ let log=[];const wrapHurt=()=>{hurt=function(e,amt,kind,o){log.push({e,amt,dot:!
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 const ev=n=>MFM.dbg.filter(d=>d.ev===n);
 const hits=(e,amt,o)=>log.filter(h=>h.e===e&&near(h.amt,amt)&&(!o||o.dot==null||h.dot===o.dot));
-const leftL=added=>added.filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}),left=added=>leftL(added).length;
+const leftL=added=>added.filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}),left=added=>leftL(added).length;
 const track=()=>{const added=[];scene.add=function(...a){if(!/terTick|terRipple/.test(String(new Error().stack)))added.push(...a);return S0.apply(this,a);};return added;};
 /* the stage: the knot (7) in the middle, a line every 0.4 tiles 12 tiles either way, and, on request, a boss, an Unstoppable foe and a flyer
    in the knot */

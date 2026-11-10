@@ -22,7 +22,7 @@ const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 const hits=(e,amt,t0,t1)=>log.filter(h=>h.e===e&&h.smx&&near(h.amt,amt)&&(t0==null||(h.t>=t0&&h.t<=t1)));
 const ev=(k,e)=>BPM.dbg.filter(x=>x.ev===k&&(e===undefined||x.e===e));
 const Sf=()=>ev('cast')[0].S;
-const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 try{
   /* ---- the card ---- */

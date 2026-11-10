@@ -23,7 +23,7 @@ const onLine=(d,e)=>{const px=e.x-d.cp.x,pz=e.z-d.cp.z,pr=px*d.dir.x+pz*d.dir.z;
 const off=(d,e)=>{const px=e.x-d.cp.x,pz=e.z-d.cp.z,pr=px*d.dir.x+pz*d.dir.z;return Math.hypot(px-d.dir.x*pr,pz-d.dir.z*pr);};
 const exact=(d,F)=>F.every(e=>onLine(d,e)===d.L.includes(e));
 const hits=(e,amt,smx)=>log.filter(h=>h.e===e&&!h.dot&&(smx==null||h.smx===smx)&&near(h.amt,amt));
-const smLeft=added=>added.filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const smLeft=added=>added.filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 /* two groups: five foes on one ray (the Judgment's line), three on another 70 degrees round */
 const groups=()=>{const A=ray(.3,[1.6,2,2.4,2.8,3.2]),B=ray(.3+1.22,[1.8,2.3,2.8]);return{A,B,F:A.concat(B)};};

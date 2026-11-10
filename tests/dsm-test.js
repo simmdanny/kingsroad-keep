@@ -21,7 +21,7 @@ const ev=n=>DSM.dbg.filter(d=>d.ev===n);
 const onCut=(s,e,w)=>dslOnLine(e,heroU.x,heroU.z,Math.sin(s.ang),Math.cos(s.ang),s.len,w==null?s.W:w);
 const exact=(s,F)=>F.every(e=>onCut(s,e)===s.L.includes(e));
 const hits=(e,amt,o)=>log.filter(h=>h.e===e&&near(h.amt,amt)&&(!o||((o.dot==null||h.dot===o.dot)&&(o.smx==null||h.smx===o.smx))));
-const left=added=>added.filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const left=added=>added.filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 /* nine foes along the road, and two beside it 0.62 off its middle (none of them a gem or scroll carrier: a carrier twinkles every 0.18s,
    and the twinkles still alive when a trial ends would count as left behind) */

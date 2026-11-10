@@ -18,7 +18,7 @@ const setL=L=>{meta.smast=meta.smast||{};if(L)meta.smast.singularity=SM_XP[L-1];
 const oF=()=>({src:heroU,bane:0,el:'dark',anc:true,spell:'singularity'});
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-9)*Math.max(1,Math.abs(b));
 const ev=n=>SGM.dbg.filter(d=>d.ev===n);
-const leftL=added=>added.filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}),left=added=>leftL(added).length;
+const leftL=added=>added.filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}),left=added=>leftL(added).length;
 const hole=()=>{let m=null;scene.traverse(o=>{if(!m&&o.isMesh&&o.material&&o.material.fragmentShader===SG_BH_FS)m=o;});return m;};
 const lights=()=>[hemi.color.getHex(),hemi.groundColor.getHex(),sun.color.getHex()].join(',');
 /* Singularity's own preview-wait entries (SGL.n, and the module's SGM.busy), found by their text: other scrolls push theirs after it */

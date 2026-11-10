@@ -21,7 +21,7 @@ const setup=()=>{play();const sg=RT().segs.reduce((a,b)=>b.len>a.len?b:a);D=sg.s
 const cast=(L,list)=>{setL(L);T0=time;castScrollNow('comet',heroU,tStats(heroU),list,100,{src:heroU,bane:0,el:'ice',anc:false,spell:'comet'});return FCM.last;};
 const ev=(k,f)=>FCM.dbg.filter(x=>x.ev===k&&(!f||f(x)));
 const mine=(e,amt)=>log.filter(h=>h.e===e&&h.smx&&(amt==null||near(h.amt,amt)));
-const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 try{
   /* ---- the card ---- */

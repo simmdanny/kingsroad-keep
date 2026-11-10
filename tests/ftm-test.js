@@ -26,7 +26,7 @@ const at=t=>D+1.3-.72*t;
 const cast=(L,lead,o)=>{setL(L);T0=time;castScrollNow('firetornado',heroU,tStats(heroU),[lead],100,Object.assign({src:heroU,bane:0,el:'fire',anc:false,spell:'firetornado'},o||{}));return FTM.last;};
 const ev=(k,f)=>FTM.dbg.filter(x=>x.ev===k&&(!f||f(x)));
 const mine=(e,amt)=>log.filter(h=>h.e===e&&h.smx&&(amt==null||near(h.amt,amt)));
-const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 try{
   /* ---- the card, the texts ---- */

@@ -39,7 +39,7 @@ const kind=v=>v.R===1.6&&near(v.dmg,400)?'open':near(v.dmg,150)?'strike':near(v.
 const of=k=>VL.filter(v=>kind(v)===k);
 const ev=n=>(VTM.dbg||[]).filter(d=>d.ev===n);
 /* (the ripples where foes wade are a pool the terrain keeps: the first foes in water make it) */
-const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 /* the storm's own meshes among what was added: the area glow (scale 3.2 x 2.6) and the apex star (Judgment's star texture) */
 const findMesh=(added,f)=>{let r=null;for(const o of added)if(o.traverse)o.traverse(q=>{if(!r&&q.isMesh&&f(q))r=q;});return r;};

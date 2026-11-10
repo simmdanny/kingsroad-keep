@@ -12,7 +12,7 @@ const go=L=>{lsSet(KR,null);meta.smast=meta.smast||{};if(L)meta.smast.tempest=SM
 const run=s=>{for(let i=0;i<Math.round(s/.05);i++){if(heroU)heroU.cd=1e9;update(.05);updFx(.05);anim(.05,time);}};
 const runTo=T=>{const lv=ANC.live.tempest;if(lv&&lv.T<T)run(T-lv.T+.001);};
 const cast=()=>{const t=heroU,s=heroStats();castScrollNow('tempest',t,s,sortTargets(t,enemies.filter(e=>!e.dead)),s.dmg,{src:t,el:'lightning',anc:true,spell:'tempest'});worldSlow=1;slowT=0;};
-const inScene=o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;};
+const inScene=o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;};
 try{
   ok('looks only: the hurricane draws on no random of the game and hurts no foe',typeof tpxBuild==='function'&&!/\brnd\(|hurt\(|stunE\(|lives/.test(String(tpxBuild)));
   go(0);ok('no storm deck before the cast',!TPX.on);cast();const S=TPX.on;

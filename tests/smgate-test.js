@@ -38,9 +38,9 @@ try{
   /* ---- v405: the patch notes start afresh (masteries-2), short: only the mastery reworks; the update with v406-v416 (masteries-3) adds the
      Hall of Champions above them and one line for the Rare reworks ---- */
   {const NS=SCROLL_IDS.filter(k=>/^(common|uncommon)$/.test(SPELLS_S[k].r)&&SM_D[k]&&!SPELLS_S[k].ev),miss=NS.filter(k=>!NOTES_HTML.includes(SPELLS_S[k].n));
-    ok('the patch notes (masteries-4, still in upd-47) name every Common and Uncommon scroll',(NOTES_V==='masteries-4'||NOTES_V==='upd-47')&&NS.length>=22&&!miss.length,NS.length+' scrolls; missing: '+miss.join(', '));
+    ok('the patch notes (masteries-4, still in upd-47 and upd-48) name every Common and Uncommon scroll',(NOTES_V==='masteries-4'||/^upd-4[78]$/.test(NOTES_V))&&NS.length>=22&&!miss.length,NS.length+' scrolls; missing: '+miss.join(', '));
     {const MS=NOTES_HTML.slice(NOTES_HTML.indexOf('Scroll masteries reworked'));ok('and short: no mastery-by-mastery text, no older sections after it',!/\(Mastery \d\)/.test(NOTES_HTML)&&!/<h3>/.test(MS)&&MS.length<1500,MS.length+' chars');}
-    ok('they say which masteries are open to everyone (masteries-4: Uncommon and Rare; upd-47: every scroll)',NOTES_V==='upd-47'?/Masteries are open on every scroll/.test(NOTES_HTML)&&!/Scrolls above Rare follow/.test(NOTES_HTML):/Uncommon and Rare masteries are open to everyone/.test(NOTES_HTML));
+    ok('they say which masteries are open to everyone (masteries-4: Uncommon and Rare; upd-47 and upd-48: every scroll)',/^upd-4[78]$/.test(NOTES_V)?/Masteries are open on every scroll/.test(NOTES_HTML)&&!/Scrolls above Rare follow/.test(NOTES_HTML):/Uncommon and Rare masteries are open to everyone/.test(NOTES_HTML));
     {const RS=SCROLL_IDS.filter(k=>SPELLS_S[k].r==='rare'&&SM_D[k]),rl=(NOTES_HTML.match(/<li><b>Rare scrolls:<\/b>[^<]*<\/li>/)||[''])[0];
       ok('and one line names every reworked Rare scroll',RS.length>=10&&RS.every(k=>rl.includes(SPELLS_S[k].n))&&!/developer mode/.test(rl)&&(NOTES_HTML.match(/\(Rare\)/g)||[]).length===0,RS.length+' Rare scrolls');}
     ok('the changelog keeps the history, with this update in it',CLOG.some(c=>c.v==='v405')&&CLOG.some(c=>c.v==='v404')&&CLOG.some(c=>c.v==='v375'),CLOG[0].v);

@@ -26,7 +26,7 @@ const ev=n=>(WGM.dbg||[]).filter(d=>d.ev===n);
 const hits=(e,amt)=>log.filter(h=>h.e===e&&h.sp&&near(h.amt,amt));
 const md=e=>{let m=1e9;for(const q of SP)m=Math.min(m,(e.x-q.x)**2+(e.z-q.z)**2);return Math.sqrt(m);};
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
-const left=added=>added.filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const left=added=>added.filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const drew=()=>{renderer.render(scene,camera);return renderer.info.render.calls;};
 try{
   /* ---- the card ---- */

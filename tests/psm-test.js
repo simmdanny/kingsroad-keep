@@ -31,7 +31,7 @@ const castL=(L,x)=>{const X=L?psmOpts({L,a:SMA.pulsar}):{};X.log=psmLog;castPuls
 let log=[];const wrapHurt=()=>{hurt=function(e,amt,kind,o){if(o&&o.spell==='pulsar')log.push({e,amt,el:o.el,t:time});return H0.apply(this,arguments);};};
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-9)*Math.max(1,Math.abs(b));
 const ev=n=>PSM.dbg.filter(d=>d.ev===n);
-const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 const dC=(e,O)=>Math.hypot(e.x-O.S0.x,e.z-O.S0.z);
 /* every beam hit, each foe at most every 0.22s per beam (0.22s / the spin); every ground hit within its reach of the beam's ground spot */

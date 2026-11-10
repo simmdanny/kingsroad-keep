@@ -19,7 +19,7 @@ let log=[];const wrapHurt=()=>{hurt=function(e,amt,kind,o){log.push({e,amt,smx:!
 const cast=(L,T)=>{setL(L);castScrollNow('deflect',heroU,tStats(heroU),[T],100,{src:heroU,bane:0,el:'light',anc:false,spell:'deflect'});let n=0;while(!SDP.z.some(z=>z&&z.x===T.x&&z.z===T.z)&&n++<40)run(.05);};
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 const hits=(e,amt,smx)=>log.filter(h=>h.e===e&&(smx==null||h.smx===smx)&&near(h.amt,amt));
-const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 const ev=k=>DFM.dbg.filter(x=>x.ev===k);
 const settled=()=>!DFM.ecS&&!DFM.fdS&&DFM.rw.every(q=>!q)&&!(SDP.sl||[]).some(Boolean)&&!(SDP.pl||[]).some(Boolean)&&!SDP.z.some(Boolean)&&SDP.n===0;

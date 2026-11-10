@@ -19,7 +19,7 @@ let log=[];const wrapHurt=()=>{hurt=function(e,amt,kind,o){log.push({e,amt,t:tim
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 const ev=n=>(SRL.dbg||[]).filter(d=>d.ev===n);
 const hits=(e,amt,L)=>(L||log).filter(h=>h.e===e&&near(h.amt,amt)).length;
-const leftL=added=>added.filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}),left=added=>leftL(added).length;
+const leftL=added=>added.filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}),left=added=>leftL(added).length;
 /* (the map's own ripples on its ponds, terTick's, come and go all the time: they are not the cast's) */
 const track=()=>{const added=[];scene.add=function(...a){if(!/terTick|terRipple/.test(String(new Error().stack)))added.push(...a);return S0.apply(this,a);};return added;};
 /* foes along the straight road, at these distances from the mark (in the middle): within 3.2 tiles of it, between 3.2 and 4, past 4 (all within

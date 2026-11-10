@@ -10,7 +10,7 @@ const play=()=>{meta.arena='plains';meta.dev=true;meta.scrAuto=false;lsSet(KR,nu
 const run=sec=>{for(let i=0;i<Math.round(sec/.05);i++){updFx(.05);time+=.05;}};
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 const walls=a=>a.filter(o=>o.isMesh&&o.geometry===XFX.cyl);
-const inScene=o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;};
+const inScene=o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;};
 try{play();const p=posAt(ROUTES[0].len*.5,ROUTES[0]),x=p[0],z=p[1],y=gy(x,z);
   {const A=track();let w=[],h0=0,h1=0,op0=0,op1=0,r0=0,r1=0;try{shockwave(x,z,1.4,0xffffff,.6);w=walls(A);run(.1);h0=w[0]&&w[0].scale.y;op0=w[0]&&w[0].material.opacity;r0=w[0]&&w[0].scale.x;run(.3);h1=w[0]&&w[0].scale.y;op1=w[0]&&w[0].material.opacity;r1=w[0]&&w[0].scale.x;run(.4);}finally{scene.add=S0;}
     ok('a shockwave raises a wall with it: standing on the ground, with height',w.length===1&&Math.abs(w[0].position.y-y-.02)<1e-6&&h0>.1,w.length+' '+(h0||0).toFixed(2));

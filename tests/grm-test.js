@@ -20,7 +20,7 @@ const cast=(L,list)=>{setL(L);T0=time;GRM.dbg=[];castScrollNow('glacialrift',her
 const ev=(k,f)=>GRM.dbg.filter(x=>x.ev===k&&(!f||f(x)));
 const mine=(e,amt)=>log.filter(h=>h.e===e&&h.smx&&(amt==null||near(h.amt,amt)));
 const base=(e,amt)=>log.filter(h=>h.e===e&&!h.smx&&near(h.amt,amt));
-const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 try{
   /* ---- the card ---- */

@@ -105,7 +105,7 @@ try{
     const SP=['eclipse','firestorm','tempest','wither'].filter(k=>SPELLS_S[k]);let ci=0;
     const round=()=>{wave=119;const WV=buildWave(120);wave=120;spawners.push({t:0,q:WV.q.slice(),w:120});
       for(let s=0;s<80&&(enemies.length||spawners.length);s++){for(let i=0;i<10;i++){lives=1e9;for(const sp of spawners)sp.t=Math.min(sp.t,.1);update(.033);updFx(.033);}
-        if(s%3===0&&heroU&&SP.length){const k=SP[ci++%SP.length];try{meta.spells[k]=meta.spells[k]||{lvl:1,own:1};heroU.scd={};heroU.gcd=0;fireScroll(heroU,k,heroStats(),sortTargets(heroU,enemies.filter(e=>!e.dead)));}catch(e){}}
+        if(s%3===0&&heroU&&SP.length){const k=SP[ci++%SP.length];try{meta.spells[k]=meta.spells[k]||{lvl:1,own:1};heroU.scd={};heroU.gcd=0;const L=sortTargets(heroU,enemies.filter(e=>!e.dead));if(L.length)fireScroll(heroU,k,heroStats(),L);/* like the game's own casts: none at an empty road */}catch(e){}}
         for(const e of enemies)updBar(e);anim(.033,time);if(s%4===0)renderer.render(scene,camera);for(const e of enemies.slice())if(!e.dead&&e.dist>2)hurt(e,1e12,'magic',{src:heroU});}
       for(let i=0;i<300||fx.length&&i<1500;i++){update(.05);updFx(.05);}anim(.05,time);renderer.render(scene,camera);pfSweep();if(MEM.on)memSweep();
       let n=0;scene.traverse(()=>n++);return{geos:renderer.info.memory.geometries,tex:renderer.info.memory.textures,kids:scene.children.length,objs:n,fx:fx.length};};

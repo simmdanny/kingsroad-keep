@@ -40,7 +40,7 @@ const wrap=()=>{log=[];land=new Map();pend=new Set();sw=[];bursts=[];exits=[];
 const unwrap=()=>{hurt=H0;moveEnemy=ME0;shockwave=SW0;whBurst=WB0;whExit=WE0;scene.add=S0;};
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-9)*Math.max(1,Math.abs(b));
 const ev=n=>WHM.dbg.filter(d=>d.ev===n);
-const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 const dbgX=x=>Object.assign({log:d=>{d.t=time;WHM.dbg.push(d);}},x||{});
 /* one cast's strikes split: the crossings (before the collapse) and the collapse (the frame of the first mouth's shockwave) */

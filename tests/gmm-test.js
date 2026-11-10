@@ -19,7 +19,7 @@ const hits=(e,amt,smx)=>log.filter(h=>h.e===e&&!h.dot&&(smx==null||h.smx===smx)&
 const ev=n=>GMM.dbg.filter(d=>d.ev===n);
 const MEV=['shrapnel','vein','veinHit','heartStart','heart','cascade','fissure','calBurst','caldera','calPulse','calEnd'];
 const inR=(d,R)=>d.L.every(e=>Math.hypot(e.x-d.x,e.z-d.z)<=R+1e-6)&&enemies.filter(e=>!e.dead&&!e.fake&&Math.hypot(e.x-d.x,e.z-d.z)<R-.01).every(e=>d.L.includes(e)||e.fly);
-const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 try{
   /* ---- the card ---- */

@@ -20,7 +20,7 @@ function shot(L,extra,secs){play();setL(L);SNF.dbg=[];log=[];const p=spot(),ang=
   const T=foe(p[0],p[1]),F=(extra||[]).map(q=>foe(p[0]+u[0]*q[0]+v[0]*q[1],p[1]+u[1]*q[0]+v[1]*q[1],q[2]));
   const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};wrapHurt();
   try{cast(T);let t=0,fxl=0;const step=n=>{for(let i=0;i<n;i++){updFx(.05);t+=.05;if(t>1.1&&t<1.3)fxl=Math.max(fxl,FXL.intensity);}};step(Math.round((secs||8)/.05));
-    const imp=log.find(h=>h.e===T&&!h.smx&&!h.dot);const left=added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;});
+    const imp=log.find(h=>h.e===T&&!h.smx&&!h.dot);const left=added.filter(o=>o.userData&&o.userData.sm).filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;});
     return {T,F,u,v,p,S:imp?imp.amt:null,log:log.slice(),dbg:SNF.dbg.slice(),fxl,fxlEnd:FXL.intensity,left:left.length};}
   finally{hurt=H0;scene.add=S0;SNF.dbg=null;setL(0);}}
 const sm=(r,e)=>r.log.filter(h=>h.e===e&&h.smx);

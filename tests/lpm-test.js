@@ -15,7 +15,7 @@ const cast=L=>{setL(L);castScrollNow('loop',heroU,tStats(heroU),enemies.filter(e
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 const hits=(e,amt)=>log.filter(h=>h.e===e&&h.smx&&near(h.amt,amt));
 const ev=n=>LPM.dbg.filter(d=>d.ev===n);
-const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 /* a lead walking slowly, and a pack behind it walking fast enough to go round the loop more than once in 10s */
 const pack=()=>{const D=Math.min(12,ROUTES[0].len-6),A=foe(D,.05),B=foe(D-2,2.6),C=foe(D-3,2.6,.2),E=foe(D-5,2.6,-.2);return{A,B,C,E,F:[B,C,E]};};

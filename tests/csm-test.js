@@ -29,7 +29,7 @@ let rings=0,lances=[],cols=[];const wrapFx=()=>{rings=0;lances=[];cols=[];ringFx
 const unwrap=()=>{hurt=H0;scene.add=S0;ringFx=RF0;nsLance=NL0;csImpact=CI0;};
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-9)*Math.max(1,Math.abs(b));
 const ev=n=>CSM.dbg.filter(d=>d.ev===n);
-const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 const dbgX=x=>Object.assign({log:d=>{d.t=time;CSM.dbg.push(d);}},x||{});
 /* what one figure strikes, from the foes' places now (D: its numbers, P: its power) */

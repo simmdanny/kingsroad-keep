@@ -34,7 +34,7 @@ const ev=n=>(ECM.dbg||[]).filter(d=>d.ev===n);
 const beamsExact=(r,rh,amt,amtH)=>{let bad=0;const used=new Set();for(const b of imp){const R=b.heavy?rh:r,A=b.heavy?amtH:amt,want=b.pos.filter(p=>(p[1]-b.x)**2+(p[2]-b.z)**2<R*R).map(p=>p[0]),
     got=log.filter(h=>h.t===b.t&&near(h.amt,A));got.forEach(h=>used.add(h));if(want.length!==got.length||!want.every(e=>got.some(h=>h.e===e)))bad++;}return{bad,n:imp.length,stray:log.filter(h=>!used.has(h)&&h.amt<900).length};};
 /* (the ripples where foes wade are a pool the terrain keeps: the first foes in water make it) */
-const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 const reach=(r)=>imp.some(b=>!b.heavy&&b.pos.some(p=>{const d=Math.hypot(p[1]-b.x,p[2]-b.z);return d>.555&&d<r&&log.some(h=>h.t===b.t&&h.e===p[0]);}));
 try{

@@ -26,7 +26,7 @@ let log=[];const wrapHurt=()=>{hurt=function(e,amt,kind,o){log.push({e,amt,t:tim
 const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 const ev=n=>CIM.dbg.filter(d=>d.ev===n);
 const hits=(e,amt)=>log.filter(h=>h.e===e&&near(h.amt,amt));
-const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const left=added=>added.filter(o=>{if(typeof TER!=='undefined'&&TER.rip&&TER.rip.includes(o))return false;if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 const track=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
 const dbgX=()=>({log:d=>{d.t=time;CIM.dbg.push(d);}});
 const segD=(px,pz,ax,az,bx,bz)=>{const dx=bx-ax,dz=bz-az,L2=dx*dx+dz*dz||1,s=Math.max(0,Math.min(1,((px-ax)*dx+(pz-az)*dz)/L2));return Math.hypot(px-(ax+dx*s),pz-(az+dz*s));};

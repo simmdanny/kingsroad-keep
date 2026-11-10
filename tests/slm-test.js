@@ -24,7 +24,7 @@ const base=()=>{play();SLM.dbg=[];log=[];Q.length=0;clock=0;const p=spot(),dx=he
   return{p,d,s,c,at:(a,b)=>[p[0]+d[0]*a+s[0]*b,p[1]+d[1]*a+s[1]*b],ac:(a,b)=>[c[0]+d[0]*a+s[0]*b,c[1]+d[1]*a+s[1]*b]};};
 const ev=n=>SLM.dbg.filter(q=>q.ev===n);
 const watch=()=>{const added=[];scene.add=function(...a){added.push(...a);return S0.apply(this,a);};return added;};
-const inScene=o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;};
+const inScene=o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;};
 try{
   window.setTimeout=function(f,ms){if(typeof f!=='function')return ST0.apply(window,arguments);Q.push({f,at:clock+(ms||0)/1000});return 0;};
   /* ---- the card ---- */

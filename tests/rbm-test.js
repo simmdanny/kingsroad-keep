@@ -18,7 +18,7 @@ const near=(a,b,eps)=>Math.abs(a-b)<=(eps||1e-6)*Math.max(1,Math.abs(b));
 /* a cast at the road spot; u = along the road, v = across it */
 const base=()=>{play();RBM.dbg=[];log=[];const p=spot(),ang=p[2],u=[Math.sin(ang),Math.cos(ang)],v=[Math.cos(ang),-Math.sin(ang)]/* along the road and across it: a segment's angle is atan2(dx,dz) */;const at=(a,b)=>[p[0]+u[0]*a+v[0]*b,p[1]+u[1]*a+v[1]*b];return{p,u,v,at};};
 const crack=e=>{let n=0;e.g.traverse(o=>{if(o.isMesh&&o.material&&o.material.map===RBMT.crack)n++;});return n;};
-const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
+const smLeft=added=>added.filter(o=>o.userData&&o.userData.sm).filter(o=>{if(o.userData&&(o.userData.pcrPool||o.userData.pcrBucket))return false;let q=o;while(q&&q!==scene)q=q.parent;return q===scene;}).length;
 try{
   /* ---- the card ---- */
   ok('the five masteries carry Simon\'s names',SM_D.rimebloom.map(x=>x.n).join('|')==='Permafrost|Crystal Eruption|Brittle Ground|Glacial Prison|Everfrost Lily',SM_D.rimebloom.map(x=>x.n).join('|'));
