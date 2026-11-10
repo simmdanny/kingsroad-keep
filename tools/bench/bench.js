@@ -29,7 +29,7 @@ const PORT = process.env.KK_PORT || 8771, local = path.join(__dirname, '..', '..
     return {towers:towers.length,spots:sp.length,spells:window.__SPELLS.length};})()`), SC);
   // warm up 120 steps (shader compiles, pools), then measure
   const stepJs = `(()=>{const dt=1/60;const P=performance;const A=window.__A=window.__A||{n:0,upd:0,fx:0,anim:0,ren:0,max:0,calls:0,tris:0,foes:0,cast:0,heap0:0,heapMax:0,spikes:0};
-    const t0=P.now();if(enemies.length<window.__cap&&spawners.length<2)window.__bw();for(const sp of spawners)sp.t=Math.min(sp.t,.12);
+    A.n++;const t0=P.now();if(enemies.length<window.__cap&&spawners.length<2)window.__bw();for(const sp of spawners)sp.t=Math.min(sp.t,.12);
     if(${SC === 'spells'}&&(A.n%150===0)&&heroU&&window.__SPELLS.length){const k=window.__SPELLS[(A.n/150|0)%window.__SPELLS.length];try{meta.spells[k]=meta.spells[k]||{lvl:1,own:1};heroU.scd={};heroU.gcd=0;const s=heroStats(),L=sortTargets(heroU,enemies.filter(e=>!e.dead));fireScroll(heroU,k,s,L);A.cast++;}catch(e){}}
     update(dt);const t1=P.now();updFx(dt);const t2=P.now();for(const e of enemies)updBar(e);anim(dt,t1/1000);const t3=P.now();
     if(!${NOREN}){if(LENS.on)lensRender();else if(DOM.post&&DOM.post.on)DOM.post.render();else if(SDP.n>0)sdpRender();else renderer.render(scene,camera);if(SGL.n>0)sglPass();}
