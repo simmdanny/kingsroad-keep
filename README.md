@@ -2805,3 +2805,39 @@ Simon: "the lightning artifact synergy make the lightning pure red, it needs to 
 - Under swiftshader (software WebGL), render time is the CPU cost of WebGL calls. Draw calls, uniform uploads and shader compiles show there as they would on a weak GPU, so compare draw calls and compiles first.
 
 - v491 fixes: draw calls and triangles now add up every render pass of a step (spell passes draw the scene off-screen first), and the breakdown counts only what layer 0 draws (v492's batcher hides originals on layer 30).
+
+## The static world and the towers (v492)
+Simon asked for "a very very big optimalization update". This part draws the board, its scenery, the keep and the towers in a few merged meshes instead of hundreds of small ones, with the same picture and the same play.
+- **What was measured:** in the late bench (wave 120, 20 towers, about 150 foes) a frame made about 1100 draw calls. Terrain was 225 of them, towers 249 (about 12 a tower), and 337 shadow casters drew everything again in the shadow pass.
+- **How it works (`pfwSync`, before every render of the scene):**
+  - Every plain mesh under the terrain and under each tower is watched. That covers its own place, turn, size, visibility, parent, material, layers and shadow flags, every group above it, and its material's settings.
+  - A mesh that has been still for half a second is drawn inside a merged mesh in the `pfw-batch` group. There is one merged mesh per finish: the parts' colours go into the vertices, as v446 does for the hero. Meshes with the lands' world-space shaders (snow, snow caps, lichen, moss) merge per material, with a copy that reads the part's own normal and height.
+  - The original mesh stays where it was, on a layer no camera draws. Raycasts still see it, so clicks, lookups, scorching, the Void and the lands' recolours all still find it.
+  - When anything about a part changes (a turning head, a scorched tree, a moved, upgraded or sold tower, the Void, a recolour), its slice of the merged mesh collapses and the part is drawn on its own in the same frame. Once it is still again it goes back in, into its old slice when it still fits. A part that keeps changing waits longer each time.
+  - Merged geometry is freed when its board or tower goes. Switched off (`PFW.on=false`), every part is drawn on its own again.
+- **Same picture:** in all six lands, the board with twenty towers was rendered with the batcher off and on. At most 9 pixels in a million differ by more than 48, which is the same as two runs with nothing changed. The sheets are on the branch `sheets/perf-world`.
+
+| Land (20 towers) | Terrain draws | Tower draws | Calls, both passes |
+|---|---|---|---|
+| Plains | 228 -> 36 | 249 -> 46 | 315 -> 60 |
+| Frostvale | 202 -> 44 | 249 -> 46 | 234 -> 56 |
+| Tundra | 209 -> 49 | 249 -> 46 | 239 -> 62 |
+| Whitewaste | 211 -> 40 | 249 -> 46 | 219 -> 48 |
+| Taiga | 243 -> 59 | 249 -> 46 | 238 -> 58 |
+| Highlands | 444 -> 68 | 249 -> 46 | 316 -> 66 |
+
+- **Shadow casters:** about 320 -> 18 on the plains board.
+- **What still draws on its own:** see-through things (mist, patches, the lands' animated glows), things that are already instanced, and parts that move.
+
+| Bench (450 steps) | Draw calls avg (max) | Render ms | JS ms | JS p95 / p99 |
+|---|---|---|---|---|
+| late, before | 1097 (1925) | 798 | 4.3 | 7.9 / 10.2 |
+| late, after | 266 (927) | 497 | 3.3 | 7.5 / 10.6 |
+| crowd, before | 988 (2026) | 742 | 3.9 | 7.7 / 10.6 |
+| crowd, after | 360 (1128) | 511 | 3.2 | 7.3 / 10.4 |
+| spells, batcher off (300 steps, all passes) | 1096 (2398) | 1475 | | |
+| spells, batcher on (300 steps, all passes) | 341 (1109) | 1014 | | |
+
+- **About the spells rows:** the bench's spells draw count covers only the last pass of a frame. The spell effects draw the scene off-screen first, so these two rows sum every pass. How many foes are alive and which spells land vary a lot between runs.
+- **About the bench breakdown:** it counts the hidden originals as terrain and towers, and the merged meshes under `other:pfw-batch`. `tests/pfw-test.js` counts only what is drawn.
+- **Tests:** `tests/pfw-test.js` covers draw calls by land and by tower, pixel equality in every land, a turning head, a moved, upgraded and sold tower, a scorched and a cut tree, recolouring, a chest, the Infinite Void, a running wave in every land, rays, and the merged geometry being freed.
