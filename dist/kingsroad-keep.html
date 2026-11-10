@@ -37344,8 +37344,8 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
    Results (swiftshader; all 72 scrolls cast twice and 9 elite kinds spawned twice, in two real browser sessions sharing one profile):
    programs compiled during those casts 343 before, 141 in a first session with this (repeats gone), 9 in the next session (warmed);
    elite spawns 41 > 4 > 0; the slowest step after a first cast (median of the 72 scrolls) 8.3 s > 0.2 s > 0.06 s, the same as a later cast.
-   Bench (450 steps): getProgramInfoLog+getShaderInfoLog 13.6% (late) and 12.7% (spells) of all time, now getProgramParameter 4.5% and 6.7%;
-   spells JS 19.6 > 13.7 ms a step, its worst step 5.4 > 2.3 s. The 9 left are the Infinite Void's and Never-Never Land's clones of the
+   Bench (450 steps): the shader checks' share of all time 14.3% > 4.0% (late), 10.7% > 4.7% (spells), 17.4% > 4.2% (crowd);
+   spells JS 11.2 > 10.2 ms a step, its worst step 1.72 > 1.29 s. The 9 left are the Infinite Void's and Never-Never Land's clones of the
    world's own materials, made at the cast from whatever stands on the board, so they cannot be noted ahead. */
 const PSH={max:640,pins:[],cur:null,par:null,mid:0,built:0,log:[],chk:[],chkT:0,force:false,
   rec:new Map(),have:new Set(),q:[],busy:false,warmed:0,stale:0,match:0,st:new Map(),later:[],geo:null,tex:new Map(),dbT:0,db:null,loaded:false,on:true};
