@@ -2833,21 +2833,29 @@ Late waves bring a hundred or more foes, most of them with elite gear. v494 make
    - The elite animations no longer run a `for...in` per foe per frame.
 
 ### Before and after (bench.js, 450 steps, swiftshader)
-| scenario | build | draw calls avg | max | foe meshes on layer 0 | render ms | game JS ms | p95 | p99 | heap max MB | shaders compiled in run |
+| scenario | build | draw calls avg | max | triangles | render ms | game JS ms | p95 | p99 | heap max MB | shaders compiled in run |
 |---|---|---|---|---|---|---|---|---|---|---|
-| late | before | 1148 | 2143 | 571 | 788 | 4.45 | 10.2 | 15 | 60.5 | 10 |
-| late | v494 | 860 | 1302 | 181 | 779 | 5.62 | 11 | 17.5 | 134.6 | 11 |
-| spells | before | 1584 | 3379 | 528 | 1436 | 7.27 | 15.2 | 22.3 | 68.7 | 40 |
-| spells | v494 | 1323 | 2304 | 209 | 2320 | 16.05 | 14.7 | 22.8 | 135.3 | 41 |
-| crowd | before | 1455 | 2251 | 532 | 1392 | 5.58 | 10.6 | 18.3 | 62.9 | 11 |
-| crowd | v494 | 903 | 1200 | 215 | 792 | 5.22 | 9.9 | 19.1 | 141.6 | 11 |
+| late | before | 1148 | 2143 | 521k | 788 | 4.45 | 10.2 | 15 | 60.5 | 10 |
+| late | v494 | 844 | 1163 | 576k | 714 | 4.47 | 9.4 | 15.5 | 74.9 | 11 |
+| spells | before | 1584 | 3379 | 548k | 1436 | 7.27 | 15.2 | 22.3 | 68.7 | 40 |
+| spells | v494 | 1265 | 2306 | 630k | 2067 | 13.10 | 13.1 | 24.1 | 86.1 | 41 |
+| crowd | before | 1455 | 2251 | 570k | 1392 | 5.58 | 10.6 | 18.3 | 62.9 | 11 |
+| crowd | v494 | 844 | 1097 | 575k | 695 | 4.59 | 9.6 | 16.7 | 80 | 9 |
 
 How to read the table:
 - Draw calls add up every pass of a step, shadows included (bench at 6882dff).
 - "Foe meshes on layer 0" counts meshes left on the camera's layer, before batching. With v494 these are the shadow blobs and markers, which stay in the scene and are batched in the list, plus the pieces that draw themselves.
 - Render time under swiftshader is mostly fill. Single shader compiles can stall for seconds; the spells average is dominated by one such stall, which happened in both builds.
-- More triangles: the pool always draws every part, with no frustum culling per part, and emptied slots still pass their triangles to the GPU, as degenerate ones.
-- The JS heap holds the pool's vertex arrays (needed for partial uploads).
+- Triangles: back to about the baseline. Foes off screen are left out of the draw (their bounding sphere is tested against the camera each render), and so are emptied ranges.
+- Memory: the pool keeps only its live data plus a margin.
+  - The pool that neither receives shadows nor shades smoothly drops normals and joins repeated corners, about a fifth of the vertices.
+  - No per-geometry copy is kept, except the joined corners of shared model parts.
+  - Pools are rewritten packed when more than a quarter is gaps or the capacity is twice what is live (checked every 120 renders).
+- A 30-wave run (waves 91-120, 20 towers, a render every 60 steps):
+  - JS heap after a GC: 66.9 MB before, 84.6 MB with v494 (+17.7 MB). Heap peak: 104 MB before, 132 MB with v494, the difference mostly uncollected garbage.
+  - renderer.info.memory: 2065 geometries and 18 textures before; 1786 geometries and 19 textures with v494 (the matrix texture).
+  - 789 calls and 355k triangles a render before; 529 calls and 380k triangles with v494.
+- Particles: `emit` reuses spent particles (a small, commented edit to the base `emit` and `psStep`), with the same values and the same rnd() order. In a crowd fight, 1449 of 1734 emitted particles reused an object; the rest warmed the pool.
 
 Controlled measurements in `tests/pcr-test.js`:
 - A 12-second wave-140 fight: 0.47-0.57 draw calls a foe (before: about 3.5, from the breakdown).
@@ -2860,7 +2868,7 @@ The game's own JS barely changed:
 - Baking adds about 0.1 ms per step at spawn time.
 - The p99 spikes come from building elite gear at spawn, in the v479-v485 modules: the Splitting seam rays, the regrowth recipes and the armour fitting. They are left as they were (the target of p99 under 4 ms is not reached). Making those builders faster without changing what they build, and their random draws, is the next step.
 
-Particles are already one draw per system (PSA, PSN, SMK, SMKA). `emit` still allocates a particle object and two colour arrays per particle. Pooling them needs a small change to the base `emit` and the `hexRGB` const, so it is left for the integrator to decide.
+Particles are one draw per system (PSA, PSN, SMK, SMKA), and `emit`/`psStep` reuse particle objects (see above); `emitS` (smoke) is unchanged.
 
 ### Tests and proof
 `tests/pcr-test.js` checks:

@@ -37338,6 +37338,9 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
       scene graph, hidden from the camera (layer mask 0); every frame each part is checked: if it is hidden or removed, or its material no longer
       fits the pool (the Invisible cloak's ghost, see-through, a shader of its own), its slot is emptied and the original draws itself, as before.
       Material changes that do fit (regeneration pulses, a glow fading) are followed in the slot. Clones of a body (afterimages) get their layers back.
+      Memory and triangles: a foe off screen (its bounding sphere against the camera) is left out of the draw, and so are emptied ranges; the
+      unshadowed flat pool joins repeated corners (it reads no normals); pools are rewritten packed when a quarter is gaps or they hold twice
+      what is live. Nothing else is cached but the joined corners of shared model parts.
    2) The see-through pieces every foe or elite has: shadow blobs, elite markers and their glows. They stay in the scene as they are. three.js's
       sorted list of see-through things is then rebuilt (its sort is wrapped): each piece joins the earliest batch of its shape that comes after the
       last thing it overlaps on screen, so wherever two things overlap they draw in the original order; each batch is one instanced mesh with each
@@ -37347,8 +37350,8 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
       instances (one draw for each shape).
    4) The fight's JS: one pass for inRange (it was a scan plus three filters), the elite animations without a for-in per foe.
    Measured (bench.js at 6882dff, 450 steps, all passes; the README section "Crowds at scale (v494)" has the full table):
-     crowd: 1455 -> 903 draw calls a step (max 2251 -> 1200), render 1392 -> 792 ms; late: 1148 -> 860 (max 2143 -> 1302); spells: 1584 -> 1323
-     (max 3379 -> 2304). A 12-second wave-140 fight: 0.5 draw calls a foe (was about 3.5). Game JS unchanged within noise.
+     crowd: 1455 -> 844 draw calls a step (max 2251 -> 1097), render 1392 -> 695 ms, triangles 570k -> 575k; late: 1148 -> 844 (max 2143 -> 1163);
+     spells: 1584 -> 1265 (max 3379 -> 2304). A 12-second wave-140 fight: 0.5 draw calls a foe (was about 3.5). 30 waves: heap after GC +17.7 MB.
    ---- */
 const PCR={on:!window.__pcrOff,W:1024,H:8,recs:new Set(),mats:new Map(),pools:{},BK:{},rbF:0,cap:16,seq:[],srt:[],sq:[],bq:[],bat:[],ri:[],pf:[],prevF:[],open:[],ff:[],nff:0,ns:0,nb:0,shard:{},slotFree:[],slotHW:1,
   tex:null,texA:null,mat:null,stat:{baked:0,parts:0,skipped:0,released:0,geoHit:0,geoMiss:0,grow:0},frame:0,fxF:0};
