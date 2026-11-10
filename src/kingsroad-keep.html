@@ -37413,6 +37413,20 @@ function vfxSync(){const vf=DW.vf||(DW.vf=$('#vfxFlash')),vv=DW.vv||(DW.vv=$('#v
 {const fr=frame;frame=function(now){DW.inFrame=true;try{return fr.apply(this,arguments);}finally{DW.inFrame=false;
     if(DW.pend.length){const P=DW.pend.splice(0);for(const f of P){try{f();}catch(e){console.error(e);}}}
     if(!DW.gd){const b=$('#bDev');if(b){dwGuard(b,1);DW.gd=1;}}}};}
+/* ---- 3) Memory over a long run ----
+   Played the same wave 120 again and again (with the big scrolls): the renderer's geometries went 1219, 1228, 1332 ... 2021 in ten
+   rounds and the JS heap 56 to 77 MB, while the scene itself stayed the same size. The cause: an effect disposes its geometry when its
+   time is up, but when its object hangs under another effect's group (the Eclipse's falling stars hang under the cast's root for its
+   11.5 s), it stays in the scene: the next frame uploads the geometry again, and when the group finally goes nobody disposes it twice.
+   Now a geometry that was disposed and then uploaded again is remembered (MEM.re); every 3 s, any of those no longer in the scene is
+   disposed again (three.js uploads it once more if it is ever drawn again, so nothing can break). Materials are left alone: freeing a
+   material that comes back would mean compiling its shader again, a hitch, and their count does not grow. */
+const MEM={re:new Set(),t:0,n:0,on:true};
+{const GD=THREE.BufferGeometry.prototype.dispose;THREE.BufferGeometry.prototype.dispose=function(){this.__memD=1;return GD.apply(this,arguments);};
+  const AE=THREE.EventDispatcher.prototype.addEventListener;THREE.EventDispatcher.prototype.addEventListener=function(t){if(t==='dispose'&&this.__memD&&this.isBufferGeometry){this.__memD=0;MEM.re.add(this);}return AE.apply(this,arguments);};}
+function memSweep(){if(!MEM.re.size)return 0;const used=new Set();scene.traverse(o=>{if(o.geometry)used.add(o.geometry);});let n=0;
+  for(const g of MEM.re){if(used.has(g))continue;MEM.re.delete(g);if(g._listeners&&g._listeners.dispose&&g._listeners.dispose.length){g.dispose();n++;}}MEM.n+=n;return n;}
+{const a0=anim;anim=function(dt,rt){const r=a0.apply(this,arguments);MEM.t+=dt||0;if(MEM.t>3){MEM.t=0;if(MEM.on)try{memSweep();}catch(e){console.error(e);}}return r;};}
 /* ---- 4) Load: the thumbnails are made when first needed, or a few at a time while the menus cover the board ----
    At start makeThumbs drew every tower (12, at 128 px) and every hero (twice, picture and silhouette, at 160 px) and read each back as a PNG:
    about 0.6 s before the game was ready. Now each entry of thumbs, hthumbs and hsil is a getter that draws its own picture the first time
