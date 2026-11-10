@@ -16,7 +16,7 @@ try{
   ok('registries: tpEye, tpRib, the cloud atlas, TPE',typeof tpEye==='function'&&typeof tpRib==='function'&&typeof tpEyeTex==='function'&&TPE&&tpEyeTex().image.width===512);
   ok('patch note and changelog entry',(NOTES_V!=='masteries-1'||NOTES_HTML.includes('the eye of the storm'))&&CLOG.some(u=>u.t==='The eye of the storm'&&/^v36\d$/.test(u.v)));
   go();foes(8);ok('no eye before the cast',!TPE.on);cast();const E=TPE.on;
-  ok('casting the Tempest raises the eye (v465: a hurricane: the wall, its inner face, cloud bands, rain bands, cloud arms, rain curtains, the outflow)',E&&E.api&&E.puffs.length===E.NP&&E.NP>=250&&[E.clouds,E.wface,E.bandMesh,E.rbMesh,E.caMesh,E.curtains,E.outflow].every(m=>m&&m.parent===E.root),E&&E.NP);
+  ok('casting the Tempest raises the eye (v465: a hurricane: the wall, its inner face, the outflow; v496: the cloud bands, rain bands, cloud arms and rain curtains are no longer drawn)',E&&E.api&&E.puffs.length===E.NP&&E.NP>=250&&[E.clouds,E.wface,E.outflow].every(m=>m&&m.parent===E.root)&&[E.bandMesh,E.rbMesh,E.caMesh,E.curtains].every(m=>m&&!m.parent),E&&E.NP);
   const H=heroU,hx=E.hx,hz=E.hz,G0=E.G0,NP=E.NP,P=i=>E.puff(i,{});
   ok('round the hero',Math.hypot(H.x-hx,H.z-hz)<1e-6);
   ok('the base storm has no mastery pieces (no debris, no crawlers, no strikes)',!E.crawlers.length&&!E.strikes.length&&E.D===TPD);

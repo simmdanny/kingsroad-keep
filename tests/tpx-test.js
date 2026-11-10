@@ -16,7 +16,7 @@ const inScene=o=>{let q=o;while(q&&q!==scene)q=q.parent;return q===scene;};
 try{
   ok('looks only: the hurricane draws on no random of the game and hurts no foe',typeof tpxBuild==='function'&&!/\brnd\(|hurt\(|stunE\(|lives/.test(String(tpxBuild)));
   go(0);ok('no storm deck before the cast',!TPX.on);cast();const S=TPX.on;
-  ok('the cast raises the storm deck, the wind sheet and the hero\'s core, in the storm\'s own group',S&&[S.deck,S.sheet,S.core].every(m=>m&&inScene(m)),S&&S.deck&&S.deck.parent&&S.deck.parent.type);
+  ok('the cast raises the storm deck and the hero\'s core, in the storm\'s own group (v496: the wind sheet is no longer drawn)',S&&[S.deck,S.core].every(m=>m&&inScene(m))&&S.sheet&&!inScene(S.sheet),S&&S.deck&&S.deck.parent&&S.deck.parent.type);
   runTo(.2);const a0=S.deckU.uA.value,e0=S.deckU.uEye.value;
   runTo(3);const a1=S.deckU.uA.value,e1=S.deckU.uEye.value;
   ok('the deck gathers: it fades in and its eye closes in round the hero',a0<.05&&a1>.8&&e0>e1+2,a0.toFixed(2)+' -> '+a1.toFixed(2)+', eye '+e0.toFixed(1)+' -> '+e1.toFixed(1));

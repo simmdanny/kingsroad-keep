@@ -15275,6 +15275,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'The Primordial Tempest turns like a tornado',d:'6 Nov',v:'v496',li:[
+    'The Primordial Tempest\u2019s storm now turns counterclockwise, the way a tornado or a hurricane turns seen from above. Before, the great cloud deck over the board turned one way and the eye wall round your hero the other; now the whole storm, its arms, the eye wall, the storm clouds, the lightning racing round, the wind, the rain, the dust and the debris all wheel the same way, faster close to the eye.',
+    'Its spiral arms trail behind the spin as real storm arms do: three broad, soft arms of storm cloud round a calm, clear eye, in place of the many thin streaks that crossed each other.',
+    'Cleaner: the wind sheet, the cloud shadows on the ground, the rain bands and cloud arms on the field, the rain curtains and the cloud bands on the inner wall are gone, so the hurricane, its smooth inner wall, its storm clouds and the lightning read clearly. The board stays as dark under the storm as before, and the foes and the road still show through it. High above, the thin cirrus still turns the other way, as it does over real storms.',
+    'It is lighter to draw too (6 fewer draw calls while it rages). Looks only: the Tempest strikes exactly as before, at every mastery.']},
   {t:'Invisible foes stay invisible',d:'5 Nov',v:'v490',li:[
     'An Invisible foe that was also Regenerating or Warded showed its glowing regrowth or its rune while the rest of it was hidden. It is hidden all over now, and revealed all over when your seers or spells reveal it.']},
   {t:'No more grey screen after space spells',d:'5 Nov',v:'v489',li:[
@@ -33541,7 +33546,7 @@ function tpxBuild(root,reg,regM,hx,G0,hz,ph,D,zT,zB){
         halo.position.copy(core.position);halo.scale.setScalar(2.6*pu*(1+.6*build));haloM.opacity=.38*ck;}
       /* the clouds wheel round the eye with the spiral, drawn in as the storm gathers and blown out at the fall; they fade near the camera */
       const cy=camera.position.y;for(const c of CLD){c.k=SMS(T-c.dl,.3,2.8)*(1-SMS(T,END-.2+c.dl*.3,END+1.4));const rk=(1+blow*.9)*(1-.12*tight);
-        if(c.pullT>0){c.pullT-=dt;const w=Math.min(1,dt*7);c.r+=(c.tr/rk-(1-c.k)*5-c.r)*w;c.a+=(c.ta-c.a)*w;}else c.a+=dt*spin*c.sp*.55;
+        if(c.pullT>0){c.pullT-=dt;const w=Math.min(1,dt*7);c.r+=(c.tr/rk-(1-c.k)*5-c.r)*w;c.a+=(c.ta-c.a)*w;}else c.a+=dt*spin*c.sp*.55*(TPX.orb?TPX.orb(c):1);/* v496: TPX.orb turns them the tornado's way */
         const r=(c.r+(1-c.k)*5)*rk,px=deckU.uC.value.x+Math.cos(c.a)*r,pz=deckU.uC.value.y+Math.sin(c.a)*r*.92;
         c.me.position.set(px,c.y+Math.sin(Tm*.3+c.wob)*.12,pz);c.me.rotation.y+=dt*.12*c.sp;const br=1+.05*Math.sin(Tm*.7+c.wob);c.me.scale.set(br,1+.04*Math.sin(Tm*.9+c.wob),br);
         /* the view stays clear: a cloud thins away while the ground the camera sees through it holds a foe or the road (its flash still shows as it fires) */
@@ -37317,6 +37322,68 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
     else if((o.isMesh||o.isLine||o.isPoints||o.isSprite)&&o.visible&&!H.includes(o)&&!(o.material&&o.material.userData&&o.material.userData.nmxGhost)){H.push(o);o.visible=false;}});}
 {const a0=animElite;animElite=function(e,dt){const r=a0.apply(this,arguments);if(e&&e.ghostOn)nmxRecloak(e);return r;};}
 {const se=spawnEnemy;spawnEnemy=function(){const n0=enemies.length,r=se.apply(this,arguments);for(let i=n0;i<enemies.length;i++){const e=enemies[i];if(e&&e.ghostOn)nmxRecloak(e);}return r;};}
+
+/* ================= The Primordial Tempest spins like a tornado (v496) =================
+   Simon: "the storm on primordial tempest should spin in the direction a tornado spins and be more clean".
+   Measured first (tests/ttn-test.js: each layer drawn alone, two frames apart, cross-correlated round the hero's screen point; CCW positive,
+   degrees a second on screen, game camera, plains seed 777, 7 s into the cast):
+   - the storm deck turned CLOCKWISE (-29), its storm clouds too (-19) and the wind sheet's streaks ran their own way, while every layer of the
+     eye (v465: the wall's billows +63, its inner face +33, the cloud bands +51, the rain bands +39, the cloud arms +35, the curtains +29, the
+     arcs, streaks, dust, rain and the hero's smoke) turned COUNTERCLOCKWISE: the storm turned against itself. The deck's arms curled for a
+     clockwise spin (outward along an arm turned counterclockwise).
+   - A tornado (and a northern hurricane) seen from above turns counterclockwise, its arms trailing: outward along an arm turns clockwise.
+   What changed (looks only: no damage, no timing, no random of the game):
+   - The deck (one plane, its cloud in the shader) is drawn anew: it turns counterclockwise with arms that trail the spin, three broad smooth
+     arms of cloud with soft billowed edges instead of fine streaks, a smooth dense ring round a calm clear eye, and its cloud is carried round
+     faster near the eye than out at the edge (two samples half a cycle apart, crossfaded, so it never winds up). Strikes still light it from
+     inside, the eye wall still glows, the crown flashes it white and the fall blows it out.
+   - The storm clouds over the eye wall (v477) wheel counterclockwise with it, faster closer in (TPX.orb).
+   - The inner face's winds (v487) climb as they go round counterclockwise; leaning the other way, they slid clockwise as they climbed
+     (-47 deg/s at M3 once the deck was turned). In the full hurricane (M5) the deck turns at 0.75x, so the eye wall stays the fastest part.
+   - Fewer layers, so it reads as one hurricane: the wind sheet, the ground cloud shadows (castTempest's), the rain bands on the ground, the
+     cloud arms over them, the rain curtains and the cloud bands on the inner face are no longer built into the scene (the deck's arms, the
+     smooth inner wall of v487 and the rain carry them); the falling rain is a little lighter and the outflow (cirrus turning the other way,
+     anticyclonic, as in real storms) stays faint. Everything left turns counterclockwise.
+   - Cheaper: 6 fewer draw calls (38 -> 32 at M0, 48 -> 42 at M5) and 6 to 8 fewer shader programs a cast, two or three full-board planes less overdraw, a deck shader of 12
+     noise lookups a pixel instead of 34 (README: The Primordial Tempest spins like a tornado (v496), with the measured numbers). */
+const TTN={drop:['bandMesh','rbMesh','caMesh','curtains'],rainK:.75,outK:.6,dark:.24,dropped:[]};
+TPX.orb=c=>-Math.pow(4/Math.max(2.5,c.r),.5);/* counterclockwise on screen (the clouds' angle runs atan2(z,x), z toward the camera), faster in close */
+/* the deck: e is the point in screen-like axes (x right, y away from the camera), so its angle runs counterclockwise as the camera sees it */
+function ttnDeckFS(NF){return 'uniform float uT,uA,uEye,uOut,uTw,uRot,uRK,uLit,uWhite,uBlow,uCrawl,uDen;uniform vec2 uC;uniform vec4 uF['+NF+'];varying vec2 vW;'+TPX_NOISE+
+  'float fb(vec2 p){return tn(p)*.6+tn(p*2.03+vec2(1.7,9.2))*.28+tn(p*4.1+vec2(5.3,2.9))*.12;}'+
+  'vec2 rt(vec2 v,float a){float c=cos(a),s=sin(a);return vec2(v.x*c-v.y*s,v.x*s+v.y*c);}'+
+  /* the cloud's billows: turned with the deck, sheared a little along the arms, and carried round faster close in (w rad/s more there);
+     two samples half a cycle apart crossfade so the extra turn never winds the cloud up */
+  'float cloud(vec2 e,float r){float lr=log(r+.6),w=1.4/(r+1.),f0=fract(uT*.1),f1=fract(uT*.1+.5),b=uRot*uRK-uTw*.7*lr;'+
+    'float n0=fb(rt(e,-(b+w*(f0-.5)*10.))*.3),n1=fb(rt(e,-(b+w*(f1-.5)*10.))*.3+vec2(3.7,1.3));return mix(n0,n1,abs(2.*f0-1.));}'+
+  'float dens(vec2 e){float r=length(e)/(1.+uBlow*2.4),th=atan(e.y,e.x),lr=log(r+.6);'+
+    /* three arms trailing a counterclockwise spin: outward along an arm turns clockwise */
+    'float arm=.5+.5*cos(3.*(th+uTw*2.07*lr-uRot*uRK));arm=arm*arm*(3.-2.*arm);float n=cloud(e,r);'+
+    'float body=smoothstep(uEye+.25,uEye+1.5,r)*(1.-smoothstep(uOut*.7,uOut,r));float m=body*smoothstep(.4,.95,arm*.85+n*.5-.12)*(.5+.65*n);'+
+    'float ring=smoothstep(uEye,uEye+.6,r)*(1.-smoothstep(uEye+1.1,uEye+3.,r))*smoothstep(.28,.72,n+.12);'+
+    'return clamp(max(m*1.1,ring*.72),0.,1.);}'+
+  'void main(){vec2 d=vW-uC,e=vec2(d.x,-d.y);float r=length(d);float k=dens(e);if(k<.004)discard;'+
+    /* lit from above and from the sun side (as before: up and left on the screen) */
+    'float kl=dens(e+vec2(-.35,.45));float lit=clamp(.5+(k-kl)*1.3,0.,1.);'+
+    'vec3 dark=vec3(.07,.05,.15),mid=vec3(.28,.22,.45),top=vec3(.74,.7,.92);vec3 c=mix(dark,mid,smoothstep(.1,.65,lit));c=mix(c,top,smoothstep(.6,1.,lit)*.45);c*=.75+.35*k;'+
+    'float wall=exp(-pow((r/(1.+uBlow*2.4)-uEye-.55)/.55,2.));c+=vec3(.42,.28,.75)*wall*(.3+.7*uLit);'+
+    'float g=0.;for(int i=0;i<'+NF+';i++){vec2 q=vW-uF[i].xy;g+=uF[i].z*exp(-dot(q,q)/(uF[i].w*uF[i].w));}'+
+    'c+=vec3(.75,.62,1.)*g*(.5+.5*(1.-k))*(1.3+.4*uCrawl)+vec3(.5,.4,.8)*uLit*.45;c=mix(c,vec3(1.,.97,1.),uWhite*.75);'+
+    'gl_FragColor=vec4(c,min(.5,k*uDen*.72)*uA*(1.-.35*uWhite));}';}
+{const tb=tpxBuild;tpxBuild=function(root){const S=tb.apply(this,arguments),E=TPE.on,M=S.deck.material;
+  /* the deck turns a little slower than the eye wall under it, even in the full hurricane (M5), so the storm is fastest at the eye */
+  S.deckU.uRK={value:arguments[7]&&arguments[7].hur?.75:1};M.fragmentShader=ttnDeckFS(S.deckU.uF.value.length);M.needsUpdate=true;
+  /* v487's inner face: its winds climb as they go round counterclockwise (they leaned the other way, so climbing they slid clockwise) */
+  if(E&&E.root===root){const F=E.wface.material,f0=F.fragmentShader;F.fragmentShader=f0.replace('(th-uRot*.6+.32*vH)','(th-uRot*.6-.32*vH)');TTN.lean=F.fragmentShader!==f0;F.needsUpdate=true;}
+  const gone=[S.sheet];if(E&&E.root===root)for(const k of TTN.drop)if(E[k])gone.push(E[k]);for(const o of gone){root.remove(o);o.visible=false;}
+  let first=true;const st=S.step;S.step=function(){if(first){first=false;/* castTempest's cloud shadows over the board (made after this) */
+      for(const o of root.children.slice())if(o.isMesh&&o.renderOrder===29&&o.material.uniforms&&o.material.uniforms.uF&&o.geometry.parameters&&o.geometry.parameters.width>20){root.remove(o);o.visible=false;gone.push(o);}}
+    const r=st.apply(this,arguments);
+    for(const o of root.children)if(o.isLineSegments&&o.renderOrder===57)o.material.opacity*=TTN.rainK;
+    if(E&&E.root===root)E.outflow.material.uniforms.uA.value*=TTN.outK/Math.sqrt(Math.max(1,E.D.outflow));/* faint at every mastery */
+    /* the board under the storm stays as dark as it was under the cloud shadows (a dim, not a veil: foes and the road read through it) */
+    darkTarget=Math.max(darkTarget,TTN.dark*S.deckU.uA.value);return r;};
+  S.dropped=gone;TTN.dropped=gone;return S;};}
 
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
