@@ -37482,11 +37482,11 @@ function thmLazy(obj,kind,key){Object.defineProperty(obj,key,{configurable:true,
   set(v){thmVal(obj,key,v);}});}
 /* the rest: a batch of about 40 ms at a time, 60 ms apart, while the menus cover the board */
 function thmIdle(){if(!TH.q.length)return;if(hideWorld()&&!document.hidden){const t0=performance.now();try{thmBatch(()=>performance.now()-t0<TH.budget);}catch(e){console.error(e);}setTimeout(thmIdle,TH.gap);}else setTimeout(thmIdle,400);}
-/* replaces the base makeThumbs and keeps what the wrappers after it added (profMake) */
-makeThumbs=function(){TH.cc.copy(renderer.getClearColor(TH.c2));TH.ca=renderer.getClearAlpha();
+/* replaces the base makeThumbs and keeps what the wrappers after it added (profMake); called again, it draws them all afresh, lazily */
+makeThumbs=function(){TH.cc.copy(renderer.getClearColor(TH.c2));TH.ca=renderer.getClearAlpha();TH.q.length=0;
   for(const k of ALL_T){TH.q.push(['t',k]);thmLazy(thumbs,'t',k);}
   for(const h of HEROES){TH.q.push(['h',h.id]);thmLazy(hthumbs,'h',h.id);thmLazy(hsil,'h',h.id);}
-  profMake();TH.atStart={made:TH.n,queued:TH.q.length};setTimeout(thmIdle,TH.start);};
+  profMake();if(!TH.atStart)TH.atStart={made:TH.n,queued:TH.q.length};setTimeout(thmIdle,TH.start);};
 function thmAll(){while(TH.q.length)thmBatch(()=>true);}
 /* a board can tint shared materials (a land's colours, the Blood Moon): whatever is still waiting is drawn before the next board is
    built or a battle starts, from the same materials the start had */
