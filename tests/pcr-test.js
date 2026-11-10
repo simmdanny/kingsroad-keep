@@ -53,6 +53,10 @@ const run=async()=>{
     ok('no records left, the pools are empty',PCR.recs.size===0&&Object.values(PCR.pools).every(P=>P.ihw===0&&P.vhw===0),PCR.recs.size);
     ok('matrix slots are reused (no growth over 5 crowds)',PCR.slotHW===s1,s0+' -> '+s1+' -> '+PCR.slotHW);
     ok('no scene objects pile up: v494\'s own stay few, no removed foe stays in the scene',mineS()<=c1+2&&G.every(L=>L.every(g=>!g.parent)),c0+' -> '+c1+' -> '+mineS());}
+  /* the same wave of elites three times: nothing of v494 piles up between rounds (its buckets go when the foes go) */
+  {board('plains');const R=[];for(let k=0;k<3;k++){crowd(90,true);for(let i=0;i<6;i++){update(1/60);updFx(1/60);anim(1/60,i/60);shot();}for(const e of enemies.slice())removeEnemy(e);enemies=[];
+      for(let i=0;i<4;i++){updFx(1/60);anim(1/60,i/60);shot();}R.push([scene.children.length,renderer.info.memory.geometries,renderer.info.memory.textures,PCR.nBK,scene.children.filter(o=>/^pcr/.test(o.name)).length]);}
+    ok('the same elite wave three times: scene children, geometries and textures do not grow after the first round, no bucket is left',R[2][0]<=R[0][0]&&R[1][0]<=R[0][0]&&R[2][1]<=R[0][1]&&R[2][2]<=R[0][2]&&R[2][3]===0,JSON.stringify(R));}
   /* no growth over frames: a fight with shards and sparkles */
   {board('plains');crowd(60);paused=false;state='playing';let L0=null;for(let i=0;i<400;i++){update(1/60);updFx(1/60);for(const e of enemies)updBar(e);anim(1/60,i/60);if(i%4===0)shot();if(i===200)L0=[PCR.seq.length,PCR.bat.length,PCR.mats.size];}
     for(let i=0;i<30;i++)burst(0,.5,0,0xff8040,8);sparkle(0,.5,0,0xffd060);shot();const ns=Object.values(PCR.shard).reduce((a,S)=>a+S.list.length,0);
