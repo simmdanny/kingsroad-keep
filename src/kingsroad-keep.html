@@ -37403,10 +37403,10 @@ function pcrMatCheck(){for(const [m,r] of PCR.mats){if(PCR.frame-r.f>600){PCR.ma
 /* ---- the pools: positions, normals, vertex colours and the slot of each vertex, written straight from the part geometries (nothing else kept) ---- */
 const PCR_AT=[['position',3],['normal',3],['color',3],['pcrI',1]];
 function pcrPoolGeo(P,vcap,icap,keep){const G=new THREE.BufferGeometry(),old=P.A;P.A={};
-  for(const [k,s] of PCR_AT){const a=new Float32Array(vcap*s);if(old&&keep)a.set(old[k].array.subarray(0,P.vhw*s));const A=new THREE.BufferAttribute(a,s);A.setUsage(THREE.DynamicDrawUsage);P.A[k]=A;G.setAttribute(k,A);}
+  for(const [k,s] of PCR_AT){if(k==='normal'&&P.weld)continue;const a=new Float32Array(vcap*s);if(old&&keep)a.set(old[k].array.subarray(0,P.vhw*s));const A=new THREE.BufferAttribute(a,s);A.setUsage(THREE.DynamicDrawUsage);P.A[k]=A;G.setAttribute(k,A);}
   const ia=new Uint32Array(icap);if(P.I&&keep)ia.set(P.I.array.subarray(0,P.ihw));P.I=new THREE.BufferAttribute(ia,1);P.I.setUsage(THREE.DynamicDrawUsage);G.setIndex(P.I);G.setDrawRange(0,P.ihw);
   G.boundingSphere=new THREE.Sphere(new THREE.Vector3(),1e6);if(P.geo)P.geo.dispose();P.geo=G;P.vcap=vcap;P.icap=icap;P.dv=[0,P.vhw];P.di=[0,P.ihw];P.full=true;if(P.mesh)P.mesh.geometry=G;PCR.stat.grow++;}
-function pcrPool(pk){let P=PCR.pools[pk];if(P)return P;const rs=pk&1,sm=!!(pk&2);P=PCR.pools[pk]={pk,rs,sm,vhw:0,ihw:0,vfree:[],ifree:[],A:null,I:null,geo:null,mesh:null,dv:[0,0],di:[0,0],full:true,segs:new Set(),gp:[]};
+function pcrPool(pk){let P=PCR.pools[pk];if(P)return P;const rs=pk&1,sm=!!(pk&2);P=PCR.pools[pk]={pk,rs,sm,weld:pk===0,vhw:0,ihw:0,vfree:[],ifree:[],A:null,I:null,geo:null,mesh:null,dv:[0,0],di:[0,0],full:true,segs:new Set(),gp:[]};
   pcrPoolGeo(P,PCR_MINV,PCR_MINV*1.5|0);if(!PCR.mat){PCR.mat=pcrMakeMat('phong',true,{},true);PCR.matS=pcrMakeMat('phong',true,{},true,true);pcrTexMake(PCR.H);}
   const me=new THREE.Mesh(P.geo,[sm?PCR.matS:PCR.mat]);me.receiveShadow=!!rs;me.castShadow=false;me.frustumCulled=false;me.matrixAutoUpdate=false;me.name='pcrFoes';me.userData.pcrPool=1;P.mesh=me;return P;}
 const PCR_MINV=65536;
@@ -37420,12 +37420,28 @@ const pcrDirty=(d,a,b)=>{if(a<d[0])d[0]=a;if(b>d[1])d[1]=b;};
 function pcrCopy3(D,v0,A,n){if(!A.isInterleavedBufferAttribute&&!A.normalized&&A.itemSize===3&&A.array.length>=n*3){D.set(A.array.subarray(0,n*3),v0*3);return;}
   for(let i=0;i<n;i++){const q=(v0+i)*3;D[q]=A.getX(i);D[q+1]=A.getY(i);D[q+2]=A.getZ(i);}}
 /* a segment (a foe's parts in one pool) written at its place: vertices, the slot of each vertex, indices (double-sided parts twice, reversed) */
-function pcrWriteSeg(P,S){const A=P.A,pa=A.position.array,na=A.normal.array,ca=A.color.array,pi=A.pcrI.array,ia=P.I.array;let v0=S.vs,i0=S.is;
+function pcrWriteSeg(P,S){const A=P.A,pa=A.position.array,ca=A.color.array,pi=A.pcrI.array,ia=P.I.array;let v0=S.vs,i0=S.is;
+  if(P.weld){for(const p of S.parts){const d=pcrWeld(p.geo,p.vc),n=d.n,c=d.ic,ix=d.idx;pa.set(d.pos,v0*3);if(d.col)ca.set(d.col,v0*3);else ca.fill(1,v0*3,(v0+n)*3);pi.fill(p.slot,v0,v0+n);
+      for(let k=0;k<c;k++)ia[i0+k]=ix[k]+v0;if(p.ds){for(let t=0;t+2<c;t+=3){ia[i0+c+t]=ia[i0+t];ia[i0+c+t+1]=ia[i0+t+2];ia[i0+c+t+2]=ia[i0+t+1];}i0+=c;}i0+=c;v0+=n;}
+    pcrDirty(P.dv,S.vs,S.vs+S.vn);pcrDirty(P.di,S.is,S.is+S.in);return;}
+  const na=A.normal.array;
   for(const p of S.parts){const g=p.geo,Pp=g.attributes.position,n=Pp.count,N=g.attributes.normal&&g.attributes.normal.itemSize===3?g.attributes.normal:null,ix=g.index,c=ix?ix.count:n;
     pcrCopy3(pa,v0,Pp,n);if(N)pcrCopy3(na,v0,N,n);else na.fill(0,v0*3,(v0+n)*3);if(p.vc)pcrCopy3(ca,v0,g.attributes.color,n);else ca.fill(1,v0*3,(v0+n)*3);pi.fill(p.slot,v0,v0+n);
     if(ix){const xa=ix.array,plain=!ix.isInterleavedBufferAttribute;for(let k=0;k<c;k++)ia[i0+k]=(plain?xa[k]:ix.getX(k))+v0;}else for(let k=0;k<c;k++)ia[i0+k]=k+v0;
     if(p.ds){for(let t=0;t+2<c;t+=3){ia[i0+c+t]=ia[i0+t];ia[i0+c+t+1]=ia[i0+t+2];ia[i0+c+t+2]=ia[i0+t+1];}i0+=c;}i0+=c;v0+=n;}
   pcrDirty(P.dv,S.vs,S.vs+S.vn);pcrDirty(P.di,S.is,S.is+S.in);}
+/* the pool that neither receives shadows nor shades smoothly never reads normals: there a part's vertices that share position and colour
+   (the flat-shaded models repeat each corner for every face) are joined, same triangles, same pixels, about a third of the memory.
+   The joined data is kept for geometries met twice (the shared model parts), never for a foe's own gear */
+const PCR_WD=new WeakMap(),PCR_WS=new WeakSet();
+function pcrWeld(g,vc){const P=g.attributes.position,C=vc?g.attributes.color:null,ix=g.index;let d=PCR_WD.get(g);
+  if(d&&d.vc===vc&&d.pv===P.version&&d.cv===(C?C.version:-1)&&d.iv===(ix?ix.version:-1)&&d.N===P.count)return d;
+  const N=P.count,map=new Map(),rem=new Uint32Array(N),pos=[],col=C?[]:null;let n=0;
+  for(let i=0;i<N;i++){const x=P.getX(i),y=P.getY(i),z=P.getZ(i),r=C?C.getX(i):0,gg=C?C.getY(i):0,b=C?C.getZ(i):0,k=C?x+','+y+','+z+','+r+','+gg+','+b:x+','+y+','+z;
+    let j=map.get(k);if(j===undefined){j=n++;map.set(k,j);pos.push(x,y,z);if(col)col.push(r,gg,b);}rem[i]=j;}
+  const ic=ix?ix.count:N,idx=new Uint32Array(ic);for(let k=0;k<ic;k++)idx[k]=rem[ix?ix.getX(k):k];
+  d={n,N,ic,pos:new Float32Array(pos),col:col?new Float32Array(col):null,idx,vc,pv:P.version,cv:C?C.version:-1,iv:ix?ix.version:-1};
+  if(PCR_WS.has(g))PCR_WD.set(g,d);else PCR_WS.add(g);return d;}
 function pcrPlace(P,S){let vs=pcrAlloc(P,P.vfree,'vhw','vcap',S.vn),is=vs<0?-1:pcrAlloc(P,P.ifree,'ihw','icap',S.in);
   if(vs<0||is<0){if(vs>=0)pcrFree(P,P.vfree,'vhw',vs,S.vn);pcrPoolGeo(P,Math.max(Math.ceil(P.vcap*1.5),P.vhw+S.vn),Math.max(Math.ceil(P.icap*1.5),P.ihw+S.in),true);
     vs=pcrAlloc(P,P.vfree,'vhw','vcap',S.vn);is=pcrAlloc(P,P.ifree,'ihw','icap',S.in);}
@@ -37451,7 +37467,7 @@ function pcrBake(e){if(!PCR.on||!e||!e.g||!e.b||e.pcr||!pcrReady())return;const 
   for(let pk=0;pk<4;pk++){const list=by[pk];if(!list.length)continue;const P=pcrPool(pk);let V=0,I=0;
     const parts=list.map(o=>{const s=pcrSlot(),k=pcrMatReg(o.material).k,g=o.geometry,n=g.attributes.position.count,ds=o.material.side===THREE.DoubleSide;pcrSlotMat(s,o.material,k[0]);
       const p={o,k,geo:g,pv:g.attributes.position.version,slot:s,mask0:o.layers.mask,on:false,dead:false,m:null,r:null,mv:-1,vc:!!(o.material.vertexColors&&g.attributes.color),ds};
-      R.parts.push(p);V+=n;I+=(g.index?g.index.count:n)*(ds?2:1);return p;});
+      R.parts.push(p);V+=P.weld?pcrWeld(g,p.vc).n:n;I+=(g.index?g.index.count:n)*(ds?2:1);return p;});
     const S={P,R,parts,vn:V,in:I,vs:0,is:0};pcrPlace(P,S);R.segs.push(S);}
   /* a sphere round the whole foe (its parts as built, with room for swinging limbs and fluttering cloth), for the frustum test */
   e.g.updateMatrixWorld(true);{const c=PCR_V.setFromMatrixPosition(e.g.matrixWorld),sp=new THREE.Sphere();let r=0;for(const p of R.parts){const g=p.geo;if(!g.boundingSphere)g.computeBoundingSphere();
@@ -37553,7 +37569,7 @@ function pcrPass(cam){PCR.frame++;const shards=pcrShardAny();
     const me=I.mesh;me.count=I.n;me.visible=I.n>0;if(I.n){if(me.parent!==scene)scene.add(me);me.instanceMatrix.needsUpdate=true;for(const a in I.attrs)I.attrs[a].needsUpdate=true;}}
   /* pools: upload what changed, keep the meshes in the scene */
   for(const k in PCR.pools){const P=PCR.pools[k];
-    if(PCR.frame-PCR.bakeF>30&&P.vcap>PCR_MINV){const li=pcrLiveI(P);if(P.ihw-li>P.ihw*.25||P.icap>li*2+PCR_MINV)pcrCompact(P);}
+    if(PCR.frame-PCR.bakeF>30&&P.vcap>PCR_MINV){const li=pcrLiveI(P);if(P.ihw-li>P.ihw*.25||P.icap>li*2+PCR_MINV||P.vcap>pcrLiveV(P)*2+PCR_MINV)pcrCompact(P);}
     const me=P.mesh;if(me.parent!==scene)scene.add(me);P.geo.setDrawRange(0,P.ihw);pcrGroups(P);me.visible=P.geo.groups.length>0&&!PCR.hush;
     if(P.full){for(const a in P.A){P.A[a].updateRange.count=-1;P.A[a].needsUpdate=true;}P.I.updateRange.count=-1;P.I.needsUpdate=true;P.full=false;}
     else{if(P.dv[1]>P.dv[0])for(const a in P.A){const A=P.A[a];A.updateRange.offset=P.dv[0]*A.itemSize;A.updateRange.count=(P.dv[1]-P.dv[0])*A.itemSize;A.needsUpdate=true;}
@@ -37616,6 +37632,7 @@ function pcrRectQ(q,P){const e=q.e||(q.e={});pcrRect(e,q.o,P);return e;}
 function pcrRI(T,r0){const me=T.I.mesh,ri=T.ri||(T.ri={});ri.id=me.id;ri.object=me;ri.geometry=me.geometry;ri.material=me.material;ri.program=null;ri.groupOrder=r0.groupOrder;ri.renderOrder=r0.renderOrder;ri.z=r0.z;ri.group=null;return ri;}
 const PCR_SRC=new WeakMap();
 function pcrLiveI(P){let n=0;for(const S of P.segs)n+=S.in;return n;}
+function pcrLiveV(P){let n=0;for(const S of P.segs)n+=S.vn;return n;}
 /* the draw: the index ranges of the foes on screen, neighbours joined (small gaps of emptied indices are drawn as nothing) */
 function pcrGroups(P){const L=P.sl||(P.sl=[]);L.length=0;for(const S of P.segs)if(S.R.vis)L.push(S);L.sort((a,b)=>a.is-b.is);const G=P.geo.groups;G.length=0;let g=null;
   for(const S of L){if(g&&S.is-(g.start+g.count)<=768){g.count=S.is+S.in-g.start;continue;}g=P.gp[G.length]||(P.gp[G.length]={start:0,count:0,materialIndex:0});g.start=S.is;g.count=S.in;G.push(g);}
