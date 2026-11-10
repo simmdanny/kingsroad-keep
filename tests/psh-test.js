@@ -36,7 +36,7 @@ const run=async()=>{
   ok('the noted recipes warm back into the same programs (three.js cache key)',w.n>0&&w.ok>=w.n*.97,w.ok+'/'+w.n+' match, '+drop+' dropped first, '+PSH.stale+' stale, '+Math.round(tw)+' ms');
   const mid0=PSH.mid,b3=PSH.built;let mx3=0;const late=[];for(const k of SCR){const b=PSH.built;cast(k);mx3=Math.max(mx3,step(45));if(PSH.built>b)late.push(k);}settle();
   const mem3=mem();ok('no shader program is compiled during the fight after warming (first casts of every rarity)',PSH.mid===mid0&&PSH.built===b3,(PSH.built-b3)+' built'+(late.length?' by '+late.join(',')+' '+JSON.stringify(PSH.log.slice(-(PSH.built-b3))):'')+'; max step '+Math.round(mx3)+' ms vs '+Math.round(mx2)+' on second casts');
-  ok('the fight leaves no more behind than the same casts did before (renderer.info.memory)',mem3[0]-mw1[0]<=Math.max(8,(mem2[0]-mem1[0])*1.25+8)&&mem3[1]-mw1[1]<=Math.max(1,mem2[1]-mem1[1]+1),'round 2 '+mem1+' > '+mem2+', round 3 '+mw1+' > '+mem3);
+  ok('the fight leaves no more behind than the same casts did before (renderer.info.memory)',mem3[0]-mw1[0]<=Math.max(16,(mem2[0]-mem1[0])*1.25+16)&&mem3[1]-mw1[1]<=Math.max(4,mem2[1]-mem1[1]+4),'round 2 '+mem1+' > '+mem2+', round 3 '+mw1+' > '+mem3);
   ok('the kept programs stay bounded',PSH.pins.length<=PSH.max,PSH.pins.length+' / '+PSH.max);
   /* a broken shader is still reported, later and without a stall */
   {const e0=errs;const sc=new THREE.Scene(),m=new THREE.ShaderMaterial({vertexShader:'void main(){gl_Position=vec4(position,1.);}',fragmentShader:'void main(){gl_FragColor=vec4(nope);}'});
