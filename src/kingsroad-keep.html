@@ -37507,8 +37507,12 @@ function gqSetRow(o){const body=o&&o.querySelector('.np-body');if(!body||body.qu
     `</div><div style="font-size:11px;opacity:.65;margin-top:4px">${GQ_D[m]}.${m==='auto'?' Now: '+gqNow()+'.':''}</div>`;
   const fov=body.querySelector('#fovSl'),blk=fov&&fov.closest('div[style*="padding:10px"]');if(blk)body.insertBefore(d,blk);else body.appendChild(d);
   d.querySelectorAll('[data-gfx]').forEach(b=>b.onclick=()=>{setGfx(b.dataset.gfx);d.remove();gqSetRow(o);});}
-/* (the window is made the first time it opens, by code further down: it is found when it joins the page) */
-{const hook=o=>{if(!o||o.__gqMo)return;o.__gqMo=1;gqSetRow(o);new MutationObserver(()=>gqSetRow(o)).observe(o,{childList:true});};
+/* (the window is made the first time it opens, by code further down. Its every repaint sets its innerHTML: that element gets its own
+   innerHTML that puts the row back straight after. It is found when window.openSettings is set, or when it joins the page.) */
+{const IH=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
+  const hook=o=>{if(!o||o.__gqH)return;o.__gqH=1;Object.defineProperty(o,'innerHTML',{configurable:true,get(){return IH.get.call(this);},set(v){IH.set.call(this,v);try{gqSetRow(this);}catch(e){console.error(e);}}});gqSetRow(o);};
+  let os=window.openSettings;Object.defineProperty(window,'openSettings',{configurable:true,enumerable:true,get(){return os;},
+    set(f){os=typeof f!=='function'?f:function(){const r=f.apply(this,arguments);hook(document.getElementById('setPop'));return r;};}});
   const mo=new MutationObserver(()=>{const o=document.getElementById('setPop');if(o){hook(o);mo.disconnect();}});mo.observe(document.body,{childList:true});}
 /* developer panel: the setting, Auto's current level and its last moves */
 {const dp=devPaint;devPaint=function(){const r=dp.apply(this,arguments);const p=$('#devPanel');if(!p)return r;let s=p.querySelector('#dvGfx');

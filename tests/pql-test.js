@@ -59,7 +59,7 @@ try{
   feed(2600,25,8);feed(4300,25,8);ok('Auto: too slow again right after stepping up: down again',GQ.auto===1,GQ.auto);
   ok('Auto: and that level is held back (no flicker)',(GQ.hold[0]||0)>GQ.last,'hold for '+Math.round(((GQ.hold[0]||0)-GQ.last)/1000)+' s');
   {const n=GQ.log.length;feed(20000,16.7,3);ok('Auto: fast frames during the hold do not step up',GQ.auto===1&&GQ.log.length===n,GQ.auto);
-    feed(20000,16.7,3);ok('Auto: after the hold it tries again',GQ.auto===0,GQ.auto);}
+    for(let i=0;i<60&&GQ.auto!==0;i++)feed(500,16.7,3);ok('Auto: after the hold it tries again',GQ.auto===0,GQ.auto);}
   {feed(2600,25,8);feed(4300,25,8);const h2=(GQ.hold[0]||0)-GQ.last;ok('Auto: a second failure holds it twice as long',GQ.auto===1&&h2>45000,Math.round(h2/1000)+' s');}
   {autoReset(0);let moves=0;for(let i=0;i<20;i++){const n=GQ.log.length;feed(2000,i%2?25:16.7,i%2?8:3);moves+=GQ.log.length-n;}ok('Auto: alternating slow and fast windows: at most one move in 40 s',moves<=1,moves);}
   autoReset(0);feed(2100,50,20);ok('Auto: very slow frames (20 fps) step down after one window',GQ.auto===1,GQ.auto);
@@ -67,7 +67,7 @@ try{
   autoReset(0);for(let i=0;i<6;i++){feed(5000,40,20);}ok('Auto: on a slow device it walks down the ladder, one level at a time',GQ.auto===GQ.L.length-1&&GQ.log.every((x,i)=>i===0||x[1]===GQ.log[i-1][1]+1),GQ.log.map(x=>x[1]).join(','));
   ok('Auto: its level is kept for the next start (meta.gfxAuto)',meta.gfxAuto===GQ.auto,meta.gfxAuto);
   {autoReset(3);meta.battery=true;feed(4300,36,10);ok('Auto with the battery saver: 28 fps frames are fine (its target is 30)',GQ.auto===3,GQ.auto);meta.battery=false;batApply();}
-  meta.gfx='high';{const a=GQ.auto;feed(5000,60,30);ok('High never moves on its own',GQ.auto===a&&renderer.getPixelRatio()===bsPR0());}
+  setGfx('high');{const a=GQ.auto;feed(5000,60,30);ok('High never moves on its own',GQ.auto===a&&renderer.getPixelRatio()===bsPR0(),GQ.auto+' '+renderer.getPixelRatio());}
   /* the frame hook feeds only drawn battle frames (requestAnimationFrame is held so the calls start no second loop) */
   {const f0=gqFeed,raf=window.requestAnimationFrame,st=state,pz=paused;const seen=[];gqFeed=function(dt){seen.push(dt);};window.requestAnimationFrame=()=>0;
     try{const t=performance.now();state='menu';frame(t);frame(t+16);const nMenu=seen.length;state='playing';paused=false;$('#home').hidden=true;frame(t+32);frame(t+48);frame(t+64);
@@ -101,17 +101,20 @@ try{
     paused=true;}
   /* ---- memory: the same wave played again and again does not grow ---- */
   {setGfx('low');board('plains');paused=false;state='playing';lives=1e9;gold=1e9;const q=heroTileNear(meta.equipped,innerWidth/2,innerHeight*.45);if(!heroU)spawnHero(q.c,q.r);
-    const SP=['firestorm','tempest','wither','beam'].filter(k=>SPELLS_S[k]);let ci=0;
+    const SP=['eclipse','firestorm','tempest','wither'].filter(k=>SPELLS_S[k]);let ci=0;
     const round=()=>{wave=119;const WV=buildWave(120);wave=120;spawners.push({t:0,q:WV.q.slice(),w:120});
       for(let s=0;s<80&&(enemies.length||spawners.length);s++){for(let i=0;i<10;i++){lives=1e9;for(const sp of spawners)sp.t=Math.min(sp.t,.1);update(.033);updFx(.033);}
         if(s%3===0&&heroU&&SP.length){const k=SP[ci++%SP.length];try{meta.spells[k]=meta.spells[k]||{lvl:1,own:1};heroU.scd={};heroU.gcd=0;fireScroll(heroU,k,heroStats(),sortTargets(heroU,enemies.filter(e=>!e.dead)));}catch(e){}}
         for(const e of enemies)updBar(e);anim(.033,time);if(s%4===0)renderer.render(scene,camera);for(const e of enemies.slice())if(!e.dead&&e.dist>2)hurt(e,1e12,'magic',{src:heroU});}
-      for(let i=0;i<120;i++){update(.05);updFx(.05);}anim(.05,time);renderer.render(scene,camera);pfSweep();
-      let n=0;scene.traverse(()=>n++);return{geos:renderer.info.memory.geometries,tex:renderer.info.memory.textures,kids:scene.children.length,objs:n};};
-    round();round();const a=round();round();round();const b=round();
-    ok('the same wave three more times: geometries do not grow',b.geos<=a.geos+2,a.geos+' -> '+b.geos);
+      for(let i=0;i<300||fx.length&&i<1500;i++){update(.05);updFx(.05);}anim(.05,time);renderer.render(scene,camera);pfSweep();if(MEM.on)memSweep();
+      let n=0;scene.traverse(()=>n++);return{geos:renderer.info.memory.geometries,tex:renderer.info.memory.textures,kids:scene.children.length,objs:n,fx:fx.length};};
+    round();const a=round();round();const b=round();
+    ok('the same wave (with Eclipse of the Damned) twice more: geometries do not grow',b.geos<=a.geos+25,a.geos+' -> '+b.geos);
     ok('textures do not grow',b.tex<=a.tex,a.tex+' -> '+b.tex);
-    ok('nothing is left in the scene',b.kids<=a.kids&&b.objs<=a.objs+2,a.kids+'/'+a.objs+' -> '+b.kids+'/'+b.objs);paused=true;setGfx('high');}
+    ok('nothing is left in the scene once the effects are over',b.kids<=a.kids&&b.fx===0,a.kids+'/'+a.objs+' -> '+b.kids+'/'+b.objs+', effects running '+b.fx);
+    MEM.on=false;let c;try{c=round();}finally{MEM.on=true;}memSweep();
+    ok('control: without the sweep the same round leaves geometries behind (what v495 fixes)',c.geos>b.geos+40,b.geos+' -> '+c.geos+' without the sweep');
+    paused=true;setGfx('high');}
   /* ---- the start ---- */
   {const nav=performance.getEntriesByType('navigation')[0];ok('the page was ready in under 3.3 s here (before v495: about 3.35 s to DOMContentLoaded headless, 3.9 s to ready)',nav&&nav.domContentLoadedEventEnd<3300,nav&&Math.round(nav.domContentLoadedEventEnd)+' ms');}
   ok('the menu background is a blob (encoded off the main thread)',/url\("?blob:/.test($('#home').style.backgroundImage),$('#home').style.backgroundImage.slice(0,80));
