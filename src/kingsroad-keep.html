@@ -37409,7 +37409,7 @@ function pcrPoolGeo(P,vcap,icap,keep){const G=new THREE.BufferGeometry(),old=P.A
 function pcrPool(pk){let P=PCR.pools[pk];if(P)return P;const rs=pk&1,sm=!!(pk&2);P=PCR.pools[pk]={pk,rs,sm,vhw:0,ihw:0,vfree:[],ifree:[],A:null,I:null,geo:null,mesh:null,dv:[0,0],di:[0,0],full:true,segs:new Set(),gp:[]};
   pcrPoolGeo(P,PCR_MINV,PCR_MINV*1.5|0);if(!PCR.mat){PCR.mat=pcrMakeMat('phong',true,{},true);PCR.matS=pcrMakeMat('phong',true,{},true,true);pcrTexMake(PCR.H);}
   const me=new THREE.Mesh(P.geo,[sm?PCR.matS:PCR.mat]);me.receiveShadow=!!rs;me.castShadow=false;me.frustumCulled=false;me.matrixAutoUpdate=false;me.name='pcrFoes';me.userData.pcrPool=1;P.mesh=me;return P;}
-const PCR_MINV=16384;
+const PCR_MINV=65536;
 function pcrAlloc(P,list,hw,cap,n){for(let k=0;k<list.length;k++){const f=list[k];if(f[1]>=n){const s=f[0];if(f[1]===n)list.splice(k,1);else{f[0]+=n;f[1]-=n;}return s;}}
   if(P[hw]+n>P[cap])return -1;const s=P[hw];P[hw]+=n;return s;}
 function pcrFree(P,list,hw,s,n){let k=0;while(k<list.length&&list[k][0]<s)k++;list.splice(k,0,[s,n]);
@@ -37430,7 +37430,7 @@ function pcrPlace(P,S){let vs=pcrAlloc(P,P.vfree,'vhw','vcap',S.vn),is=vs<0?-1:p
   if(vs<0||is<0){if(vs>=0)pcrFree(P,P.vfree,'vhw',vs,S.vn);pcrPoolGeo(P,Math.max(Math.ceil(P.vcap*1.5),P.vhw+S.vn),Math.max(Math.ceil(P.icap*1.5),P.ihw+S.in),true);
     vs=pcrAlloc(P,P.vfree,'vhw','vcap',S.vn);is=pcrAlloc(P,P.ifree,'ihw','icap',S.in);}
   S.vs=vs;S.is=is;pcrWriteSeg(P,S);P.segs.add(S);}
-/* when more than a quarter of a pool is gaps, a quiet frame (no foe baked for half a second) rewrites the live segments packed together into
+/* when more than a quarter of a pool is gaps, or it holds twice what it needs, a quiet frame (no foe baked for half a second) rewrites the live segments packed together into
    arrays sized to them, from their own geometries */
 function pcrCompact(P){let V=0,I=0;const L=[...P.segs].sort((a,b)=>a.is-b.is);for(const S of L){V+=S.vn;I+=S.in;}
   P.vhw=0;P.ihw=0;P.vfree.length=0;P.ifree.length=0;pcrPoolGeo(P,Math.max(PCR_MINV,Math.ceil(V*1.25)),Math.max(PCR_MINV,Math.ceil(I*1.25)),false);
@@ -37553,7 +37553,7 @@ function pcrPass(cam){PCR.frame++;const shards=pcrShardAny();
     const me=I.mesh;me.count=I.n;me.visible=I.n>0;if(I.n){if(me.parent!==scene)scene.add(me);me.instanceMatrix.needsUpdate=true;for(const a in I.attrs)I.attrs[a].needsUpdate=true;}}
   /* pools: upload what changed, keep the meshes in the scene */
   for(const k in PCR.pools){const P=PCR.pools[k];
-    if(PCR.frame-PCR.bakeF>30&&P.ihw>PCR_MINV&&P.ihw-pcrLiveI(P)>P.ihw*.25)pcrCompact(P);
+    if(PCR.frame-PCR.bakeF>30&&P.vcap>PCR_MINV){const li=pcrLiveI(P);if(P.ihw-li>P.ihw*.25||P.icap>li*2+PCR_MINV)pcrCompact(P);}
     const me=P.mesh;if(me.parent!==scene)scene.add(me);P.geo.setDrawRange(0,P.ihw);pcrGroups(P);me.visible=P.geo.groups.length>0&&!PCR.hush;
     if(P.full){for(const a in P.A){P.A[a].updateRange.count=-1;P.A[a].needsUpdate=true;}P.I.updateRange.count=-1;P.I.needsUpdate=true;P.full=false;}
     else{if(P.dv[1]>P.dv[0])for(const a in P.A){const A=P.A[a];A.updateRange.offset=P.dv[0]*A.itemSize;A.updateRange.count=(P.dv[1]-P.dv[0])*A.itemSize;A.needsUpdate=true;}
