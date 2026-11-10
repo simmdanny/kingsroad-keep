@@ -15275,6 +15275,9 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'A much lighter battlefield',d:'6 Nov',v:'v492',li:[
+    'The board, its trees and scenery, the keep and your towers are now drawn in a few big pieces instead of hundreds of small ones, and their shadows the same way. In a busy late wave the graphics card is handed about a quarter as many separate things to draw.',
+    'Nothing looks or plays any different: towers still turn, fire, move, upgrade and sell, trees still burn and can be cleared, chests open, and the Infinite Void still dissolves the land.']},
   {t:'Invisible foes stay invisible',d:'5 Nov',v:'v490',li:[
     'An Invisible foe that was also Regenerating or Warded showed its glowing regrowth or its rune while the rest of it was hidden. It is hidden all over now, and revealed all over when your seers or spells reveal it.']},
   {t:'No more grey screen after space spells',d:'5 Nov',v:'v489',li:[
@@ -37318,6 +37321,161 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
 {const a0=animElite;animElite=function(e,dt){const r=a0.apply(this,arguments);if(e&&e.ghostOn)nmxRecloak(e);return r;};}
 {const se=spawnEnemy;spawnEnemy=function(){const n0=enemies.length,r=se.apply(this,arguments);for(let i=n0;i<enemies.length;i++){const e=enemies[i];if(e&&e.ghostOn)nmxRecloak(e);}return r;};}
 
+/* ================= The static world and the towers (v492) =================
+   Simon: "a very very big optimalization update". Measured with tools/bench/bench.js (late: wave 120, 20 towers, about 160 foes): about 1100
+   draw calls a frame, of them terrain 225 (board trees, lore props, landmarks, chests, the keep, rocks, gates...), towers 249 (about 12 a
+   tower, each part its own colour) and 337 shadow casters drawn again in the shadow pass. v446 merged inside each prop and each tower; what
+   is left is one draw per colour per prop.
+   What this does: a live batcher for every still mesh on the board and on the towers.
+   - Every plain mesh under the terrain and under each tower is watched: its own place, turn, size, visibility, parent, material, layers and
+     shadow flags, and the same for every group above it up to the scene, and the material's colours and settings.
+   - A mesh that has not changed for half a second is drawn as part of a merged mesh (one per finish: the parts' colours go into the
+     vertices, as v446 does for the hero) in a batch group in the scene. The mesh itself stays exactly where it was (clicks, rays, lookups,
+     scorching, the Void, lands' recolours all still find it); only its layer is switched to one no camera draws (rays still see it).
+   - The moment anything about it changes (a turning head, a scorched tree, a moved or sold tower, the Void's dissolve, a recolour) its slice
+     of the merged mesh is cut out (its triangles collapse) and its own mesh is drawn again, the same frame. When it has been still again
+     for a while it goes back in (in place when it still fits, else its batch is rebuilt); a part that keeps changing waits longer each time.
+   - A material whose colour changes is merged by material from then on (the merged mesh shares it, so the change shows).
+   Merged meshes cast and take shadows like their parts, so the shadow pass shrinks the same way. Measured before/after in the README. */
+const PFW={on:true,HIDE:1<<30,need:30,gap:8,n:0,scanAt:-1e9,scanDue:true,buildAt:-1e9,nodes:new Map(),items:new Map(),mats:new Map(),buckets:new Map(),grp:null,stat:{builds:0,inplace:0,unbakes:0,geo:0}};
+PFW.grp=new THREE.Group();PFW.grp.name='pfw-batch';PFW.grp.matrixAutoUpdate=false;PFW.grp.userData.pfw=1;scene.add(PFW.grp);
+/* rays see the hidden originals (bit 30 is added to every raycaster's layers while it casts) */
+{const P=THREE.Raycaster.prototype,i1=P.intersectObject,i2=P.intersectObjects;
+  P.intersectObject=function(){const m=this.layers.mask;this.layers.mask=m|PFW.HIDE;try{return i1.apply(this,arguments);}finally{this.layers.mask=m;}};
+  P.intersectObjects=function(){const m=this.layers.mask;this.layers.mask=m|PFW.HIDE;try{return i2.apply(this,arguments);}finally{this.layers.mask=m;}};}
+const PFW_ATT=new Set(['position','normal','uv','color','pfLoc']),PFW_TEX=['map','lightMap','aoMap','emissiveMap','bumpMap','normalMap','displacementMap','specularMap','alphaMap','envMap','roughnessMap','metalnessMap','gradientMap'];
+const PFW_NP=['side','flatShading','shininess','emissiveIntensity','opacity','alphaTest','depthTest','depthWrite','depthFunc','colorWrite','polygonOffset','polygonOffsetFactor','polygonOffsetUnits','blending','wireframe','fog','toneMapped','dithering','combine','reflectivity','refractionRatio','roughness','metalness','visible','shadowSide','premultipliedAlpha','stencilWrite','transparent','vertexColors','alphaToCoverage'];
+/* can this material's colour go into the vertices (one white material per finish)? */
+function pfwVcOk(m){if(!(m.isMeshPhongMaterial||m.isMeshLambertMaterial||m.isMeshStandardMaterial&&!m.isMeshPhysicalMaterial||m.isMeshBasicMaterial))return false;
+  if(m.transparent||m.vertexColors||m.clippingPlanes||Object.prototype.hasOwnProperty.call(m,'onBeforeCompile')||Object.prototype.hasOwnProperty.call(m,'customProgramCacheKey'))return false;
+  for(const k of PFW_TEX)if(m[k])return false;if(m.defines&&Object.keys(m.defines).length)return false;if(m.userData&&Object.keys(m.userData).length)return false;return true;}
+/* the material's state as numbers (to see any change) and its finish as a key (everything but the colour) */
+function pfwMatSnap(m,out){let i=0;const put=v=>{out[i++]=typeof v==='boolean'?(v?1:0):typeof v==='number'?v:v==null?-1:v.isColor?v.r*1e6+v.g*1e3+v.b:(v.id!==undefined?v.id:-2);};
+  put(m.color);put(m.emissive);put(m.specular);for(const k of PFW_NP)put(m[k]);for(const k of PFW_TEX)put(m[k]);put(Object.prototype.hasOwnProperty.call(m,'onBeforeCompile'));return out;}
+const PFW_MS=3+PFW_NP.length+PFW_TEX.length+1;
+function pfwFinish(m){const a=[m.type,m.emissive?m.emissive.toArray().join(','):-1,m.specular?m.specular.toArray().join(','):-1];for(const k of PFW_NP)a.push(m[k]);return a.join('|');}
+function pfwMatRec(m){let r=PFW.mats.get(m);if(!r){r={m,s:pfwMatSnap(m,new Float64Array(PFW_MS)),t:new Float64Array(PFW_MS),last:-1,anim:false,vc:pfwVcOk(m),fin:null,refs:0};r.fin=r.vc?pfwFinish(m):null;PFW.mats.set(m,r);}return r;}
+/* a scene-graph node's own state: place, turn, size (or its matrix when it is set by hand), visibility, parent, group draw order */
+function pfwNode(o){let r=PFW.nodes.get(o);if(!r){r={o,p:o.parent,v:o.visible,ma:o.matrixAutoUpdate,s:new Float64Array(16),last:-1,refs:0};pfwSnapNode(r,r.s);PFW.nodes.set(o,r);}return r;}
+function pfwSnapNode(r,s){const o=r.o;if(o.matrixAutoUpdate){s[0]=o.position.x;s[1]=o.position.y;s[2]=o.position.z;s[3]=o.quaternion.x;s[4]=o.quaternion.y;s[5]=o.quaternion.z;s[6]=o.quaternion.w;s[7]=o.scale.x;s[8]=o.scale.y;s[9]=o.scale.z;s[10]=o.renderOrder;}
+  else{const e=o.matrix.elements;for(let i=0;i<16;i++)s[i]=e[i];}}
+function pfwNodeChanged(r){const o=r.o;if(o.parent!==r.p||o.visible!==r.v||o.matrixAutoUpdate!==r.ma)return true;const s=r.s;
+  if(o.matrixAutoUpdate){const p=o.position,q=o.quaternion,c=o.scale;return s[0]!==p.x||s[1]!==p.y||s[2]!==p.z||s[3]!==q.x||s[4]!==q.y||s[5]!==q.z||s[6]!==q.w||s[7]!==c.x||s[8]!==c.y||s[9]!==c.z||s[10]!==o.renderOrder;}
+  const e=o.matrix.elements;for(let i=0;i<16;i++)if(s[i]!==e[i])return true;return false;}
+/* the lands' own shaders that work in world space (snow, snow caps through pfLoc, the tundra's and highlands' lichen, the taiga's moss) can
+   merge; any other shader of a material's own might read the mesh's own space and is left alone */
+const pfwShaderOk=m=>!m.transparent&&(!Object.prototype.hasOwnProperty.call(m,'onBeforeCompile')||!!(m.userData&&(m.userData.snow||m.userData.snowTop||m.userData.lichen||m.userData.moss)));
+/* those shaders take the world normal as mat3(modelMatrix)*normal (not the lighting's normal matrix, which differs on a stretched part): the
+   merged mesh gets that as its own attribute pfN, and a copy of the material reads it (and the snow caps' own heights from pfLoc). The
+   copy does not follow later changes of the original, so a part whose material changes is drawn on its own from then on. */
+const PFW_OM=new Map();
+function pfwObcMat(m){if(!Object.prototype.hasOwnProperty.call(m,'onBeforeCompile'))return m;let v=PFW_OM.get(m);if(v)return v;const loc=pfLocal(m)&&!m.userData.pfLoc,ob=m.onBeforeCompile,ck=m.customProgramCacheKey?m.customProgramCacheKey():'';
+  v=m.clone();v.userData=Object.assign({},m.userData,{pfw:1});
+  v.onBeforeCompile=function(sh,r){ob.call(this,sh,r);let vs=sh.vertexShader.split('mat3(modelMatrix)*objectNormal').join('mat3(modelMatrix)*pfN').split('vec3 nn=objectNormal;').join('vec3 nn=pfN;');
+    if(loc)vs=vs.replace('vStO=position;','vStO=pfLoc;');sh.vertexShader='attribute vec3 pfN;\n'+(loc?'attribute vec3 pfLoc;\n':'')+vs;};
+  v.customProgramCacheKey=()=>ck+'|pfw'+(loc?'l':'');PFW_OM.set(m,v);MC['pfwobc|'+m.uuid]=v;return v;}
+/* can this mesh be drawn merged at all */
+function pfwMeshOk(o){if(!o.isMesh||o.isInstancedMesh||o.isSkinnedMesh||Array.isArray(o.material)||!o.material)return false;const g=o.geometry;if(!g||!g.isBufferGeometry||!g.attributes.position)return false;
+  if(o.onBeforeRender!==THREE.Object3D.prototype.onBeforeRender||o.onAfterRender!==THREE.Object3D.prototype.onAfterRender||o.customDepthMaterial||o.customDistanceMaterial)return false;
+  if(g.morphAttributes&&Object.keys(g.morphAttributes).length||g.drawRange.start!==0||g.drawRange.count!==Infinity)return false;
+  for(const k in g.attributes)if(!PFW_ATT.has(k))return false;if(!g.attributes.normal)return false;if(g.attributes.pfLoc&&!(o.material.userData&&o.material.userData.pfLoc))return false;
+  const m=o.material;if(m.isShaderMaterial||m.isRawShaderMaterial||m.isPointsMaterial||m.isLineBasicMaterial||m.isSpriteMaterial)return false;if(!pfwShaderOk(m))return false;
+  if(m.userData&&m.userData.pfLoc&&!g.attributes.pfLoc)return false;return true;}
+/* ---- finding the meshes: the board's terrain and every tower (not the hero's rig, which always moves) ---- */
+function pfwRoots(){const R=[];if(TERRAIN&&TERRAIN.parent===scene)R.push([TERRAIN,'T',null]);for(const t of towers||[])if(t&&t.g&&t.g.parent===scene)R.push([t.g,'W',t]);return R;}
+function pfwScan(){PFW.scanAt=PFW.n;PFW.scanDue=false;const seen=new Set();
+  for(const [root,dom,t] of pfwRoots()){const skip=new Set();if(t){if(t.rig&&t.rig.isObject3D)skip.add(t.rig);if(heroU&&heroU.g)skip.add(heroU.g);}
+    const walk=(o,chain)=>{if(skip.has(o))return;if(o.isMesh){if(!o.children.length){seen.add(o);if(!PFW.items.has(o)&&pfwMeshOk(o))pfwAdd(o,chain,dom);}else return;}
+      if(o.isPoints||o.isLine||o.isSprite)return;const ch=chain.concat([o]);for(const c of o.children)walk(c,ch);};
+    const up=[];for(let p=root.parent;p&&p!==scene;p=p.parent)up.unshift(p);for(const c of root.children)walk(c,up.concat([root]));}
+  for(const it of [...PFW.items.values()])if(!seen.has(it.o))pfwDrop(it);
+  for(const B of [...PFW.buckets.values()]){let al=0;for(const it of B.members)if(it.baked)al++;if(!al||B.mesh&&B.dead>B.mesh.geometry.index.count*.3)pfwBuild(B,[]);}
+  for(const [o,r] of PFW.nodes)if(r.refs<=0)PFW.nodes.delete(o);for(const [m,r] of PFW.mats)if(r.refs<=0)PFW.mats.delete(m);}
+function pfwAdd(o,chain,dom){const it={o,dom,chain:chain.map(pfwNode),mat:o.material,mr:pfwMatRec(o.material),geo:o.geometry,pv:o.geometry.attributes.position.version,iv:o.geometry.index?o.geometry.index.version:-1,
+    cs:o.castShadow,rs:o.receiveShadow,ro:o.renderOrder,fc:o.frustumCulled,mask:o.layers.mask,v:o.visible,p:o.parent,ma:o.matrixAutoUpdate,s:new Float64Array(16),last:PFW.n,need:PFW.need,baked:false,b:null,bakedAt:0};
+  it.chain.forEach(r=>r.refs++);it.mr.refs++;it.nr={o,s:it.s};pfwSnapNode(it.nr,it.s);PFW.items.set(o,it);}
+function pfwDrop(it){if(it.baked)pfwUnbake(it);it.chain.forEach(r=>r.refs--);it.mr.refs--;if(it.b)it.b.members.delete(it);PFW.items.delete(it.o);}
+/* has the mesh itself changed (its hidden layer while merged does not count) */
+function pfwItemChanged(it){const o=it.o;if(o.material!==it.mat||o.geometry!==it.geo||o.parent!==it.p||o.visible!==it.v||o.castShadow!==it.cs||o.receiveShadow!==it.rs||o.renderOrder!==it.ro||o.frustumCulled!==it.fc||o.matrixAutoUpdate!==it.ma)return true;
+  if(o.layers.mask!==(it.baked?PFW.HIDE:it.mask))return true;const g=it.geo;if(g.attributes.position.version!==it.pv||(g.index?g.index.version:-1)!==it.iv)return true;
+  const s=it.s;if(o.matrixAutoUpdate){const p=o.position,q=o.quaternion,c=o.scale;return s[0]!==p.x||s[1]!==p.y||s[2]!==p.z||s[3]!==q.x||s[4]!==q.y||s[5]!==q.z||s[6]!==q.w||s[7]!==c.x||s[8]!==c.y||s[9]!==c.z||s[10]!==o.renderOrder;}
+  const e=o.matrix.elements;for(let i=0;i<16;i++)if(s[i]!==e[i])return true;return false;}
+function pfwItemSnap(it){const o=it.o;if(o.material!==it.mat){it.mr.refs--;it.mat=o.material;it.mr=pfwMatRec(o.material);it.mr.refs++;}it.geo=o.geometry;it.pv=it.geo.attributes.position?it.geo.attributes.position.version:-1;it.iv=it.geo.index?it.geo.index.version:-1;
+  it.p=o.parent;it.v=o.visible;it.cs=o.castShadow;it.rs=o.receiveShadow;it.ro=o.renderOrder;it.fc=o.frustumCulled;it.ma=o.matrixAutoUpdate;if(o.layers.mask!==PFW.HIDE)it.mask=o.layers.mask;pfwSnapNode(it.nr,it.s);}
+/* the bucket an item merges into: its finish (or its material once that changes), shadow flags, draw order, layer, attributes */
+function pfwKey(it){const o=it.o,m=o.material,mr=it.mr,g=o.geometry;const mk=mr.vc&&!mr.anim&&!g.attributes.color?'v'+mr.fin.split('|').join('/'):'m'+m.uuid;
+  return it.dom+'|'+mk+'|'+(o.castShadow?1:0)+(o.receiveShadow?1:0)+'|'+o.renderOrder+'|'+it.mask+'|'+(o.frustumCulled?1:0)+'|'+Object.keys(g.attributes).sort().join(',');}
+/* may it merge now: still a plain mesh, every group above it shown, plain draw order, and up to the scene */
+function pfwReady(it){const o=it.o;if(!o.visible||!pfwMeshOk(o))return false;if(it.mr.anim&&Object.prototype.hasOwnProperty.call(o.material,'onBeforeCompile'))return false;
+  let q=o.parent;for(let i=it.chain.length-1;i>=0;i--){const n=it.chain[i].o;if(n!==q){PFW.scanDue=true;pfwDrop(it);return false;}if(!n.visible||n.isGroup&&n.renderOrder!==0)return false;q=n.parent;}return q===scene&&it.chain.length>0;}
+const PFW_VC=new Map();
+function pfwVcMat(fin,m){let v=PFW_VC.get(fin);if(v)return v;v=m.clone();v.color.setRGB(1,1,1);v.vertexColors=true;v.userData={pfVc:1};PFW_VC.set(fin,v);MC['pfwvc|'+fin]=v;return v;}
+/* write one item's slice (positions and normals in scene space, the colour for a merged finish, the snow caps' own heights) */
+const PFW_M=new THREE.Matrix4(),PFW_N=new THREE.Matrix3(),PFW_INV=new THREE.Matrix4();
+function pfwWrite(b,it,v0,i0,G){const o=it.o,g=o.geometry,n=g.attributes.position.count;PFW_M.multiplyMatrices(PFW_INV,o.matrixWorld);PFW_N.getNormalMatrix(PFW_M);const e=PFW_M.elements,ne=PFW_N.elements,flip=PFW_M.determinant()<0;
+  const A=G.attributes;for(const k in A){const a=g.attributes[k],D=A[k].array,s=A[k].itemSize,o3=v0*s;
+    if(k==='pfN'){const N=g.attributes.normal;for(let i=0;i<n;i++){const x=N.getX(i),y=N.getY(i),z=N.getZ(i);D[o3+i*3]=e[0]*x+e[4]*y+e[8]*z;D[o3+i*3+1]=e[1]*x+e[5]*y+e[9]*z;D[o3+i*3+2]=e[2]*x+e[6]*y+e[10]*z;}continue;}
+    if(k==='pfLoc'&&!a){const P=g.attributes.position;for(let i=0;i<n;i++){D[o3+i*3]=P.getX(i);D[o3+i*3+1]=P.getY(i);D[o3+i*3+2]=P.getZ(i);}continue;}
+    if(k==='color'&&!a){const c=o.material.color;for(let i=0;i<n;i++){D[o3+i*3]=c.r;D[o3+i*3+1]=c.g;D[o3+i*3+2]=c.b;}continue;}
+    if(a.isInterleavedBufferAttribute||a.normalized||!(a.array instanceof Float32Array)){for(let i=0;i<n;i++){D[o3+i*s]=a.getX(i);if(s>1)D[o3+i*s+1]=a.getY(i);if(s>2)D[o3+i*s+2]=a.getZ(i);if(s>3)D[o3+i*s+3]=a.getW(i);}}else D.set(a.array.subarray(0,n*s),o3);
+    if(k==='position'){for(let i=o3,E=o3+n*3;i<E;i+=3){const x=D[i],y=D[i+1],z=D[i+2];D[i]=e[0]*x+e[4]*y+e[8]*z+e[12];D[i+1]=e[1]*x+e[5]*y+e[9]*z+e[13];D[i+2]=e[2]*x+e[6]*y+e[10]*z+e[14];}}
+    else if(k==='normal'){for(let i=o3,E=o3+n*3;i<E;i+=3){const x=D[i],y=D[i+1],z=D[i+2];const X=ne[0]*x+ne[3]*y+ne[6]*z,Y=ne[1]*x+ne[4]*y+ne[7]*z,Z=ne[2]*x+ne[5]*y+ne[8]*z;const l=Math.hypot(X,Y,Z)||1;D[i]=X/l;D[i+1]=Y/l;D[i+2]=Z/l;}}}
+  const I=b.idx0,ix=g.index?g.index.array:null,ni=ix?g.index.count:n;
+  for(let t=0;t+2<ni;t+=3){const a=ix?ix[t]:t,c1=ix?ix[t+1]:t+1,c2=ix?ix[t+2]:t+2;I[i0+t]=a+v0;I[i0+t+1]=(flip?c2:c1)+v0;I[i0+t+2]=(flip?c1:c2)+v0;}
+  it.v0=v0;it.i0=i0;it.nv=n;it.ni=ni-ni%3;}
+function pfwCounts(o){const g=o.geometry,n=g.attributes.position.count,ni=g.index?g.index.count:n;return [n,ni-ni%3];}
+/* (re)build one bucket from its baked members and the newly ready ones */
+function pfwBuild(b,add){for(const it of add){if(it.b&&it.b!==b)it.b.members.delete(it);it.b=b;b.members.add(it);}
+  const AS=new Set(add),L=[...b.members].filter(it=>it.baked||AS.has(it)),LS=new Set(L);if(b.mesh){PFW.grp.remove(b.mesh);b.mesh.geometry.dispose();PFW.stat.geo--;b.mesh=null;}
+  for(const it of [...b.members])if(!LS.has(it)){it.b=null;b.members.delete(it);}
+  if(!L.length){PFW.buckets.delete(b.key);return;}
+  let nv=0,ni=0;for(const it of L){const [a,c]=pfwCounts(it.o);nv+=a;ni+=c;}
+  const o0=L[0].o,g0=o0.geometry,G=new THREE.BufferGeometry(),vc=b.vc;
+  for(const k of Object.keys(g0.attributes).sort())G.setAttribute(k,new THREE.BufferAttribute(new Float32Array(nv*g0.attributes[k].itemSize),g0.attributes[k].itemSize));
+  if(vc&&!G.attributes.color)G.setAttribute('color',new THREE.BufferAttribute(new Float32Array(nv*3),3));
+  const obc=Object.prototype.hasOwnProperty.call(o0.material,'onBeforeCompile'),mat=vc?pfwVcMat(b.fin,o0.material):pfwObcMat(o0.material);b.cl=mat!==o0.material;
+  if(pfLocal(o0.material)&&!G.attributes.pfLoc)G.setAttribute('pfLoc',new THREE.BufferAttribute(new Float32Array(nv*3),3));if(obc)G.setAttribute('pfN',new THREE.BufferAttribute(new Float32Array(nv*3),3));
+  b.idx0=nv>65535?new Uint32Array(ni):new Uint16Array(ni);PFW_INV.copy(scene.matrixWorld).invert();let v0=0,i0=0;
+  for(const it of L){pfwWrite(b,it,v0,i0,G);v0+=it.nv;i0+=it.ni;if(!it.baked)pfwHide(it);}
+  G.setIndex(new THREE.BufferAttribute(b.idx0.slice(),1));G.computeBoundingSphere();G.computeBoundingBox();
+  const me=new THREE.Mesh(G,mat);me.castShadow=o0.castShadow;me.receiveShadow=o0.receiveShadow;me.renderOrder=o0.renderOrder;me.layers.mask=L[0].mask;me.frustumCulled=o0.frustumCulled;
+  me.matrixAutoUpdate=false;me.userData.pfw=b.key;me.raycast=()=>{};b.mesh=me;b.dead=0;PFW.grp.add(me);PFW.stat.builds++;PFW.stat.geo++;}
+function pfwHide(it){it.mask=it.o.layers.mask;it.o.layers.mask=PFW.HIDE;it.baked=true;it.bakedAt=PFW.n;}
+/* cut an item out of its merged mesh (its triangles collapse) and draw it on its own again */
+function pfwUnbake(it){it.baked=false;PFW.stat.unbakes++;if(it.o.layers.mask===PFW.HIDE)it.o.layers.mask=it.mask;const b=it.b;
+  if(b&&b.mesh){const ix=b.mesh.geometry.index;ix.array.fill(it.v0,it.i0,it.i0+it.ni);ix.needsUpdate=true;b.dead+=it.ni;}
+  it.need=PFW.n-it.bakedAt<600?Math.min(it.need*2,1<<22):PFW.need;}
+/* put a still item back: into its old slice when it still fits, else into a (re)built bucket */
+function pfwBake(list){PFW.buildAt=PFW.n;scene.updateMatrixWorld();const re=new Map();PFW_INV.copy(scene.matrixWorld).invert();
+  for(const it of list){const k=pfwKey(it),b=it.b;
+    if(b&&b.mesh&&b.key===k&&b.members.has(it)&&pfwCounts(it.o)[0]===it.nv&&pfwCounts(it.o)[1]===it.ni){const G=b.mesh.geometry;pfwWrite(b,it,it.v0,it.i0,G);G.index.array.set(b.idx0.subarray(it.i0,it.i0+it.ni),it.i0);G.index.needsUpdate=true;
+      for(const a of Object.values(G.attributes))a.needsUpdate=true;b.dead-=it.ni;b.moved=true;pfwHide(it);PFW.stat.inplace++;continue;}
+    let B=PFW.buckets.get(k);if(!B){B={key:k,vc:k.split('|')[1][0]==='v',fin:it.mr.fin,members:new Set(),mesh:null,dead:0};PFW.buckets.set(k,B);}if(!re.has(B))re.set(B,[]);re.get(B).push(it);}
+  for(const B of PFW.buckets.values()){if(B.moved&&B.mesh){B.mesh.geometry.computeBoundingSphere();B.mesh.geometry.computeBoundingBox();B.moved=false;}
+    if(!re.has(B)&&B.mesh&&B.dead>B.mesh.geometry.index.count*.3)re.set(B,[]);}
+  for(const [B,add] of re)pfwBuild(B,add);}
+function pfwReset(){for(const it of PFW.items.values())if(it.baked)pfwUnbake(it);for(const B of PFW.buckets.values())if(B.mesh){PFW.grp.remove(B.mesh);B.mesh.geometry.dispose();PFW.stat.geo--;}PFW.buckets.clear();
+  for(const it of PFW.items.values()){it.b=null;it.need=PFW.need;}}
+/* once before each frame's drawing of the scene */
+function pfwSync(force){PFW.n++;const N=PFW.n,off=!PFW.on||OW.on||!TERRAIN;if(off){if(PFW.buckets.size||PFW.items.size){pfwReset();PFW.items.clear();PFW.nodes.clear();PFW.mats.clear();}return;}
+  if(PFW.grp.parent!==scene)scene.add(PFW.grp);if(force)scene.updateMatrixWorld();
+  if(PFW.scanDue||N-PFW.scanAt>90)pfwScan();
+  for(const r of PFW.nodes.values())if(pfwNodeChanged(r)){r.p=r.o.parent;r.v=r.o.visible;r.ma=r.o.matrixAutoUpdate;pfwSnapNode(r,r.s);r.last=N;}
+  for(const r of PFW.mats.values()){pfwMatSnap(r.m,r.t);const s=r.s,t=r.t;for(let i=0;i<PFW_MS;i++)if(s[i]!==t[i]){s.set(t);r.last=N;r.anim=true;break;}}
+  const ready=[];
+  for(const it of PFW.items.values()){let ch=false;if(pfwItemChanged(it)){pfwItemSnap(it);ch=true;}
+    if(!ch)for(const r of it.chain)if(r.last===N){ch=true;break;}
+    /* a changed material: a merged colour is out of date; a shared material shows its change by itself unless it can no longer merge */
+    if(!ch&&it.baked&&it.mr.last===N&&(it.b&&it.b.cl||!pfwMeshOk(it.o)))ch=true;
+    if(ch){it.last=N;if(it.baked)pfwUnbake(it);continue;}
+    if(!it.baked&&(force||N-it.last>=it.need)&&pfwReady(it))ready.push(it);}
+  if(ready.length&&(force||N-PFW.buildAt>=PFW.gap))pfwBake(ready);}
+/* tests and the bench: merge everything that is still right now */
+function pfwBakeNow(){PFW.scanDue=true;pfwSync(true);}
+{const r0=renderer.render;renderer.render=function(s,c){if(s===scene)try{pfwSync();}catch(e){console.error(e);PFW.on=false;try{pfwReset();}catch(e2){}}return r0.apply(this,arguments);};}
+{const b=buildMap;buildMap=function(){const r=b.apply(this,arguments);PFW.scanDue=true;return r;};}
+{const b=buildTowerMesh;buildTowerMesh=function(){const r=b.apply(this,arguments);PFW.scanDue=true;return r;};}
+/* ---- end of the static world and the towers (v492) ---- */
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
