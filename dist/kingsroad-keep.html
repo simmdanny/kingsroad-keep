@@ -15277,21 +15277,11 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
-<<<<<<< HEAD
   {t:'The Primordial Tempest turns like a tornado',d:'6 Nov',v:'v496',li:[
     'The Primordial Tempest\u2019s storm now turns counterclockwise, the way a tornado or a hurricane turns seen from above. Before, the great cloud deck over the board turned one way and the eye wall round your hero the other; now the whole storm, its arms, the eye wall, the storm clouds, the lightning racing round, the wind, the rain, the dust and the debris all wheel the same way, faster close to the eye.',
     'Its spiral arms trail behind the spin as real storm arms do: three broad, soft arms of storm cloud round a calm, clear eye, in place of the many thin streaks that crossed each other.',
     'Cleaner: the wind sheet, the cloud shadows on the ground, the rain bands and cloud arms on the field, the rain curtains and the cloud bands on the inner wall are gone, so the hurricane, its smooth inner wall, its storm clouds and the lightning read clearly. The board stays as dark under the storm as before, and the foes and the road still show through it. High above, the thin cirrus still turns the other way, as it does over real storms.',
     'It is lighter to draw too (6 fewer draw calls while it rages). Looks only: the Tempest strikes exactly as before, at every mastery.']},
-  {t:'Smoother first casts',d:'6 Nov',v:'v493',li:[
-    'The look of a spell is no longer rebuilt every time it is cast. Before, a spell\'s glow could make the game pause for a moment in the middle of a fight, again and again; now each look is prepared once and kept.',
-    'The looks of the scrolls you have used are remembered by your browser and prepared quietly while you are in the menu, so even the first cast of a fight runs without that pause.',
-    'Nothing looks or plays differently.']},
-  {t:'A much lighter battlefield',d:'6 Nov',v:'v492',li:[
-    'The board, its trees and scenery, the keep and your towers are now drawn in a few big pieces instead of hundreds of small ones, and their shadows the same way. In a busy late wave the graphics card is handed about a quarter as many separate things to draw.',
-    'Nothing looks or plays any different: towers still turn, fire, move, upgrade and sell, trees still burn and can be cleared, chests open, and the Infinite Void still dissolves the land.']},
-||||||| c85e931
-=======
   {t:'Graphics setting, a faster start and no slowdown over long runs',d:'6 Nov',v:'v495',li:[
     'A new Graphics setting (More, or Settings on a computer): Auto, High, Medium or Low. High looks exactly as before. Medium and Low draw the board with fewer pixels and softer shadows, and Low also drops the shadows of the scenery round the board and a third of the particles.',
     'Auto, the default, watches how smoothly your device draws the battle: when frames get slow it first lowers the resolution a little, and when there is room again it goes back up. It waits before moving so the picture never flickers between levels, and remembers where it settled for next time.',
@@ -15299,7 +15289,13 @@ const CLOG=[
     'The game starts faster: the menu background and the tower and hero pictures no longer hold up the start.',
     'Long runs no longer slowly fill up memory: the falling stars of Eclipse of the Damned left their shapes behind on the graphics card after every cast (about a hundred each time), and anything else that did the same is now cleared too.',
     'The top bar, the spell and scroll buttons and the screen flashes only redraw when something on them changes.']},
->>>>>>> origin/perf-quality
+  {t:'Smoother first casts',d:'6 Nov',v:'v493',li:[
+    'The look of a spell is no longer rebuilt every time it is cast. Before, a spell\'s glow could make the game pause for a moment in the middle of a fight, again and again; now each look is prepared once and kept.',
+    'The looks of the scrolls you have used are remembered by your browser and prepared quietly while you are in the menu, so even the first cast of a fight runs without that pause.',
+    'Nothing looks or plays differently.']},
+  {t:'A much lighter battlefield',d:'6 Nov',v:'v492',li:[
+    'The board, its trees and scenery, the keep and your towers are now drawn in a few big pieces instead of hundreds of small ones, and their shadows the same way. In a busy late wave the graphics card is handed about a quarter as many separate things to draw.',
+    'Nothing looks or plays any different: towers still turn, fire, move, upgrade and sell, trees still burn and can be cleared, chests open, and the Infinite Void still dissolves the land.']},
   {t:'Invisible foes stay invisible',d:'5 Nov',v:'v490',li:[
     'An Invisible foe that was also Regenerating or Warded showed its glowing regrowth or its rune while the rest of it was hidden. It is hidden all over now, and revealed all over when your seers or spells reveal it.']},
   {t:'No more grey screen after space spells',d:'5 Nov',v:'v489',li:[
@@ -37357,7 +37353,6 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
 {const a0=animElite;animElite=function(e,dt){const r=a0.apply(this,arguments);if(e&&e.ghostOn)nmxRecloak(e);return r;};}
 {const se=spawnEnemy;spawnEnemy=function(){const n0=enemies.length,r=se.apply(this,arguments);for(let i=n0;i<enemies.length;i++){const e=enemies[i];if(e&&e.ghostOn)nmxRecloak(e);}return r;};}
 
-<<<<<<< HEAD
 /* ================= The static world and the towers (v492) =================
    Simon: "a very very big optimalization update". Measured with tools/bench/bench.js (late: wave 120, 20 towers, about 160 foes): about 1100
    draw calls a frame, of them terrain 225 (board trees, lore props, landmarks, chests, the keep, rocks, gates...), towers 249 (about 12 a
@@ -37696,8 +37691,6 @@ function ttnDeckFS(NF){return 'uniform float uT,uA,uEye,uOut,uTw,uRot,uRK,uLit,u
     darkTarget=Math.max(darkTarget,TTN.dark*S.deckU.uA.value);return r;};
   S.dropped=gone;TTN.dropped=gone;return S;};}
 
-||||||| c85e931
-=======
 /* ================= Graphics quality, HUD writes, memory and load (v495) =================
    Simon asked for "a very very big optimalization update". This part: a Graphics setting with an automatic mode, DOM writes only when
    something changed, nothing that grows over a long run, and a faster start. Measured with tools/bench/bench.js, a DOM-write and
@@ -37901,7 +37894,6 @@ function gqSetRow(o){const body=o&&o.querySelector('.np-body');if(!body||body.qu
 {const ae=acctEnter;acctEnter=function(m,run){const g=meta.gfx,ga=meta.gfxAuto;const r=ae.apply(this,arguments);meta.gfx=g;meta.gfxAuto=ga;saveMeta();gqApply();updGfxBtn();return r;};}
 /* start: Auto resumes at the level it last settled on, on this device */
 GQ.auto=Math.max(0,Math.min(GQ.L.length-1,Math.round(+meta.gfxAuto)||0));gqApply();
->>>>>>> origin/perf-quality
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.

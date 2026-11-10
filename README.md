@@ -2803,10 +2803,8 @@ Simon: "the lightning artifact synergy make the lightning pure red, it needs to 
   - a draw-call breakdown by owner (terrain, towers, foes, hero, keep, other) and the shadow casters.
 - **`--profile`:** also writes a CPU profile (self time per function) and a sampled allocation profile.
 - Under swiftshader (software WebGL), render time is the CPU cost of WebGL calls. Draw calls, uniform uploads and shader compiles show there as they would on a weak GPU, so compare draw calls and compiles first.
-<<<<<<< HEAD
 
 - v491 fixes: draw calls and triangles now add up every render pass of a step (spell passes draw the scene off-screen first), and the breakdown counts only what layer 0 draws (v492's batcher hides originals on layer 30).
-<<<<<<< HEAD
 
 ## The static world and the towers (v492)
 Simon asked for "a very very big optimalization update". This part draws the board, its scenery, the keep and the towers in a few merged meshes instead of hundreds of small ones, with the same picture and the same play.
@@ -2844,12 +2842,6 @@ Simon asked for "a very very big optimalization update". This part draws the boa
 - **About the bench breakdown:** it counts the hidden originals as terrain and towers, and the merged meshes under `other:pfw-batch`. `tests/pfw-test.js` counts only what is drawn.
 - **Tests:** `tests/pfw-test.js` covers draw calls by land and by tower, pixel equality in every land, a turning head, a moved, upgraded and sold tower, a scorched and a cut tree, recolouring, a chest, the Infinite Void, a running wave in every land, rays, and the merged geometry being freed.
 
-||||||| merged common ancestors
-||||||||| c85e931
-=========
-
-=======
->>>>>>> origin/perf-shaders
 ## No shader compiles in battle (v493)
 Part of Simon's "very very big optimalization update": the shader programs, and the frame spikes they caused. The picture and the play are unchanged (pixel-identical renders, below); only when the compiling happens changes. The code is the v493 block before the Performance (v446) block.
 - **What was wrong:**
@@ -2893,66 +2885,6 @@ Part of Simon's "very very big optimalization update": the shader programs, and 
   - Materials made per cast: after v493 a throwaway effect material costs about 0.14 ms in all (made, looked up, uploaded, disposed). A typical fight makes fewer than one a frame; Ball Lightning peaks at about 34 a frame (nsArc and zap). Pooling them would have to stay exact under the artifact sets' colour context and the domains that swap the world's materials, so it is left for a later change.
   - Allocation: the largest per-frame allocators (three.js Object3D and uniform cloning for new effect meshes, the particle emitter) come to about 12 KB a frame; garbage collection is 0.1% of the profile.
 - **Checks:** `tests/psh-test.js` (no program compiled through a scripted fight with first casts of every rarity after warming, programs reused on second casts, warming uploads nothing, the browser store keeps the recipes, the shader check switch, a broken shader still reported). Renders of the six lands mid-fight with spells, the world map, and a cast-recast scene are pixel-identical before and after (branch `sheets/perf-shaders`).
-<<<<<<< HEAD
-
-## The Primordial Tempest spins like a tornado (v496)
-Simon: "the storm on primordial tempest should spin in the direction a tornado spins and be more clean".
-
-**Measured first.** `tests/ttn-test.js` draws each layer of the storm alone into a small target at the game camera, takes two frames 0.4 s apart, unrolls them round the layer's centre on screen and cross-correlates them round the circle. That gives the turn the player sees, in degrees a second, counterclockwise positive. The arms' handedness is the same correlation from one ring to the next one out. Scene: `tests/tempest-shots.js` setup, plains seed 777, 7 s into the cast.
-
-| Layer (M0, deg/s on screen) | Before | After |
-|---|---|---|
-| Storm deck (v477) | -29 (clockwise) | +39 |
-| Deck arms, turn a ring outward | +7.0 (curled for a clockwise spin) | -6.0 (trailing) |
-| Storm clouds over the eye wall (v477) | -19 | +15 |
-| Wind sheet (v477) | mixed (no clear turn) | removed |
-| Eye wall billows | +60 | +75 |
-| Inner face (v487) | +38 | +71 |
-| Cloud bands / rain bands / cloud arms / curtains | +33 / +39 / +35 / +22 | removed |
-| Ground cloud shadows | +12 | removed |
-| Outflow cirrus (anticyclonic) | -7.5, alpha up to 0.31 at M5 | -7.8, alpha at most 0.125 |
-
-At M3 and M5 the same holds (deck +33 / +34, clouds +20 / +29, billows +68 / +55, face +47 / +58; arms -6.3 / -8.4 a ring). The arcs racing round the wall, the wind streaks, the rain, the dust, the hero's smoke and the M4 debris already turned counterclockwise; the test follows their screen positions frame to frame (every one of about 470 samples a level turns counterclockwise).
-
-**What changed** (looks only; damage, timing and the masteries are untouched, and the module draws on no random of the game):
-- The deck has a new shader (`ttnDeckFS`). It turns counterclockwise with three broad, soft arms that trail the spin, a smooth dense ring round a calm, clear eye, and billows carried round faster near the eye than at the edge. Two noise samples half a cycle apart are crossfaded so the faster inner turn never winds the cloud up. It takes 12 noise lookups a pixel, down from 34. In the full hurricane (M5) the deck turns at 0.75x so the eye wall stays the fastest part of the storm.
-- The storm clouds wheel counterclockwise, faster close in (`TPX.orb`; one small hook in `tpxBuild`).
-- The inner face's winds climb as they go round counterclockwise. They leaned the other way, so as they climbed they slid clockwise: with the deck flipped and the bands gone, the face measured -47 deg/s at M3.
-- Fewer layers: the wind sheet, castTempest's cloud shadows on the ground, the rain bands, the cloud arms, the rain curtains and the cloud bands are taken out of the scene when the storm is built. Their shaders are never compiled. The falling rain is at 0.75x, the outflow stays faint, and the board is dimmed a little (`darkTarget` 0.24 with the deck) to stay as dark as under the old cloud shadows.
-
-**Cost.** The Tempest's own draw calls are counted with only its group drawn, game camera, 7 s in, during the same scene:
-
-| | Before | After |
-|---|---|---|
-| Tempest draw calls, M0 / M3 / M5 | 38 / 44 / 48 | 32 / 38 / 42 |
-| Shader programs after one cast, M0 / M5 | 46 / 49 | 40 / 41 |
-| Full-board planes drawn (deck, sheet, ground shadows, rain-band plane) | 4 (M0), 5 (M3, M5) | 2 |
-
-`tools/bench/bench.js --steps 450` (swiftshader, the bench of perf-base 6882dff: draw calls summed over every render pass of a step). Late and crowd cast no Tempest, and spells casts it as one of its three casts. Between two runs of the same build the counts swing by hundreds of calls (crowd, which never casts it, moved from 1154 to 1486), so this table cannot show a 6-call gain; the Tempest-only count above is the measure:
-
-| Scenario | Draw calls avg / max | Programs compiled in run | JS ms, p95 / p99 | Render ms a step |
-|---|---|---|---|---|
-| spells before | 1728 / 3494 | 40 | 11.9 / 19.3 | 1485 |
-| spells after | 1806 / 3203 | 40 | 11.8 / 15.9 | 1315 |
-| late before | 1342 / 2174 | 11 | 8.0 / 11.7 | 896 |
-| late after | 1271 / 2257 | 11 | 7.6 / 9.5 | 920 |
-| crowd before | 1154 / 2028 | 9 | 7.0 / 10.7 | 798 |
-| crowd after | 1486 / 2319 | 10 | 7.8 / 15.5 | 950 |
-
-**Tests.** `tests/ttn-test.js` (38 rows) covers, at M0, M3 and M5:
-- the turn of each layer on screen and the faster eye wall;
-- the anticyclonic, faint outflow and the trailing arms;
-- the lightning, streaks, rain, dust, smoke and debris;
-- the removed layers, the clear eye, the see-through deck and the 6 fewer calls;
-- a clean end.
-
-Two rows were adapted because they inspected removed layers: `tpx-test` (the wind sheet) and `tpeye-test` (the cloud bands, rain bands, cloud arms and curtains in the scene). The Tempest previews (`tempest-0..5.mp4`) are re-recorded.
-||||||| merged common ancestors
->>>>>>>>> Temporary merge branch 2
-=======
->>>>>>> origin/perf-shaders
-||||||| c85e931
-=======
 
 ## Graphics quality, HUD writes, memory and load (v495)
 Simon asked for "a very very big optimalization update". This part adds a Graphics setting with an automatic mode, makes the HUD write to the page only when something changed, stops a memory leak that grew with every big scroll, and starts the game faster. All of it is one block before the v446 Performance block (`gqFeed`, `vfxSync`, `memSweep`, `thmBatch`), plus two small base edits (the menu background's encode, and the overlay line in `anim`).
@@ -3045,4 +2977,56 @@ Every land (plains, Frostvale, the Greywind Tundra, the Whitewaste, the Deep Tai
 
 ### Tests
 `tests/pql-test.js`: the tiers (High's pixel ratio, shadow map, far shadows and particles as before and the same picture; Medium and Low smaller), the pixel-ratio cap, Auto stepping down and up on simulated slow and fast frames with its hysteresis, hold and back-off, the battery saver's target, only battle frames measured, the setting saved and kept across an account switch, the More row, the Settings window and the developer panel, DOM writes only on change, no layout read between a frame's writes, the same wave played again and again without growth, and the lazy start.
->>>>>>> origin/perf-quality
+
+## The Primordial Tempest spins like a tornado (v496)
+Simon: "the storm on primordial tempest should spin in the direction a tornado spins and be more clean".
+
+**Measured first.** `tests/ttn-test.js` draws each layer of the storm alone into a small target at the game camera, takes two frames 0.4 s apart, unrolls them round the layer's centre on screen and cross-correlates them round the circle. That gives the turn the player sees, in degrees a second, counterclockwise positive. The arms' handedness is the same correlation from one ring to the next one out. Scene: `tests/tempest-shots.js` setup, plains seed 777, 7 s into the cast.
+
+| Layer (M0, deg/s on screen) | Before | After |
+|---|---|---|
+| Storm deck (v477) | -29 (clockwise) | +39 |
+| Deck arms, turn a ring outward | +7.0 (curled for a clockwise spin) | -6.0 (trailing) |
+| Storm clouds over the eye wall (v477) | -19 | +15 |
+| Wind sheet (v477) | mixed (no clear turn) | removed |
+| Eye wall billows | +60 | +75 |
+| Inner face (v487) | +38 | +71 |
+| Cloud bands / rain bands / cloud arms / curtains | +33 / +39 / +35 / +22 | removed |
+| Ground cloud shadows | +12 | removed |
+| Outflow cirrus (anticyclonic) | -7.5, alpha up to 0.31 at M5 | -7.8, alpha at most 0.125 |
+
+At M3 and M5 the same holds (deck +33 / +34, clouds +20 / +29, billows +68 / +55, face +47 / +58; arms -6.3 / -8.4 a ring). The arcs racing round the wall, the wind streaks, the rain, the dust, the hero's smoke and the M4 debris already turned counterclockwise; the test follows their screen positions frame to frame (every one of about 470 samples a level turns counterclockwise).
+
+**What changed** (looks only; damage, timing and the masteries are untouched, and the module draws on no random of the game):
+- The deck has a new shader (`ttnDeckFS`). It turns counterclockwise with three broad, soft arms that trail the spin, a smooth dense ring round a calm, clear eye, and billows carried round faster near the eye than at the edge. Two noise samples half a cycle apart are crossfaded so the faster inner turn never winds the cloud up. It takes 12 noise lookups a pixel, down from 34. In the full hurricane (M5) the deck turns at 0.75x so the eye wall stays the fastest part of the storm.
+- The storm clouds wheel counterclockwise, faster close in (`TPX.orb`; one small hook in `tpxBuild`).
+- The inner face's winds climb as they go round counterclockwise. They leaned the other way, so as they climbed they slid clockwise: with the deck flipped and the bands gone, the face measured -47 deg/s at M3.
+- Fewer layers: the wind sheet, castTempest's cloud shadows on the ground, the rain bands, the cloud arms, the rain curtains and the cloud bands are taken out of the scene when the storm is built. Their shaders are never compiled. The falling rain is at 0.75x, the outflow stays faint, and the board is dimmed a little (`darkTarget` 0.24 with the deck) to stay as dark as under the old cloud shadows.
+
+**Cost.** The Tempest's own draw calls are counted with only its group drawn, game camera, 7 s in, during the same scene:
+
+| | Before | After |
+|---|---|---|
+| Tempest draw calls, M0 / M3 / M5 | 38 / 44 / 48 | 32 / 38 / 42 |
+| Shader programs after one cast, M0 / M5 | 46 / 49 | 40 / 41 |
+| Full-board planes drawn (deck, sheet, ground shadows, rain-band plane) | 4 (M0), 5 (M3, M5) | 2 |
+
+`tools/bench/bench.js --steps 450` (swiftshader, the bench of perf-base 6882dff: draw calls summed over every render pass of a step). Late and crowd cast no Tempest, and spells casts it as one of its three casts. Between two runs of the same build the counts swing by hundreds of calls (crowd, which never casts it, moved from 1154 to 1486), so this table cannot show a 6-call gain; the Tempest-only count above is the measure:
+
+| Scenario | Draw calls avg / max | Programs compiled in run | JS ms, p95 / p99 | Render ms a step |
+|---|---|---|---|---|
+| spells before | 1728 / 3494 | 40 | 11.9 / 19.3 | 1485 |
+| spells after | 1806 / 3203 | 40 | 11.8 / 15.9 | 1315 |
+| late before | 1342 / 2174 | 11 | 8.0 / 11.7 | 896 |
+| late after | 1271 / 2257 | 11 | 7.6 / 9.5 | 920 |
+| crowd before | 1154 / 2028 | 9 | 7.0 / 10.7 | 798 |
+| crowd after | 1486 / 2319 | 10 | 7.8 / 15.5 | 950 |
+
+**Tests.** `tests/ttn-test.js` (38 rows) covers, at M0, M3 and M5:
+- the turn of each layer on screen and the faster eye wall;
+- the anticyclonic, faint outflow and the trailing arms;
+- the lightning, streaks, rain, dust, smoke and debris;
+- the removed layers, the clear eye, the see-through deck and the 6 fewer calls;
+- a clean end.
+
+Two rows were adapted because they inspected removed layers: `tpx-test` (the wind sheet) and `tpeye-test` (the cloud bands, rain bands, cloud arms and curtains in the scene). The Tempest previews (`tempest-0..5.mp4`) are re-recorded.
