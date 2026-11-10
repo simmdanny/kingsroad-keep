@@ -25,7 +25,11 @@ try{if(MECH){
   /* ---- the remap ---- */
   {const H=c=>c.toString(16).padStart(6,'0'),hsl=c=>{const r=(c>>16&255)/255,g=(c>>8&255)/255,b=(c&255)/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b);let h=0;const d=mx-mn;if(d>0){h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;h/=6;}return{h,L:(mx+mn)/2,s:d};};
     const lt=hsl(asHex('lightning',0xbfd8ff)),lp=hsl(asHex('lightning',0x9a40ff)),fi=hsl(asHex('fire',0xff7a2a)),ic=hsl(asHex('ice',0x8fdcff)),iw=hsl(asHex('ice',0xffffff)),li=hsl(asHex('light',0xffe27a));
-    ok('remap: lightning blue turns dark red',(lt.h<.04||lt.h>.96)&&lt.L<.45,H(asHex('lightning',0xbfd8ff)));ok('remap: lightning purple turns dark purple-black',lp.h>.7&&lp.h<.85&&lp.L<.25,H(asHex('lightning',0x9a40ff)));
+    ok('remap: lightning blue turns a red glow',(lt.h<.04||lt.h>.96)&&lt.s>.7&&lt.L>.3&&lt.L<.65,H(asHex('lightning',0xbfd8ff)));ok('remap: lightning purple turns deep crimson',(lp.h<.04||lp.h>.92)&&lp.L<.35,H(asHex('lightning',0x9a40ff)));
+    {const lw=hsl(asHex('lightning',0xffffff)),cg=hsl(asHex('lightning',0xd8d8dc,true)),cb=asHex('lightning',0x8a9aaa,true),cw=asHex('lightning',0xffffff,true);
+    ok('remap: a lightning core (white light) turns black-red',(lw.h<.04||lw.h>.94)&&lw.L<.12,H(asHex('lightning',0xffffff)));
+    ok('remap: a cloud drawn normally keeps its colour with a hint of red (pale grey stays pale, blue-grey stays)',cg.L>.7&&cg.s<.15&&(cg.h<.04||cg.h>.94)&&cb===0x8a9aaa,H(asHex('lightning',0xd8d8dc,true)));
+    ok('remap: the hint done twice changes nothing',asHex('lightning',cw,true)===cw&&asHex('lightning',asHex('lightning',0xd8d8dc,true),true)===asHex('lightning',0xd8d8dc,true));}
     ok('remap: fire orange turns dark red-black',(fi.h<.04||fi.h>.96)&&fi.L<.34,H(asHex('fire',0xff7a2a)));ok('remap: ice blue turns dark blue, ice white stays white',ic.h>.58&&ic.h<.66&&ic.L<.42&&iw.L>.9,H(asHex('ice',0x8fdcff))+' '+H(asHex('ice',0xffffff)));
     ok('remap: light gold turns pale grey',li.s<.08&&li.L>.6,H(asHex('light',0xffe27a)));ok('remap: grey smoke and dark colours are left alone',['lightning','fire','ice'].every(el=>asHex(el,0x3a3030)===0x3a3030),'');
     let idem=true;for(const el of ['lightning','fire','ice','light'])for(let i=0;i<400;i++){const c=Math.floor(Math.random()*0xffffff),a=asHex(el,c),b=asHex(el,a);if(Math.abs((a>>16&255)-(b>>16&255))>1||Math.abs((a>>8&255)-(b>>8&255))>1||Math.abs((a&255)-(b&255))>1){idem=false;break;}}
