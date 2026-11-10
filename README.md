@@ -2827,13 +2827,14 @@ Part of Simon's "very very big optimalization update": the shader programs, and 
 
 | scenario | programs compiled during the run | draw calls avg / max | JS ms per step | JS p95 / p99 / max | shader check share of all time |
 |---|---|---|---|---|---|
-| late, before | 10 | 1022 / 1936 | 5.27 | 10.7 / 16.9 / 24.4 | 13.6% (getProgramInfoLog + getShaderInfoLog) |
-| late, v493 | 10 | 1044 / 2003 | 5.47 | 10.8 / 14.2 / 22.2 | 4.5% (getProgramParameter) |
-| spells, before | 41 | 68 / 376 | 19.65 | 16.1 / 25.2 / 5431 | 12.7% |
-| spells, v493 | 39 | 72 / 412 | 13.74 | 16.7 / 31.6 / 2264 | 6.7% |
-| crowd, before | 10 | 1028 / 2012 | 4.34 | 8.2 / 12.5 / 24.8 | |
-| crowd, v493 | 11 | 842 / 1875 | 4.39 | 8.4 / 12.7 / 17.5 | |
+| late, before | 11 | 1154 / 2227 | 4.83 | 10.8 / 15.6 / 19.1 | 14.3% |
+| late, v493 | 10 | 1234 / 2125 | 5.60 | 12.3 / 16.0 / 19.3 | 4.0% |
+| spells, before | 40 | 1805 / 3228 | 11.19 | 16.0 / 21.1 / 1723 | 10.7% |
+| spells, v493 | 39 | 1555 / 3377 | 10.23 | 16.6 / 22.5 / 1287 | 4.7% |
+| crowd, before | 11 | 1468 / 2644 | 6.45 | 14.3 / 20.8 / 32.4 | 17.4% |
+| crowd, v493 | 10 | 1398 / 2552 | 6.18 | 13.1 / 20.3 / 22.6 | 4.2% |
 
+- The shader check share is getProgramInfoLog + getShaderInfoLog + getProgramParameter (the link wait that remains). Numbers are from the v491 bench as fixed in 6882dff (draw calls add up every render pass); both sides were run one after the other on an idle machine.
 - The bench counts every program first seen during its run. In a fresh browser those are first-ever programs (foes, towers and effects meeting the board for the first time), which v493 compiles once and notes. From the second session on they are warmed before the fight (the table above). Draw calls are not touched by v493; their spread is the scenario's own randomness.
 - **Left as they were, measured:**
   - The 9 programs still compiled in the next session are the Infinite Void's and Never-Never Land's clones of the world's own materials, made at the cast from whatever stands on the board, so they cannot be noted ahead.
