@@ -64,6 +64,7 @@ try{
   {autoReset(0);let moves=0;for(let i=0;i<20;i++){const n=GQ.log.length;feed(2000,i%2?25:16.7,i%2?8:3);moves+=GQ.log.length-n;}ok('Auto: alternating slow and fast windows: at most one move in 40 s',moves<=1,moves);}
   autoReset(0);feed(2100,50,20);ok('Auto: very slow frames (20 fps) step down after one window',GQ.auto===1,GQ.auto);
   autoReset(0);feed(1000,25,8);gqFeed(3000,8,GQ.last+3000);feed(1500,25,8);ok('Auto: a stall (a tab switch) starts the window again',GQ.auto===0,GQ.auto);
+  autoReset(0);feed(9000,700,600);ok('Auto: a very slow device (under 2 fps) still steps down',GQ.auto>=1,GQ.auto);
   autoReset(0);for(let i=0;i<6;i++){feed(5000,40,20);}ok('Auto: on a slow device it walks down the ladder, one level at a time',GQ.auto===GQ.L.length-1&&GQ.log.every((x,i)=>i===0||x[1]===GQ.log[i-1][1]+1),GQ.log.map(x=>x[1]).join(','));
   ok('Auto: its level is kept for the next start (meta.gfxAuto)',meta.gfxAuto===GQ.auto,meta.gfxAuto);
   {autoReset(3);meta.battery=true;feed(4300,36,10);ok('Auto with the battery saver: 28 fps frames are fine (its target is 30)',GQ.auto===3,GQ.auto);meta.battery=false;batApply();}
@@ -116,7 +117,8 @@ try{
     ok('control: without the sweep the same round leaves geometries behind (what v495 fixes)',c.geos>b.geos+40,b.geos+' -> '+c.geos+' without the sweep');
     paused=true;setGfx('high');}
   /* ---- the start ---- */
-  {const nav=performance.getEntriesByType('navigation')[0];ok('the page was ready in under 3.3 s here (before v495: about 3.35 s to DOMContentLoaded headless, 3.9 s to ready)',nav&&nav.domContentLoadedEventEnd<3300,nav&&Math.round(nav.domContentLoadedEventEnd)+' ms');}
+  {const nav=performance.getEntriesByType('navigation')[0];ok('the start drew no thumbnail before the game was ready (they wait in a queue)',TH.atStart&&TH.atStart.made===0&&TH.atStart.queued===ALL_T.length+HEROES.length,
+    JSON.stringify(TH.atStart)+'; DOMContentLoaded here '+(nav?Math.round(nav.domContentLoadedEventEnd):'?')+' ms (measured headless, alone: 3.35 s before v495, 2.90 s after)');}
   ok('the menu background is a blob (encoded off the main thread)',/url\("?blob:/.test($('#home').style.backgroundImage),$('#home').style.backgroundImage.slice(0,80));
   {const k=ALL_T[3],d=Object.getOwnPropertyDescriptor(thumbs,k);thmAll();const v=thumbs[k];delete thumbs[k];TH.q.push(['t',k]);thmLazy(thumbs,'t',k);const w=thumbs[k];
     ok('a thumbnail made on first use is the same picture as one made at once',typeof v==='string'&&v.startsWith('data:image/png')&&v===w,(v||'').length+' / '+(w||'').length);}

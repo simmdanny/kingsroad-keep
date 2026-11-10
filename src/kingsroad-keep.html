@@ -37342,7 +37342,8 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
    (meta.gfxAuto) and moves one level at a time from the real frame times (gqFeed). */
 const GQ={L:[{s:1,sh:1024,far:1,pd:1},{s:.85,sh:1024,far:1,pd:1},{s:.75,sh:1024,far:1,pd:1},{s:.75,sh:512,far:1,pd:1},{s:.65,sh:512,far:0,pd:1},{s:.55,sh:512,far:0,pd:.67}],
   tier:{high:0,medium:3,low:5},names:{auto:'Auto',high:'High',medium:'Medium',low:'Low'},px:4.2e6,minPr:.5,
-  /* Auto: frame intervals in windows of 2 s; a window is slow under 48 fps (26 with the battery saver), fast at 57 or more (29.5) with the
+  /* Auto: frame intervals in windows of 2 s (at least 8 frames; on a very slow device 4 s and 3 frames; a tab switch or a gap over 2 s
+     starts the window again); a window is slow under 48 fps (26 with the battery saver), fast at 57 or more (29.5) with the
      frame's own work under half the budget. Two slow windows in a row step down (one if under 30 fps / 18), four fast ones step up.
      A level that was too slow again within 12 s of stepping up to it is not tried again for 30 s, then 60, 120... up to 10 minutes. */
   win:2000,slowN:2,fastN:4,grace:2500,auto:0,ws:[],ww:[],wt0:-1,slow:0,fast:0,last:-1,chg:-1e9,upAt:-1e9,upTo:-1,hold:{},back:{},log:[],pc:0,applied:null};
@@ -37386,15 +37387,15 @@ function gqSet(lvl,why){lvl=Math.max(0,Math.min(GQ.L.length-1,lvl));if(lvl===GQ.
   if(gqMode()==='auto')gqApply();return true;}
 /* one drawn frame: dt = the time since the last drawn frame, work = the frame's own time, now = its time stamp (all ms) */
 function gqFeed(dt,work,now){GQ.last=now;if(gqMode()!=='auto')return;
-  if(now-GQ.chg<GQ.grace)return;if(dt>400){GQ.wt0=-1;GQ.ws.length=GQ.ww.length=0;return;}/* a stall (a tab switch, a hitch): start the window again */
-  if(GQ.wt0<0)GQ.wt0=now;GQ.ws.push(dt);GQ.ww.push(work);if(now-GQ.wt0<GQ.win||GQ.ws.length<8)return;
+  if(now-GQ.chg<GQ.grace)return;if(dt>2000){GQ.wt0=-1;GQ.ws.length=GQ.ww.length=0;return;}/* a stall (over 2 s: a long hitch): start the window again */
+  if(GQ.wt0<0)GQ.wt0=now;GQ.ws.push(dt);GQ.ww.push(work);const span=now-GQ.wt0;if(!(span>=GQ.win&&GQ.ws.length>=8||span>=2*GQ.win&&GQ.ws.length>=3))return;/* a very slow device: 4 s and 3 frames */
   const S=GQ.ws.slice().sort((a,b)=>a-b),Wk=GQ.ww.slice().sort((a,b)=>a-b),med=S[S.length>>1],w90=Wk[Math.floor(Wk.length*.9)];GQ.ws.length=GQ.ww.length=0;GQ.wt0=-1;
   const bat=!!meta.battery,slowMs=1000/(bat?26:48),vslowMs=1000/(bat?18:30),fastMs=1000/(bat?29.5:57),budget=bat?33.3:16.7;
   if(med>slowMs){GQ.fast=0;GQ.slow++;if(GQ.slow>=GQ.slowN||med>vslowMs)gqSet(GQ.auto+1,'slow '+med.toFixed(1)+'ms');}
   else if(med<=fastMs&&w90<budget*.5){GQ.slow=0;GQ.fast++;const k=GQ.auto-1;if(GQ.fast>=GQ.fastN&&k>=0){if(now>=(GQ.hold[k]||0))gqSet(k,'fast '+med.toFixed(1)+'ms');else GQ.fast=0;}}
   else{GQ.slow=0;GQ.fast=0;}}
 /* measured on drawn frames of a battle in view only (not the menus, a pause, a hidden tab or the preview copy of the game) */
-{const fr=frame;let tPrev=-1,nPrev=-1;frame=function(now){const t0=performance.now(),n0=BAT.n;const r=fr.apply(this,arguments);
+{const fr=frame;let tPrev=-1;document.addEventListener('visibilitychange',()=>{tPrev=-1;});frame=function(now){const t0=performance.now(),n0=BAT.n;const r=fr.apply(this,arguments);
   try{const drawn=!meta.battery||BAT.n!==n0;if(drawn){const ok=state==='playing'&&!paused&&!SMPV.mode&&document.visibilityState!=='hidden'&&!hideWorld();
       if(ok&&tPrev>=0)gqFeed(now-tPrev,performance.now()-t0,now);tPrev=ok?now:-1;}}catch(e){}return r;};}
 function setGfx(m){meta.gfx=({auto:1,high:1,medium:1,low:1})[m]?m:'auto';saveMeta();GQ.chg=GQ.last;GQ.slow=GQ.fast=0;GQ.ws.length=GQ.ww.length=0;GQ.wt0=-1;gqApply();updGfxBtn();}
@@ -37480,7 +37481,7 @@ function thmIdle(){if(!TH.q.length)return;if(hideWorld()&&!document.hidden){cons
 makeThumbs=function(){TH.cc.copy(renderer.getClearColor(TH.c2));TH.ca=renderer.getClearAlpha();
   for(const k of ALL_T){TH.q.push(['t',k]);thmLazy(thumbs,'t',k);}
   for(const h of HEROES){TH.q.push(['h',h.id]);thmLazy(hthumbs,'h',h.id);thmLazy(hsil,'h',h.id);}
-  profMake();setTimeout(thmIdle,TH.start);};
+  profMake();TH.atStart={made:TH.n,queued:TH.q.length};setTimeout(thmIdle,TH.start);};
 function thmAll(){while(TH.q.length)thmBatch(()=>true);}
 /* a board can tint shared materials (a land's colours, the Blood Moon): whatever is still waiting is drawn before the next board is
    built or a battle starts, from the same materials the start had */
