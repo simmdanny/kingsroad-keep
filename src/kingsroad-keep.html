@@ -15277,6 +15277,9 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'Big crowds run smoother',d:'6 Nov',v:'v494',li:[
+    'Late waves with a hundred or more foes are much lighter to draw: all the foes\' bodies, limbs and elite gear are drawn together in one go, and their shadows, elite rings and the little shards from hits and kills are drawn in batches.',
+    'Everything looks and plays exactly as before: the same models, colours, animations, cloaks and glows, and the same fights.']},
   {t:'Invisible foes stay invisible',d:'5 Nov',v:'v490',li:[
     'An Invisible foe that was also Regenerating or Warded showed its glowing regrowth or its rune while the rest of it was hidden. It is hidden all over now, and revealed all over when your seers or spells reveal it.']},
   {t:'No more grey screen after space spells',d:'5 Nov',v:'v489',li:[
@@ -37426,7 +37429,7 @@ function pcrSlotMat(s,m,cls){const T=PCR.texA,b=s*36+24,k=m.emissiveIntensity,E=
   if(E){T[b+4]=E.r*k;T[b+5]=E.g*k;T[b+6]=E.b*k;}else T[b+4]=T[b+5]=T[b+6]=0;T[b+7]=S?Math.max(m.shininess,1e-4):1;if(S){T[b+8]=S.r;T[b+9]=S.g;T[b+10]=S.b;}else T[b+8]=T[b+9]=T[b+10]=0;T[b+11]=cls==='B'?1:0;}
 /* ---- baking a foe ---- */
 function pcrBake(e){if(!PCR.on||!e||!e.g||!e.b||e.pcr||!pcrReady())return;const by=[[],[],[],[]];let skip=0;
-  e.b.traverse(o=>{if(!o.isMesh)return;if(!String(window.__pcrNo).includes('pool')&&pcrPartOk(o))by[(o.receiveShadow?1:0)+(pcrMatK(o.material)[0]==='S'?2:0)].push(o);else skip++;});
+  e.b.traverse(o=>{if(!o.isMesh)return;if(pcrPartOk(o))by[(o.receiveShadow?1:0)+(pcrMatK(o.material)[0]==='S'?2:0)].push(o);else skip++;});
   const R={e,root:e.g,parts:[],segs:[],inst:[],nm:0,ck:PCR.frame+(PCR.stat.baked%60)};
   for(let pk=0;pk<4;pk++){const list=by[pk];if(!list.length)continue;const P=pcrPool(pk),GD=list.map(o=>pcrGD(o.geometry));let V=0,I=0;list.forEach((o,j)=>{V+=GD[j].n;I+=GD[j].ic*(o.material.side===THREE.DoubleSide?2:1);});const D={V,I};
     let vs=pcrAlloc(P,P.vfree,'vhw','vcap',D.V);if(vs<0){pcrPoolGeo(P,Math.max(P.vcap*2,P.vhw+D.V),Math.max(P.icap*2,P.ihw+D.I));vs=pcrAlloc(P,P.vfree,'vhw','vcap',D.V);}
@@ -37440,7 +37443,7 @@ function pcrBake(e){if(!PCR.on||!e||!e.g||!e.b||e.pcr||!pcrReady())return;const 
   R.nm=pcrCountMeshes(e.g);pcrInstReg(R);if(!R.parts.length&&!R.inst.length)return;for(const q of R.inst)PCR_SRC.set(q.o,q);
   e.pcr=R;PCR.recs.add(R);PCR.stat.baked++;PCR.stat.parts+=R.parts.length;PCR.stat.skipped+=skip;
   /* a clone of the body (afterimages) must draw: give the copies their layers back */
-  if(!String(window.__pcrNo).includes('noclone'))for(const n of [e.b,e.g])if(!Object.prototype.hasOwnProperty.call(n,'clone'))n.clone=function(rec){const c=PCR_CL.call(this,rec);try{pcrUnmaskCopy(this,c);}catch(err){}return c;};}
+  for(const n of [e.b,e.g])if(!Object.prototype.hasOwnProperty.call(n,'clone'))n.clone=function(rec){const c=PCR_CL.call(this,rec);try{pcrUnmaskCopy(this,c);}catch(err){}return c;};}
 function pcrUnmaskCopy(a,b){if(!a||!b)return;if(PCR_MASK.has(a))b.layers.mask=PCR_MASK.get(a);const n=Math.min(a.children.length,b.children.length);for(let i=0;i<n;i++)pcrUnmaskCopy(a.children[i],b.children[i]);}
 const PCR_MASK=new WeakMap();
 function pcrCountMeshes(g,b){let n=0;g.traverse(o=>{if(o.isMesh)n+=PCR_MASK.has(o)||pcrPartOk(o)?1001:1;});return n;}
@@ -37455,9 +37458,9 @@ function pcrRelease(R){if(!R||!PCR.recs.has(R))return;PCR.recs.delete(R);PCR.sta
   for(const s of R.segs){const P=s.P;P.I.array.fill(0,s.is,s.is+s.in);pcrDirty(P.di,s.is,s.is+s.in);pcrFree(P,P.vfree,'vhw',s.vs,s.vn);pcrFree(P,P.ifree,'ihw',s.is,s.in);}
   if(R.e&&R.e.pcr===R)R.e.pcr=null;}
 /* ---- see-through pieces as instances: shadow blobs, elite markers and their glows ---- */
-function pcrInstReg(R){const e=R.e;if(String(window.__pcrNo).includes('inst'))return;for(const c of e.g.children)if(c.isMesh&&c.geometry===blobGeo&&c.material===blobMat&&c.layers.mask===1){if(String(window.__pcrNo).includes('blob'))continue;R.inst.push({o:c,k:'blob',f:-1});}
-  for(const a of [e.aura,e.aura2]){const u=a&&a.userData&&a.userData.mkx;if(!u||!a.isMesh||a.layers.mask!==1||a.parent!==e.g)continue;if(!String(window.__pcrNo).includes('mk'))R.inst.push({o:a,k:'mk',f:-1,geo:a.geometry});
-    if(!String(window.__pcrNo).includes('mh')&&u.h&&u.h.isMesh&&u.h.layers.mask===1)R.inst.push({o:u.h,k:'mh',f:-1,geo:u.h.geometry});}}
+function pcrInstReg(R){const e=R.e;for(const c of e.g.children)if(c.isMesh&&c.geometry===blobGeo&&c.material===blobMat&&c.layers.mask===1)R.inst.push({o:c,k:'blob',f:-1});
+  for(const a of [e.aura,e.aura2]){const u=a&&a.userData&&a.userData.mkx;if(!u||!a.isMesh||a.layers.mask!==1||a.parent!==e.g)continue;R.inst.push({o:a,k:'mk',f:-1,geo:a.geometry});
+    if(u.h&&u.h.isMesh&&u.h.layers.mask===1)R.inst.push({o:u.h,k:'mh',f:-1,geo:u.h.geometry});}}
 const pcrMkOk=m=>m&&m.type==='MeshPhongMaterial'&&m.transparent&&m.flatShading&&m.blending===THREE.NormalBlending&&m.depthWrite&&m.depthTest&&m.visible&&m.side===THREE.FrontSide&&!m.vertexColors&&!m.map&&!m.alphaMap&&!m.emissiveMap&&!m.envMap&&!m.wireframe&&m.fog!==false&&!(m.alphaTest>0)&&!Object.prototype.hasOwnProperty.call(m,'onBeforeCompile');
 const pcrMhOk=m=>m&&m.type==='MeshBasicMaterial'&&m.transparent&&m.blending===THREE.AdditiveBlending&&!m.depthWrite&&m.depthTest&&m.visible&&m.side===THREE.FrontSide&&m.vertexColors&&!m.map&&!m.alphaMap&&!m.envMap&&!m.wireframe&&m.fog!==false&&!(m.alphaTest>0)&&!Object.prototype.hasOwnProperty.call(m,'onBeforeCompile');
 /* buckets: a few instanced meshes per piece shape; the order-keeping batching in pcrRebatch decides how many draw each render */
@@ -37487,13 +37490,13 @@ function pcrShardEnd(f){if(!f.live)return;f.live=false;const L=f.pcrS.list,i=L.i
 function pcrBurstFn(e,dt){e.vy-=6*dt;e.px+=e.vx*dt;e.py+=e.vy*dt;e.pz+=e.vz*dt;if(e.py<.02){e.py=.02;e.vx*=.5;e.vy=0;e.vz*=.5;}e.s=Math.max(.05,e.life/e.max);e.stamp=PCR.fxF;if(e.life<=0)pcrShardEnd(e);}
 function pcrSparkFn(e,dt){e.py+=dt*.6;e.s=Math.max(.05,e.life/e.max);e.stamp=PCR.fxF;if(e.life<=0)pcrShardEnd(e);}
 const PCR_BURST0=burst,PCR_SPARK0=sparkle;
-burst=function(x,y,z,col,n){if(String(window.__pcrNo).includes('shard')||!PCR.on||!pcrReady())return PCR_BURST0.apply(this,arguments);
+burst=function(x,y,z,col,n){if(!PCR.on||!pcrReady())return PCR_BURST0.apply(this,arguments);
   sprayP(1,x,y,z,n*2,{c:col,c2:col,sp:2.2,s:.06,s2:0,life:.5,g:3,drag:1});
   for(let i=0;i<Math.ceil(n*.6)&&fx.length<260;i++){const geo=tet(.05),mat=M(col);
     if(!pcrShardOk(mat)){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.rotation.set(rnd()*6,rnd()*6,0);scene.add(m);
       const v=new THREE.Vector3((rnd()-.5)*2.2,rnd()*2.2+.6,(rnd()-.5)*2.2);fx.push({o:m,life:.55+rnd()*.3,max:.8,fn(e,dt){v.y-=6*dt;m.position.addScaledVector(v,dt);if(m.position.y<.02){m.position.y=.02;v.set(v.x*.5,0,v.z*.5);}m.scale.setScalar(Math.max(.05,e.life/e.max));}});continue;}
     const rx=rnd()*6,ry=rnd()*6,f=pcrShardAdd(geo,mat,x,y,z,rx,ry);f.vx=(rnd()-.5)*2.2;f.vy=rnd()*2.2+.6;f.vz=(rnd()-.5)*2.2;f.life=.55+rnd()*.3;f.max=.8;f.fn=pcrBurstFn;fx.push(f);}};
-sparkle=function(x,y,z,col){if(String(window.__pcrNo).includes('shard')||!PCR.on||!pcrReady())return PCR_SPARK0.apply(this,arguments);if(fx.length>240)return;const geo=oct(.025),mat=M(col,{emissive:col,emissiveIntensity:1});
+sparkle=function(x,y,z,col){if(!PCR.on||!pcrReady())return PCR_SPARK0.apply(this,arguments);if(fx.length>240)return;const geo=oct(.025),mat=M(col,{emissive:col,emissiveIntensity:1});
   if(!pcrShardOk(mat))return PCR_SPARK0.apply(this,arguments);
   const px=x+(rnd()-.5)*.2,pz=z+(rnd()-.5)*.2,f=pcrShardAdd(geo,mat,px,y,pz,0,0);f.life=.6;f.max=.6;f.fn=pcrSparkFn;fx.push(f);};
 /* effects dropped from fx without running out (clearWorld empties fx) stop being drawn */
