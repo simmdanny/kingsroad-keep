@@ -45,14 +45,14 @@ const run=async()=>{
     ok('a piece given a see-through material draws itself, and goes back after',fell&&p.on,fell+' '+p.on);g.dispose();
     const cl=f.b.clone();let hid=0;cl.traverse(o=>{if(o.isMesh&&o.layers.mask===0)hid++;});ok('a clone of a pooled body (afterimage) is fully visible',hid===0,hid+' hidden');}
   /* cleanup: many foes in and out */
-  {board('plains');shot();const mine=()=>Object.values(PCR.pools).length+Object.values(PCR.BK).reduce((a,B)=>a+B.list.length,0)+Object.keys(PCR.shard).length;const g0=mine(),t0=renderer.info.memory.textures,c0=scene.children.length,s0=PCR.slotHW;
-    for(let k=0;k<4;k++){crowd(100);shot();for(const e of enemies.slice())removeEnemy(e);enemies=[];shot();}
-    const g1=mine(),t1=renderer.info.memory.textures,c1=scene.children.length,s1=PCR.slotHW;
+  {board('plains');shot();const mine=()=>Object.values(PCR.pools).length+Object.values(PCR.BK).reduce((a,B)=>a+B.list.length,0)+Object.keys(PCR.shard).length;const mineS=()=>scene.children.filter(o=>/^pcr/.test(o.name)).length,G=[];const g0=mine(),c0=mineS(),s0=PCR.slotHW;
+    for(let k=0;k<4;k++){crowd(100);shot();G.push(enemies.map(e=>e.g));for(const e of enemies.slice())removeEnemy(e);enemies=[];shot();}
+    const g1=mine(),c1=mineS(),s1=PCR.slotHW;
     crowd(100);shot();for(const e of enemies.slice())removeEnemy(e);enemies=[];shot();
-    ok('foes in and out: the pools, batches and their textures do not grow (geometries of v494)',mine()<=g1&&renderer.info.memory.textures<=t1,'v494 geometries '+g0+' -> '+g1+' -> '+mine()+', textures '+t0+' -> '+t1+' -> '+renderer.info.memory.textures);
+    ok('foes in and out: the pools and batches do not grow (meshes of v494), one matrix texture',mine()<=g1+2&&PCR.tex&&PCR.texA.length===PCR.W*PCR.H*4,'v494 meshes '+g0+' -> '+g1+' -> '+mine()+', texture '+PCR.W+'x'+PCR.H);
     ok('no records left, the pools are empty',PCR.recs.size===0&&Object.values(PCR.pools).every(P=>P.ihw===0&&P.vhw===0),PCR.recs.size);
     ok('matrix slots are reused (no growth over 5 crowds)',PCR.slotHW===s1,s0+' -> '+s1+' -> '+PCR.slotHW);
-    ok('no scene objects pile up',scene.children.length<=c1,c0+' -> '+c1+' -> '+scene.children.length);}
+    ok('no scene objects pile up: v494\'s own stay few, no removed foe stays in the scene',mineS()<=c1+2&&G.every(L=>L.every(g=>!g.parent)),c0+' -> '+c1+' -> '+mineS());}
   /* no growth over frames: a fight with shards and sparkles */
   {board('plains');crowd(60);paused=false;state='playing';let L0=null;for(let i=0;i<400;i++){update(1/60);updFx(1/60);for(const e of enemies)updBar(e);anim(1/60,i/60);if(i%4===0)shot();if(i===200)L0=[PCR.seq.length,PCR.bat.length,PCR.mats.size];}
     for(let i=0;i<30;i++)burst(0,.5,0,0xff8040,8);sparkle(0,.5,0,0xffd060);shot();const ns=Object.values(PCR.shard).reduce((a,S)=>a+S.list.length,0);

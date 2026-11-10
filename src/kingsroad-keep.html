@@ -37325,24 +37325,29 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
 
 /* ================= Crowds at scale (v494): foes, elite markers, shadow blobs and hit shards in a few draws =================
    Simon: "a very very big optimalization update". Measured with tools/bench/bench.js crowd (wave 140, 160 foes at x40 HP, 20 towers, the hero):
-   about 1205 draw calls a frame, 667 of them the foes (4.3 a foe): every foe drew its body and four limbs (one merged vertex-coloured mesh each),
-   its shadow blob, its elite gear piece by piece, and each elite marker twice (the ring and its glow). Every hit and kill threw a few small shards,
-   one mesh and one draw each. The game's JS spikes came from building elite gear at spawn (see the README).
-   What this does (PCR.on, window.__pcrOff=1 before load turns it off; nothing here calls rnd(), so fights play out exactly as before):
-   1) The pool: after a foe is built (the outermost spawnEnemy wrapper), each of its opaque flat-shaded Phong parts (body, limbs, armour plates,
-      rivets, ribbons, glow gems...) is copied once, in its own space, into one shared vertex pool for all foes (two pools: parts that receive
-      shadows and parts that do not), with its material's colour, glow, shine and opacity in the vertices. Each part keeps a slot in a float
-      texture that holds its world matrix, written every frame, so limbs swing, ribbons flutter and gems spin as before. All foes' parts are then
-      ONE draw (one per pool). Double-sided parts get their back faces as reversed triangles (flat shading lights both the same).
-      The original meshes stay in the scene graph, only hidden from the camera (layer mask 0), and every frame each part is checked: if it was
-      hidden, removed, given another material or geometry (the Invisible cloak, the pale Fishhook look, regeneration pulses swapping materials),
-      or its material changed (a colour or glow animated), its slot is emptied and the original draws itself again, exactly as before.
-      Clones of a foe's body (the chrono afterimages) get their layers back.
-   2) The transparent pieces that every foe or elite has: the shadow blobs, the elite markers and their glows are drawn as instanced meshes,
-      one draw per marker shape, with each instance's own matrix, colour, glow and opacity read from the original every frame.
-      They are drawn first among the see-through things (markers, then blobs, then the marker glows in their later order), as they lie on the ground.
-   3) Shards and sparkles (burst, sparkle): the same flying pieces, the same random numbers in the same order and the same effect slots in fx, drawn
-      as two instanced meshes instead of one mesh each.
+   about 1205 draw calls a frame (2228 at worst), the foes about 4 a foe: every foe drew its body and four limbs (one vertex-coloured mesh each),
+   its shadow blob, its elite gear piece by piece, and each elite marker twice (the ring and its glow); every hit and kill threw shards, one draw each.
+   What this does (PCR.on; window.__pcrOff=1 before load turns it all off). Nothing here calls rnd(): a seeded fight plays out exactly as before.
+   1) The pool. After a foe is built (the outermost spawnEnemy wrapper; formation members again after their dressing, and any foe whose meshes
+      change, at a recount about once a second), each opaque Phong or MeshBasic part (body, limbs, plates, rivets, ribbons, gems...) is copied
+      once, in its own space, into a vertex pool shared by all foes (one per kind: flat or smooth, receiving shadows or not). Each part has a slot
+      in a float texture: its model-view matrix (computed exactly as three.js computes a mesh's own, so every vertex lands on the same pixel), its
+      world matrix (shadows) and its material's colour, glow, shine and opacity, all written every frame. So all the foes' parts are one draw per pool.
+      Double-sided parts get their back faces as reversed triangles (flat shading lights both sides the same). The original meshes stay in the
+      scene graph, hidden from the camera (layer mask 0); every frame each part is checked: if it is hidden or removed, or its material no longer
+      fits the pool (the Invisible cloak's ghost, see-through, a shader of its own), its slot is emptied and the original draws itself, as before.
+      Material changes that do fit (regeneration pulses, a glow fading) are followed in the slot. Clones of a body (afterimages) get their layers back.
+   2) The see-through pieces every foe or elite has: shadow blobs, elite markers and their glows. They stay in the scene as they are. three.js's
+      sorted list of see-through things is then rebuilt (its sort is wrapped): each piece joins the earliest batch of its shape that comes after the
+      last thing it overlaps on screen, so wherever two things overlap they draw in the original order; each batch is one instanced mesh with each
+      instance's own matrix, colour, glow and opacity. The batches are planned before the frame (with last frame's other see-through things) and
+      checked against the real list; if anything new would be passed, that frame simply draws every piece on its own.
+   3) Shards and sparkles (burst, sparkle): the same pieces, the same random numbers in the same order, the same effect slots in fx, drawn as
+      instances (one draw for each shape).
+   4) The fight's JS: one pass for inRange (it was a scan plus three filters), the elite animations without a for-in per foe.
+   Measured (bench.js at 6882dff, 450 steps, all passes; the README section "Crowds at scale (v494)" has the full table):
+     crowd: 1455 -> 903 draw calls a step (max 2251 -> 1200), render 1392 -> 792 ms; late: 1148 -> 860 (max 2143 -> 1302); spells: 1584 -> 1323
+     (max 3379 -> 2304). A 12-second wave-140 fight: 0.5 draw calls a foe (was about 3.5). Game JS unchanged within noise.
    ---- */
 const PCR={on:!window.__pcrOff,W:1024,H:8,recs:new Set(),mats:new Map(),pools:{},BK:{},rbF:0,cap:16,seq:[],srt:[],sq:[],bq:[],bat:[],ri:[],pf:[],prevF:[],open:[],ff:[],nff:0,ns:0,nb:0,shard:{},slotFree:[],slotHW:1,
   tex:null,texA:null,mat:null,stat:{baked:0,parts:0,skipped:0,released:0,geoHit:0,geoMiss:0,grow:0},frame:0,fxF:0};
@@ -37395,13 +37400,15 @@ const PCR_SN=[];
 function pcrMatReg(m){let r=PCR.mats.get(m);if(!r){r={s:pcrSnap(m),k:pcrMatK(m),f:PCR.frame,v:0};PCR.mats.set(m,r);}else r.f=PCR.frame;return r;}
 function pcrMatCheck(){for(const [m,r] of PCR.mats){if(PCR.frame-r.f>600){PCR.mats.delete(m);continue;}const n=pcrSnap(m,PCR_SN),s=r.s;for(let i=0;i<s.length;i++)if(n[i]!==s[i]){r.s=n.slice();r.k=pcrMatK(m);r.v++;break;}}}
 /* ---- each part geometry's vertex data, read once (positions, normals, vertex colours, indices), kept as long as the geometry lives ---- */
-const PCR_GD=new WeakMap();
+const PCR_GD=new WeakMap(),PCR_GS=new WeakSet();
 function pcrGD(g){const P=g.attributes.position,N=g.attributes.normal&&g.attributes.normal.itemSize===3?g.attributes.normal:null,C=g.attributes.color,ix=g.index;
   let d=PCR_GD.get(g);if(d&&d.pv===P.version&&d.nv===(N?N.version:-1)&&d.cv===(C?C.version:-1)&&d.iv===(ix?ix.version:-1)&&d.n===P.count)return d;PCR.stat.geoMiss++;
   const n=P.count,pos=new Float32Array(n*3),nrm=new Float32Array(n*3),col=C?new Float32Array(n*3):null;
   for(let i=0;i<n;i++){const q=i*3;pos[q]=P.getX(i);pos[q+1]=P.getY(i);pos[q+2]=P.getZ(i);if(N){nrm[q]=N.getX(i);nrm[q+1]=N.getY(i);nrm[q+2]=N.getZ(i);}if(col){col[q]=C.getX(i);col[q+1]=C.getY(i);col[q+2]=C.getZ(i);}}
   let idx=null;if(ix){idx=new Uint32Array(ix.count);for(let i=0;i<ix.count;i++)idx[i]=ix.getX(i);}
-  d={n,pos,nrm,col,idx,ic:ix?ix.count:n,pv:P.version,nv:N?N.version:-1,cv:C?C.version:-1,iv:ix?ix.version:-1};PCR_GD.set(g,d);return d;}
+  d={n,pos,nrm,col,idx,ic:ix?ix.count:n,pv:P.version,nv:N?N.version:-1,cv:C?C.version:-1,iv:ix?ix.version:-1};
+  /* kept only for a geometry seen twice (the shared model parts); a foe's own gear is read and dropped */
+  if(PCR_GS.has(g))PCR_GD.set(g,d);else PCR_GS.add(g);return d;}
 /* ---- the pools ---- */
 const PCR_AT=[['position',3],['normal',3],['color',3],['pcrI',1]];
 function pcrPoolGeo(P,vcap,icap){const G=new THREE.BufferGeometry(),old=P.A;P.A={};
