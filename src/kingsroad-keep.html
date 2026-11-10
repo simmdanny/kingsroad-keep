@@ -7460,7 +7460,9 @@ function renderPreview(dt){const P=HPV;if(!P)return;const w=P.cv.clientWidth,hh=
     const hue=24+(rnd()-.5)*8,sat=18+rnd()*8;g.fillStyle=g.strokeStyle=`hsl(${hue},${sat}%,${L}%)`;g.lineWidth=1;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.lineTo(c[0],c[1]);g.closePath();g.fill();g.stroke();};
   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const a=P[r][c],b=P[r][c+1],d=P[r+1][c],e=P[r+1][c+1];if((r+c)%2){tri(a,b,e);tri(a,e,d);}else{tri(a,b,d);tri(b,e,d);}}
   const gr=g.createRadialGradient(W2/2,H2*.35,40,W2/2,H2*.35,W2*.9);gr.addColorStop(0,'rgba(233,185,74,.10)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,W2,H2);
-  $('#home').style.backgroundImage=`linear-gradient(rgba(10,6,4,.15),rgba(10,6,4,.55)),url(${cv.toDataURL('image/jpeg',.86)})`;}catch(e){}})();
+  /* v495: encoded off the main thread (toBlob: the same JPEG, quality .86), instead of toDataURL, which held the start for about 1.5 s */
+  const put=u=>{$('#home').style.backgroundImage=`linear-gradient(rgba(10,6,4,.15),rgba(10,6,4,.55)),url(${u})`;};
+  if(cv.toBlob&&window.URL&&URL.createObjectURL)cv.toBlob(b=>{try{put(b?URL.createObjectURL(b):cv.toDataURL('image/jpeg',.86));}catch(e){}},'image/jpeg',.86);else put(cv.toDataURL('image/jpeg',.86));}catch(e){}})();
 
 /* ---- scroll art ---- */
 const SIG={
@@ -11975,7 +11977,7 @@ function anim(dt,rt){
   hemi.intensity=.58*DAYC.hm*(1-.82*da);sun.intensity=.8*DAYC.sm*(1-.9*da);if(DOM.on){hemi.intensity=DOM.hemi;sun.intensity=DOM.sun;}if(PURG.on){hemi.intensity=PURG.hemi;sun.intensity=PURG.sun;scene.background.lerp(PURG.bg,PURG.bgK*.9);scene.fog.color.copy(scene.background);}if(ANC.on)ancLight();
   if(cineLock>0)cineLock-=dt;if(slowT>0){slowT-=dt;if(slowT<=0)worldSlow=1;}
   if(flashHold>0)flashHold-=dt;else if(flashA>0)flashA=Math.max(0,flashA-dt*flashDecay);
-  const vf=$('#vfxFlash'),vv=$('#vfxVig');vf.style.opacity=(flashA*SPACE_K).toFixed(3);if(flashA>0)vf.style.background=flashCol;vv.style.opacity=(vigA*SPACE_K).toFixed(3);
+  vfxSync();/* v495: the flash and vignette overlays, written only when they change */
   camShake*=Math.exp(-dt*7);if(camShake<.001)camShake=0;
 }
 let errToastT=0;window.addEventListener('error',ev=>{const n=performance.now();if(n-errToastT<4000)return;errToastT=n;try{toast('Error: '+String(ev.message).slice(0,90),'bad');}catch(_){}});
@@ -37320,6 +37322,161 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
 {const a0=animElite;animElite=function(e,dt){const r=a0.apply(this,arguments);if(e&&e.ghostOn)nmxRecloak(e);return r;};}
 {const se=spawnEnemy;spawnEnemy=function(){const n0=enemies.length,r=se.apply(this,arguments);for(let i=n0;i<enemies.length;i++){const e=enemies[i];if(e&&e.ghostOn)nmxRecloak(e);}return r;};}
 
+/* ================= Graphics quality, HUD writes, memory and load (v495) =================
+   Simon asked for "a very very big optimalization update". This part: a Graphics setting with an automatic mode, DOM writes only when
+   something changed, nothing that grows over a long run, and a faster start. Measured with tools/bench/bench.js, a DOM-write and
+   layout probe, a 30-wave run and a CPU profile of the start (numbers in the README section of v495).
+   @@SUMMARY@@ */
+/* ---- 1) Graphics quality: meta.gfx 'auto' (the default), 'high', 'medium' or 'low' ----
+   One ladder of quality levels, best first. Each step changes the cheapest thing to see first: the render resolution (the canvas is drawn
+   with fewer pixels and stretched to the same size), then the board's shadow map (1024 to 512: softer shadow edges), then the shadows of the
+   far forest round the board, then a third fewer particles. High is level 0 and is exactly today's picture: the same pixel ratio (the
+   screen's, at most 2), the same shadows, every particle. Medium is level 3, Low level 5. Auto starts where it last settled on this device
+   (meta.gfxAuto) and moves one level at a time from the real frame times (gqFeed). */
+const GQ={L:[{s:1,sh:1024,far:1,pd:1},{s:.85,sh:1024,far:1,pd:1},{s:.75,sh:1024,far:1,pd:1},{s:.75,sh:512,far:1,pd:1},{s:.65,sh:512,far:0,pd:1},{s:.55,sh:512,far:0,pd:.67}],
+  tier:{high:0,medium:3,low:5},names:{auto:'Auto',high:'High',medium:'Medium',low:'Low'},px:4.2e6,minPr:.5,
+  /* Auto: frame intervals in windows of 2 s; a window is slow under 48 fps (26 with the battery saver), fast at 57 or more (29.5) with the
+     frame's own work under half the budget. Two slow windows in a row step down (one if under 30 fps / 18), four fast ones step up.
+     A level that was too slow again within 12 s of stepping up to it is not tried again for 30 s, then 60, 120... up to 10 minutes. */
+  win:2000,slowN:2,fastN:4,grace:2500,auto:0,ws:[],ww:[],wt0:-1,slow:0,fast:0,last:-1,chg:-1e9,upAt:-1e9,upTo:-1,hold:{},back:{},log:[],pc:0,applied:null};
+const gqMode=()=>({auto:1,high:1,medium:1,low:1})[meta.gfx]?meta.gfx:'auto';
+function gqLevel(){const m=gqMode();return m==='auto'?GQ.auto:GQ.tier[m];}
+/* the pixel ratio: High as before; the other tiers (and Auto) also keep the drawing buffer under about 4.2 million pixels (a 4K screen at
+   twice the pixels would be 33 million), then scale it by the level */
+const bsPR0=bsPR;
+bsPR=function(){const b=bsPR0();if(gqMode()==='high')return b;const L=GQ.L[gqLevel()],w=Math.max(1,innerWidth),h=Math.max(1,innerHeight);
+  const cap=Math.max(1,Math.sqrt(GQ.px/(w*h)));return Math.max(GQ.minPr,Math.min(b,cap)*L.s);};
+function gqApply(){const L=GQ.L[gqLevel()],pr=bsPR();
+  if(renderer.getPixelRatio()!==pr){renderer.setPixelRatio(pr);psScale();for(const R of [HPV,AR])if(R&&R.r&&R.r.getPixelRatio()!==pr)R.r.setPixelRatio(pr);}
+  /* the board's shadow map (the open world keeps its own sizes) */
+  if(!OW.on&&sun.shadow.mapSize.x!==L.sh){sun.shadow.mapSize.set(L.sh,L.sh);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}}
+  /* the far forest's shadows: the merged outer trees (v446) remember whether they cast one */
+  if(TERRAIN)for(const o of TERRAIN.children)if(o.userData.pfBatch&&o.userData.glOuter){if(o.userData.gqCast===undefined)o.userData.gqCast=o.castShadow;const c=L.far?o.userData.gqCast:false;if(o.castShadow!==c)o.castShadow=c;}
+  GQ.applied=gqLevel();}
+/* the far forest is rebuilt with every board and the open world resets the shadow map on leaving: put the level back after both */
+{const bm=buildMap;buildMap=function(){const r=bm.apply(this,arguments);try{gqApply();}catch(e){console.error(e);}return r;};}
+{const ol=owLeave;owLeave=function(){const r=ol.apply(this,arguments);try{gqApply();}catch(e){}return r;};}
+{const f=fit;fit=function(){const r=f.apply(this,arguments);try{if(gqMode()!=='high'&&renderer.getPixelRatio()!==bsPR())gqApply();}catch(e){}return r;};}
+/* particle density at the lowest level: every third particle is not made (a counter, so the game's random numbers are untouched) */
+{const em=emit;emit=function(addv,o){if(GQ.L[gqLevel()].pd<1&&(GQ.pc=(GQ.pc+1)%3)===0)return;return em.apply(this,arguments);};}
+function gqSet(lvl,why){lvl=Math.max(0,Math.min(GQ.L.length-1,lvl));if(lvl===GQ.auto)return false;const up=lvl<GQ.auto,now=GQ.last;
+  if(!up&&GQ.upTo===GQ.auto&&now-GQ.upAt<12000){/* the level just tried was too slow: back off before trying it again */
+    const k=GQ.auto,b=GQ.back[k]=Math.min(600000,(GQ.back[k]||15000)*2);GQ.hold[k]=now+b;}
+  if(up){GQ.upAt=now;GQ.upTo=lvl;}
+  GQ.auto=lvl;GQ.chg=now;GQ.slow=GQ.fast=0;GQ.ws.length=GQ.ww.length=0;GQ.wt0=-1;GQ.log.push([Math.round(now),lvl,why]);if(GQ.log.length>40)GQ.log.shift();
+  if(meta.gfxAuto!==lvl){meta.gfxAuto=lvl;metaDirty=true;}
+  if(gqMode()==='auto')gqApply();return true;}
+/* one drawn frame: dt = the time since the last drawn frame, work = the frame's own time, now = its time stamp (all ms) */
+function gqFeed(dt,work,now){GQ.last=now;if(gqMode()!=='auto')return;
+  if(now-GQ.chg<GQ.grace)return;if(dt>400){GQ.wt0=-1;GQ.ws.length=GQ.ww.length=0;return;}/* a stall (a tab switch, a hitch): start the window again */
+  if(GQ.wt0<0)GQ.wt0=now;GQ.ws.push(dt);GQ.ww.push(work);if(now-GQ.wt0<GQ.win||GQ.ws.length<8)return;
+  const S=GQ.ws.slice().sort((a,b)=>a-b),Wk=GQ.ww.slice().sort((a,b)=>a-b),med=S[S.length>>1],w90=Wk[Math.floor(Wk.length*.9)];GQ.ws.length=GQ.ww.length=0;GQ.wt0=-1;
+  const bat=!!meta.battery,slowMs=1000/(bat?26:48),vslowMs=1000/(bat?18:30),fastMs=1000/(bat?29.5:57),budget=bat?33.3:16.7;
+  if(med>slowMs){GQ.fast=0;GQ.slow++;if(GQ.slow>=GQ.slowN||med>vslowMs)gqSet(GQ.auto+1,'slow '+med.toFixed(1)+'ms');}
+  else if(med<=fastMs&&w90<budget*.5){GQ.slow=0;GQ.fast++;const k=GQ.auto-1;if(GQ.fast>=GQ.fastN&&k>=0){if(now>=(GQ.hold[k]||0))gqSet(k,'fast '+med.toFixed(1)+'ms');else GQ.fast=0;}}
+  else{GQ.slow=0;GQ.fast=0;}}
+/* measured on drawn frames of a battle in view only (not the menus, a pause, a hidden tab or the preview copy of the game) */
+{const fr=frame;let tPrev=-1,nPrev=-1;frame=function(now){const t0=performance.now(),n0=BAT.n;const r=fr.apply(this,arguments);
+  try{const drawn=!meta.battery||BAT.n!==n0;if(drawn){const ok=state==='playing'&&!paused&&!SMPV.mode&&document.visibilityState!=='hidden'&&!hideWorld();
+      if(ok&&tPrev>=0)gqFeed(now-tPrev,performance.now()-t0,now);tPrev=ok?now:-1;}}catch(e){}return r;};}
+function setGfx(m){meta.gfx=({auto:1,high:1,medium:1,low:1})[m]?m:'auto';saveMeta();GQ.chg=GQ.last;GQ.slow=GQ.fast=0;GQ.ws.length=GQ.ww.length=0;GQ.wt0=-1;gqApply();updGfxBtn();}
+function gqCycle(){setGfx({auto:'high',high:'medium',medium:'low',low:'auto'}[gqMode()]);toast('Graphics: '+gqLabel());}
+function gqLabel(){const m=gqMode();return GQ.names[m]+(m==='auto'?' ('+(['High','High','Medium','Medium','Low','Low'][GQ.auto])+(GQ.auto&&GQ.auto!==3&&GQ.auto!==5?'-':'')+')':'');}
+/* ---- 2) HUD and DOM writes only on change ----
+   Measured in a wave-120 battle: about 7 DOM writes a frame, nearly all writing the value already there. Chromium skips a same-value style
+   write (no restyle), but not a same-value `hidden` (a restyle each time) or textContent (the text node is replaced: a restyle and a
+   layout). And every HUD tick (0.15 s) the artifact and mastery rails read the HUD's position right after the HUD's own text writes, so
+   the page laid itself out up to three times a frame (read, write, read, write, paint).
+   - #fabBuild and #placeUI (`hidden` set every frame by updPlaceUI) and the developer wrench (every 250 ms) only take a changed `hidden`;
+   - the spell and scroll buttons' countdown digits (.t, rewritten every tick) only take changed text;
+   - the flash and vignette overlays (#vfxFlash, #vfxVig, every frame in anim) are written only when their value changes (vfxSync);
+   - during a frame, artHudSync and mpgSync wait for the end of the frame, after all its writes: one layout a frame, which the paint then
+     reuses. Called outside a frame (a test, a menu) they run at once, as before. */
+const DW={TC:Object.getOwnPropertyDescriptor(Node.prototype,'textContent'),HD:Object.getOwnPropertyDescriptor(HTMLElement.prototype,'hidden'),inFrame:false,pend:[],vf:null,vv:null,c:{},n:0};
+/* an element's own textContent / hidden that skip a write of the value it already has (the check reads the live value, so writes by any
+   other path are never missed); textContent only on leaf elements (a text-only node), where equal text means the same DOM */
+function dwGuard(el,hid){if(!el||el.__dwG)return el;el.__dwG=1;
+  if(hid)Object.defineProperty(el,'hidden',{configurable:true,get(){return DW.HD.get.call(this);},set(v){if(DW.HD.get.call(this)!==!!v)DW.HD.set.call(this,v);else DW.n++;}});
+  else Object.defineProperty(el,'textContent',{configurable:true,get(){return DW.TC.get.call(this);},set(v){v=v==null?'':String(v);if(this.firstElementChild||DW.TC.get.call(this)!==v)DW.TC.set.call(this,v);else DW.n++;}});
+  return el;}
+function dwGuardAll(sel,hid){const L=document.querySelectorAll(sel);for(let i=0;i<L.length;i++)if(!L[i].__dwG)dwGuard(L[i],hid);}
+dwGuard($('#fabBuild'),1);dwGuard($('#placeUI'),1);
+{const us=updSpells;updSpells=function(){dwGuardAll('#bar .spell .t');return us.apply(this,arguments);};}
+{const sb=updScrollBar;updScrollBar=function(){dwGuardAll('#scrList .scb .t');const r=sb.apply(this,arguments);dwGuardAll('#scrList .scb .t');return r;};}
+/* the overlays: the same strings anim wrote, only when they change */
+function vfxSync(){const vf=DW.vf||(DW.vf=$('#vfxFlash')),vv=DW.vv||(DW.vv=$('#vfxVig')),c=DW.c,o1=(flashA*SPACE_K).toFixed(3),o2=(vigA*SPACE_K).toFixed(3);
+  if(c.o1!==o1||vf.style.opacity!==c.r1){vf.style.opacity=o1;c.o1=o1;c.r1=vf.style.opacity;}
+  if(flashA>0&&(c.b!==flashCol||vf.style.background!==c.rb)){vf.style.background=flashCol;c.b=flashCol;c.rb=vf.style.background;}
+  if(c.o2!==o2||vv.style.opacity!==c.r2){vv.style.opacity=o2;c.o2=o2;c.r2=vv.style.opacity;}}
+{for(const nm of ['artHudSync','mpgSync']){const f0=nm==='artHudSync'?artHudSync:mpgSync;const g=function(){if(DW.inFrame){if(!DW.pend.includes(f0))DW.pend.push(f0);return;}return f0.apply(this,arguments);};
+  if(nm==='artHudSync')artHudSync=g;else mpgSync=g;}}
+{const fr=frame;frame=function(now){DW.inFrame=true;try{return fr.apply(this,arguments);}finally{DW.inFrame=false;
+    if(DW.pend.length){const P=DW.pend.splice(0);for(const f of P){try{f();}catch(e){console.error(e);}}}
+    if(!DW.gd){const b=$('#bDev');if(b){dwGuard(b,1);DW.gd=1;}}}};}
+/* ---- 4) Load: the thumbnails are made when first needed, or a few at a time while the menus cover the board ----
+   At start makeThumbs drew every tower (12, at 128 px) and every hero (twice, picture and silhouette, at 160 px) and read each back as a PNG:
+   about 0.6 s before the game was ready. Now each entry of thumbs, hthumbs and hsil is a getter that draws its own picture the first time
+   it is read (exactly as before: the same scene, camera, sizes and the clear colour the renderer had at start), and the rest are drawn one
+   every 30 ms after the start while the menus cover the board (hideWorld), where the resized canvas is never seen. If one is needed while
+   the battle shows, it is drawn at once and the frame is drawn again, so the board never flashes. The portraits (profMake) stay at start. */
+const TH={q:[],sc:null,cam:null,cc:new THREE.Color(),ca:0,v2:new THREE.Vector2(),c2:new THREE.Color(),n:0};
+function thmScene(){if(TH.sc)return;const ts=new THREE.Scene();ts.add(new THREE.HemisphereLight(0xffffff,0x665544,.9));const dl=new THREE.DirectionalLight(0xffffff,.7);dl.position.set(-2,4,3);ts.add(dl);
+  TH.sc=ts;TH.cam=new THREE.PerspectiveCamera(30,1,.1,20);}
+function thmMake(kind,key){thmScene();const R=renderer,ts=TH.sc,cam=TH.cam,pr=R.getPixelRatio(),sz=R.getSize(TH.v2).clone(),cc=R.getClearColor(TH.c2).clone(),ca=R.getClearAlpha(),sh=R.shadowMap.enabled;
+  let a=null,b=null;
+  try{R.shadowMap.enabled=false;R.setPixelRatio(1);R.setClearColor(TH.cc,TH.ca);
+    if(kind==='t'){R.setSize(128,128,false);cam.position.set(1.6,2.1,2.6);cam.lookAt(0,.5,0);const m=towerModel(key,{},null);ts.add(m.g);R.render(ts,cam);a=R.domElement.toDataURL();ts.remove(m.g);}
+    else{R.setSize(160,160,false);cam.position.set(.36,.36,.72);cam.lookAt(0,.19,0);const f=heroModel(key);f.rotation.y=.35;ts.add(f);R.render(ts,cam);a=R.domElement.toDataURL();
+      f.traverse(o=>{if(o.isMesh)o.material=SIL_MAT;});R.render(ts,cam);b=R.domElement.toDataURL();ts.remove(f);}}
+  finally{R.shadowMap.enabled=sh;R.setPixelRatio(pr);R.setSize(sz.x,sz.y,false);R.setClearColor(cc,ca);}
+  TH.n++;if(kind==='t')Object.defineProperty(thumbs,key,{value:a,writable:true,configurable:true,enumerable:true});
+  else{Object.defineProperty(hthumbs,key,{value:a,writable:true,configurable:true,enumerable:true});Object.defineProperty(hsil,key,{value:b,writable:true,configurable:true,enumerable:true});}}
+function thmNeed(kind,key){const i=TH.q.findIndex(q=>q[0]===kind&&q[1]===key);if(i<0)return;TH.q.splice(i,1);thmMake(kind,key);
+  if(!hideWorld()&&state==='playing'){try{if(LENS.on)lensRender();else if(DOM.post&&DOM.post.on)DOM.post.render();else if(SDP.n>0)sdpRender();else renderer.render(scene,camera);if(SGL.n>0)sglPass();}catch(e){}}}
+function thmLazy(obj,kind,key){Object.defineProperty(obj,key,{configurable:true,enumerable:true,get(){thmNeed(kind,key);const d=Object.getOwnPropertyDescriptor(obj,key);return d&&'value' in d?d.value:undefined;},
+  set(v){Object.defineProperty(obj,key,{value:v,writable:true,configurable:true,enumerable:true});}});}
+function thmIdle(){if(!TH.q.length)return;if(hideWorld()&&!document.hidden){const[k,key]=TH.q.shift();try{thmMake(k,key);}catch(e){console.error(e);}setTimeout(thmIdle,30);}else setTimeout(thmIdle,400);}
+/* replaces the base makeThumbs and keeps what the wrappers after it added (profMake) */
+makeThumbs=function(){TH.cc.copy(renderer.getClearColor(TH.c2));TH.ca=renderer.getClearAlpha();
+  for(const k of ALL_T){TH.q.push(['t',k]);thmLazy(thumbs,'t',k);}
+  for(const h of HEROES){TH.q.push(['h',h.id]);thmLazy(hthumbs,'h',h.id);thmLazy(hsil,'h',h.id);}
+  profMake();setTimeout(thmIdle,300);};
+function thmAll(){while(TH.q.length){const[k,key]=TH.q.shift();thmMake(k,key);}}
+/* ---- 5) The Graphics setting: a row in More (phones) and in the pause menu, a choice in the PC Settings window, and the developer panel.
+   It is a property of the device, so it stays when the account is switched (like the battery saver). ---- */
+const GQ_D={auto:'Adjusts to your device: draws fewer pixels when frames are slow, and more again when there is room',high:'Full quality, as drawn before',medium:'Fewer pixels and softer shadows',low:'Fewer pixels, softer shadows, no shadows from the far forest and fewer particles'};
+function gqNow(){const L=GQ.L[gqLevel()];return Math.round(L.s*100)+'% resolution'+(L.sh<1024?', soft shadows':'')+(L.far?'':', no far shadows')+(L.pd<1?', fewer particles':'');}
+function updGfxBtn(){for(const id of ['#bGfx','#bGfxP']){const b=$(id);if(b&&b.textContent!==GQ.names[gqMode()])b.textContent=GQ.names[gqMode()];}}
+function gqToast(){toast('Graphics: '+GQ.names[gqMode()]+(gqMode()==='auto'?' (now '+gqNow()+')':''));}
+{const mk=(after,id)=>{const a=$(after),bx=a&&a.closest('.box');if(!bx||$('#'+id))return;const d=document.createElement('div');d.className='box toggle';
+    d.innerHTML=`<span>Graphics (Auto adjusts to your device)</span><button class="btn" id="${id}" style="min-width:64px">Auto</button>`;bx.after(d);
+    d.querySelector('button').addEventListener('click',()=>{setGfx({auto:'high',high:'medium',medium:'low',low:'auto'}[gqMode()]);gqToast();});};
+  mk('#bBattery','bGfx');mk('#bWeatherP','bGfxP');updGfxBtn();
+  /* on a PC these rows give way to the Settings window, like the others */
+  const pc=()=>{const on=flyPC();for(const id of ['#bGfx','#bGfxP']){const b=$(id),bx=b&&b.closest('.box');if(bx)bx.style.display=on?'none':'';}};pc();
+  try{window.matchMedia('(hover:hover) and (pointer:fine)').addEventListener('change',pc);}catch(e){}}
+/* the PC Settings window repaints its whole body on every tap: the Graphics choice is put back in, above the field of view, each time */
+function gqSetRow(o){const body=o&&o.querySelector('.np-body');if(!body||body.querySelector('#gqRow'))return;const m=gqMode(),d=document.createElement('div');d.id='gqRow';d.style.padding='10px 0 4px';
+  d.innerHTML=`<div style="display:flex;justify-content:space-between"><b>Graphics</b><span>${GQ.names[m]}</span></div><div style="display:flex;gap:6px;margin-top:6px">`+
+    ['auto','high','medium','low'].map(l=>`<button class="btn" data-gfx="${l}" style="flex:1;padding:6px 2px;${m===l?'background:#d8a838;color:#1a1208;font-weight:700':''}">${GQ.names[l]}</button>`).join('')+
+    `</div><div style="font-size:11px;opacity:.65;margin-top:4px">${GQ_D[m]}.${m==='auto'?' Now: '+gqNow()+'.':''}</div>`;
+  const fov=body.querySelector('#fovSl'),blk=fov&&fov.closest('div[style*="padding:10px"]');if(blk)body.insertBefore(d,blk);else body.appendChild(d);
+  d.querySelectorAll('[data-gfx]').forEach(b=>b.onclick=()=>{setGfx(b.dataset.gfx);d.remove();gqSetRow(o);});}
+/* (the window is made the first time it opens, by code further down: it is found when it joins the page) */
+{const hook=o=>{if(!o||o.__gqMo)return;o.__gqMo=1;gqSetRow(o);new MutationObserver(()=>gqSetRow(o)).observe(o,{childList:true});};
+  const mo=new MutationObserver(()=>{const o=document.getElementById('setPop');if(o){hook(o);mo.disconnect();}});mo.observe(document.body,{childList:true});}
+/* developer panel: the setting, Auto's current level and its last moves */
+{const dp=devPaint;devPaint=function(){const r=dp.apply(this,arguments);const p=$('#devPanel');if(!p)return r;let s=p.querySelector('#dvGfx');
+  if(!s){s=document.createElement('div');s.id='dvGfx';const foot=p.querySelector('.dv-foot');if(foot)p.insertBefore(s,foot);else p.appendChild(s);
+    s.addEventListener('click',ev=>{const b=ev.target.closest('button[data-gq]');if(!b)return;ev.stopPropagation();const v=b.dataset.gq;
+      if(v==='dn')gqSet(GQ.auto+1,'dev');else if(v==='up')gqSet(GQ.auto-1,'dev');else setGfx(v);DEV.html='';devPaint();});}
+  const m=gqMode(),B=(a,l,on)=>`<button class="dv-btn ${on?'on':''}" data-gq="${a}">${l}</button>`;
+  const h='<h4>Graphics</h4>'+`<div class="dv-row st"><div class="dv-t"><b>Quality: ${GQ.names[m]}, level ${gqLevel()} of ${GQ.L.length-1}</b><small>${gqNow()}; pixel ratio ${renderer.getPixelRatio().toFixed(2)}, shadow map ${sun.shadow.mapSize.x}${GQ.log.length?'; Auto: '+GQ.log.slice(-3).map(x=>'level '+x[1]+' ('+x[2]+')').join(', '):''}</small></div><div class="dv-b">`+
+    ['auto','high','medium','low'].map(l=>B(l,GQ.names[l],m===l)).join('')+(m==='auto'?B('dn','Step down')+B('up','Step up'):'')+'</div></div>';
+  if(s.__h!==h){s.__h=h;s.innerHTML=h;}return r;};}
+{const ae=acctEnter;acctEnter=function(m,run){const g=meta.gfx,ga=meta.gfxAuto;const r=ae.apply(this,arguments);meta.gfx=g;meta.gfxAuto=ga;saveMeta();gqApply();updGfxBtn();return r;};}
+/* start: Auto resumes at the level it last settled on, on this device */
+GQ.auto=Math.max(0,Math.min(GQ.L.length-1,Math.round(+meta.gfxAuto)||0));gqApply();
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
