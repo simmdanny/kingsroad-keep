@@ -2797,6 +2797,8 @@ Simon: "yes add the grey screen fix too". `sdpInit` builds the shared world-spac
 - **`--profile`:** also writes a CPU profile (self time per function) and a sampled allocation profile.
 - Under swiftshader (software WebGL), render time is the CPU cost of WebGL calls. Draw calls, uniform uploads and shader compiles show there as they would on a weak GPU, so compare draw calls and compiles first.
 
+- v491 fixes: draw calls and triangles now add up every render pass of a step (spell passes draw the scene off-screen first), and the breakdown counts only what layer 0 draws (v492's batcher hides originals on layer 30).
+
 ## Graphics quality, HUD writes, memory and load (v495)
 Simon asked for "a very very big optimalization update". This part adds a Graphics setting with an automatic mode, makes the HUD write to the page only when something changed, stops a memory leak that grew with every big scroll, and starts the game faster. All of it is one block before the v446 Performance block (`gqFeed`, `vfxSync`, `memSweep`, `thmBatch`), plus two small base edits (the menu background's encode, and the overlay line in `anim`).
 

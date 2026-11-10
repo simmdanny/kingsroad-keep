@@ -31,14 +31,14 @@ const PORT = process.env.KK_PORT || 8771, local = path.join(__dirname, '..', '..
   const stepJs = `(()=>{const dt=1/60;const P=performance;const A=window.__A=window.__A||{n:0,upd:0,fx:0,anim:0,ren:0,max:0,calls:0,tris:0,foes:0,cast:0,heap0:0,heapMax:0,spikes:0};
     A.n++;const t0=P.now();if(enemies.length<window.__cap&&spawners.length<2)window.__bw();for(const sp of spawners)sp.t=Math.min(sp.t,.12);
     if(${SC === 'spells'}&&(A.n%150===0)&&heroU&&window.__SPELLS.length){const k=window.__SPELLS[(A.n/150|0)%window.__SPELLS.length];try{meta.spells[k]=meta.spells[k]||{lvl:1,own:1};heroU.scd={};heroU.gcd=0;const s=heroStats(),L=sortTargets(heroU,enemies.filter(e=>!e.dead));fireScroll(heroU,k,s,L);A.cast++;}catch(e){}}
-    update(dt);const t1=P.now();updFx(dt);const t2=P.now();for(const e of enemies)updBar(e);anim(dt,t1/1000);const t3=P.now();
+    renderer.info.autoReset=false;renderer.info.reset();update(dt);const t1=P.now();updFx(dt);const t2=P.now();for(const e of enemies)updBar(e);anim(dt,t1/1000);const t3=P.now();
     if(!${NOREN}){if(LENS.on)lensRender();else if(DOM.post&&DOM.post.on)DOM.post.render();else if(SDP.n>0)sdpRender();else renderer.render(scene,camera);if(SGL.n>0)sglPass();}
-    const t4=P.now();return [t1-t0,t2-t1,t3-t2,t4-t3,renderer.info.render.calls,renderer.info.render.triangles,enemies.length,(performance.memory?performance.memory.usedJSHeapSize:0)];})()`;
+    const t4=P.now();const IC=renderer.info.render.calls,IT=renderer.info.render.triangles;renderer.info.autoReset=true;return [t1-t0,t2-t1,t3-t2,t4-t3,IC,IT,enemies.length,(performance.memory?performance.memory.usedJSHeapSize:0)];})()`;
   for (let i = 0; i < 120; i++) await page.evaluate(c => __kk.ev(c), stepJs);
   const progs0 = await page.evaluate(() => __kk.ev('renderer.info.programs.length'));
   const breakdown = js => page.evaluate(c => __kk.ev(c), `(()=>{const own=new Map();for(const e of enemies)if(e.g)own.set(e.g,'foes');for(const t of towers)if(t.g)own.set(t.g,'towers');if(heroU&&heroU.g)own.set(heroU.g,'hero');
     if(typeof TERRAIN!=='undefined')own.set(TERRAIN,'terrain');if(typeof castle!=='undefined')own.set(castle,'keep');const B={},S={},cast={n:0};
-    scene.traverseVisible(o=>{if(!(o.isMesh||o.isPoints||o.isLine||o.isSprite))return;let p=o,k=null;while(p&&p!==scene){if(own.has(p)){k=own.get(p);break;}if(p.parent===scene)break;p=p.parent;}
+    scene.traverseVisible(o=>{if(!(o.isMesh||o.isPoints||o.isLine||o.isSprite))return;if(!(o.layers.mask&1))return;/* (v492: hidden originals live on layer 30 only) */let p=o,k=null;while(p&&p!==scene){if(own.has(p)){k=own.get(p);break;}if(p.parent===scene)break;p=p.parent;}
       if(!k){k=p&&p.parent===scene?(p.name||(p.isPoints?'points':p.isInstancedMesh?'instanced':(p.type||'obj'))):'?';k='other:'+k;}const n=o.isInstancedMesh?1:1;B[k]=(B[k]||0)+n;if(o.castShadow){cast.n++;S[k]=(S[k]||0)+1;}});
     const top=Object.entries(B).sort((a,b)=>b[1]-a[1]);const other=top.filter(x=>x[0].startsWith('other:'));
     return {byOwner:Object.fromEntries(top.filter(x=>!x[0].startsWith('other:'))),otherTotal:other.reduce((a,x)=>a+x[1],0),otherTop:other.slice(0,12),shadowCasters:cast.n,shadowByOwner:S,
