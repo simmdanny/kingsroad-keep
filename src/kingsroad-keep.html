@@ -37341,7 +37341,7 @@ function nmxRecloak(e){if(!e||!e.b||!e.ghostOn||e.dead)return;const L=e.ghostL||
    3) Shards and sparkles (burst, sparkle): the same flying pieces, the same random numbers in the same order and the same effect slots in fx, drawn
       as two instanced meshes instead of one mesh each.
    ---- */
-const PCR={on:!window.__pcrOff,W:1024,H:8,recs:new Set(),mats:new Map(),dyn:new WeakSet(),gc:new Map(),pools:{},IM:{},shard:{},slotFree:[],slotHW:1,
+const PCR={on:!window.__pcrOff,W:1024,H:8,recs:new Set(),mats:new Map(),dyn:new WeakSet(),gc:new Map(),pools:{},BK:{},items:[],bat:[],shard:{},slotFree:[],slotHW:1,
   tex:null,texA:null,mat:null,stat:{baked:0,parts:0,skipped:0,released:0,geoHit:0,geoMiss:0,grow:0},frame:0,fxF:0};
 const PCR_OBR=THREE.Object3D.prototype.onBeforeRender,PCR_OAR=THREE.Object3D.prototype.onAfterRender,PCR_CL=THREE.Object3D.prototype.clone;
 /* ---- shaders: three's own Phong and Basic programs, reading colour, glow, shine and opacity per vertex (or per instance); the pool variant
@@ -37350,12 +37350,14 @@ function pcrShader(kind,pool){const L=THREE.ShaderLib[kind];let vs=L.vertexShade
   const rep=(s,a,b)=>{if(s.indexOf(a)<0)throw new Error('pcr shader: '+a);return s.replace(a,b);};
   vs=rep(vs,'#include <common>','#include <common>\nattribute vec3 pcrD;attribute vec4 pcrE;attribute vec4 pcrS;varying vec3 vPcrD;varying vec4 vPcrE;varying vec4 vPcrS;'+
     (pool?'\nuniform sampler2D pcrT;uniform vec2 pcrTS;attribute float pcrI;\nvec4 pcrF(float t){float y=floor((t+.5)/pcrTS.x);float x=t-y*pcrTS.x;return texture2D(pcrT,(vec2(x,y)+.5)/pcrTS);}':''));
-  vs=rep(vs,'void main() {','void main() {\n\tvPcrD=pcrD;vPcrE=pcrE;vPcrS=pcrS;'+(pool?'\n\tvec4 pcrR0=pcrF(pcrI*3.),pcrR1=pcrF(pcrI*3.+1.),pcrR2=pcrF(pcrI*3.+2.);':''));
-  /* the pool: each part's normal goes through its own world matrix (inverse transpose, from the cofactors) so lighting and the shadow
-     normal bias see the same normal as the part's own mesh */
-  if(pool){vs=rep(vs,'#include <beginnormal_vertex>','vec3 pcrC0=vec3(pcrR0.x,pcrR1.x,pcrR2.x),pcrC1=vec3(pcrR0.y,pcrR1.y,pcrR2.y),pcrC2=vec3(pcrR0.z,pcrR1.z,pcrR2.z);\n\tvec3 pcrX0=cross(pcrC1,pcrC2),pcrX1=cross(pcrC2,pcrC0),pcrX2=cross(pcrC0,pcrC1);\n\tvec3 objectNormal=(dot(pcrC0,pcrX0)<0.?-1.:1.)*(mat3(pcrX0,pcrX1,pcrX2)*vec3(normal));');
-    vs=rep(vs,'#include <project_vertex>','vec4 pcrP=vec4(transformed,1.);\n\tvec4 pcrW=vec4(dot(pcrR0,pcrP),dot(pcrR1,pcrP),dot(pcrR2,pcrP),1.);\n\tvec4 mvPosition=modelViewMatrix*pcrW;\n\tgl_Position=projectionMatrix*mvPosition;');
-    vs=rep(vs,'#include <worldpos_vertex>','vec4 worldPosition=modelMatrix*pcrW;');}
+  vs=rep(vs,'void main() {','void main() {\n\tvPcrD=pcrD;vPcrE=pcrE;vPcrS=pcrS;'+(pool?'\n\tvec4 pcrR0=pcrF(pcrI*6.),pcrR1=pcrF(pcrI*6.+1.),pcrR2=pcrF(pcrI*6.+2.),pcrQ0=pcrF(pcrI*6.+3.),pcrQ1=pcrF(pcrI*6.+4.),pcrQ2=pcrF(pcrI*6.+5.);\n\tmat4 pcrMV=mat4(vec4(pcrR0.x,pcrR1.x,pcrR2.x,0.),vec4(pcrR0.y,pcrR1.y,pcrR2.y,0.),vec4(pcrR0.z,pcrR1.z,pcrR2.z,0.),vec4(pcrR0.w,pcrR1.w,pcrR2.w,1.));\n\tmat4 pcrMW=mat4(vec4(pcrQ0.x,pcrQ1.x,pcrQ2.x,0.),vec4(pcrQ0.y,pcrQ1.y,pcrQ2.y,0.),vec4(pcrQ0.z,pcrQ1.z,pcrQ2.z,0.),vec4(pcrQ0.w,pcrQ1.w,pcrQ2.w,1.));':''));
+  /* the pool: each part's slot holds its model-view matrix (computed on the CPU exactly as three.js computes a mesh's own, so every vertex
+     lands on the same pixel) and its world matrix (for the shadow lookup); the normal goes through the inverse transpose (from the cofactors) */
+  if(pool){vs=rep(vs,'#include <defaultnormal_vertex>','vec3 pcrC0=pcrMV[0].xyz,pcrC1=pcrMV[1].xyz,pcrC2=pcrMV[2].xyz,pcrX0=cross(pcrC1,pcrC2),pcrX1=cross(pcrC2,pcrC0),pcrX2=cross(pcrC0,pcrC1);\n\tvec3 transformedNormal=(dot(pcrC0,pcrX0)<0.?-1.:1.)*(mat3(pcrX0,pcrX1,pcrX2)*objectNormal);');
+    vs=rep(vs,'#include <project_vertex>','vec4 mvPosition=pcrMV*vec4(transformed,1.0);\n\tgl_Position=projectionMatrix*mvPosition;');
+    vs=rep(vs,'#include <worldpos_vertex>','vec4 worldPosition=pcrMW*vec4(transformed,1.0);');}
+  /* instances: instanceMatrix holds the model-view matrix itself, for the same reason */
+  else vs=rep(vs,'#include <project_vertex>','vec4 mvPosition=vec4(transformed,1.0);\n\t#ifdef USE_INSTANCING\n\tmvPosition=instanceMatrix*mvPosition;\n\t#else\n\tmvPosition=modelViewMatrix*mvPosition;\n\t#endif\n\tgl_Position=projectionMatrix*mvPosition;');
   fs=rep(fs,'#include <common>','#include <common>\nvarying vec3 vPcrD;varying vec4 vPcrE;varying vec4 vPcrS;');
   fs=rep(fs,'vec4 diffuseColor = vec4( diffuse, opacity );','vec4 diffuseColor = vec4( vPcrD, vPcrE.a );');
   if(kind==='phong'){fs=rep(fs,'vec3 totalEmissiveRadiance = emissive;','vec3 totalEmissiveRadiance = vPcrE.rgb;');
@@ -37363,8 +37365,8 @@ function pcrShader(kind,pool){const L=THREE.ShaderLib[kind];let vs=L.vertexShade
     fs=rep(fs,'#include <lights_phong_fragment>',lp);}
   return{vs,fs};}
 function pcrMakeMat(kind,pool,p,vc){const S=pcrShader(kind,pool),U=THREE.UniformsUtils.clone(THREE.ShaderLib[kind].uniforms);if(pool){U.pcrT={value:null};U.pcrTS={value:new THREE.Vector2(1,1)};}
-  const m=new THREE.ShaderMaterial(Object.assign({uniforms:U,vertexShader:S.vs,fragmentShader:S.fs,lights:kind==='phong',fog:true,vertexColors:!!vc,flatShading:kind==='phong'},p||{}));
-  m.extensions.derivatives=true;m.userData.pcr=1;return m;}
+  const m=new THREE.ShaderMaterial(Object.assign({uniforms:U,vertexShader:S.vs,fragmentShader:S.fs,lights:kind==='phong',fog:true},p||{}));
+  m.flatShading=kind==='phong';m.vertexColors=!!vc;m.extensions.derivatives=true;m.userData.pcr=1;return m;}
 /* ---- which parts go in the pool: opaque, flat-shaded MeshPhong with nothing a vertex colour cannot say (no textures, no shader of its own) ---- */
 function pcrMatOk(m){return !!m&&!Array.isArray(m)&&m.type==='MeshPhongMaterial'&&m.flatShading===true&&!m.transparent&&m.blending===THREE.NormalBlending&&m.visible&&m.depthTest&&m.depthWrite&&m.colorWrite&&
   !m.wireframe&&!m.map&&!m.alphaMap&&!m.emissiveMap&&!m.specularMap&&!m.lightMap&&!m.aoMap&&!m.bumpMap&&!m.normalMap&&!m.displacementMap&&!m.envMap&&!m.polygonOffset&&!(m.alphaTest>0)&&
@@ -37414,11 +37416,11 @@ const pcrDirty=(d,a,b)=>{if(a<d[0])d[0]=a;if(b>d[1])d[1]=b;};
 function pcrTexMake(H){const old=PCR.texA,a=new Float32Array(PCR.W*H*4);if(old)a.set(old.subarray(0,Math.min(old.length,a.length)));PCR.texA=a;
   const t=new THREE.DataTexture(a,PCR.W,H,THREE.RGBAFormat,THREE.FloatType);t.magFilter=t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;t.flipY=false;t.needsUpdate=true;
   if(PCR.tex)PCR.tex.dispose();PCR.tex=t;PCR.H=H;if(PCR.mat){PCR.mat.uniforms.pcrT.value=t;PCR.mat.uniforms.pcrTS.value.set(PCR.W,H);}}
-function pcrSlot(){if(PCR.slotFree.length)return PCR.slotFree.pop();const s=PCR.slotHW++;if((s+1)*3>PCR.W*PCR.H)pcrTexMake(PCR.H*2);return s;}
-function pcrSlotZero(s){PCR.texA.fill(0,s*12,s*12+12);}
+function pcrSlot(){if(PCR.slotFree.length)return PCR.slotFree.pop();const s=PCR.slotHW++;if((s+1)*6>PCR.W*PCR.H)pcrTexMake(PCR.H*2);return s;}
+function pcrSlotZero(s){PCR.texA.fill(0,s*24,s*24+24);}
 /* ---- baking a foe ---- */
 function pcrBake(e){if(!PCR.on||!e||!e.g||!e.b||e.pcr||!pcrReady())return;const by=[[],[]];let skip=0;
-  e.b.traverse(o=>{if(!o.isMesh)return;if(pcrPartOk(o))by[o.receiveShadow?1:0].push(o);else skip++;});
+  e.b.traverse(o=>{if(!o.isMesh)return;if(!String(window.__pcrNo).includes('pool')&&pcrPartOk(o))by[o.receiveShadow?1:0].push(o);else skip++;});
   const R={e,root:e.g,parts:[],segs:[],inst:[]};
   for(let rs=0;rs<2;rs++){const list=by[rs];if(!list.length)continue;const P=pcrPool(rs),D=pcrGeoData(list);
     let vs=pcrAlloc(P,P.vfree,'vhw','vcap',D.V);if(vs<0){pcrPoolGeo(P,Math.max(P.vcap*2,P.vhw+D.V),P.icap);vs=pcrAlloc(P,P.vfree,'vhw','vcap',D.V);}
@@ -37431,7 +37433,7 @@ function pcrBake(e){if(!PCR.on||!e||!e.g||!e.b||e.pcr||!pcrReady())return;const 
   pcrInstReg(R);if(!R.parts.length&&!R.inst.length)return;
   e.pcr=R;PCR.recs.add(R);PCR.stat.baked++;PCR.stat.parts+=R.parts.length;PCR.stat.skipped+=skip;
   /* a clone of the body (afterimages) must draw: give the copies their layers back */
-  for(const n of [e.b,e.g])if(!Object.prototype.hasOwnProperty.call(n,'clone'))n.clone=function(rec){const c=PCR_CL.call(this,rec);try{pcrUnmaskCopy(this,c);}catch(err){}return c;};}
+  if(!String(window.__pcrNo).includes('noclone'))for(const n of [e.b,e.g])if(!Object.prototype.hasOwnProperty.call(n,'clone'))n.clone=function(rec){const c=PCR_CL.call(this,rec);try{pcrUnmaskCopy(this,c);}catch(err){}return c;};}
 function pcrUnmaskCopy(a,b){if(!a||!b)return;if(PCR_MASK.has(a))b.layers.mask=PCR_MASK.get(a);const n=Math.min(a.children.length,b.children.length);for(let i=0;i<n;i++)pcrUnmaskCopy(a.children[i],b.children[i]);}
 const PCR_MASK=new WeakMap();
 function pcrHide(o,m0){if(o.layers.mask!==0){PCR_MASK.set(o,m0);o.layers.mask=0;}}
@@ -37442,42 +37444,45 @@ function pcrRelease(R){if(!R||!PCR.recs.has(R))return;PCR.recs.delete(R);PCR.sta
   for(const s of R.segs){const P=s.P;P.I.array.fill(0,s.is,s.is+s.in);pcrDirty(P.di,s.is,s.is+s.in);pcrFree(P,P.vfree,'vhw',s.vs,s.vn);pcrFree(P,P.ifree,'ihw',s.is,s.in);}
   if(R.e&&R.e.pcr===R)R.e.pcr=null;}
 /* ---- see-through pieces as instances: shadow blobs, elite markers and their glows ---- */
-function pcrInstReg(R){const e=R.e;for(const c of e.g.children)if(c.isMesh&&c.geometry===blobGeo&&c.material===blobMat&&c.layers.mask===1)R.inst.push({o:c,k:'blob',mask0:1,on:false});
-  for(const a of [e.aura,e.aura2]){const u=a&&a.userData&&a.userData.mkx;if(!u||!a.isMesh||a.layers.mask!==1||a.parent!==e.g)continue;R.inst.push({o:a,k:'mk',mask0:1,on:false,geo:a.geometry});
-    if(u.h&&u.h.isMesh&&u.h.layers.mask===1)R.inst.push({o:u.h,k:'mh',mask0:1,on:false,geo:u.h.geometry});}}
+function pcrInstReg(R){const e=R.e;if(String(window.__pcrNo).includes('inst'))return;for(const c of e.g.children)if(c.isMesh&&c.geometry===blobGeo&&c.material===blobMat&&c.layers.mask===1){if(String(window.__pcrNo).includes('blob'))continue;R.inst.push({o:c,k:'blob',mask0:1,on:false});}
+  for(const a of [e.aura,e.aura2]){const u=a&&a.userData&&a.userData.mkx;if(!u||!a.isMesh||a.layers.mask!==1||a.parent!==e.g)continue;if(!String(window.__pcrNo).includes('mk'))R.inst.push({o:a,k:'mk',mask0:1,on:false,geo:a.geometry});
+    if(!String(window.__pcrNo).includes('mh')&&u.h&&u.h.isMesh&&u.h.layers.mask===1)R.inst.push({o:u.h,k:'mh',mask0:1,on:false,geo:u.h.geometry});}}
 const pcrMkOk=m=>m&&m.type==='MeshPhongMaterial'&&m.transparent&&m.flatShading&&m.blending===THREE.NormalBlending&&m.depthWrite&&m.depthTest&&m.visible&&m.side===THREE.FrontSide&&!m.vertexColors&&!m.map&&!m.alphaMap&&!m.emissiveMap&&!m.envMap&&!m.wireframe&&m.fog!==false&&!(m.alphaTest>0)&&!Object.prototype.hasOwnProperty.call(m,'onBeforeCompile');
 const pcrMhOk=m=>m&&m.type==='MeshBasicMaterial'&&m.transparent&&m.blending===THREE.AdditiveBlending&&!m.depthWrite&&m.depthTest&&m.visible&&m.side===THREE.FrontSide&&m.vertexColors&&!m.map&&!m.alphaMap&&!m.envMap&&!m.wireframe&&m.fog!==false&&!(m.alphaTest>0)&&!Object.prototype.hasOwnProperty.call(m,'onBeforeCompile');
-function pcrIM(key,geo,make,z,ro){let I=PCR.IM[key];if(I&&I.geo===geo)return I;
-  if(!I){I=PCR.IM[key]={key,geo,mat:make(),cap:0,n:0,mesh:null,z,ro,attrs:null,foe:true};}else I.geo=geo;pcrIMGrow(I,64);return I;}
+/* buckets: a few instanced meshes per piece shape; the order-keeping batching in pcrBatch decides how many draw each render */
+function pcrBK(key,geo,make,ro){let B=PCR.BK[key];if(!B)B=PCR.BK[key]={key,geo,mat:make(),ro,list:[],used:0};return B;}
+function pcrBKMesh(B){let I=B.list[B.used];if(!I){I={key:B.key,geo:B.geo,mat:B.mat,cap:0,n:0,mesh:null,ro:B.ro,attrs:null};pcrIMGrow(I,16);B.list.push(I);}B.used++;I.n=0;return I;}
 function pcrIMGrow(I,cap){const G=new THREE.BufferGeometry(),src=I.geo;for(const k in src.attributes)G.setAttribute(k,src.attributes[k]);if(src.index)G.setIndex(src.index);
-  const old=I.mesh;I.attrs={};if(I.key!=='blob')for(const [k,s] of [['pcrD',3],['pcrE',4],['pcrS',4]]){const a=new THREE.InstancedBufferAttribute(new Float32Array(cap*s),s);a.setUsage(THREE.DynamicDrawUsage);I.attrs[k]=a;G.setAttribute(k,a);}
-  const me=new THREE.InstancedMesh(G,I.mat,cap);me.count=0;me.frustumCulled=false;me.instanceMatrix.setUsage(THREE.DynamicDrawUsage);me.renderOrder=I.ro;me.userData.pcrZ=I.z;me.name='pcrInst:'+I.key;
+  const old=I.mesh;I.attrs={};for(const [k,s] of [['pcrD',3],['pcrE',4],['pcrS',4]]){const a=new THREE.InstancedBufferAttribute(new Float32Array(cap*s),s);a.setUsage(THREE.DynamicDrawUsage);I.attrs[k]=a;G.setAttribute(k,a);}
+  const me=new THREE.InstancedMesh(G,I.mat,cap);me.count=0;me.frustumCulled=false;me.instanceMatrix.setUsage(THREE.DynamicDrawUsage);me.renderOrder=I.ro;me.name='pcrInst:'+I.key;
   if(old){if(old.parent)old.parent.remove(old);old.geometry.dispose();old.dispose&&old.dispose();}I.mesh=me;I.cap=cap;}
 function pcrIMPut(I,o,m){if(I.n>=I.cap){const n=I.n,oldM=I.mesh.instanceMatrix.array,oldA={};for(const k in I.attrs)oldA[k]=I.attrs[k].array;pcrIMGrow(I,I.cap*2);
     I.mesh.instanceMatrix.array.set(oldM.subarray(0,n*16));for(const k in oldA)I.attrs[k].array.set(oldA[k].subarray(0,n*I.attrs[k].itemSize));}
-  const i=I.n++;I.mesh.instanceMatrix.array.set(o.matrixWorld.elements,i*16);
+  const i=I.n++;PCR_MV.multiplyMatrices(PCR_VI,o.matrixWorld);I.mesh.instanceMatrix.array.set(PCR_MV.elements,i*16);
   if(m&&I.attrs.pcrD){const D=I.attrs.pcrD.array,E=I.attrs.pcrE.array,S=I.attrs.pcrS.array,c=m.color;D[i*3]=c.r;D[i*3+1]=c.g;D[i*3+2]=c.b;
     if(m.emissive){const k=m.emissiveIntensity,e=m.emissive;E[i*4]=e.r*k;E[i*4+1]=e.g*k;E[i*4+2]=e.b*k;S[i*4]=m.specular.r;S[i*4+1]=m.specular.g;S[i*4+2]=m.specular.b;S[i*4+3]=Math.max(m.shininess,1e-4);}
     else{E[i*4]=E[i*4+1]=E[i*4+2]=0;}E[i*4+3]=m.opacity;}}
 const PCR_MKMAT=()=>pcrMakeMat('phong',false,{transparent:true,depthWrite:true},false),PCR_MHMAT=()=>pcrMakeMat('basic',false,{transparent:true,blending:THREE.AdditiveBlending,depthWrite:false},true);
-let PCR_BLOBM=null;
+/* the shadow blobs keep their stencil (overlapping blobs darken the ground once) */
+function pcrBlobMat(){const b=blobMat,m=pcrMakeMat('basic',false,{transparent:true,depthWrite:b.depthWrite,depthTest:b.depthTest,side:b.side,blending:b.blending},false);
+  for(const k of ['stencilWrite','stencilWriteMask','stencilFunc','stencilRef','stencilFuncMask','stencilFail','stencilZFail','stencilZPass'])m[k]=b[k];return m;}
 /* ---- shards and sparkles ---- */
 const PCR_FXO=new THREE.Object3D(),PCR_M4=new THREE.Matrix4(),PCR_V=new THREE.Vector3(),PCR_Q=new THREE.Quaternion(),PCR_E=new THREE.Euler(),PCR_SV=new THREE.Vector3();
 function pcrShardOk(m){return !!m&&m.type==='MeshPhongMaterial'&&!m.transparent&&m.flatShading&&m.blending===THREE.NormalBlending&&m.visible&&m.depthTest&&m.depthWrite&&m.side===THREE.FrontSide&&!m.vertexColors&&
   !m.map&&!m.alphaMap&&!m.emissiveMap&&!m.specularMap&&!m.envMap&&!m.wireframe&&m.fog!==false&&!(m.alphaTest>0)&&!Object.prototype.hasOwnProperty.call(m,'onBeforeCompile');}
-function pcrShardSys(geo){let S=PCR.shard[geo.id];if(S)return S;S=PCR.shard[geo.id]={geo,list:[],I:{key:'sh'+geo.id,geo,mat:PCR.shMat||(PCR.shMat=pcrMakeMat('phong',false,{},false)),cap:0,n:0,mesh:null,z:undefined,ro:0,attrs:null}};pcrIMGrow(S.I,64);return S;}
+function pcrShardSys(geo){let S=PCR.shard[geo.id];if(S)return S;S=PCR.shard[geo.id]={geo,list:[],I:{key:'sh'+geo.id,geo,mat:PCR.shMat||(PCR.shMat=pcrMakeMat('phong',false,{},false)),cap:0,n:0,mesh:null,ro:0,attrs:null}};pcrIMGrow(S.I,64);return S;}
 function pcrShardAdd(geo,mat,x,y,z,rx,ry){const S=pcrShardSys(geo),f={o:PCR_FXO,life:0,max:0,fn:null,pcrS:S,px:x,py:y,pz:z,q:new THREE.Quaternion().setFromEuler(PCR_E.set(rx,ry,0)),s:1,mat,vx:0,vy:0,vz:0,stamp:PCR.fxF,live:true};S.list.push(f);return f;}
 function pcrShardEnd(f){if(!f.live)return;f.live=false;const L=f.pcrS.list,i=L.indexOf(f);if(i>=0){L[i]=L[L.length-1];L.pop();}}
 function pcrBurstFn(e,dt){e.vy-=6*dt;e.px+=e.vx*dt;e.py+=e.vy*dt;e.pz+=e.vz*dt;if(e.py<.02){e.py=.02;e.vx*=.5;e.vy=0;e.vz*=.5;}e.s=Math.max(.05,e.life/e.max);e.stamp=PCR.fxF;if(e.life<=0)pcrShardEnd(e);}
 function pcrSparkFn(e,dt){e.py+=dt*.6;e.s=Math.max(.05,e.life/e.max);e.stamp=PCR.fxF;if(e.life<=0)pcrShardEnd(e);}
 const PCR_BURST0=burst,PCR_SPARK0=sparkle;
-burst=function(x,y,z,col,n){if(!PCR.on||!pcrReady())return PCR_BURST0.apply(this,arguments);
+burst=function(x,y,z,col,n){if(String(window.__pcrNo).includes('shard')||!PCR.on||!pcrReady())return PCR_BURST0.apply(this,arguments);
   sprayP(1,x,y,z,n*2,{c:col,c2:col,sp:2.2,s:.06,s2:0,life:.5,g:3,drag:1});
   for(let i=0;i<Math.ceil(n*.6)&&fx.length<260;i++){const geo=tet(.05),mat=M(col);
     if(!pcrShardOk(mat)){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.rotation.set(rnd()*6,rnd()*6,0);scene.add(m);
       const v=new THREE.Vector3((rnd()-.5)*2.2,rnd()*2.2+.6,(rnd()-.5)*2.2);fx.push({o:m,life:.55+rnd()*.3,max:.8,fn(e,dt){v.y-=6*dt;m.position.addScaledVector(v,dt);if(m.position.y<.02){m.position.y=.02;v.set(v.x*.5,0,v.z*.5);}m.scale.setScalar(Math.max(.05,e.life/e.max));}});continue;}
     const rx=rnd()*6,ry=rnd()*6,f=pcrShardAdd(geo,mat,x,y,z,rx,ry);f.vx=(rnd()-.5)*2.2;f.vy=rnd()*2.2+.6;f.vz=(rnd()-.5)*2.2;f.life=.55+rnd()*.3;f.max=.8;f.fn=pcrBurstFn;fx.push(f);}};
-sparkle=function(x,y,z,col){if(!PCR.on||!pcrReady())return PCR_SPARK0.apply(this,arguments);if(fx.length>240)return;const geo=oct(.025),mat=M(col,{emissive:col,emissiveIntensity:1});
+sparkle=function(x,y,z,col){if(String(window.__pcrNo).includes('shard')||!PCR.on||!pcrReady())return PCR_SPARK0.apply(this,arguments);if(fx.length>240)return;const geo=oct(.025),mat=M(col,{emissive:col,emissiveIntensity:1});
   if(!pcrShardOk(mat))return PCR_SPARK0.apply(this,arguments);
   const px=x+(rnd()-.5)*.2,pz=z+(rnd()-.5)*.2,f=pcrShardAdd(geo,mat,px,y,pz,0,0);f.life=.6;f.max=.6;f.fn=pcrSparkFn;fx.push(f);};
 /* effects dropped from fx without running out (clearWorld empties fx) stop being drawn */
@@ -37487,41 +37492,62 @@ function pcrShardSweep(){for(const k in PCR.shard){const L=PCR.shard[k].list;for
 let PCR_OK=null;function pcrReady(){if(PCR_OK===null){try{PCR_OK=!!(renderer.capabilities.floatVertexTextures&&renderer.capabilities.maxVertexTextures>0);pcrShader('phong',true);pcrShader('basic',false);}catch(err){console.error(err);PCR_OK=false;}}return PCR_OK;}
 function pcrVis(o,root){for(let p=o;p!==root;p=p.parent){if(!p||!p.visible)return false;}return true;}
 function pcrRootIn(root){let p=root;while(p&&p!==scene){if(!p.visible)return 0;p=p.parent;}return p===scene?1:-1;}
-function pcrPass(){PCR.frame++;if(!PCR.recs.size&&!pcrShardAny()){for(const k in PCR.IM)PCR.IM[k].mesh.visible=false;for(const k in PCR.pools)PCR.pools[k].mesh.visible=false;return;}
-  pcrMatCheck();const T=PCR.texA;for(const k in PCR.IM)PCR.IM[k].n=0;
-  if(!PCR_BLOBM){PCR_BLOBM=blobMat.clone();}PCR_BLOBM.opacity=blobMat.opacity;PCR_BLOBM.color.copy(blobMat.color);PCR_BLOBM.visible=blobMat.visible;
+const PCR_PM=new THREE.Matrix4(),PCR_PV=new THREE.Vector3(),PCR_MV=new THREE.Matrix4();let PCR_VI=null;
+const pcrRows=(T,b,e)=>{T[b]=e[0];T[b+1]=e[4];T[b+2]=e[8];T[b+3]=e[12];T[b+4]=e[1];T[b+5]=e[5];T[b+6]=e[9];T[b+7]=e[13];T[b+8]=e[2];T[b+9]=e[6];T[b+10]=e[10];T[b+11]=e[14];};
+function pcrPass(cam){PCR.frame++;const shards=pcrShardAny();
+  if(!PCR.recs.size&&!shards){for(const k in PCR.BK)for(const I of PCR.BK[k].list)I.mesh.visible=false;for(const k in PCR.shard)PCR.shard[k].I.mesh.visible=false;for(const k in PCR.pools)PCR.pools[k].mesh.visible=false;return;}
+  pcrMatCheck();const T=PCR.texA,IT=PCR.items,VI=(cam||camera).matrixWorldInverse;let ni=0;PCR_VI=VI;
   for(const R of PCR.recs){const rin=pcrRootIn(R.root);if(rin<0){pcrRelease(R);continue;}
     for(const p of R.parts){if(p.dead)continue;const o=p.o;
       if(o.layers.mask!==(p.on?0:p.mask0)){p.dead=true;p.on=false;PCR_MASK.delete(o);pcrSlotZero(p.slot);continue;}
       const ok=rin===1&&o.material===p.mat&&o.geometry===p.geo&&o.geometry.attributes.position.version===p.pv&&!PCR.dyn.has(p.mat)&&pcrVis(o,R.root);
-      const b=p.slot*12;
-      if(ok){const e=o.matrixWorld.elements;T[b]=e[0];T[b+1]=e[4];T[b+2]=e[8];T[b+3]=e[12];T[b+4]=e[1];T[b+5]=e[5];T[b+6]=e[9];T[b+7]=e[13];T[b+8]=e[2];T[b+9]=e[6];T[b+10]=e[10];T[b+11]=e[14];
+      const b=p.slot*24;
+      if(ok){PCR_M4.multiplyMatrices(VI,o.matrixWorld);pcrRows(T,b,PCR_M4.elements);pcrRows(T,b+12,o.matrixWorld.elements);
         if(!p.on){pcrHide(o,p.mask0);p.on=true;}}
-      else{T.fill(0,b,b+12);if(p.on){pcrShow(o,p.mask0);p.on=false;}}}
+      else{T.fill(0,b,b+24);if(p.on){pcrShow(o,p.mask0);p.on=false;}}}
     for(const q of R.inst){const o=q.o;if(q.dead)continue;if(o.layers.mask!==(q.on?0:q.mask0)){q.dead=true;q.on=false;PCR_MASK.delete(o);continue;}
-      let I=null,m=o.material,ok=rin===1&&pcrVis(o,R.root);
-      if(ok){if(q.k==='blob'){ok=o.material===blobMat&&o.geometry===blobGeo&&o.renderOrder===0;if(ok)I=pcrIM('blob',blobGeo,()=>PCR_BLOBM,2e9,0);}
-        else if(q.k==='mk'){ok=o.geometry===q.geo&&o.renderOrder===0&&pcrMkOk(m);if(ok)I=pcrIM('mk'+q.geo.id,q.geo,PCR_MKMAT,3e9,0);}
-        else{ok=o.geometry===q.geo&&o.renderOrder===1&&pcrMhOk(m);if(ok)I=pcrIM('mh'+q.geo.id,q.geo,PCR_MHMAT,1e9,1);}}
-      if(ok){pcrIMPut(I,o,q.k==='blob'?null:m);if(!q.on){pcrHide(o,q.mask0);q.on=true;}}else if(q.on){pcrShow(o,q.mask0);q.on=false;}}}
+      let B=null,m=o.material,ok=rin===1&&pcrVis(o,R.root);
+      if(ok){if(q.k==='blob'){ok=o.material===blobMat&&o.geometry===blobGeo&&o.renderOrder===0;if(ok)B=pcrBK('blob',blobGeo,pcrBlobMat,0);}
+        else if(q.k==='mk'){ok=o.geometry===q.geo&&o.renderOrder===0&&pcrMkOk(m);if(ok)B=pcrBK('mk'+q.geo.id,q.geo,PCR_MKMAT,0);}
+        else{ok=o.geometry===q.geo&&o.renderOrder===1&&pcrMhOk(m);if(ok)B=pcrBK('mh'+q.geo.id,q.geo,PCR_MHMAT,1);}}
+      if(ok){const it=IT[ni]||(IT[ni]={});ni++;it.o=o;it.m=m;it.B=B;if(!q.on){pcrHide(o,q.mask0);q.on=true;}}else if(q.on){pcrShow(o,q.mask0);q.on=false;}}}
+  for(const k in PCR.BK)PCR.BK[k].used=0;
+  if(ni)pcrBatch(IT,ni,cam||camera);
+  for(const k in PCR.BK){const B=PCR.BK[k];for(let i=0;i<B.list.length;i++){const I=B.list[i],me=I.mesh,on=i<B.used&&I.n>0&&!PCR.hush;me.count=on?I.n:0;me.visible=on;
+    if(on){if(me.parent!==scene)scene.add(me);me.instanceMatrix.needsUpdate=true;for(const a in I.attrs)I.attrs[a].needsUpdate=true;}}}
   /* shards */
-  for(const k in PCR.shard){const S=PCR.shard[k],I=S.I;I.n=0;for(const f of S.list){PCR_SV.set(f.s,f.s,f.s);PCR_V.set(f.px,f.py,f.pz);PCR_M4.compose(PCR_V,f.q,PCR_SV);PCR_FXO.matrixWorld.copy(PCR_M4);pcrIMPut(I,PCR_FXO,f.mat);}}
+  for(const k in PCR.shard){const S=PCR.shard[k],I=S.I;I.n=0;for(const f of S.list){PCR_SV.set(f.s,f.s,f.s);PCR_V.set(f.px,f.py,f.pz);PCR_M4.compose(PCR_V,f.q,PCR_SV);PCR_FXO.matrixWorld.copy(PCR_M4);pcrIMPut(I,PCR_FXO,f.mat);}
+    const me=I.mesh;me.count=I.n;me.visible=I.n>0;if(I.n){if(me.parent!==scene)scene.add(me);me.instanceMatrix.needsUpdate=true;for(const a in I.attrs)I.attrs[a].needsUpdate=true;}}
   /* pools: upload what changed, keep the meshes in the scene */
   for(const k in PCR.pools){const P=PCR.pools[k],me=P.mesh;if(me.parent!==scene)scene.add(me);me.visible=P.ihw>0&&!PCR.hush;P.geo.setDrawRange(0,P.ihw);
     if(P.full){for(const a in P.A){P.A[a].updateRange.count=-1;P.A[a].needsUpdate=true;}P.I.updateRange.count=-1;P.I.needsUpdate=true;P.full=false;}
     else{if(P.dv[1]>P.dv[0])for(const a in P.A){const A=P.A[a];A.updateRange.offset=P.dv[0]*A.itemSize;A.updateRange.count=(P.dv[1]-P.dv[0])*A.itemSize;A.needsUpdate=true;}
       if(P.di[1]>P.di[0]){P.I.updateRange.offset=P.di[0];P.I.updateRange.count=P.di[1]-P.di[0];P.I.needsUpdate=true;}}
     P.dv[0]=P.di[0]=1e15;P.dv[1]=P.di[1]=-1;}
-  if(PCR.tex)PCR.tex.needsUpdate=true;
-  for(const k in PCR.IM){const I=PCR.IM[k],me=I.mesh;me.count=I.n;me.visible=I.n>0&&!(PCR.hush&&I.foe);if(I.n){if(me.parent!==scene)scene.add(me);me.instanceMatrix.needsUpdate=true;for(const a in I.attrs)I.attrs[a].needsUpdate=true;}}}
+  if(PCR.tex)PCR.tex.needsUpdate=true;}
+/* order-keeping batching: the pieces are put in three.js's own see-through order (render order, then depth of the object's centre, then id);
+   each piece joins the earliest batch of its shape that comes after every batch holding a piece it overlaps on screen, so wherever two pieces
+   overlap they still draw in the original order. Each batch draws as one instanced mesh, at the depth of its first piece. */
+function pcrBatch(IT,n,cam){PCR_PM.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);const P=PCR_PM.elements,fx=Math.abs(P[0]),fy=Math.abs(P[5]);
+  for(let i=0;i<n;i++){const it=IT[i],o=it.o,g=o.geometry;PCR_PV.setFromMatrixPosition(o.matrixWorld).applyMatrix4(PCR_PM);it.z=PCR_PV.z;it.id=o.id;it.ro=o.renderOrder;
+    if(!g.boundingSphere)g.computeBoundingSphere();const e=o.matrixWorld.elements,x=e[12],y=e[13],z=e[14],w=P[3]*x+P[7]*y+P[11]*z+P[15],s=o.matrixWorld.getMaxScaleOnAxis(),r=(g.boundingSphere.radius+g.boundingSphere.center.length())*s*1.5;
+    if(w>r*2){const rx=r*fx/(w-r),ry=r*fy/(w-r);it.x0=PCR_PV.x-rx;it.x1=PCR_PV.x+rx;it.y0=PCR_PV.y-ry;it.y1=PCR_PV.y+ry;}else{it.x0=it.y0=-1e9;it.x1=it.y1=1e9;}}
+  const L=IT.slice(0,n).sort((a,b)=>a.ro!==b.ro?a.ro-b.ro:a.z!==b.z?b.z-a.z:a.id-b.id),BT=PCR.bat;let nb=0;
+  const ov=(a,b)=>a.x0<=b.x1&&b.x0<=a.x1&&a.y0<=b.y1&&b.y0<=a.y1;
+  for(let i=0;i<n;i++){const it=L[i];let j=-1;
+    for(let b=nb-1;b>=0;b--){const T=BT[b];if(T.ro!==it.ro)break;if(!ov(T,it))continue;let hit=false;for(const q of T.items)if(ov(q,it)){hit=true;break;}if(hit){j=b;break;}}
+    let k=-1;for(let b=Math.max(j,0);b<nb;b++){const T=BT[b];if(T.ro===it.ro&&T.B===it.B){k=b;break;}}
+    if(k<0){k=nb++;const T=BT[k]||(BT[k]={items:[]});T.items.length=0;T.B=it.B;T.ro=it.ro;T.z=it.z;T.x0=it.x0;T.x1=it.x1;T.y0=it.y0;T.y1=it.y1;}
+    const T=BT[k];T.items.push(it);if(it.x0<T.x0)T.x0=it.x0;if(it.x1>T.x1)T.x1=it.x1;if(it.y0<T.y0)T.y0=it.y0;if(it.y1>T.y1)T.y1=it.y1;}
+  let zp=Infinity,rp=null;for(let b=0;b<nb;b++){const T=BT[b],I=pcrBKMesh(T.B);if(T.ro!==rp){rp=T.ro;zp=Infinity;}let z=Math.min(T.z,zp);if(b&&z>=zp)z=zp-1e-7;zp=z;
+    for(const it of T.items)pcrIMPut(I,it.o,it.m);I.mesh.userData.pcrZ=z;}
+  PCR.stat.batches=nb;PCR.stat.pieces=n;}
 function pcrShardAny(){for(const k in PCR.shard)if(PCR.shard[k].list.length)return true;return false;}
-/* shard instancers live in PCR.IM too, so the pass above fills and shows them */
-{const ss=pcrShardSys;pcrShardSys=function(geo){const had=!!PCR.shard[geo.id],S=ss(geo);if(!had)PCR.IM[S.I.key]=S.I;return S;};}
-/* the see-through order: our instanced pieces carry a fixed depth (userData.pcrZ) so they draw before the other see-through things of their
-   render order; everything else sorts exactly as three.js does */
+/* the see-through order: each batch of instanced pieces sorts by the depth pcrBatch gave it (userData.pcrZ); everything else sorts exactly
+   as three.js does */
 renderer.setTransparentSort((a,b)=>{if(a.groupOrder!==b.groupOrder)return a.groupOrder-b.groupOrder;if(a.renderOrder!==b.renderOrder)return a.renderOrder-b.renderOrder;
   const za=a.object.userData.pcrZ,zb=b.object.userData.pcrZ,az=za!==undefined?za:a.z,bz=zb!==undefined?zb:b.z;if(az!==bz)return bz-az;return a.id-b.id;});
-{const ob=scene.onBeforeRender;scene.onBeforeRender=function(){if(ob&&ob!==PCR_OBR)ob.apply(this,arguments);if(PCR.on&&PCR_OK)try{pcrPass();}catch(err){console.error(err);}};}
+{const ob=scene.onBeforeRender;scene.onBeforeRender=function(){if(ob&&ob!==PCR_OBR)ob.apply(this,arguments);if(PCR.on&&PCR_OK)try{pcrPass(arguments[2]);}catch(err){console.error(err);}};}
 {const se=spawnEnemy;spawnEnemy=function(){const n0=enemies.length,r=se.apply(this,arguments);if(PCR.on)for(let i=n0;i<enemies.length;i++)try{pcrBake(enemies[i]);}catch(err){console.error(err);}return r;};}
 {const re=removeEnemy;removeEnemy=function(e){const r=re.apply(this,arguments);if(e&&e.pcr)try{pcrRelease(e.pcr);}catch(err){console.error(err);}return r;};}
 /* PCR.count(): draw calls the foes cost right now (renders twice: with and without the foes) */
