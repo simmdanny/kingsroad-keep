@@ -35,11 +35,11 @@ const run=async()=>{
   for(const land of ['plains','snow','tundra','whitewaste','taiga','highlands']){board(land);crowd(100,land==='plains');anim(.001,1);shot();const A=shot();release();const B=shot();const d=diff(A,B);rebake();
     ok(land+': the crowd looks the same pooled and as single meshes',d.n<A.n*.0003,d.n+' pixels differ by more than 8 (max '+d.mx+'), calls '+A.calls+' vs '+B.calls);}
   /* pieces that change their look draw themselves */
-  board('plains');crowd(30);{const e=enemies.find(q=>q.elites&&q.elites.includes('invisible')&&q.ghostOn)||enemies.find(q=>q.pcr);
+  board('plains');crowd(30);shot();{const onS=q=>q.pcr&&q.pcr.vis;const e=enemies.find(q=>onS(q)&&q.elites&&q.elites.includes('invisible')&&q.ghostOn)||enemies.find(onS);
     if(e&&!e.ghostOn)invisLook(e,true);shot();const on=e.pcr?e.pcr.parts.filter(p=>p.on).length:0;let ghost=0;e.b.traverse(o=>{if(o.isMesh&&o.material&&o.material.userData&&o.material.userData.nmxGhost&&o.layers.mask!==0)ghost++;});
     ok('a cloaked foe\'s pieces draw themselves (ghost material, not the pool)',on===0&&ghost>0,'pooled '+on+', ghost meshes drawn '+ghost);
     invisLook(e,false);if(e.pcr)e.pcr.ck=0;shot();ok('uncloaked, it goes back to the pool (at the next recount, about a second)',e.pcr&&e.pcr.parts.some(p=>p.on),e.pcr&&e.pcr.parts.filter(p=>p.on).length);
-    const f=enemies.find(q=>q!==e&&q.pcr&&q.pcr.parts.some(p=>p.on&&p.o.material.emissive)),p=f.pcr.parts.find(p=>p.on&&p.o.material.emissive),m=p.o,mat=m.material,ei=mat.emissiveIntensity;mat.emissiveIntensity=ei+.5;mat.emissive.r+=.01;shot();
+    const f=enemies.find(q=>q!==e&&onS(q)&&q.pcr.parts.some(p=>p.on&&p.o.material.emissive)),p=f.pcr.parts.find(p=>p.on&&p.o.material.emissive),m=p.o,mat=m.material,ei=mat.emissiveIntensity;mat.emissiveIntensity=ei+.5;mat.emissive.r+=.01;shot();
     const T=PCR.texA,b=p.slot*36+24;ok('a material that animates is followed: the pool shows its new glow',p.on&&Math.abs(T[b+4]-mat.emissive.r*mat.emissiveIntensity)<1e-6,T[b+4]+' vs '+mat.emissive.r*mat.emissiveIntensity);
     mat.emissiveIntensity=ei;mat.emissive.r-=.01;const g=new THREE.MeshBasicMaterial({color:0xff0000,transparent:true,opacity:.5}),m0=m.material;m.material=g;shot();const fell=!p.on&&m.layers.mask!==0;m.material=m0;shot();
     ok('a piece given a see-through material draws itself, and goes back after',fell&&p.on,fell+' '+p.on);g.dispose();
