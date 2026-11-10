@@ -3030,3 +3030,98 @@ At M3 and M5 the same holds (deck +33 / +34, clouds +20 / +29, billows +68 / +55
 - a clean end.
 
 Two rows were adapted because they inspected removed layers: `tpx-test` (the wind sheet) and `tpeye-test` (the cloud bands, rain bands, cloud arms and curtains in the scene). The Tempest previews (`tempest-0..5.mp4`) are re-recorded.
+
+## Crowds at scale (v494)
+Late waves bring a hundred or more foes, most of them with elite gear. v494 makes them cheap to draw, with the same picture and the same fights. The code is one module just before the Performance (v446) block. `PCR.on` is true; setting `window.__pcrOff=1` before the page loads turns all of it off.
+
+### What was measured
+`tools/bench/bench.js crowd` is wave 140 with 160 foes at x40 HP, 20 towers and the hero.
+- It drew about 1205 calls a frame, and 2228 at worst. The foes took about 4 calls each:
+  - each foe's body and its four limbs were separate meshes;
+  - each foe had its own shadow blob;
+  - elite gear drew piece by piece, and every elite marker drew twice (the ring and its glow);
+  - every hit and kill threw shards, one mesh and one call per shard.
+- The game's own JS (`--norender` CPU profile) was spread thin:
+  - the heaviest parts were `moveEnemy` (about 20 wrappers per foe), `towerUpdate`/`inRange`, and building a foe at spawn;
+  - the spikes (p99) are elite gear built at spawn, mostly the Splitting seam ray casts, the regrowth recipes and armour fitting, the first time a model meets a modifier.
+
+### What changed
+1. **The pool.** Every opaque Phong or MeshBasic part of every foe is copied once, in its own space, into one vertex pool per kind: flat or smooth shading, receiving shadows or not.
+   - The body, limbs, plates, rivets, ribbons and gems all go in.
+   - A float texture holds three things per part, written every frame: its model-view matrix, its world matrix, and its material (colour, glow, shine, opacity).
+   - The model-view matrix is computed on the CPU exactly as three.js computes a mesh's own. So every vertex lands on the same pixel as before.
+   - All foes together are one draw call per pool kind in use.
+   - The original meshes stay in the scene graph, with layer mask 0. Each part is checked every frame. A part that is hidden, removed, or given a material the pool cannot draw draws itself again: the Invisible cloak's ghost, see-through materials, shaders of its own.
+   - Material changes the pool can draw are followed.
+   - A foe is baked again when its meshes change: formation dressings and late gear, found by a recount about once a second.
+2. **See-through pieces** (shadow blobs, elite markers, marker glows) are batched into instanced meshes inside three.js's own sorted list.
+   - The list sort is wrapped, so everything else keeps its exact order.
+   - A piece joins a batch only where it passes nothing it overlaps on screen. So wherever two see-through things overlap, they still draw in the original order.
+   - If something new would be passed this frame, the frame draws every piece on its own.
+3. **Shards and sparkles** (`burst`, `sparkle`) are instances.
+   - They use the same random numbers in the same order and the same `fx` slots (so every cap on `fx.length` still counts them), with no closure per shard.
+4. **JS.**
+   - `inRange` is now one pass instead of a scan and three `.some`/`.filter` passes. It is installed only over exactly the known wrappers.
+   - The elite animations no longer run a `for...in` per foe per frame.
+
+### Before and after (bench.js, 450 steps, swiftshader)
+| scenario | build | draw calls avg | max | triangles | render ms | game JS ms | p95 | p99 | heap max MB | shaders compiled in run |
+|---|---|---|---|---|---|---|---|---|---|---|
+| late | before | 1148 | 2143 | 521k | 788 | 4.45 | 10.2 | 15 | 60.5 | 10 |
+| late | v494 | 844 | 1163 | 576k | 714 | 4.47 | 9.4 | 15.5 | 74.9 | 11 |
+| spells | before | 1584 | 3379 | 548k | 1436 | 7.27 | 15.2 | 22.3 | 68.7 | 40 |
+| spells | v494 | 1265 | 2306 | 630k | 2067 | 13.10 | 13.1 | 24.1 | 86.1 | 41 |
+| crowd | before | 1455 | 2251 | 570k | 1392 | 5.58 | 10.6 | 18.3 | 62.9 | 11 |
+| crowd | v494 | 844 | 1097 | 575k | 695 | 4.59 | 9.6 | 16.7 | 80 | 9 |
+
+How to read the table:
+- Draw calls add up every pass of a step, shadows included (bench at 6882dff).
+- "Foe meshes on layer 0" counts meshes left on the camera's layer, before batching. With v494 these are the shadow blobs and markers, which stay in the scene and are batched in the list, plus the pieces that draw themselves.
+- Render time under swiftshader is mostly fill. Single shader compiles can stall for seconds; the spells average is dominated by one such stall, which happened in both builds.
+- Triangles: back to about the baseline. Foes off screen are left out of the draw (their bounding sphere is tested against the camera each render), and so are emptied ranges.
+- Memory: the pool keeps only its live data plus a margin.
+  - The pool that neither receives shadows nor shades smoothly drops normals and joins repeated corners, about a fifth of the vertices.
+  - No per-geometry copy is kept, except the joined corners of shared model parts.
+  - Pools are rewritten packed when more than a quarter is gaps or the capacity is twice what is live (checked every 120 renders).
+- A 30-wave run (waves 91-120, 20 towers, a render every 60 steps):
+  - JS heap after a GC: 66.9 MB before, 84.6 MB with v494 (+17.7 MB). Heap peak: 104 MB before, 132 MB with v494, the difference mostly uncollected garbage.
+  - renderer.info.memory: 2065 geometries and 18 textures before; 1786 geometries and 19 textures with v494 (the matrix texture).
+  - 789 calls and 355k triangles a render before; 529 calls and 380k triangles with v494.
+- Particles: `emit` reuses spent particles (a small, commented edit to the base `emit` and `psStep`), with the same values and the same rnd() order. In a crowd fight, 1449 of 1734 emitted particles reused an object; the rest warmed the pool.
+
+Controlled measurements in `tests/pcr-test.js`:
+- A 12-second wave-140 fight: 0.47-0.57 draw calls a foe (before: about 3.5, from the breakdown).
+- A packed all-elite crowd: 2.7 against 8.3 a foe.
+- Pixel differences between pooled and single meshes, per land, under 0.02% of the frame.
+- The visual review sheets (`sheets/perf-crowd`) differ by 0 to 21 pixels of 1,024,000 per land.
+
+The game's own JS barely changed:
+- `inRange` saves about 5% of `towerUpdate`.
+- Baking adds about 0.1 ms per step at spawn time.
+- The p99 spikes come from building elite gear at spawn, in the v479-v485 modules: the Splitting seam rays, the regrowth recipes and the armour fitting. They are left as they were (the target of p99 under 4 ms is not reached). Making those builders faster without changing what they build, and their random draws, is the next step.
+
+Particles are one draw per system (PSA, PSN, SMK, SMKA), and `emit`/`psStep` reuse particle objects (see above); `emitS` (smoke) is unchanged.
+
+### Tests and proof
+`tests/pcr-test.js` checks:
+- **Draw calls:**
+  - a 12-second wave-140 fight costs under 1.2 calls per foe;
+  - a packed all-elite crowd costs under half the calls of single meshes.
+- **The same picture:** each land is rendered pooled and then with every foe given back its own meshes, and almost no pixel changes.
+- **Cloaks:**
+  - cloaked foes draw themselves;
+  - an uncloaked foe goes back to the pool.
+- **Materials:**
+  - animated glows are followed;
+  - a see-through swap falls back and comes back.
+- **Afterimage clones** are fully visible.
+- **Cleanup:**
+  - pools, batches and slots don't grow over five crowds in and out;
+  - no records are left behind.
+- **No growth over 400 frames.**
+- **The same fight:** one seeded fight is played in two hidden copies of the game, with v494 off and on, and gives the same kills, gold, damage, foe health and positions.
+  - The seed covers the game's `rnd()`.
+  - three.js ids and cosmetic `Math.random()` calls get their own streams.
+  - This is needed because new three.js objects draw ids from `Math.random`, and the Regenerating look picks its sprout layout from a geometry's uuid. Both are random in every real session anyway.
+
+Visual review sheets are on the branch `sheets/perf-crowd`.

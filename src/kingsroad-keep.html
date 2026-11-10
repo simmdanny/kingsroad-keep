@@ -3375,14 +3375,15 @@ function mkPS(max,blend){const geo=new THREE.BufferGeometry(),pos=new Float32Arr
   geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('rgba',new THREE.BufferAttribute(rgba,4));geo.setAttribute('size',new THREE.BufferAttribute(size,1));geo.setAttribute('seed',new THREE.BufferAttribute(seed,1));geo.setDrawRange(0,0);
   const mat=new THREE.ShaderMaterial({uniforms:{uScale:{value:500}},vertexShader:PVS,fragmentShader:PFS,transparent:true,depthWrite:false,blending:blend});
   const pts=new THREE.Points(geo,mat);pts.frustumCulled=false;pts.renderOrder=blend===THREE.AdditiveBlending?10:9;scene.add(pts);return{geo,pos,rgba,size,seed,mat,max,list:[]};}
-const PSA=mkPS(2600,THREE.AdditiveBlending),PSN=mkPS(1800,THREE.NormalBlending);
+const PSA=mkPS(2600,THREE.AdditiveBlending),PSN=mkPS(1800,THREE.NormalBlending);PSA.pool=[];PSN.pool=[];/* v494: spent particles kept for reuse */
 const hexRGB=c=>[(c>>16&255)/255,(c>>8&255)/255,(c&255)/255];
-function emit(addv,o){const S=addv?PSA:PSN;if(S.list.length>=S.max)return;const c0=hexRGB(o.c==null?0xffffff:o.c);
-  S.list.push({x:o.x,y:o.y,z:o.z,vx:o.vx||0,vy:o.vy||0,vz:o.vz||0,life:o.life||1,max:o.life||1,s0:o.s||.1,s1:o.s2!=null?o.s2:(o.s||.1)*.2,c0,c1:o.c2!=null?hexRGB(o.c2):c0,a0:o.a!=null?o.a:1,a1:o.a2!=null?o.a2:0,g:o.g||0,drag:o.drag||0,turb:o.turb||0,ph:rnd()*6.28,seed:rnd(),free:!!o.free});}
+function emit(addv,o){const S=addv?PSA:PSN;if(S.list.length>=S.max)return;/* v494: a spent particle is reused (S.pool, filled by psStep): the same values, the same rnd() order, no allocation */
+  const q=S.pool,p=q&&q.length?q.pop():{c0:[0,0,0],c1:[0,0,0]},c=o.c==null?0xffffff:o.c,c2=o.c2!=null?o.c2:c;p.x=o.x;p.y=o.y;p.z=o.z;p.vx=o.vx||0;p.vy=o.vy||0;p.vz=o.vz||0;p.life=o.life||1;p.max=o.life||1;p.s0=o.s||.1;p.s1=o.s2!=null?o.s2:(o.s||.1)*.2;
+  p.c0[0]=(c>>16&255)/255;p.c0[1]=(c>>8&255)/255;p.c0[2]=(c&255)/255;p.c1[0]=(c2>>16&255)/255;p.c1[1]=(c2>>8&255)/255;p.c1[2]=(c2&255)/255;p.a0=o.a!=null?o.a:1;p.a1=o.a2!=null?o.a2:0;p.g=o.g||0;p.drag=o.drag||0;p.turb=o.turb||0;p.ph=rnd()*6.28;p.seed=rnd();p.free=!!o.free;S.list.push(p);}
 function sprayP(addv,x,y,z,n,o){for(let i=0;i<n;i++){const a=rnd()*6.28,e=rnd()*2-1,q=Math.sqrt(1-e*e),v=(o.sp||1)*(.25+rnd()*.75),r=o.r||0;
   emit(addv,{x:x+(rnd()-.5)*r,y:y+(rnd()-.5)*(o.ry!=null?o.ry:r),z:z+(rnd()-.5)*r,vx:Math.cos(a)*v*q,vy:e*v*(o.flat?.3:1)+(o.up||0)*(.4+rnd()),vz:Math.sin(a)*v*q,
     life:(o.life||.8)*(.55+rnd()*.9),s:(o.s||.1)*(.55+rnd()*.9),s2:o.s2,c:o.c,c2:o.c2,a:o.a,a2:o.a2,g:o.g,drag:o.drag,turb:o.turb});}}
-function psStep(S,dt0){const L=S.list,cz=CHRONO.on||CIT.on;for(let i=L.length-1;i>=0;i--){L[i].life-=cz?dt0*chronoPF(L[i]):dt0;if(L[i].life<=0){L[i]=L[L.length-1];L.pop();}}
+function psStep(S,dt0){const L=S.list,cz=CHRONO.on||CIT.on;for(let i=L.length-1;i>=0;i--){L[i].life-=cz?dt0*chronoPF(L[i]):dt0;if(L[i].life<=0){const d=L[i];L[i]=L[L.length-1];L.pop();if(S.pool&&S.pool.length<S.max)S.pool.push(d);}}
   let n=0;for(const p of L){const k=1-p.life/p.max,dt=cz?dt0*chronoPF(p):dt0;
     if(p.turb){p.vx+=Math.sin(p.ph+p.y*3.1+k*7)*p.turb*dt*2;p.vz+=Math.cos(p.ph*1.3+p.x*2.7+k*6)*p.turb*dt*2;p.vy+=Math.sin(p.ph*.7+k*5)*p.turb*dt;}
     p.vy-=p.g*dt;if(p.drag){const f=Math.max(0,1-p.drag*dt);p.vx*=f;p.vy*=f;p.vz*=f;}
@@ -15291,6 +15292,9 @@ const CLOG=[
     'The game starts faster: the menu background and the tower and hero pictures no longer hold up the start.',
     'Long runs no longer slowly fill up memory: the falling stars of Eclipse of the Damned left their shapes behind on the graphics card after every cast (about a hundred each time), and anything else that did the same is now cleared too.',
     'The top bar, the spell and scroll buttons and the screen flashes only redraw when something on them changes.']},
+  {t:'Big crowds run smoother',d:'6 Nov',v:'v494',li:[
+    'Late waves with a hundred or more foes are much lighter to draw: all the foes\' bodies, limbs and elite gear are drawn together in one go, and their shadows, elite rings and the little shards from hits and kills are drawn in batches.',
+    'Everything looks and plays exactly as before: the same models, colours, animations, cloaks and glows, and the same fights.']},
   {t:'Smoother first casts',d:'6 Nov',v:'v493',li:[
     'The look of a spell is no longer rebuilt every time it is cast. Before, a spell\'s glow could make the game pause for a moment in the middle of a fight, again and again; now each look is prepared once and kept.',
     'The looks of the scrolls you have used are remembered by your browser and prepared quietly while you are in the menu, so even the first cast of a fight runs without that pause.',
@@ -37896,6 +37900,349 @@ function gqSetRow(o){const body=o&&o.querySelector('.np-body');if(!body||body.qu
 {const ae=acctEnter;acctEnter=function(m,run){const g=meta.gfx,ga=meta.gfxAuto;const r=ae.apply(this,arguments);meta.gfx=g;meta.gfxAuto=ga;saveMeta();gqApply();updGfxBtn();return r;};}
 /* start: Auto resumes at the level it last settled on, on this device */
 GQ.auto=Math.max(0,Math.min(GQ.L.length-1,Math.round(+meta.gfxAuto)||0));gqApply();
+/* ================= Crowds at scale (v494): foes, elite markers, shadow blobs and hit shards in a few draws =================
+   Simon: "a very very big optimalization update". Measured with tools/bench/bench.js crowd (wave 140, 160 foes at x40 HP, 20 towers, the hero):
+   about 1205 draw calls a frame (2228 at worst), the foes about 4 a foe: every foe drew its body and four limbs (one vertex-coloured mesh each),
+   its shadow blob, its elite gear piece by piece, and each elite marker twice (the ring and its glow); every hit and kill threw shards, one draw each.
+   What this does (PCR.on; window.__pcrOff=1 before load turns it all off). Nothing here calls rnd(): a seeded fight plays out exactly as before.
+   1) The pool. After a foe is built (the outermost spawnEnemy wrapper; formation members again after their dressing, and any foe whose meshes
+      change, at a recount about once a second), each opaque Phong or MeshBasic part (body, limbs, plates, rivets, ribbons, gems...) is copied
+      once, in its own space, into a vertex pool shared by all foes (one per kind: flat or smooth, receiving shadows or not). Each part has a slot
+      in a float texture: its model-view matrix (computed exactly as three.js computes a mesh's own, so every vertex lands on the same pixel), its
+      world matrix (shadows) and its material's colour, glow, shine and opacity, all written every frame. So all the foes' parts are one draw per pool.
+      Double-sided parts get their back faces as reversed triangles (flat shading lights both sides the same). The original meshes stay in the
+      scene graph, hidden from the camera (layer mask 0); every frame each part is checked: if it is hidden or removed, or its material no longer
+      fits the pool (the Invisible cloak's ghost, see-through, a shader of its own), its slot is emptied and the original draws itself, as before.
+      Material changes that do fit (regeneration pulses, a glow fading) are followed in the slot. Clones of a body (afterimages) get their layers back.
+      Memory and triangles: a foe off screen (its bounding sphere against the camera) is left out of the draw, and so are emptied ranges; the
+      unshadowed flat pool joins repeated corners (it reads no normals); pools are rewritten packed when a quarter is gaps or they hold twice
+      what is live. Nothing else is cached but the joined corners of shared model parts.
+   2) The see-through pieces every foe or elite has: shadow blobs, elite markers and their glows. They stay in the scene as they are. three.js's
+      sorted list of see-through things is then rebuilt (its sort is wrapped): each piece joins the earliest batch of its shape that comes after the
+      last thing it overlaps on screen, so wherever two things overlap they draw in the original order; each batch is one instanced mesh with each
+      instance's own matrix, colour, glow and opacity. The batches are planned before the frame (with last frame's other see-through things) and
+      checked against the real list; if anything new would be passed, that frame simply draws every piece on its own.
+   3) Shards and sparkles (burst, sparkle): the same pieces, the same random numbers in the same order, the same effect slots in fx, drawn as
+      instances (one draw for each shape).
+   4) The fight's JS: one pass for inRange (it was a scan plus three filters), the elite animations without a for-in per foe.
+   Measured (bench.js at 6882dff, 450 steps, all passes; the README section "Crowds at scale (v494)" has the full table):
+     crowd: 1455 -> 844 draw calls a step (max 2251 -> 1097), render 1392 -> 695 ms, triangles 570k -> 575k; late: 1148 -> 844 (max 2143 -> 1163);
+     spells: 1584 -> 1265 (max 3379 -> 2304). A 12-second wave-140 fight: 0.5 draw calls a foe (was about 3.5). 30 waves: heap after GC +17.7 MB.
+   ---- */
+const PCR={on:!window.__pcrOff,W:1024,H:8,recs:new Set(),mats:new Map(),pools:{},BK:{},rbF:0,cap:16,seq:[],srt:[],sq:[],bq:[],bat:[],ri:[],pf:[],prevF:[],open:[],ff:[],nff:0,ns:0,nb:0,shard:{},slotFree:[],slotHW:1,
+  tex:null,texA:null,mat:null,stat:{baked:0,parts:0,skipped:0,released:0,geoHit:0,geoMiss:0,grow:0},frame:0,fxF:0};
+const PCR_OBR=THREE.Object3D.prototype.onBeforeRender,PCR_OAR=THREE.Object3D.prototype.onAfterRender,PCR_CL=THREE.Object3D.prototype.clone;
+/* ---- shaders: three's own Phong and Basic programs, reading colour, glow, shine and opacity per vertex (or per instance); the pool variant
+   reads each part's world matrix from the texture ---- */
+function pcrShader(kind,pool){const L=THREE.ShaderLib[kind];let vs=L.vertexShader,fs=L.fragmentShader;
+  const rep=(s,a,b)=>{if(s.indexOf(a)<0)throw new Error('pcr shader: '+a);return s.replace(a,b);};
+  vs=rep(vs,'#include <common>','#include <common>\nvarying vec3 vPcrD;varying vec4 vPcrE;varying vec4 vPcrS;'+(pool?'varying float vPcrU;':'attribute vec3 pcrD;attribute vec4 pcrE;attribute vec4 pcrS;')+
+    (pool?'\nuniform sampler2D pcrT;uniform vec2 pcrTS;attribute float pcrI;\nvec4 pcrF(float t){float y=floor((t+.5)/pcrTS.x);float x=t-y*pcrTS.x;return texture2D(pcrT,(vec2(x,y)+.5)/pcrTS);}':''));
+  vs=rep(vs,'void main() {','void main() {'+(pool?'\n\tvec4 pcrR0=pcrF(pcrI*9.),pcrR1=pcrF(pcrI*9.+1.),pcrR2=pcrF(pcrI*9.+2.),pcrQ0=pcrF(pcrI*9.+3.),pcrQ1=pcrF(pcrI*9.+4.),pcrQ2=pcrF(pcrI*9.+5.),pcrK0=pcrF(pcrI*9.+6.),pcrK1=pcrF(pcrI*9.+7.),pcrK2=pcrF(pcrI*9.+8.);\n\tvPcrD=pcrK0.rgb;vPcrE=vec4(pcrK1.rgb,pcrK0.a);vPcrS=vec4(pcrK2.rgb,pcrK1.a);vPcrU=pcrK2.a;\n\tmat4 pcrMV=mat4(vec4(pcrR0.x,pcrR1.x,pcrR2.x,0.),vec4(pcrR0.y,pcrR1.y,pcrR2.y,0.),vec4(pcrR0.z,pcrR1.z,pcrR2.z,0.),vec4(pcrR0.w,pcrR1.w,pcrR2.w,1.));\n\tmat4 pcrMW=mat4(vec4(pcrQ0.x,pcrQ1.x,pcrQ2.x,0.),vec4(pcrQ0.y,pcrQ1.y,pcrQ2.y,0.),vec4(pcrQ0.z,pcrQ1.z,pcrQ2.z,0.),vec4(pcrQ0.w,pcrQ1.w,pcrQ2.w,1.));':'\n\tvPcrD=pcrD;vPcrE=pcrE;vPcrS=pcrS;'));
+  /* the pool: each part's slot holds its model-view matrix (computed on the CPU exactly as three.js computes a mesh's own, so every vertex
+     lands on the same pixel) and its world matrix (for the shadow lookup); the normal goes through the inverse transpose (from the cofactors) */
+  if(pool){vs=rep(vs,'#include <defaultnormal_vertex>','vec3 pcrC0=pcrMV[0].xyz,pcrC1=pcrMV[1].xyz,pcrC2=pcrMV[2].xyz,pcrX0=cross(pcrC1,pcrC2),pcrX1=cross(pcrC2,pcrC0),pcrX2=cross(pcrC0,pcrC1);\n\tvec3 transformedNormal=(dot(pcrC0,pcrX0)<0.?-1.:1.)*(mat3(pcrX0,pcrX1,pcrX2)*objectNormal);');
+    vs=rep(vs,'#include <project_vertex>','vec4 mvPosition=pcrMV*vec4(transformed,1.0);\n\tgl_Position=projectionMatrix*mvPosition;');
+    vs=rep(vs,'#include <worldpos_vertex>','vec4 worldPosition=pcrMW*vec4(transformed,1.0);');}
+  /* instances: instanceMatrix holds the model-view matrix itself, for the same reason */
+  else vs=rep(vs,'#include <project_vertex>','vec4 mvPosition=vec4(transformed,1.0);\n\t#ifdef USE_INSTANCING\n\tmvPosition=instanceMatrix*mvPosition;\n\t#else\n\tmvPosition=modelViewMatrix*mvPosition;\n\t#endif\n\tgl_Position=projectionMatrix*mvPosition;');
+  fs=rep(fs,'#include <common>','#include <common>\nvarying vec3 vPcrD;varying vec4 vPcrE;varying vec4 vPcrS;'+(pool?'varying float vPcrU;':''));
+  fs=rep(fs,'vec4 diffuseColor = vec4( diffuse, opacity );','vec4 diffuseColor = vec4( vPcrD, vPcrE.a );');
+  if(kind==='phong'){fs=rep(fs,'vec3 totalEmissiveRadiance = emissive;','vec3 totalEmissiveRadiance = vPcrE.rgb;');
+    const lp=rep(rep(THREE.ShaderChunk.lights_phong_fragment,'material.specularColor = specular;','material.specularColor = vPcrS.rgb;'),'material.specularShininess = shininess;','material.specularShininess = vPcrS.a;');
+    fs=rep(fs,'#include <lights_phong_fragment>',lp);
+    /* an unlit (MeshBasic) part in the pool: exactly its colour, as MeshBasic draws it */
+    if(pool)fs=rep(fs,'#include <envmap_fragment>','#include <envmap_fragment>\n\tif(vPcrU>.5)outgoingLight=diffuseColor.rgb;');}
+  return{vs,fs};}
+function pcrMakeMat(kind,pool,p,vc,smooth){const S=pcrShader(kind,pool),U=THREE.UniformsUtils.clone(THREE.ShaderLib[kind].uniforms);if(pool){U.pcrT={value:null};U.pcrTS={value:new THREE.Vector2(1,1)};}
+  const m=new THREE.ShaderMaterial(Object.assign({uniforms:U,vertexShader:S.vs,fragmentShader:S.fs,lights:kind==='phong',fog:true},p||{}));
+  m.flatShading=kind==='phong'&&!smooth;m.vertexColors=!!vc;m.extensions.derivatives=true;m.userData.pcr=1;return m;}
+/* ---- which parts go in the pool: opaque, flat-shaded MeshPhong with nothing a vertex colour cannot say (no textures, no shader of its own) ---- */
+/* a material's class for the pool: 'F' flat Phong, 'S' smooth Phong (front faces only), 'B' unlit MeshBasic; 'v' added when it reads vertex colours;
+   null when the pool cannot draw it exactly (see-through, textures, a shader of its own...) */
+function pcrMatK(m){if(!m||Array.isArray(m)||m.transparent||m.blending!==THREE.NormalBlending||!m.visible||!m.depthTest||!m.depthWrite||!m.colorWrite||m.wireframe||m.map||m.alphaMap||m.lightMap||m.aoMap||m.envMap||
+    m.specularMap||m.polygonOffset||m.alphaTest>0||m.fog===false||(m.clippingPlanes&&m.clippingPlanes.length)||m.stencilWrite||m.dithering||m.toneMapped===false||m.morphTargets||m.skinning||
+    Object.prototype.hasOwnProperty.call(m,'onBeforeCompile')||Object.prototype.hasOwnProperty.call(m,'customProgramCacheKey')||(m.defines&&Object.keys(m.defines).length)||(m.side!==THREE.FrontSide&&m.side!==THREE.DoubleSide))return null;
+  let k=null;if(m.type==='MeshPhongMaterial'){if(m.emissiveMap||m.bumpMap||m.normalMap||m.displacementMap)return null;k=m.flatShading?'F':m.side===THREE.FrontSide?'S':null;}else if(m.type==='MeshBasicMaterial')k='B';
+  return k&&k+(m.vertexColors?'v':'')+(m.side===THREE.DoubleSide?'d':'');}
+const pcrMatOk=m=>!!pcrMatK(m);
+function pcrGeoOk(g){if(!g||!g.isBufferGeometry)return false;const p=g.attributes.position;if(!p||p.itemSize!==3||p.count<3)return false;if(g.morphAttributes&&Object.keys(g.morphAttributes).length)return false;
+  if(g.drawRange.start!==0||g.drawRange.count!==Infinity)return false;/* (groups only matter with an array of materials, which never comes here) */
+  const c=g.attributes.color;return !c||c.itemSize===3||c.itemSize===4;}
+function pcrPartOk(o){return o.isMesh&&!o.isInstancedMesh&&!o.isSkinnedMesh&&!o.castShadow&&o.onBeforeRender===PCR_OBR&&o.onAfterRender===PCR_OAR&&o.layers.mask===1&&!o.morphTargetInfluences&&
+  pcrMatOk(o.material)&&pcrGeoOk(o.geometry);}
+/* a material's look, to notice when something animates it (then its parts draw themselves again) */
+function pcrSnap(m,a){const e=m.emissive,s=m.specular,c=m.color;a=a||[];a.length=0;a.push(c?c.r:0,c?c.g:0,c?c.b:0,e?e.r:0,e?e.g:0,e?e.b:0,m.emissiveIntensity,s?s.r:0,s?s.g:0,s?s.b:0,m.shininess,m.opacity,m.type,m.side,m.vertexColors,
+  m.transparent,m.visible,m.flatShading,m.blending,m.depthTest,m.depthWrite,m.colorWrite,m.map,m.envMap,m.wireframe,m.emissiveMap,m.alphaTest,m.fog,m.polygonOffset,m.stencilWrite,m.lightMap,m.aoMap,m.alphaMap);return a;}
+const PCR_SN=[];
+/* every material a pooled part shows is checked once a render: if its look changed, its class is worked out again (a part whose material no
+   longer fits draws itself); materials no part has shown for a while are forgotten */
+function pcrMatReg(m){let r=PCR.mats.get(m);if(!r){r={s:pcrSnap(m),k:pcrMatK(m),f:PCR.frame,v:0};PCR.mats.set(m,r);}else r.f=PCR.frame;return r;}
+function pcrMatCheck(){for(const [m,r] of PCR.mats){if(PCR.frame-r.f>600){PCR.mats.delete(m);continue;}const n=pcrSnap(m,PCR_SN),s=r.s;for(let i=0;i<s.length;i++)if(n[i]!==s[i]){r.s=n.slice();r.k=pcrMatK(m);r.v++;break;}}}
+/* ---- the pools: positions, normals, vertex colours and the slot of each vertex, written straight from the part geometries (nothing else kept) ---- */
+const PCR_AT=[['position',3],['normal',3],['color',3],['pcrI',1]];
+function pcrPoolGeo(P,vcap,icap,keep){const G=new THREE.BufferGeometry(),old=P.A;P.A={};
+  for(const [k,s] of PCR_AT){if(k==='normal'&&P.weld)continue;const a=new Float32Array(vcap*s);if(old&&keep)a.set(old[k].array.subarray(0,P.vhw*s));const A=new THREE.BufferAttribute(a,s);A.setUsage(THREE.DynamicDrawUsage);P.A[k]=A;G.setAttribute(k,A);}
+  const ia=new Uint32Array(icap);if(P.I&&keep)ia.set(P.I.array.subarray(0,P.ihw));P.I=new THREE.BufferAttribute(ia,1);P.I.setUsage(THREE.DynamicDrawUsage);G.setIndex(P.I);G.setDrawRange(0,P.ihw);
+  G.boundingSphere=new THREE.Sphere(new THREE.Vector3(),1e6);if(P.geo)P.geo.dispose();P.geo=G;P.vcap=vcap;P.icap=icap;P.dv=[0,P.vhw];P.di=[0,P.ihw];P.full=true;if(P.mesh)P.mesh.geometry=G;PCR.stat.grow++;}
+function pcrPool(pk){let P=PCR.pools[pk];if(P)return P;const rs=pk&1,sm=!!(pk&2);P=PCR.pools[pk]={pk,rs,sm,weld:pk===0,vhw:0,ihw:0,vfree:[],ifree:[],A:null,I:null,geo:null,mesh:null,dv:[0,0],di:[0,0],full:true,segs:new Set(),gp:[]};
+  pcrPoolGeo(P,PCR_MINV,PCR_MINV*1.5|0);if(!PCR.mat){PCR.mat=pcrMakeMat('phong',true,{},true);PCR.matS=pcrMakeMat('phong',true,{},true,true);pcrTexMake(PCR.H);}
+  const me=new THREE.Mesh(P.geo,[sm?PCR.matS:PCR.mat]);me.receiveShadow=!!rs;me.castShadow=false;me.frustumCulled=false;me.matrixAutoUpdate=false;me.name='pcrFoes';me.userData.pcrPool=1;P.mesh=me;return P;}
+const PCR_MINV=65536;
+function pcrAlloc(P,list,hw,cap,n){for(let k=0;k<list.length;k++){const f=list[k];if(f[1]>=n){const s=f[0];if(f[1]===n)list.splice(k,1);else{f[0]+=n;f[1]-=n;}return s;}}
+  if(P[hw]+n>P[cap])return -1;const s=P[hw];P[hw]+=n;return s;}
+function pcrFree(P,list,hw,s,n){let k=0;while(k<list.length&&list[k][0]<s)k++;list.splice(k,0,[s,n]);
+  if(k+1<list.length&&list[k][0]+list[k][1]===list[k+1][0]){list[k][1]+=list[k+1][1];list.splice(k+1,1);}
+  if(k>0&&list[k-1][0]+list[k-1][1]===list[k][0]){list[k-1][1]+=list[k][1];list.splice(k,1);}
+  const L=list[list.length-1];if(L&&L[0]+L[1]===P[hw]){P[hw]=L[0];list.pop();}}
+const pcrDirty=(d,a,b)=>{if(a<d[0])d[0]=a;if(b>d[1])d[1]=b;};
+function pcrCopy3(D,v0,A,n){if(!A.isInterleavedBufferAttribute&&!A.normalized&&A.itemSize===3&&A.array.length>=n*3){D.set(A.array.subarray(0,n*3),v0*3);return;}
+  for(let i=0;i<n;i++){const q=(v0+i)*3;D[q]=A.getX(i);D[q+1]=A.getY(i);D[q+2]=A.getZ(i);}}
+/* a segment (a foe's parts in one pool) written at its place: vertices, the slot of each vertex, indices (double-sided parts twice, reversed) */
+function pcrWriteSeg(P,S){const A=P.A,pa=A.position.array,ca=A.color.array,pi=A.pcrI.array,ia=P.I.array;let v0=S.vs,i0=S.is;
+  if(P.weld){for(const p of S.parts){const d=pcrWeld(p.geo,p.vc),n=d.n,c=d.ic,ix=d.idx;pa.set(d.pos,v0*3);if(d.col)ca.set(d.col,v0*3);else ca.fill(1,v0*3,(v0+n)*3);pi.fill(p.slot,v0,v0+n);
+      for(let k=0;k<c;k++)ia[i0+k]=ix[k]+v0;if(p.ds){for(let t=0;t+2<c;t+=3){ia[i0+c+t]=ia[i0+t];ia[i0+c+t+1]=ia[i0+t+2];ia[i0+c+t+2]=ia[i0+t+1];}i0+=c;}i0+=c;v0+=n;}
+    pcrDirty(P.dv,S.vs,S.vs+S.vn);pcrDirty(P.di,S.is,S.is+S.in);return;}
+  const na=A.normal.array;
+  for(const p of S.parts){const g=p.geo,Pp=g.attributes.position,n=Pp.count,N=g.attributes.normal&&g.attributes.normal.itemSize===3?g.attributes.normal:null,ix=g.index,c=ix?ix.count:n;
+    pcrCopy3(pa,v0,Pp,n);if(N)pcrCopy3(na,v0,N,n);else na.fill(0,v0*3,(v0+n)*3);if(p.vc)pcrCopy3(ca,v0,g.attributes.color,n);else ca.fill(1,v0*3,(v0+n)*3);pi.fill(p.slot,v0,v0+n);
+    if(ix){const xa=ix.array,plain=!ix.isInterleavedBufferAttribute;for(let k=0;k<c;k++)ia[i0+k]=(plain?xa[k]:ix.getX(k))+v0;}else for(let k=0;k<c;k++)ia[i0+k]=k+v0;
+    if(p.ds){for(let t=0;t+2<c;t+=3){ia[i0+c+t]=ia[i0+t];ia[i0+c+t+1]=ia[i0+t+2];ia[i0+c+t+2]=ia[i0+t+1];}i0+=c;}i0+=c;v0+=n;}
+  pcrDirty(P.dv,S.vs,S.vs+S.vn);pcrDirty(P.di,S.is,S.is+S.in);}
+/* the pool that neither receives shadows nor shades smoothly never reads normals: there a part's vertices that share position and colour
+   (the flat-shaded models repeat each corner for every face) are joined, same triangles, same pixels, about a third of the memory.
+   The joined data is kept for geometries met twice (the shared model parts), never for a foe's own gear */
+const PCR_WD=new WeakMap(),PCR_WS=new WeakSet();
+function pcrWeld(g,vc){const P=g.attributes.position,C=vc?g.attributes.color:null,ix=g.index;let d=PCR_WD.get(g);
+  if(d&&d.vc===vc&&d.pv===P.version&&d.cv===(C?C.version:-1)&&d.iv===(ix?ix.version:-1)&&d.N===P.count)return d;
+  const N=P.count,map=new Map(),rem=new Uint32Array(N),pos=[],col=C?[]:null;let n=0;
+  for(let i=0;i<N;i++){const x=P.getX(i),y=P.getY(i),z=P.getZ(i),r=C?C.getX(i):0,gg=C?C.getY(i):0,b=C?C.getZ(i):0,k=C?x+','+y+','+z+','+r+','+gg+','+b:x+','+y+','+z;
+    let j=map.get(k);if(j===undefined){j=n++;map.set(k,j);pos.push(x,y,z);if(col)col.push(r,gg,b);}rem[i]=j;}
+  const ic=ix?ix.count:N,idx=new Uint32Array(ic);for(let k=0;k<ic;k++)idx[k]=rem[ix?ix.getX(k):k];
+  d={n,N,ic,pos:new Float32Array(pos),col:col?new Float32Array(col):null,idx,vc,pv:P.version,cv:C?C.version:-1,iv:ix?ix.version:-1};
+  if(PCR_WS.has(g))PCR_WD.set(g,d);else PCR_WS.add(g);return d;}
+function pcrPlace(P,S){let vs=pcrAlloc(P,P.vfree,'vhw','vcap',S.vn),is=vs<0?-1:pcrAlloc(P,P.ifree,'ihw','icap',S.in);
+  if(vs<0||is<0){if(vs>=0)pcrFree(P,P.vfree,'vhw',vs,S.vn);pcrPoolGeo(P,Math.max(Math.ceil(P.vcap*1.5),P.vhw+S.vn),Math.max(Math.ceil(P.icap*1.5),P.ihw+S.in),true);
+    vs=pcrAlloc(P,P.vfree,'vhw','vcap',S.vn);is=pcrAlloc(P,P.ifree,'ihw','icap',S.in);}
+  S.vs=vs;S.is=is;pcrWriteSeg(P,S);P.segs.add(S);}
+/* when more than a quarter of a pool is gaps, or it holds twice what it needs, a frame with no foe baked (at most every 120 renders) rewrites the live segments packed together into
+   arrays sized to them, from their own geometries */
+function pcrCompact(P){let V=0,I=0;const L=[...P.segs].sort((a,b)=>a.is-b.is);for(const S of L){V+=S.vn;I+=S.in;}
+  P.vhw=0;P.ihw=0;P.vfree.length=0;P.ifree.length=0;pcrPoolGeo(P,Math.max(PCR_MINV,Math.ceil(V*1.25)),Math.max(PCR_MINV,Math.ceil(I*1.25)),false);
+  for(const S of L){S.vs=P.vhw;S.is=P.ihw;P.vhw+=S.vn;P.ihw+=S.in;pcrWriteSeg(P,S);}P.geo.setDrawRange(0,P.ihw);PCR.stat.compact=(PCR.stat.compact||0)+1;}
+/* ---- the matrix texture: three texels (rows of the world matrix) per part slot; slot 0 stays empty ---- */
+function pcrTexMake(H){const old=PCR.texA,a=new Float32Array(PCR.W*H*4);if(old)a.set(old.subarray(0,Math.min(old.length,a.length)));PCR.texA=a;
+  const t=new THREE.DataTexture(a,PCR.W,H,THREE.RGBAFormat,THREE.FloatType);t.magFilter=t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;t.flipY=false;t.needsUpdate=true;
+  if(PCR.tex)PCR.tex.dispose();PCR.tex=t;PCR.H=H;if(PCR.mat)for(const M of [PCR.mat,PCR.matS]){M.uniforms.pcrT.value=t;M.uniforms.pcrTS.value.set(PCR.W,H);}}
+function pcrSlot(){if(PCR.slotFree.length)return PCR.slotFree.pop();const s=PCR.slotHW++;if((s+1)*9>PCR.W*PCR.H)pcrTexMake(PCR.H*2);return s;}
+function pcrSlotZero(s){PCR.texA.fill(0,s*36,s*36+36);}
+/* a slot's material: colour and opacity, glow and shine, specular colour (three texels after the six matrix rows) */
+function pcrSlotMat(s,m,cls){const T=PCR.texA,b=s*36+24,k=m.emissiveIntensity,E=m.emissive,S=m.specular;T[b]=m.color.r;T[b+1]=m.color.g;T[b+2]=m.color.b;T[b+3]=m.opacity;
+  if(E){T[b+4]=E.r*k;T[b+5]=E.g*k;T[b+6]=E.b*k;}else T[b+4]=T[b+5]=T[b+6]=0;T[b+7]=S?Math.max(m.shininess,1e-4):1;if(S){T[b+8]=S.r;T[b+9]=S.g;T[b+10]=S.b;}else T[b+8]=T[b+9]=T[b+10]=0;T[b+11]=cls==='B'?1:0;}
+/* ---- baking a foe ---- */
+function pcrBake(e){if(!PCR.on||!e||!e.g||!e.b||e.pcr||!pcrReady())return;const by=[[],[],[],[]];let skip=0;
+  e.b.traverse(o=>{if(!o.isMesh)return;if(pcrPartOk(o))by[(o.receiveShadow?1:0)+(pcrMatK(o.material)[0]==='S'?2:0)].push(o);else skip++;});
+  const R={e,root:e.g,parts:[],segs:[],inst:[],nm:0,ck:PCR.frame+(PCR.stat.baked%60)};
+  for(let pk=0;pk<4;pk++){const list=by[pk];if(!list.length)continue;const P=pcrPool(pk);let V=0,I=0;
+    const parts=list.map(o=>{const s=pcrSlot(),k=pcrMatReg(o.material).k,g=o.geometry,n=g.attributes.position.count,ds=o.material.side===THREE.DoubleSide;pcrSlotMat(s,o.material,k[0]);
+      const p={o,k,geo:g,pv:g.attributes.position.version,slot:s,mask0:o.layers.mask,on:false,dead:false,m:null,r:null,mv:-1,vc:!!(o.material.vertexColors&&g.attributes.color),ds};
+      R.parts.push(p);V+=P.weld?pcrWeld(g,p.vc).n:n;I+=(g.index?g.index.count:n)*(ds?2:1);return p;});
+    const S={P,R,parts,vn:V,in:I,vs:0,is:0};pcrPlace(P,S);R.segs.push(S);}
+  /* a sphere round the whole foe (its parts as built, with room for swinging limbs and fluttering cloth), for the frustum test */
+  e.g.updateMatrixWorld(true);{const c=PCR_V.setFromMatrixPosition(e.g.matrixWorld),sp=new THREE.Sphere();let r=0;for(const p of R.parts){const g=p.geo;if(!g.boundingSphere)g.computeBoundingSphere();
+    sp.copy(g.boundingSphere).applyMatrix4(p.o.matrixWorld);r=Math.max(r,sp.center.distanceTo(c)+sp.radius);}R.rad=(r*1.5+.4)/Math.max(1e-6,e.g.matrixWorld.getMaxScaleOnAxis());}
+  PCR.bakeF=PCR.frame;
+  R.nm=pcrCountMeshes(e.g);pcrInstReg(R);if(!R.parts.length&&!R.inst.length)return;for(const q of R.inst)PCR_SRC.set(q.o,q);
+  e.pcr=R;PCR.recs.add(R);PCR.stat.baked++;PCR.stat.parts+=R.parts.length;PCR.stat.skipped+=skip;
+  /* a clone of the body (afterimages) must draw: give the copies their layers back */
+  for(const n of [e.b,e.g])if(!Object.prototype.hasOwnProperty.call(n,'clone'))n.clone=function(rec){const c=PCR_CL.call(this,rec);try{pcrUnmaskCopy(this,c);}catch(err){}return c;};}
+function pcrUnmaskCopy(a,b){if(!a||!b)return;if(PCR_MASK.has(a))b.layers.mask=PCR_MASK.get(a);const n=Math.min(a.children.length,b.children.length);for(let i=0;i<n;i++)pcrUnmaskCopy(a.children[i],b.children[i]);}
+const PCR_MASK=new WeakMap();
+function pcrCountMeshes(g,b){let n=0;g.traverse(o=>{if(o.isMesh)n+=PCR_MASK.has(o)||pcrPartOk(o)?1001:1;});return n;}
+/* gear put on after the spawn (formation dressings, a modifier added later): a foe is recounted about once a second and baked again if its
+   meshes changed */
+function pcrRebake(e){const R=e.pcr;if(R)pcrRelease(R);pcrBake(e);}
+function pcrHide(o,m0){if(o.layers.mask!==0){PCR_MASK.set(o,m0);o.layers.mask=0;}}
+function pcrShow(o,m0){if(o.layers.mask===0)o.layers.mask=m0;PCR_MASK.delete(o);}
+function pcrRelease(R){if(!R||!PCR.recs.has(R))return;PCR.recs.delete(R);PCR.stat.released++;
+  for(const p of R.parts){if(p.on&&!p.dead)pcrShow(p.o,p.mask0);p.on=false;pcrSlotZero(p.slot);PCR.slotFree.push(p.slot);}
+  for(const q of R.inst){q.f=-1;if(PCR_SRC.get(q.o)===q)PCR_SRC.delete(q.o);}
+  for(const s of R.segs){const P=s.P;P.segs.delete(s);P.I.array.fill(0,s.is,s.is+s.in);pcrDirty(P.di,s.is,s.is+s.in);pcrFree(P,P.vfree,'vhw',s.vs,s.vn);pcrFree(P,P.ifree,'ihw',s.is,s.in);}
+  if(R.e&&R.e.pcr===R)R.e.pcr=null;}
+/* ---- see-through pieces as instances: shadow blobs, elite markers and their glows ---- */
+function pcrInstReg(R){const e=R.e;for(const c of e.g.children)if(c.isMesh&&c.geometry===blobGeo&&c.material===blobMat&&c.layers.mask===1)R.inst.push({o:c,k:'blob',f:-1});
+  for(const a of [e.aura,e.aura2]){const u=a&&a.userData&&a.userData.mkx;if(!u||!a.isMesh||a.layers.mask!==1||a.parent!==e.g)continue;R.inst.push({o:a,k:'mk',f:-1,geo:a.geometry});
+    if(u.h&&u.h.isMesh&&u.h.layers.mask===1)R.inst.push({o:u.h,k:'mh',f:-1,geo:u.h.geometry});}}
+const pcrMkOk=m=>m&&m.type==='MeshPhongMaterial'&&m.transparent&&m.flatShading&&m.blending===THREE.NormalBlending&&m.depthWrite&&m.depthTest&&m.visible&&m.side===THREE.FrontSide&&!m.vertexColors&&!m.map&&!m.alphaMap&&!m.emissiveMap&&!m.envMap&&!m.wireframe&&m.fog!==false&&!(m.alphaTest>0)&&!Object.prototype.hasOwnProperty.call(m,'onBeforeCompile');
+const pcrMhOk=m=>m&&m.type==='MeshBasicMaterial'&&m.transparent&&m.blending===THREE.AdditiveBlending&&!m.depthWrite&&m.depthTest&&m.visible&&m.side===THREE.FrontSide&&m.vertexColors&&!m.map&&!m.alphaMap&&!m.envMap&&!m.wireframe&&m.fog!==false&&!(m.alphaTest>0)&&!Object.prototype.hasOwnProperty.call(m,'onBeforeCompile');
+/* buckets: a few instanced meshes per piece shape; the order-keeping batching in pcrRebatch decides how many draw each render */
+function pcrBK(key,geo,make,ro){let B=PCR.BK[key];if(!B)B=PCR.BK[key]={key,geo,mat:make(),ro,list:[],used:0};return B;}
+function pcrBKMesh(B){let I=B.list[B.used];if(!I){I={key:B.key,geo:B.geo,mat:B.mat,cap:0,n:0,mesh:null,ro:B.ro,attrs:null};pcrIMGrow(I,16);B.list.push(I);}B.used++;I.n=0;return I;}
+function pcrIMGrow(I,cap){const G=new THREE.BufferGeometry(),src=I.geo;for(const k in src.attributes)G.setAttribute(k,src.attributes[k]);if(src.index)G.setIndex(src.index);
+  const old=I.mesh;I.attrs={};for(const [k,s] of [['pcrD',3],['pcrE',4],['pcrS',4]]){const a=new THREE.InstancedBufferAttribute(new Float32Array(cap*s),s);a.setUsage(THREE.DynamicDrawUsage);I.attrs[k]=a;G.setAttribute(k,a);}
+  const me=new THREE.InstancedMesh(G,I.mat,cap);me.count=0;me.frustumCulled=false;me.instanceMatrix.setUsage(THREE.DynamicDrawUsage);me.renderOrder=I.ro;me.userData.pcrBucket=1;me.name='pcrInst:'+I.key;
+  if(old){if(old.parent)old.parent.remove(old);old.geometry.dispose();old.dispose&&old.dispose();}I.mesh=me;I.cap=cap;}
+function pcrIMPut(I,o,m){if(I.n>=I.cap){const n=I.n,oldM=I.mesh.instanceMatrix.array,oldA={};for(const k in I.attrs)oldA[k]=I.attrs[k].array;pcrIMGrow(I,I.cap*2);
+    I.mesh.instanceMatrix.array.set(oldM.subarray(0,n*16));for(const k in oldA)I.attrs[k].array.set(oldA[k].subarray(0,n*I.attrs[k].itemSize));}
+  const i=I.n++;PCR_MV.multiplyMatrices(PCR_VI,o.matrixWorld);I.mesh.instanceMatrix.array.set(PCR_MV.elements,i*16);
+  if(m&&I.attrs.pcrD){const D=I.attrs.pcrD.array,E=I.attrs.pcrE.array,S=I.attrs.pcrS.array,c=m.color;D[i*3]=c.r;D[i*3+1]=c.g;D[i*3+2]=c.b;
+    if(m.emissive){const k=m.emissiveIntensity,e=m.emissive;E[i*4]=e.r*k;E[i*4+1]=e.g*k;E[i*4+2]=e.b*k;S[i*4]=m.specular.r;S[i*4+1]=m.specular.g;S[i*4+2]=m.specular.b;S[i*4+3]=Math.max(m.shininess,1e-4);}
+    else{E[i*4]=E[i*4+1]=E[i*4+2]=0;}E[i*4+3]=m.opacity;}}
+const PCR_MKMAT=()=>pcrMakeMat('phong',false,{transparent:true,depthWrite:true},false),PCR_MHMAT=()=>pcrMakeMat('basic',false,{transparent:true,blending:THREE.AdditiveBlending,depthWrite:false},true);
+/* the shadow blobs keep their stencil (overlapping blobs darken the ground once) */
+function pcrBlobMat(){const b=blobMat,m=pcrMakeMat('basic',false,{transparent:true,depthWrite:b.depthWrite,depthTest:b.depthTest,side:b.side,blending:b.blending},false);
+  for(const k of ['stencilWrite','stencilWriteMask','stencilFunc','stencilRef','stencilFuncMask','stencilFail','stencilZFail','stencilZPass'])m[k]=b[k];return m;}
+/* ---- shards and sparkles ---- */
+const PCR_FXO=new THREE.Object3D(),PCR_M4=new THREE.Matrix4(),PCR_V=new THREE.Vector3(),PCR_Q=new THREE.Quaternion(),PCR_E=new THREE.Euler(),PCR_SV=new THREE.Vector3();
+function pcrShardOk(m){return !!m&&m.type==='MeshPhongMaterial'&&!m.transparent&&m.flatShading&&m.blending===THREE.NormalBlending&&m.visible&&m.depthTest&&m.depthWrite&&m.side===THREE.FrontSide&&!m.vertexColors&&
+  !m.map&&!m.alphaMap&&!m.emissiveMap&&!m.specularMap&&!m.envMap&&!m.wireframe&&m.fog!==false&&!(m.alphaTest>0)&&!Object.prototype.hasOwnProperty.call(m,'onBeforeCompile');}
+function pcrShardSys(geo){let S=PCR.shard[geo.id];if(S)return S;S=PCR.shard[geo.id]={geo,list:[],I:{key:'sh'+geo.id,geo,mat:PCR.shMat||(PCR.shMat=pcrMakeMat('phong',false,{},false)),cap:0,n:0,mesh:null,ro:0,attrs:null}};pcrIMGrow(S.I,64);return S;}
+function pcrShardAdd(geo,mat,x,y,z,rx,ry){const S=pcrShardSys(geo),f={o:PCR_FXO,life:0,max:0,fn:null,pcrS:S,px:x,py:y,pz:z,q:new THREE.Quaternion().setFromEuler(PCR_E.set(rx,ry,0)),s:1,mat,vx:0,vy:0,vz:0,stamp:PCR.fxF,live:true};S.list.push(f);return f;}
+function pcrShardEnd(f){if(!f.live)return;f.live=false;const L=f.pcrS.list,i=L.indexOf(f);if(i>=0){L[i]=L[L.length-1];L.pop();}}
+function pcrBurstFn(e,dt){e.vy-=6*dt;e.px+=e.vx*dt;e.py+=e.vy*dt;e.pz+=e.vz*dt;if(e.py<.02){e.py=.02;e.vx*=.5;e.vy=0;e.vz*=.5;}e.s=Math.max(.05,e.life/e.max);e.stamp=PCR.fxF;if(e.life<=0)pcrShardEnd(e);}
+function pcrSparkFn(e,dt){e.py+=dt*.6;e.s=Math.max(.05,e.life/e.max);e.stamp=PCR.fxF;if(e.life<=0)pcrShardEnd(e);}
+const PCR_BURST0=burst,PCR_SPARK0=sparkle;
+burst=function(x,y,z,col,n){if(!PCR.on||!pcrReady())return PCR_BURST0.apply(this,arguments);
+  sprayP(1,x,y,z,n*2,{c:col,c2:col,sp:2.2,s:.06,s2:0,life:.5,g:3,drag:1});
+  for(let i=0;i<Math.ceil(n*.6)&&fx.length<260;i++){const geo=tet(.05),mat=M(col);
+    if(!pcrShardOk(mat)){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.rotation.set(rnd()*6,rnd()*6,0);scene.add(m);
+      const v=new THREE.Vector3((rnd()-.5)*2.2,rnd()*2.2+.6,(rnd()-.5)*2.2);fx.push({o:m,life:.55+rnd()*.3,max:.8,fn(e,dt){v.y-=6*dt;m.position.addScaledVector(v,dt);if(m.position.y<.02){m.position.y=.02;v.set(v.x*.5,0,v.z*.5);}m.scale.setScalar(Math.max(.05,e.life/e.max));}});continue;}
+    const rx=rnd()*6,ry=rnd()*6,f=pcrShardAdd(geo,mat,x,y,z,rx,ry);f.vx=(rnd()-.5)*2.2;f.vy=rnd()*2.2+.6;f.vz=(rnd()-.5)*2.2;f.life=.55+rnd()*.3;f.max=.8;f.fn=pcrBurstFn;fx.push(f);}};
+sparkle=function(x,y,z,col){if(!PCR.on||!pcrReady())return PCR_SPARK0.apply(this,arguments);if(fx.length>240)return;const geo=oct(.025),mat=M(col,{emissive:col,emissiveIntensity:1});
+  if(!pcrShardOk(mat))return PCR_SPARK0.apply(this,arguments);
+  const px=x+(rnd()-.5)*.2,pz=z+(rnd()-.5)*.2,f=pcrShardAdd(geo,mat,px,y,pz,0,0);f.life=.6;f.max=.6;f.fn=pcrSparkFn;fx.push(f);};
+/* effects dropped from fx without running out (clearWorld empties fx) stop being drawn */
+function pcrShardSweep(){for(const k in PCR.shard){const L=PCR.shard[k].list;for(let i=L.length-1;i>=0;i--){const f=L[i];if(f.stamp!==PCR.fxF){f.live=false;L[i]=L[L.length-1];L.pop();}}}}
+{const u0=updFx;updFx=function(dt){PCR.fxF++;const r=u0.apply(this,arguments);if(PCR.on)try{pcrShardSweep();}catch(err){console.error(err);}return r;};}
+/* ---- every render: check each baked part, write its matrix or give it back; fill the instances ---- */
+let PCR_OK=null;function pcrReady(){if(PCR_OK===null){try{PCR_OK=!!(renderer.capabilities.floatVertexTextures&&renderer.capabilities.maxVertexTextures>0);pcrShader('phong',true);pcrShader('basic',false);}catch(err){console.error(err);PCR_OK=false;}}return PCR_OK;}
+function pcrVis(o,root){for(let p=o;p!==root;p=p.parent){if(!p||!p.visible)return false;}return true;}
+function pcrRootIn(root){let p=root;while(p&&p!==scene){if(!p.visible)return 0;p=p.parent;}return p===scene?1:-1;}
+const PCR_FR=new THREE.Frustum(),PCR_SPH=new THREE.Sphere(),PCR_PM2=new THREE.Matrix4(),PCR_PM=new THREE.Matrix4(),PCR_PV=new THREE.Vector3(),PCR_MV=new THREE.Matrix4();let PCR_VI=null;
+const pcrRows=(T,b,e)=>{T[b]=e[0];T[b+1]=e[4];T[b+2]=e[8];T[b+3]=e[12];T[b+4]=e[1];T[b+5]=e[5];T[b+6]=e[9];T[b+7]=e[13];T[b+8]=e[2];T[b+9]=e[6];T[b+10]=e[10];T[b+11]=e[14];};
+function pcrPass(cam){PCR.frame++;const shards=pcrShardAny();
+  if(!PCR.recs.size&&!shards){for(const k in PCR.BK)for(const I of PCR.BK[k].list)I.mesh.visible=false;for(const k in PCR.shard)PCR.shard[k].I.mesh.visible=false;for(const k in PCR.pools)PCR.pools[k].mesh.visible=false;return;}
+  pcrMatCheck();const T=PCR.texA,VI=(cam||camera).matrixWorldInverse;PCR_VI=VI;PCR.cam=cam||camera;PCR_FR.setFromProjectionMatrix(PCR_PM2.multiplyMatrices(PCR.cam.projectionMatrix,VI));
+  for(const R of PCR.recs){const rin=pcrRootIn(R.root);if(rin<0){pcrRelease(R);continue;}
+    if(PCR.frame>=R.ck){R.ck=PCR.frame+60;if(pcrCountMeshes(R.root)!==R.nm){const e=R.e;PCR.stat.rebaked=(PCR.stat.rebaked||0)+1;pcrRebake(e);continue;}}
+    /* off screen: its slots are emptied and its range left out of the draw (its own meshes stay as they are; they would be culled too) */
+    {const me=R.root.matrixWorld.elements;PCR_SPH.center.set(me[12],me[13],me[14]);PCR_SPH.radius=R.rad*R.root.matrixWorld.getMaxScaleOnAxis();}
+    R.vis=rin===1&&PCR_FR.intersectsSphere(PCR_SPH);
+    if(rin===1&&!R.vis){for(const p of R.parts){if(p.r)p.r.f=PCR.frame;if(!p.dead)T.fill(0,p.slot*36,p.slot*36+24);}PCR.stat.culled=(PCR.stat.culled||0)+1;}else
+    for(const p of R.parts){if(p.dead)continue;const o=p.o;
+      if(o.layers.mask!==(p.on?0:p.mask0)){p.dead=true;p.on=false;PCR_MASK.delete(o);pcrSlotZero(p.slot);continue;}
+      const m=o.material;let r=p.r;if(p.m!==m){p.m=m;p.r=r=pcrMatReg(m);p.mv=-1;}else r.f=PCR.frame;
+      const ok=rin===1&&r.k===p.k&&o.geometry===p.geo&&o.geometry.attributes.position.version===p.pv&&pcrVis(o,R.root);
+      const b=p.slot*36;
+      if(ok){if(p.mv!==r.v){pcrSlotMat(p.slot,m,p.k[0]);p.mv=r.v;}PCR_M4.multiplyMatrices(VI,o.matrixWorld);pcrRows(T,b,PCR_M4.elements);pcrRows(T,b+12,o.matrixWorld.elements);
+        if(!p.on){pcrHide(o,p.mask0);p.on=true;}}
+      else{T.fill(0,b,b+24);if(p.on){pcrShow(o,p.mask0);p.on=false;}}}
+    for(const q of R.inst){const o=q.o,m=o.material;let B=null;
+      if(q.k==='blob'){if(o.material===blobMat&&o.geometry===blobGeo&&o.renderOrder===0)B=pcrBK('blob',blobGeo,pcrBlobMat,0);}
+      else if(q.k==='mk'){if(o.geometry===q.geo&&o.renderOrder===0&&pcrMkOk(m))B=pcrBK('mk'+q.geo.id,q.geo,PCR_MKMAT,0);}
+      else if(o.geometry===q.geo&&o.renderOrder===1&&pcrMhOk(m))B=pcrBK('mh'+q.geo.id,q.geo,PCR_MHMAT,1);
+      q.B=B;q.m=m;q.f=B?PCR.frame:-1;q.T=null;}}
+  pcrPlan(cam||camera);
+  /* shards */
+  for(const k in PCR.shard){const S=PCR.shard[k],I=S.I;I.n=0;for(const f of S.list){PCR_SV.set(f.s,f.s,f.s);PCR_V.set(f.px,f.py,f.pz);PCR_M4.compose(PCR_V,f.q,PCR_SV);PCR_FXO.matrixWorld.copy(PCR_M4);pcrIMPut(I,PCR_FXO,f.mat);}
+    const me=I.mesh;me.count=I.n;me.visible=I.n>0;if(I.n){if(me.parent!==scene)scene.add(me);me.instanceMatrix.needsUpdate=true;for(const a in I.attrs)I.attrs[a].needsUpdate=true;}}
+  /* pools: upload what changed, keep the meshes in the scene */
+  for(const k in PCR.pools){const P=PCR.pools[k];
+    if(PCR.frame-(P.cF||0)>120&&PCR.bakeF!==PCR.frame&&P.vcap>PCR_MINV){P.cF=PCR.frame;const li=pcrLiveI(P);if(P.ihw-li>P.ihw*.25||P.icap>li*2+PCR_MINV||P.vcap>pcrLiveV(P)*2+PCR_MINV)pcrCompact(P);}
+    const me=P.mesh;if(me.parent!==scene)scene.add(me);P.geo.setDrawRange(0,P.ihw);pcrGroups(P);me.visible=P.geo.groups.length>0&&!PCR.hush;
+    if(P.full){for(const a in P.A){P.A[a].updateRange.count=-1;P.A[a].needsUpdate=true;}P.I.updateRange.count=-1;P.I.needsUpdate=true;P.full=false;}
+    else{if(P.dv[1]>P.dv[0])for(const a in P.A){const A=P.A[a];A.updateRange.offset=P.dv[0]*A.itemSize;A.updateRange.count=(P.dv[1]-P.dv[0])*A.itemSize;A.needsUpdate=true;}
+      if(P.di[1]>P.di[0]){P.I.updateRange.offset=P.di[0];P.I.updateRange.count=P.di[1]-P.di[0];P.I.needsUpdate=true;}}
+    P.dv[0]=P.di[0]=1e15;P.dv[1]=P.di[1]=-1;}
+  if(PCR.tex)PCR.tex.needsUpdate=true;}
+/* order-keeping batching, done on three.js's own sorted list of see-through things (its sort is wrapped, so everything else keeps its exact
+   order): each shadow blob, marker or marker glow joins the earliest batch of its shape that comes after the last thing (ours or not) it overlaps
+   on screen; wherever two things overlap they still draw in the original order. Each batch is drawn as one instanced mesh. The pieces stay in the
+   scene as they were: if this does not run (or a piece's look does not fit), they draw themselves. */
+const pcrOv=(a,b)=>a.x0<=b.x1&&b.x0<=a.x1&&a.y0<=b.y1&&b.y0<=a.y1;
+function pcrRect(it,o,P){it.x0=it.y0=-1e9;it.x1=it.y1=1e9;const g=o.geometry;if(!g||!o.isMesh||o.isInstancedMesh||o.isSkinnedMesh)return;
+  if(!g.boundingBox)g.computeBoundingBox();const bb=g.boundingBox;if(!bb||bb.isEmpty())return;const me=o.matrixWorld.elements;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  for(let c=0;c<8;c++){const X=c&1?bb.max.x:bb.min.x,Y=c&2?bb.max.y:bb.min.y,Z=c&4?bb.max.z:bb.min.z,wx=me[0]*X+me[4]*Y+me[8]*Z+me[12],wy=me[1]*X+me[5]*Y+me[9]*Z+me[13],wz=me[2]*X+me[6]*Y+me[10]*Z+me[14];
+    const w=P[3]*wx+P[7]*wy+P[11]*wz+P[15];if(!(w>1e-4))return;const sx=(P[0]*wx+P[4]*wy+P[8]*wz+P[12])/w,sy=(P[1]*wx+P[5]*wy+P[9]*wz+P[13])/w;
+    if(sx<x0)x0=sx;if(sx>x1)x1=sx;if(sy<y0)y0=sy;if(sy>y1)y1=sy;}
+  it.x0=x0-1e-3;it.x1=x1+1e-3;it.y0=y0-1e-3;it.y1=y1+1e-3;}
+/* the plan, before three.js gathers the frame: our pieces and last frame's other see-through things, in three.js's order (render order, depth of
+   the object's centre, id); each piece joins the earliest batch of its shape after the last thing it overlaps on screen */
+const PCR_EV=new THREE.Vector3();
+function pcrEnt(o,go,ro,P){const e=PCR.seq[PCR.ns]||(PCR.seq[PCR.ns]={});PCR.ns++;PCR_EV.setFromMatrixPosition(o.matrixWorld).applyMatrix4(PCR_PM);e.z=PCR_EV.z;e.id=o.id;e.go=go;e.ro=ro;e.o=o;e.q=null;pcrRect(e,o,P);return e;}
+const pcrCmp=(a,b)=>a.go!==b.go?a.go-b.go:a.ro!==b.ro?a.ro-b.ro:a.z!==b.z?b.z-a.z:a.id-b.id;
+function pcrPlan(cam){for(const k in PCR.BK){const B=PCR.BK[k];B.used=0;B.nb=0;for(const I of B.list)I.mesh.count=0;}PCR.ns=0;PCR.stat.batches=0;
+  PCR_PM.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);const P=PCR_PM.elements;let mine=0;
+  for(const R of PCR.recs)for(const q of R.inst)if(q.f===PCR.frame&&pcrVis(q.o,scene)){const e=pcrEnt(q.o,0,q.o.renderOrder,P);e.q=q;mine++;}
+  if(!mine)return;
+  for(const f of PCR.prevF)if(f.o.parent)pcrEnt(f.o,f.go,f.ro,P);
+  const L=PCR.srt;L.length=PCR.ns;for(let i=0;i<PCR.ns;i++)L[i]=PCR.seq[i];L.sort(pcrCmp);
+  const BT=PCR.bat;let nb=0;const SQ=PCR.sq;let ns=0;
+  for(const e of L){if(!e.q){SQ[ns++]=e;continue;}
+    let j=-1;for(let i=ns-1;i>=0;i--){const f=SQ[i];if(f.go!==e.go||f.ro!==e.ro){j=i;break;}if(!pcrOv(f,e))continue;if(f.T){let hit=false;for(const t of f.T.items)if(pcrOv(t,e)){hit=true;break;}if(!hit)continue;}j=i;break;}
+    let k=-1;for(let i=Math.max(j,0);i<ns;i++){const f=SQ[i];if(f.T&&f.T.B===e.q.B&&f.go===e.go&&f.ro===e.ro){k=i;break;}}
+    if(k<0&&e.q.B.nb>=PCR.cap){e.q=null;SQ[ns++]=e;continue;}
+    let T;if(k<0){e.q.B.nb++;T=BT[nb]||(BT[nb]={items:[],x0:0,x1:0,y0:0,y1:0});nb++;T.items.length=0;T.B=e.q.B;T.first=e.q;T.x0=e.x0;T.x1=e.x1;T.y0=e.y0;T.y1=e.y1;
+      const f=PCR.bq[nb]||(PCR.bq[nb]={});f.T=T;f.go=e.go;f.ro=e.ro;f.x0=e.x0;f.x1=e.x1;f.y0=e.y0;f.y1=e.y1;SQ[ns++]=f;}
+    else{T=SQ[k].T;const f=SQ[k];if(e.x0<f.x0)f.x0=e.x0;if(e.x1>f.x1)f.x1=e.x1;if(e.y0<f.y0)f.y0=e.y0;if(e.y1>f.y1)f.y1=e.y1;}
+    T.items.push(e);e.q.T=T;}
+  for(let b=0;b<nb;b++){const T=BT[b],I=pcrBKMesh(T.B);for(const e of T.items)pcrIMPut(I,e.o,e.q.m);const me=I.mesh;T.I=I;T.n=I.n;me.count=0;me.instanceMatrix.needsUpdate=true;for(const a in I.attrs)I.attrs[a].needsUpdate=true;
+    if(me.parent!==scene)scene.add(me);me.visible=true;}
+  for(const k in PCR.BK){const B=PCR.BK[k];for(let i=B.used;i<B.list.length;i++)B.list[i].mesh.visible=false;}
+  PCR.stat.batches=nb;PCR.nb=nb;}
+/* after three.js sorts the frame: each batch takes the place of its first piece, the other pieces leave the list. Checked first: a piece that
+   moves up must not pass anything it overlaps; if one would (something new this frame), the frame draws every piece on its own, as before */
+function pcrRebatch(arr){const cam=PCR.cam;PCR.prevF.length=0;if(!cam)return;PCR_PM.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);const P=PCR_PM.elements;
+  let nf=0;for(const r of arr){const o=r.object;if(o.userData.pcrBucket||PCR_SRC.has(o))continue;const f=PCR.pf[nf]||(PCR.pf[nf]={});nf++;f.o=o;f.go=r.groupOrder;f.ro=r.renderOrder;PCR.prevF.push(f);}
+  if(!PCR.nb)return;
+  /* validate: foreign things met since each batch's first piece in the list */
+  let okAll=true;const open=PCR.open;open.length=0;PCR.nff=0;PCR.rbF++;
+  for(const r of arr){const o=r.object;if(o.userData.pcrBucket)continue;const q=PCR_SRC.get(o);
+    if(q&&q.T&&!r.group){const T=q.T;if(T.vf!==PCR.rbF){T.vf=PCR.rbF;T.fl=T.fl||[];T.fl.length=0;open.push(T);}
+      else{const e=pcrRectQ(q,P);for(const f of T.fl)if(pcrOv(f,e)){okAll=false;break;}}if(!okAll)break;continue;}
+    if(open.length){const f=PCR.ff[PCR.nff]||(PCR.ff[PCR.nff]={});PCR.nff++;pcrRect(f,o,P);for(const T of open)T.fl.push(f);}}
+  if(!okAll){PCR.stat.fallback=(PCR.stat.fallback||0)+1;return;}
+  /* rebuild: each batch where its first piece was, the other pieces out */
+  let w=0;PCR.rbF++;for(let i=0;i<arr.length;i++){const r=arr[i],o=r.object;if(o.userData.pcrBucket)continue;const q=PCR_SRC.get(o);
+    if(q&&q.T&&!r.group){const T=q.T;if(T.vf===PCR.rbF)continue;T.vf=PCR.rbF;T.I.mesh.count=T.n;arr[w++]=pcrRI(T,r);continue;}
+    arr[w++]=r;}
+  arr.length=w;PCR.stat.drawnBatches=w;}
+function pcrRectQ(q,P){const e=q.e||(q.e={});pcrRect(e,q.o,P);return e;}
+function pcrRI(T,r0){const me=T.I.mesh,ri=T.ri||(T.ri={});ri.id=me.id;ri.object=me;ri.geometry=me.geometry;ri.material=me.material;ri.program=null;ri.groupOrder=r0.groupOrder;ri.renderOrder=r0.renderOrder;ri.z=r0.z;ri.group=null;return ri;}
+const PCR_SRC=new WeakMap();
+function pcrLiveI(P){let n=0;for(const S of P.segs)n+=S.in;return n;}
+function pcrLiveV(P){let n=0;for(const S of P.segs)n+=S.vn;return n;}
+/* the draw: the index ranges of the foes on screen, neighbours joined (small gaps of emptied indices are drawn as nothing) */
+function pcrGroups(P){const L=P.sl||(P.sl=[]);L.length=0;for(const S of P.segs)if(S.R.vis)L.push(S);L.sort((a,b)=>a.is-b.is);const G=P.geo.groups;G.length=0;let g=null;
+  for(const S of L){if(g&&S.is-(g.start+g.count)<=768){g.count=S.is+S.in-g.start;continue;}g=P.gp[G.length]||(P.gp[G.length]={start:0,count:0,materialIndex:0});g.start=S.is;g.count=S.in;G.push(g);}
+  PCR.stat.groups=(PCR.stat.groups|0)+G.length;}
+function pcrShardAny(){for(const k in PCR.shard)if(PCR.shard[k].list.length)return true;return false;}
+{const ob=scene.onBeforeRender;scene.onBeforeRender=function(){if(ob&&ob!==PCR_OBR)ob.apply(this,arguments);PCR.cam=null;if(PCR.on&&PCR_OK)try{pcrPass(arguments[2]);pcrHook();}catch(err){console.error(err);}};}
+/* wrap the sort of the scene's render list (a list object three.js keeps per scene), once */
+function pcrHook(){const L=renderer.renderLists&&renderer.renderLists.get(scene,0);if(!L||L.pcrHooked)return;const s0=L.sort;L.pcrHooked=true;
+  L.sort=function(){const r=s0.apply(this,arguments);if(PCR.on&&PCR.cam&&!PCR.hush)try{pcrRebatch(this.transparent);}catch(err){console.error(err);}return r;};}
+{const se=spawnEnemy;spawnEnemy=function(){const n0=enemies.length,r=se.apply(this,arguments);if(PCR.on)for(let i=n0;i<enemies.length;i++)try{pcrBake(enemies[i]);}catch(err){console.error(err);}return r;};}
+{const sf=spawnFormation;spawnFormation=function(){const n0=enemies.length,r=sf.apply(this,arguments);if(PCR.on)for(let i=n0;i<enemies.length;i++){const e=enemies[i];if(e&&!e.dead)try{pcrRebake(e);}catch(err){console.error(err);}}return r;};}
+{const re=removeEnemy;removeEnemy=function(e){const r=re.apply(this,arguments);if(e&&e.pcr)try{pcrRelease(e.pcr);}catch(err){console.error(err);}return r;};}
+/* PCR.count(): draw calls the foes cost right now (renders twice: with and without the foes) */
+PCR.count=function(){const L=enemies.filter(e=>!e.dead&&e.g&&e.g.parent);renderer.render(scene,camera);const fb0=PCR.stat.fallback||0;renderer.render(scene,camera);const a=renderer.info.render.calls,fb=(PCR.stat.fallback||0)-fb0,nb=PCR.stat.batches;const vis=L.map(e=>e.g.visible);L.forEach(e=>e.g.visible=false);PCR.hush=true;
+  try{renderer.render(scene,camera);}finally{PCR.hush=false;}const b=renderer.info.render.calls;L.forEach((e,i)=>e.g.visible=vis[i]);renderer.render(scene,camera);return{foes:L.length,calls:a,without:b,perFoe:L.length?(a-b)/L.length:0,batches:nb,fallback:fb};};
+/* ---- the fight's JS ----
+   inRange (every tower, every frame) was the base scan plus three filters stacked by later modules (unseen Invisible foes for towers that
+   cannot see them, burrowed foes, Untargetable foes), each one a .some() and a .filter() over the list: one pass now, the same foes in the same
+   order. Installed only over exactly those three wrappers (pcrIRChain checks their source), so a later change to targeting keeps its own code. */
+const PCR_IR0=inRange,PCR_IRS=["function(t,s){const L=r0.apply(this,arguments);return L.some(e=>e.nmxUT>0)?L.filter(e=>!(e.nmxUT>0)):L;}"];
+function pcrInRange(t,s){const r2=s.range*s.range,o=[];let sees=0;
+  for(const e of enemies){if(e.dead)continue;if(e.fly&&!s.air)continue;const dx=e.x-t.x,dz=e.z-t.z;if(dx*dx+dz*dz>r2)continue;
+    if(e.invis&&!(e.revealT>0)){if(sees===0)sees=artSees(t)?1:-1;if(sees<0)continue;}if(e.burrow||e.nmxUT>0)continue;o.push(e);}
+  return o;}
+if(PCR.on&&PCR_IRS.some(x=>x.replace(/\s+/g,'')===String(inRange).replace(/\s+/g,'')))inRange=pcrInRange;
+/* the elite animations ran `for (k in ELA)` and `for (k in ELP)` for every elite every frame; the same functions in the same order from a list */
+const PCR_AEF0=animEliteFx;let PCR_ELA=null,PCR_ELN=0;
+function pcrAnimEliteFx(fx,t,dt,moving,e){if(!fx)return;if(!PCR_ELA||(++PCR_ELN&1023)===0){const a=Object.keys(ELA);if(!PCR_ELA||a.join()!==PCR_ELA.join())PCR_ELA=a;}
+  const K=PCR_ELA;for(let i=0;i<K.length;i++)ELA[K[i]](fx,t,dt,moving,e);}
+if(PCR.on)animEliteFx=pcrAnimEliteFx;
+/* ---- end of v494 crowds ---- */
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
