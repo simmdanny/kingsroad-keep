@@ -37446,7 +37446,7 @@ function pcrPlace(P,S){let vs=pcrAlloc(P,P.vfree,'vhw','vcap',S.vn),is=vs<0?-1:p
   if(vs<0||is<0){if(vs>=0)pcrFree(P,P.vfree,'vhw',vs,S.vn);pcrPoolGeo(P,Math.max(Math.ceil(P.vcap*1.5),P.vhw+S.vn),Math.max(Math.ceil(P.icap*1.5),P.ihw+S.in),true);
     vs=pcrAlloc(P,P.vfree,'vhw','vcap',S.vn);is=pcrAlloc(P,P.ifree,'ihw','icap',S.in);}
   S.vs=vs;S.is=is;pcrWriteSeg(P,S);P.segs.add(S);}
-/* when more than a quarter of a pool is gaps, or it holds twice what it needs, a quiet frame (no foe baked for half a second) rewrites the live segments packed together into
+/* when more than a quarter of a pool is gaps, or it holds twice what it needs, a frame with no foe baked (at most every 120 renders) rewrites the live segments packed together into
    arrays sized to them, from their own geometries */
 function pcrCompact(P){let V=0,I=0;const L=[...P.segs].sort((a,b)=>a.is-b.is);for(const S of L){V+=S.vn;I+=S.in;}
   P.vhw=0;P.ihw=0;P.vfree.length=0;P.ifree.length=0;pcrPoolGeo(P,Math.max(PCR_MINV,Math.ceil(V*1.25)),Math.max(PCR_MINV,Math.ceil(I*1.25)),false);
@@ -37569,7 +37569,7 @@ function pcrPass(cam){PCR.frame++;const shards=pcrShardAny();
     const me=I.mesh;me.count=I.n;me.visible=I.n>0;if(I.n){if(me.parent!==scene)scene.add(me);me.instanceMatrix.needsUpdate=true;for(const a in I.attrs)I.attrs[a].needsUpdate=true;}}
   /* pools: upload what changed, keep the meshes in the scene */
   for(const k in PCR.pools){const P=PCR.pools[k];
-    if(PCR.frame-PCR.bakeF>30&&P.vcap>PCR_MINV){const li=pcrLiveI(P);if(P.ihw-li>P.ihw*.25||P.icap>li*2+PCR_MINV||P.vcap>pcrLiveV(P)*2+PCR_MINV)pcrCompact(P);}
+    if(PCR.frame-(P.cF||0)>120&&PCR.bakeF!==PCR.frame&&P.vcap>PCR_MINV){P.cF=PCR.frame;const li=pcrLiveI(P);if(P.ihw-li>P.ihw*.25||P.icap>li*2+PCR_MINV||P.vcap>pcrLiveV(P)*2+PCR_MINV)pcrCompact(P);}
     const me=P.mesh;if(me.parent!==scene)scene.add(me);P.geo.setDrawRange(0,P.ihw);pcrGroups(P);me.visible=P.geo.groups.length>0&&!PCR.hush;
     if(P.full){for(const a in P.A){P.A[a].updateRange.count=-1;P.A[a].needsUpdate=true;}P.I.updateRange.count=-1;P.I.needsUpdate=true;P.full=false;}
     else{if(P.dv[1]>P.dv[0])for(const a in P.A){const A=P.A[a];A.updateRange.offset=P.dv[0]*A.itemSize;A.updateRange.count=(P.dv[1]-P.dv[0])*A.itemSize;A.needsUpdate=true;}
