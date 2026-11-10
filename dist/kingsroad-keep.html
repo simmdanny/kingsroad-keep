@@ -37597,8 +37597,17 @@ showOverlay('menu');updSpells();
 if(GAME.setAside)setTimeout(()=>toast('Your open-world run now belongs to Kingsgaard. It is safe: More > Kingsgaard transfer','big'),1500);
 requestAnimationFrame(frame);
 /* ---- What's new: shown once per notes version (per account), on the first open after an update ---- */
-const NOTES_V='masteries-4';
-const NOTES_HTML=`<h3>\u2726 Gold buildings learn by their gold</h3><ul>
+const NOTES_V='upd-47';
+const NOTES_HTML=`<h3>\u2726 Every mastery is open</h3><ul>
+<li>Masteries are open on every scroll now, Epic, Legendary, Mythic, Ancient and Secret too: cast any scroll in any game and it earns mastery XP, all the way to Mastery 5.</li></ul>
+<h3>\u2726 Elite foes, reworked</h3><ul>
+<li><b>Armoured</b> foes wear armour made for each of them, troops and bosses alike. <b>Swift</b> foes&rsquo; ribbons stream behind them like cloth. <b>Regenerating</b> foes come in five looks, and fire stops their healing for 2 seconds. <b>Shielded</b> bubbles ripple where they are hit and shatter like glass. Every elite stands on a small marker of its own.</li>
+<li>Three new modifiers: <b>Splitting</b> foes tear in two when they fall, <b>Blinking</b> foes hop forward along the road, and <b>Warded</b> foes resist the element that last hit them.</li></ul>
+<h3>\u2726 Five new formations</h3><ul>
+<li>The Peasant Mob, the Raven Murder, the Holy Procession, the Pike Phalanx and the Knight&rsquo;s Wedge march down the road, each with a trick of its own. The Bestiary has a Formations page with all nine.</li></ul>
+<h3>\u2726 Spells that look the part</h3><ul>
+<li>The Citadel of Orders is a golden clock-domain now, with crystal pillars and cuts that open into the void. The Primordial Tempest is a true hurricane, with storm clouds over its eye wall and smooth winds. The Crimson Storm set turns lightning black in a red glow.</li></ul>
+<h3>\u2726 Gold buildings learn by their gold</h3><ul>
 <li>The Gold Mine, the Windmill and the Merchant&rsquo;s Post now gain mastery by the gold they make: 1 XP for every 10 gold, from their income, their share of interest, the Merchant&rsquo;s bounty and their mastery payouts. The more a building earns, the faster it learns.</li></ul>
 <h3>\u2726 Six elemental heroes</h3><ul>
 <li>Six new spellcasters, each a master of one element: Sylvara (nature), Isolde (ice), Ignatia (fire), Corvin (dark), Vesper (lightning) and Seraphine (light). Their own element&rsquo;s scrolls deal 30% more and come back 10% sooner, and their bolts carry the element: burning, chilling, chaining, rooting, withering or flaring with light.</li></ul>
@@ -37608,7 +37617,6 @@ const NOTES_HTML=`<h3>\u2726 Gold buildings learn by their gold</h3><ul>
 <h3>\u2726 Scroll masteries reworked</h3><ul>
 <li><b>Common scrolls:</b> masteries reworked for Hexspark, Light Bolt, Basic Wither, Ember Bolt, Gravebind, Frost Shard, Static Spark, Cinder Scatter, Flame Lash, Thunderclap and Thorn Whip.</li>
 <li><b>Uncommon scrolls:</b> masteries reworked for Dark Pulse, Basic Beam, Grasping Shadows, Soul Lantern, Graveburst, Rime Bloom, Ball Lightning, Sunflare, Catch Flame, Wall of Fire and Bramble Patch.</li>
-<li><b>Uncommon and Rare masteries are open to everyone:</b> cast an Uncommon or Rare scroll in any game and it earns mastery XP, all the way to Mastery 5. Scrolls above Rare follow in a later update.</li>
 <li><b>Rare scrolls:</b> masteries reworked for Spatial Deflection, Riftfang, Piercing Verdict, Magma Geyser, Murder of Crows, Lightning Cloud, Ice Tomb, Fire Tornado, Frost Wolves and Entangling Roots.</li>
 <li><b>Lightning Cloud:</b> its storm cloud floats twice as high and is a little see-through, so you can see the road under it.</li></ul>`;
 function showNotes(force){if(!force&&meta.notesSeen===NOTES_V)return;let o=$('#notesPop');if(!o){o=document.createElement('div');o.id='notesPop';document.body.appendChild(o);}
