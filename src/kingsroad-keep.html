@@ -15280,6 +15280,9 @@ function nonBossCap(w){w=Math.max(1,Math.round(w||1));const k=arenaNow()+':'+w;l
    CLOG lists the updates newest first (title, date, versions, lines). More > Patch notes has a "See the full changelog" button,
    and so does the What's new popup. Add each new update at the top of CLOG. */
 const CLOG=[
+  {t:'The crowd\u2019s shaders are ready before the first fight',d:'11 Nov',v:'v497',li:[
+    'The new way foes are drawn together (v494) uses six shaders of its own. In the first game after updating, or whenever the browser forgets the shaders it stored, each one was built the first time a wave needed it, which could pause the game for a moment in the middle of a fight. They are now built ahead of time, in the menu\u2019s quiet moments, with the other shaders the game prepares there.',
+    'Looks and plays exactly as before.']},
   {t:'The Primordial Tempest turns like a tornado',d:'6 Nov',v:'v496',li:[
     'The Primordial Tempest\u2019s storm now turns counterclockwise, the way a tornado or a hurricane turns seen from above. Before, the great cloud deck over the board turned one way and the eye wall round your hero the other; now the whole storm, its arms, the eye wall, the storm clouds, the lightning racing round, the wind, the rain, the dust and the debris all wheel the same way, faster close to the eye.',
     'Its spiral arms trail behind the spin as real storm arms do: three broad, soft arms of storm cloud round a calm, clear eye, in place of the many thin streaks that crossed each other.',
@@ -38254,6 +38257,25 @@ function pcrAnimEliteFx(fx,t,dt,moving,e){if(!fx)return;if(!PCR_ELA||(++PCR_ELN&
   const K=PCR_ELA;for(let i=0;i<K.length;i++)ELA[K[i]](fx,t,dt,moving,e);}
 if(PCR.on)animEliteFx=pcrAnimEliteFx;
 /* ---- end of v494 crowds ---- */
+/* ================= v497 (upd-48): the crowd pool's shaders are built before the first fight =================
+   v494 draws foes with six shaders of its own: the pool (flat and smooth Phong) and the batches of markers, glows, shadow blobs and shards.
+   v493 keeps every program once built and warms the recipes it has seen in idle time, so from the second session on these cost nothing;
+   but in a first session (and whenever the browser's store is cleared) each was built the first time a wave needed it, in the middle of the
+   fight: the bench (late, first session) caught two to five such builds that upd-47 never had. They are v493 seeds now, built one per idle
+   slice in the menu like its others; the batched ones on an instanced mesh, as they are drawn. The materials are made, read and thrown away
+   (v493 pins the program, so the real material finds it built). */
+function pcrSeedRecipes(){const L=[];if(!PCR.on)return L;
+  const mk=[[()=>pcrMakeMat('phong',true,{},true),false],[()=>pcrMakeMat('phong',true,{},true,true),false],[PCR_MKMAT,true],[PCR_MHMAT,true],
+    [pcrBlobMat,true],[()=>pcrMakeMat('phong',false,{},false),true]];
+  for(const [f,inst] of mk){let m=null;try{m=f();const r=pshSer(m,{instancing:inst});if(r)L.push({h:'seed:pcr'+L.length+(inst?'i':''),seed:1,sig:'',r});}catch(e){}
+    finally{if(m)m.dispose();}}
+  return L;}
+{const s0=pshSeed;pshSeed=function(){return s0().concat(pcrSeedRecipes());};}
+{const w0=pshWarmSeed;pshWarmSeed=function(x){if(!(x&&x.r&&x.r.o&&x.r.o.i))return w0(x);const m=pshMake(x.r);if(!m)return true;
+  const ws=pshStage(pshSig()),ob=new THREE.InstancedMesh(pshGeo(false),m,1),b0=PSH.busy,n0=PSH.built;PSH.busy=true;
+  try{ws.add(ob);renderer.compile(ws,camera);}catch(e){}finally{PSH.busy=b0;ws.remove(ob);m.dispose();if(ob.dispose)ob.dispose();}
+  if(PSH.built>n0)PSH.warmed++;return true;};}
+/* ---- end of v497 ---- */
 /* ================= Performance (v446) =================
    Simon: "please now work on just optimalizations". Measured on a wave-150 board with ten towers (tests/perf-measure.js): the frame was
    97% rendering, and most of the draw calls were the scenery round the board, not the fight.
@@ -38519,8 +38541,16 @@ showOverlay('menu');updSpells();
 if(GAME.setAside)setTimeout(()=>toast('Your open-world run now belongs to Kingsgaard. It is safe: More > Kingsgaard transfer','big'),1500);
 requestAnimationFrame(frame);
 /* ---- What's new: shown once per notes version (per account), on the first open after an update ---- */
-const NOTES_V='upd-47';
-const NOTES_HTML=`<h3>\u2726 Every mastery is open</h3><ul>
+const NOTES_V='upd-48';
+const NOTES_HTML=`<h3>\u2726 A much lighter game</h3><ul>
+<li>The board, its scenery, the keep and your towers are drawn in a few big pieces, and the foes of a late-wave crowd are drawn together: a busy late wave now hands the graphics card about a quarter as many separate things to draw. Nothing looks or plays any different.</li>
+<li>A spell&rsquo;s look is prepared once and kept, and the looks of the scrolls you use are prepared quietly while you are in the menu, so big casts no longer pause the fight again and again. The crowd&rsquo;s own looks are ready before your very first fight.</li>
+<li>Long runs no longer slowly fill up memory, the game starts faster, and the top bar and the buttons only redraw when something on them changes.</li></ul>
+<h3>\u2726 A Graphics setting</h3><ul>
+<li>Under More (Settings on a computer): <b>Auto</b>, <b>High</b>, <b>Medium</b> or <b>Low</b>. High looks exactly as before. Auto, the default, lowers the resolution a little when your device falls behind and goes back up when there is room again. Medium and Low draw fewer pixels with softer shadows, and Low also drops the scenery&rsquo;s shadows round the board and a third of the particles.</li></ul>
+<h3>\u2726 The Primordial Tempest turns like a tornado</h3><ul>
+<li>The whole storm now wheels counterclockwise, the way a tornado turns seen from above, faster close to the eye, with three broad spiral arms trailing round a calm, clear eye. It is cleaner too: fewer layers, so the hurricane, its smooth inner wall, its storm clouds and the lightning read clearly. It strikes exactly as before.</li></ul>
+<h3>\u2726 Every mastery is open</h3><ul>
 <li>Masteries are open on every scroll now, Epic, Legendary, Mythic, Ancient and Secret too: cast any scroll in any game and it earns mastery XP, all the way to Mastery 5.</li></ul>
 <h3>\u2726 Elite foes, reworked</h3><ul>
 <li><b>Armoured</b> foes wear armour made for each of them, troops and bosses alike. <b>Swift</b> foes&rsquo; ribbons stream behind them like cloth. <b>Regenerating</b> foes come in five looks, and fire stops their healing for 2 seconds. <b>Shielded</b> bubbles ripple where they are hit and shatter like glass. Every elite stands on a small marker of its own.</li>
